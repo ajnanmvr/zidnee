@@ -1,7 +1,7 @@
-import cors from 'cors';
-import dotenv from 'dotenv';
-import express from 'express';
-import { LoginSchema } from '@repo/schema';
+import { LoginSchema } from "@repo/schema";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
 
 dotenv.config();
 
@@ -11,26 +11,26 @@ const port = Number(process.env.PORT ?? 3001);
 app.use(cors());
 app.use(express.json());
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
+app.get("/health", (_req, res) => {
+	res.json({ ok: true });
 });
 
-app.post('/login', (req, res) => {
-  const result = LoginSchema.safeParse(req.body);
+app.post("/login", (req, res) => {
+	const result = LoginSchema.safeParse(req.body);
 
-  if (!result.success) {
-    return res.status(400).json({
-      ok: false,
-      errors: result.error.flatten().fieldErrors,
-    });
-  }
+	if (!result.success) {
+		return res.status(400).json({
+			ok: false,
+			errors: result.error.flatten().fieldErrors,
+		});
+	}
 
-  return res.json({
-    ok: true,
-    message: `Welcome ${result.data.email}`,
-  });
+	return res.json({
+		ok: true,
+		message: `Welcome ${result.data.email}`,
+	});
 });
 
 app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+	console.log(`API listening on http://localhost:${port}`);
 });

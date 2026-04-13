@@ -1,24 +1,24 @@
 {
-  "name": "@repo/schema",
-  "version": "1.0.0",
-  "description": "Shared Zod schemas",
-  "type": "module",
-  "main": "./index.ts",
-  "types": "./index.ts",
-  "exports": {
-    ".": "./index.ts"
-  },
-  "scripts": {
-    "check-types": "tsc -p tsconfig.json --noEmit"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
-    "typescript": "^6.0.2"
-  },
-  "dependencies": {
-    "zod": "^4.3.6"
-  }
+	"name": "@repo/schema",
+	"version": "1.0.0",
+	"description": "Shared Zod schemas",
+	"type": "module",
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"exports": {
+		".": "./index.ts"
+	},
+	"scripts": {
+		"check-types": "tsc -p tsconfig.json --noEmit"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"typescript": "^6.0.2"
+	},
+	"dependencies": {
+		"zod": "^4.3.6"
+	}
 }
