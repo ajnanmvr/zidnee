@@ -1,0 +1,11 @@
+# Compiled output
+dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Local database dumps or temp files
+*.sql
+*.sqlite
