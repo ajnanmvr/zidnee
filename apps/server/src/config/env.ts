@@ -1,9 +1,13 @@
+import { EnvSchema } from "@repo/schema";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-export const env = {
-	PORT: process.env.PORT || "3001",
-	MONGO_URI: process.env.MONGO_URI as string,
-	JWT_SECRET: process.env.JWT_SECRET as string,
-};
+const parsed = EnvSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error("❌ Invalid env:", parsed.error);
+  process.exit(1);
+}
+
+export const env = parsed.data;
