@@ -5,16 +5,16 @@ import {
 	authMiddleware,
 	requirePermission,
 	requireRole,
-} from "../../src/middlewares/auth.middleware.js";
-import { createToken } from "../../src/modules/auth/auth.token.js";
+} from "@/middlewares/auth.middleware.js";
+import { createToken } from "@/modules/auth/auth.token.js";
 import {
 	PermissionService,
 	resetRbacStore,
-} from "../../src/modules/rbac/rbac.service.js";
+} from "@/modules/rbac/rbac.service.js";
 import {
 	AuthenticationError,
 	AuthorizationError,
-} from "../../src/utils/errors.util.js";
+} from "@/utils/errors.util.js";
 
 const createRequest = (value: Partial<Request>): Request => {
 	return value as Request;
@@ -22,6 +22,15 @@ const createRequest = (value: Partial<Request>): Request => {
 
 const createResponse = (): Response => {
 	return {} as Response;
+};
+
+const getFirstPermission = () => {
+	const permission = PermissionService.findAll()[0];
+	if (!permission) {
+		throw new Error("Expected at least one seeded permission");
+	}
+
+	return permission;
 };
 
 describe("auth middleware", () => {
@@ -61,7 +70,7 @@ describe("auth middleware", () => {
 	});
 
 	it("requirePermission allows valid permission", () => {
-		const permission = PermissionService.findAll()[0];
+		const permission = getFirstPermission();
 		const middleware = requirePermission({
 			resource: permission.resource,
 			action: permission.action,
@@ -85,7 +94,7 @@ describe("auth middleware", () => {
 	});
 
 	it("requirePermission blocks missing permission", () => {
-		const permission = PermissionService.findAll()[0];
+		const permission = getFirstPermission();
 		const middleware = requirePermission({
 			resource: permission.resource,
 			action: permission.action,

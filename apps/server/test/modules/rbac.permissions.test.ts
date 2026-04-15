@@ -6,7 +6,7 @@ import {
 	hasAnyPermission,
 	hasPermission,
 	mergePermissions,
-} from "../../src/modules/rbac/rbac.permissions.js";
+} from "@/modules/rbac/rbac.permissions.js";
 
 const readUsersPermission = {
 	id: randomUUID(),

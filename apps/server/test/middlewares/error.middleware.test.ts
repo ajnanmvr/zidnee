@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	asyncHandler,
 	errorMiddleware,
-} from "../../src/middlewares/error.middleware.js";
-import { AppError } from "../../src/utils/errors.util.js";
+} from "@/middlewares/error.middleware.js";
+import { AppError } from "@/utils/errors.util.js";
 
 const createRes = () => {
 	const res: any = {};

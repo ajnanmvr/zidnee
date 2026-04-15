@@ -1,7 +1,7 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import app from "../src/app.js";
-import { resetRbacStore } from "../src/modules/rbac/rbac.service.js";
+import app from "@/app.js";
+import { resetRbacStore } from "@/modules/rbac/rbac.service.js";
 
 describe("app routes", () => {
 	beforeEach(() => {

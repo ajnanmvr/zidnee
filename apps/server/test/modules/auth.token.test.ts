@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createToken, verifyToken } from "../../src/modules/auth/auth.token.js";
+import { createToken, verifyToken } from "@/modules/auth/auth.token.js";
 
 describe("auth token helpers", () => {
 	it("creates and verifies JWT tokens", () => {

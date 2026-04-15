@@ -6,7 +6,7 @@ import {
 	RoleService,
 	resetRbacStore,
 	UserService,
-} from "../../src/modules/rbac/rbac.service.js";
+} from "@/modules/rbac/rbac.service.js";
 
 describe("rbac service", () => {
 	beforeEach(() => {
