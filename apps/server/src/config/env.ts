@@ -6,8 +6,8 @@ dotenv.config();
 const parsed = EnvSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("❌ Invalid env:", parsed.error);
-  process.exit(1);
+	console.error("❌ Invalid env:", parsed.error);
+	process.exit(1);
 }
 
 export const env = parsed.data;

@@ -7,6 +7,9 @@
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
     "lint": "turbo run lint",
+    "fix": "biome check --write .",
+    "fix:api": "biome check --write apps/server",
+    "fix:web": "biome check --write apps/client",
     "format": "biome format --write .",
     "check-types": "turbo run check-types",
     "clean": "turbo clean && rm -rf node_modules"
