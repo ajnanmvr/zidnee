@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
 	getUserWithRelations,
 	PermissionService,
-	resetRbacStore,
 	RoleService,
+	resetRbacStore,
 	UserService,
 } from "../../src/modules/rbac/rbac.service.js";
 

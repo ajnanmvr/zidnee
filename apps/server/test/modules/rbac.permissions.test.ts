@@ -36,7 +36,9 @@ describe("rbac permission helpers", () => {
 	it("checks single, any, and all permissions", () => {
 		const permissions = [readUsersPermission, createUsersPermission] as any;
 
-		expect(hasPermission(permissions, { resource: "users", action: "read" })).toBe(true);
+		expect(
+			hasPermission(permissions, { resource: "users", action: "read" }),
+		).toBe(true);
 		expect(
 			hasAnyPermission(permissions, [
 				{ resource: "users", action: "delete" },
