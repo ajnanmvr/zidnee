@@ -1,4 +1,4 @@
-import { ValidationError } from "@/utils/index.js";
+import { ValidationError } from "../../utils/index.js";
 
 export const requireStringValue = (
 	value: unknown,

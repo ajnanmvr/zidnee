@@ -341,6 +341,13 @@ export const getUserWithRelations = (user: User): UserWithRelations => {
   };
 };
 
+export const resetRbacStore = (): void => {
+  users.clear();
+  roles.clear();
+  permissions.clear();
+  initializeDefaults();
+};
+
 initializeDefaults();
 
 export { permissions, roles, users };
