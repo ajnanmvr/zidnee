@@ -267,6 +267,33 @@ Output:
 
 Auth -> Lead -> FollowUp -> Note -> Student -> Counsellor
 
+## Documentation Maintenance Protocol
+
+When implementing or refactoring features, AI must keep project documents synchronized.
+
+Required updates after meaningful code changes:
+- Update this file when architecture rules, domain rules, or implementation conventions change.
+- Update module progress in docs/IMPLEMENTATION-STATUS.md when any module scope changes.
+- Update docs/PROJECT-STRUCTURE.md when folders, scripts, runtime behavior, or package responsibilities change.
+
+Definition of done for AI-generated feature work includes:
+- Code updated
+- Tests updated
+- Relevant documentation updated
+
+If a requested change conflicts with this system context, AI should follow this document and explicitly note the conflict.
+
+## Module Tracking Rule
+
+Module implementation status must be maintained module-by-module in docs/IMPLEMENTATION-STATUS.md using this structure:
+- Scope
+- Implemented
+- Missing
+- Test coverage status
+- Next actions
+
+Status values should be one of: Not Started, In Progress, Implemented, Harden Needed.
+
 ## Final Mental Model
 
 Lead = potential
