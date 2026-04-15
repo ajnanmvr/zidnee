@@ -1,0 +1,15 @@
+{
+	"$schema": "https://json.schemastore.org/tsconfig",
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"rootDir": "..",
+		"baseUrl": "../src",
+		"paths": {
+			"@/*": ["*"]
+		},
+		"types": ["node", "vitest/globals"]
+	},
+	"include": ["../src/**/*.ts", "./**/*.ts", "../vitest.config.ts"],
+	"exclude": ["../dist", "../node_modules"]
+}

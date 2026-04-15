@@ -21,7 +21,9 @@ zidnee/
 ├─ turbo.json
 ├─ biome.json
 ├─ README.md
-├─ PROJECT-STRUCTURE.md
+├─ docs/
+│  ├─ PROJECT-STRUCTURE.md
+│  └─ IMPLEMENTATION-STATUS.md
 ├─ apps/
 │  ├─ client/
 │  │  ├─ package.json
@@ -233,3 +235,4 @@ zidnee/
 - ESLint is no longer used in the React app.
 - Shared login validation lives in `@repo/schema` and is consumed by both the server and client.
 - The monorepo currently uses a dist-based build for build caching.
+- Module-by-module delivery tracking is maintained in [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md).
