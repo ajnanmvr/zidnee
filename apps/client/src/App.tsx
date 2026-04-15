@@ -1,6 +1,6 @@
-import { LoginSchema } from "@repo/schema";
 import { type FormEvent, useState } from "react";
 import "./App.css";
+import { LoginSchema } from "@repo/schema";
 
 function App() {
 	const [email, setEmail] = useState("");
