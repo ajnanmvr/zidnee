@@ -1,23 +1,20 @@
+import { LoginPayloadSchema, RegisterPayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
-import {
-	LoginPayloadSchema,
-	RegisterPayloadSchema,
-} from "@repo/schema";
 import {
 	AuthenticationError,
 	ConflictError,
-	ValidationError,
 	NotFoundError,
+	ValidationError,
 } from "../../utils/index.js";
 import {
-	RoleService,
-	UserService,
 	getEffectivePermissionIds,
 	getUserWithRelations,
+	RoleService,
 	toPublicUser,
+	UserService,
 } from "../rbac/rbac.service.js";
-import { createToken } from "./auth.token.js";
 import { hashPassword, verifyPassword } from "./auth.password.js";
+import { createToken } from "./auth.token.js";
 
 const createAuthToken = (userId: string, email: string, roleIds: string[]) => {
 	return createToken({
@@ -30,7 +27,7 @@ const createAuthToken = (userId: string, email: string, roleIds: string[]) => {
 
 export const loginController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const result = LoginPayloadSchema.safeParse(req.body);
 
@@ -45,7 +42,7 @@ export const loginController = async (
 
 	const isPasswordValid = await verifyPassword(
 		result.data.password,
-		user.password
+		user.password,
 	);
 
 	if (!isPasswordValid) {
@@ -67,7 +64,7 @@ export const loginController = async (
 
 export const registerController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const result = RegisterPayloadSchema.safeParse(req.body);
 
@@ -84,7 +81,9 @@ export const registerController = async (
 	// Hash password
 	const hashedPassword = await hashPassword(result.data.password);
 
-	const defaultRole = RoleService.findAll().find((role) => role.name === "User");
+	const defaultRole = RoleService.findAll().find(
+		(role) => role.name === "User",
+	);
 
 	if (!defaultRole) {
 		throw new Error("Default user role not found");
@@ -108,7 +107,10 @@ export const registerController = async (
 	});
 };
 
-export const getMeController = async (req: Request, res: Response): Promise<void> => {
+export const getMeController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
 	if (!req.user) {
 		throw new AuthenticationError("User not authenticated");
 	}

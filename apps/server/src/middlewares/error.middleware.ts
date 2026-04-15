@@ -1,11 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-import { AppError, ValidationError } from "../utils/errors.util.js";
+import { AppError } from "../utils/errors.util.js";
 
 export const errorMiddleware = (
 	err: unknown,
 	_req: Request,
 	res: Response,
-	_next: NextFunction
+	_next: NextFunction,
 ): void => {
 	console.error(err);
 
@@ -40,4 +40,3 @@ export const asyncHandler =
 	(req: Request, res: Response, next: NextFunction): void => {
 		Promise.resolve(fn(req, res, next)).catch(next);
 	};
-

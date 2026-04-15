@@ -1,16 +1,16 @@
-import type { Request, Response } from "express";
 import { CreatePermissionPayloadSchema } from "@repo/schema";
+import type { Request, Response } from "express";
 import {
 	ConflictError,
 	NotFoundError,
 	ValidationError,
 } from "../../utils/index.js";
-import { PermissionService } from "../rbac/rbac.service.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
+import { PermissionService } from "../rbac/rbac.service.js";
 
 export const createPermissionController = async (
 	_req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const result = CreatePermissionPayloadSchema.safeParse(_req.body);
 	if (!result.success) {
@@ -22,11 +22,11 @@ export const createPermissionController = async (
 		existingPermissions.some(
 			(permission) =>
 				permission.resource === result.data.resource &&
-				permission.action === result.data.action
+				permission.action === result.data.action,
 		)
 	) {
 		throw new ConflictError(
-			`Permission for ${result.data.resource}:${result.data.action} already exists`
+			`Permission for ${result.data.resource}:${result.data.action} already exists`,
 		);
 	}
 
@@ -45,7 +45,7 @@ export const createPermissionController = async (
 
 export const listPermissionsController = async (
 	_req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	res.json({
 		ok: true,
@@ -55,9 +55,12 @@ export const listPermissionsController = async (
 
 export const getPermissionController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
-	const permissionId = requireStringValue(req.params.permissionId, "permissionId");
+	const permissionId = requireStringValue(
+		req.params.permissionId,
+		"permissionId",
+	);
 	const permission = PermissionService.findById(permissionId);
 
 	if (!permission) {
@@ -72,9 +75,12 @@ export const getPermissionController = async (
 
 export const deletePermissionController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
-	const permissionId = requireStringValue(req.params.permissionId, "permissionId");
+	const permissionId = requireStringValue(
+		req.params.permissionId,
+		"permissionId",
+	);
 	const permission = PermissionService.findById(permissionId);
 
 	if (!permission) {

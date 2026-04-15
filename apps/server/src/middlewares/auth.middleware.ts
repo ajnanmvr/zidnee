@@ -1,8 +1,11 @@
-import type { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../modules/auth/auth.token.js";
-import { AuthenticationError, AuthorizationError } from "../utils/errors.util.js";
 import type { JWTPayload, PermissionCheck } from "@repo/schema";
+import type { NextFunction, Request, Response } from "express";
+import { verifyToken } from "../modules/auth/auth.token.js";
 import { PermissionService } from "../modules/rbac/rbac.service.js";
+import {
+	AuthenticationError,
+	AuthorizationError,
+} from "../utils/errors.util.js";
 
 declare global {
 	namespace Express {
@@ -18,7 +21,7 @@ declare global {
 export const authMiddleware = (
 	req: Request,
 	_res: Response,
-	next: NextFunction
+	next: NextFunction,
 ): void => {
 	try {
 		const authHeader = req.headers.authorization;
@@ -44,7 +47,9 @@ export const authMiddleware = (
 /**
  * Check if user has specific permission(s)
  */
-export const requirePermission = (checks: PermissionCheck | PermissionCheck[]) => {
+export const requirePermission = (
+	checks: PermissionCheck | PermissionCheck[],
+) => {
 	return (req: Request, _res: Response, next: NextFunction): void => {
 		try {
 			if (!req.user) {
@@ -54,17 +59,23 @@ export const requirePermission = (checks: PermissionCheck | PermissionCheck[]) =
 			const checksArray = Array.isArray(checks) ? checks : [checks];
 			const userPermissions = req.user.permissionIds
 				.map((permissionId) => PermissionService.findById(permissionId))
-				.filter((permission): permission is NonNullable<typeof permission> => permission !== null);
+				.filter(
+					(permission): permission is NonNullable<typeof permission> =>
+						permission !== null,
+				);
 
 			const hasPermission = checksArray.every((check) =>
 				userPermissions.some(
 					(permission) =>
-						permission.resource === check.resource && permission.action === check.action
-				)
+						permission.resource === check.resource &&
+						permission.action === check.action,
+				),
 			);
 
 			if (!hasPermission) {
-				throw new AuthorizationError("Insufficient permissions for this action");
+				throw new AuthorizationError(
+					"Insufficient permissions for this action",
+				);
 			}
 
 			next();

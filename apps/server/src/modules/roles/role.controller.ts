@@ -1,19 +1,16 @@
+import { CreateRolePayloadSchema, UpdateRolePayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
 import {
-	CreateRolePayloadSchema,
-	UpdateRolePayloadSchema,
-} from "@repo/schema";
-import {
-	NotFoundError,
 	ConflictError,
+	NotFoundError,
 	ValidationError,
 } from "../../utils/index.js";
+import { requireStringValue } from "../rbac/rbac.http.js";
 import {
+	getRoleWithPermissions,
 	PermissionService,
 	RoleService,
-	getRoleWithPermissions,
 } from "../rbac/rbac.service.js";
-import { requireStringValue } from "../rbac/rbac.http.js";
 
 const ensurePermissionIdsExist = (permissionIds: string[]): void => {
 	for (const permissionId of permissionIds) {
@@ -27,7 +24,7 @@ const ensurePermissionIdsExist = (permissionIds: string[]): void => {
 
 export const createRoleController = async (
 	_req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const result = CreateRolePayloadSchema.safeParse(_req.body);
 	if (!result.success) {
@@ -56,7 +53,7 @@ export const createRoleController = async (
 
 export const listRolesController = async (
 	_req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	res.json({
 		ok: true,
@@ -66,7 +63,7 @@ export const listRolesController = async (
 
 export const getRoleController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const roleId = requireStringValue(req.params.roleId, "roleId");
 	const role = RoleService.findById(roleId);
@@ -83,7 +80,7 @@ export const getRoleController = async (
 
 export const updateRoleController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const roleId = requireStringValue(req.params.roleId, "roleId");
 	const result = UpdateRolePayloadSchema.safeParse(req.body);
@@ -108,7 +105,7 @@ export const updateRoleController = async (
 		if (
 			existingRoles.some(
 				(existingRole) =>
-					existingRole.name === result.data.name && existingRole.id !== roleId
+					existingRole.name === result.data.name && existingRole.id !== roleId,
 			)
 		) {
 			throw new ConflictError("Role with this name already exists");
@@ -132,7 +129,7 @@ export const updateRoleController = async (
 
 export const deleteRoleController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const roleId = requireStringValue(req.params.roleId, "roleId");
 	const role = RoleService.findById(roleId);

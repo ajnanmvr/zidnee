@@ -1,17 +1,15 @@
 import type { Request, Response } from "express";
+import { NotFoundError } from "../../utils/index.js";
+import { requireStringValue } from "../rbac/rbac.http.js";
 import {
-	NotFoundError,
-} from "../../utils/index.js";
-import {
+	getUserWithRelations,
 	RoleService,
 	UserService,
-	getUserWithRelations,
 } from "../rbac/rbac.service.js";
-import { requireStringValue } from "../rbac/rbac.http.js";
 
 export const listUsersController = async (
 	_req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	res.json({
 		ok: true,
@@ -21,7 +19,7 @@ export const listUsersController = async (
 
 export const getUserController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const userId = requireStringValue(req.params.userId, "userId");
 	const user = UserService.findById(userId);
@@ -38,7 +36,7 @@ export const getUserController = async (
 
 export const assignRoleController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const userId = requireStringValue(req.params.userId, "userId");
 	const roleId = requireStringValue(req.body.roleId, "roleId");
@@ -66,7 +64,7 @@ export const assignRoleController = async (
 
 export const removeRoleController = async (
 	req: Request,
-	res: Response
+	res: Response,
 ): Promise<void> => {
 	const userId = requireStringValue(req.params.userId, "userId");
 	const roleId = requireStringValue(req.body.roleId, "roleId");
