@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: aff390bb-0b03-43eb-8c6f-904b565b123a
+
+localResources:
+  environments:
+    - ..\docs\postman\Zidnee.postman_environment.json

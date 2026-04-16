@@ -72,8 +72,7 @@ describe("auth middleware", () => {
 	it("requirePermission allows valid permission", () => {
 		const permission = getFirstPermission();
 		const middleware = requirePermission({
-			resource: permission.resource,
-			action: permission.action,
+			key: permission.key,
 		});
 
 		const req = createRequest({
@@ -96,8 +95,7 @@ describe("auth middleware", () => {
 	it("requirePermission blocks missing permission", () => {
 		const permission = getFirstPermission();
 		const middleware = requirePermission({
-			resource: permission.resource,
-			action: permission.action,
+			key: permission.key,
 		});
 
 		const req = createRequest({

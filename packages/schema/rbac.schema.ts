@@ -1,8 +1,12 @@
 import { z } from "zod";
+import { PERMISSION_KEYS } from "./permission-catalog.js";
+
+export const PermissionKeySchema = z.enum(PERMISSION_KEYS);
 
 // Permissions
 export const PermissionSchema = z.object({
 	id: z.string().uuid(),
+	key: PermissionKeySchema,
 	name: z.string().min(1).max(100),
 	description: z.string().max(500).optional(),
 	resource: z.string().min(1).max(100), // e.g., "users", "posts", "roles"
@@ -79,8 +83,7 @@ export const AuthResponseSchema = z.object({
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 
 export const PermissionCheckSchema = z.object({
-	resource: z.string(),
-	action: z.string(),
+	key: PermissionKeySchema,
 });
 
 export type PermissionCheck = z.infer<typeof PermissionCheckSchema>;
@@ -104,10 +107,7 @@ export type UpdateRolePayload = z.infer<typeof UpdateRolePayloadSchema>;
 
 // Permission Management Payloads
 export const CreatePermissionPayloadSchema = z.object({
-	name: z.string().min(1).max(100),
-	description: z.string().max(500).optional(),
-	resource: z.string().min(1).max(100),
-	action: z.string().min(1).max(100),
+	key: PermissionKeySchema,
 });
 
 export type CreatePermissionPayload = z.infer<typeof CreatePermissionPayloadSchema>;

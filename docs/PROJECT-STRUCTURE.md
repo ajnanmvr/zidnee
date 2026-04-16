@@ -24,6 +24,9 @@ zidnee/
 ├─ docs/
 │  ├─ PROJECT-STRUCTURE.md
 │  └─ IMPLEMENTATION-STATUS.md
+│  └─ postman/
+│     ├─ Zidnee.postman_collection.json
+│     └─ Zidnee.postman_environment.json
 ├─ apps/
 │  ├─ client/
 │  │  ├─ package.json
@@ -168,10 +171,9 @@ zidnee/
 - [apps/server/src/index.ts](apps/server/src/index.ts) starts the Express app.
 - It exposes:
   - `GET /health`
-  - `POST /login`
-- `POST /login` validates the body against `LoginSchema` and returns structured validation errors.
+  - API routes mounted under `/api` (auth, roles, permissions, users)
 - [apps/server/src/config/env.ts](apps/server/src/config/env.ts) loads dotenv and exports runtime env values.
-- `middlewares`, `modules`, `routes`, and `utils` are present but currently empty.
+- Server includes implemented middleware, module, route, and utils layers for RBAC/auth flows.
 
 #### Server Environment
 
@@ -201,10 +203,13 @@ zidnee/
 
 #### Schema Source
 
-- [packages/schema/index.ts](packages/schema/index.ts) exports `LoginSchema`.
-- Current schema rules:
-  - `email` must be a valid email value
-  - `password` must be at least 8 characters
+- [packages/schema/index.ts](packages/schema/index.ts) exports login, env, RBAC schemas, and permission catalog utilities.
+- [packages/schema/permission-catalog.ts](packages/schema/permission-catalog.ts) defines hardcoded permission keys and metadata.
+- Current schema includes:
+  - Login validation
+  - Environment validation
+  - RBAC entities, payloads, and JWT payload
+  - Key-based permission checks
 
 ### TypeScript Config: [packages/typescript-config/package.json](packages/typescript-config/package.json)
 
