@@ -1,13 +1,8 @@
-import mongoose, { type Model, Schema } from "mongoose";
+import type { Role } from "@repo/schema";
+import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type RoleDocument = {
-	id: string;
-	name: string;
-	description?: string;
-	permissionIds: string[];
-	isSystem: boolean;
-	createdAt?: Date;
-	updatedAt?: Date;
+export type RoleDocument = Omit<Role, "id"> & {
+	_id: Types.ObjectId;
 };
 
 const roleSchema = new Schema<RoleDocument>(

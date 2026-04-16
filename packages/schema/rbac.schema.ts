@@ -2,10 +2,13 @@ import { z } from "zod";
 import { PERMISSION_KEYS } from "./permission-catalog.js";
 
 export const PermissionKeySchema = z.enum(PERMISSION_KEYS);
+export const ObjectIdStringSchema = z
+	.string()
+	.regex(/^[a-f\d]{24}$/i, "Invalid ObjectId");
 
 // Permissions
 export const PermissionSchema = z.object({
-	id: z.string().uuid(),
+	id: ObjectIdStringSchema,
 	key: PermissionKeySchema,
 	name: z.string().min(1).max(100),
 	description: z.string().max(500).optional(),
@@ -19,10 +22,10 @@ export type Permission = z.infer<typeof PermissionSchema>;
 
 // Roles with custom permission composition
 export const RoleSchema = z.object({
-	id: z.string().uuid(),
+	id: ObjectIdStringSchema,
 	name: z.string().min(1).max(100),
 	description: z.string().max(500).optional(),
-	permissionIds: z.array(z.string().uuid()),
+	permissionIds: z.array(ObjectIdStringSchema),
 	isSystem: z.boolean().default(false), // System roles cannot be deleted
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
@@ -32,11 +35,11 @@ export type Role = z.infer<typeof RoleSchema>;
 
 // Users with role assignments
 export const UserSchema = z.object({
-	id: z.string().uuid(),
+	id: ObjectIdStringSchema,
 	email: z.email(),
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
-	roleIds: z.array(z.string().uuid()),
+	roleIds: z.array(ObjectIdStringSchema),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
@@ -62,10 +65,10 @@ export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
 
 // JWT Token Payload
 export const JWTPayloadSchema = z.object({
-	userId: z.string().uuid(),
+	userId: ObjectIdStringSchema,
 	email: z.string().email(),
-	roleIds: z.array(z.string().uuid()),
-	permissionIds: z.array(z.string().uuid()),
+	roleIds: z.array(ObjectIdStringSchema),
+	permissionIds: z.array(ObjectIdStringSchema),
 	iat: z.number(),
 	exp: z.number(),
 });
@@ -92,7 +95,7 @@ export type PermissionCheck = z.infer<typeof PermissionCheckSchema>;
 export const CreateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100),
 	description: z.string().max(500).optional(),
-	permissionIds: z.array(z.string().uuid()),
+	permissionIds: z.array(ObjectIdStringSchema),
 });
 
 export type CreateRolePayload = z.infer<typeof CreateRolePayloadSchema>;
@@ -100,7 +103,7 @@ export type CreateRolePayload = z.infer<typeof CreateRolePayloadSchema>;
 export const UpdateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100).optional(),
 	description: z.string().max(500).optional(),
-	permissionIds: z.array(z.string().uuid()).optional(),
+	permissionIds: z.array(ObjectIdStringSchema).optional(),
 });
 
 export type UpdateRolePayload = z.infer<typeof UpdateRolePayloadSchema>;

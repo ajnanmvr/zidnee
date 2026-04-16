@@ -1,14 +1,8 @@
-import mongoose, { type Model, Schema } from "mongoose";
+import type { User } from "@repo/schema";
+import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type UserDocument = {
-	id: string;
-	email: string;
-	password: string;
-	name: string;
-	roleIds: string[];
-	isActive: boolean;
-	createdAt?: Date;
-	updatedAt?: Date;
+export type UserDocument = Omit<User, "id"> & {
+	_id: Types.ObjectId;
 };
 
 const userSchema = new Schema<UserDocument>(

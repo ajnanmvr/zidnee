@@ -1,15 +1,8 @@
-import type { PermissionKey } from "@repo/schema";
-import mongoose, { type Model, Schema } from "mongoose";
+import type { Permission } from "@repo/schema";
+import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type PermissionDocument = {
-	id: string;
-	key: PermissionKey;
-	name: string;
-	description?: string;
-	resource: string;
-	action: string;
-	createdAt?: Date;
-	updatedAt?: Date;
+export type PermissionDocument = Omit<Permission, "id"> & {
+	_id: Types.ObjectId;
 };
 
 const permissionSchema = new Schema<PermissionDocument>(

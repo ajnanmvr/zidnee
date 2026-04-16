@@ -1,5 +1,4 @@
-﻿import { randomUUID } from "node:crypto";
-import {
+﻿import {
 	PERMISSION_CATALOG,
 	PERMISSION_KEYS,
 	type Permission,
@@ -27,7 +26,7 @@ let defaultsInitPromise: Promise<void> | null = null;
 
 const toPermission = (doc: PermissionDocument): Permission => {
 	return {
-		id: doc.id,
+		id: doc._id.toString(),
 		key: doc.key,
 		name: doc.name,
 		description: doc.description,
@@ -40,7 +39,7 @@ const toPermission = (doc: PermissionDocument): Permission => {
 
 const toRole = (doc: RoleDocument): Role => {
 	return {
-		id: doc.id,
+		id: doc._id.toString(),
 		name: doc.name,
 		description: doc.description,
 		permissionIds: doc.permissionIds,
@@ -52,7 +51,7 @@ const toRole = (doc: RoleDocument): Role => {
 
 const toUser = (doc: UserDocument): User => {
 	return {
-		id: doc.id,
+		id: doc._id.toString(),
 		email: doc.email,
 		password: doc.password,
 		name: doc.name,
@@ -85,28 +84,25 @@ const initializeDefaults = async (): Promise<void> => {
 						resource: seed.resource,
 						action: seed.action,
 					},
-					$setOnInsert: {
-						id: randomUUID(),
-						key,
-					},
+					$setOnInsert: { key },
 				},
 				{ upsert: true },
 			);
 		}
 
 		const allPermissions = await PermissionModel.find()
-			.select("id action")
-			.lean<Pick<PermissionDocument, "id" | "action">[]>();
+			.select("_id action")
+			.lean<Pick<PermissionDocument, "_id" | "action">[]>();
 
 		const adminPermissionIds = allPermissions.map(
-			(permission) => permission.id,
+			(permission) => permission._id.toString(),
 		);
 		const userPermissionIds = allPermissions
 			.filter(
 				(permission) =>
 					permission.action === "read" || permission.action === "view",
 			)
-			.map((permission) => permission.id);
+			.map((permission) => permission._id.toString());
 
 		await RoleModel.updateOne(
 			{ name: "Admin" },
@@ -116,10 +112,7 @@ const initializeDefaults = async (): Promise<void> => {
 					permissionIds: adminPermissionIds,
 					isSystem: true,
 				},
-				$setOnInsert: {
-					id: randomUUID(),
-					name: "Admin",
-				},
+				$setOnInsert: { name: "Admin" },
 			},
 			{ upsert: true },
 		);
@@ -132,10 +125,7 @@ const initializeDefaults = async (): Promise<void> => {
 					permissionIds: userPermissionIds,
 					isSystem: true,
 				},
-				$setOnInsert: {
-					id: randomUUID(),
-					name: "User",
-				},
+				$setOnInsert: { name: "User" },
 			},
 			{ upsert: true },
 		);
@@ -157,10 +147,12 @@ const collectPermissionsByIds = async (
 		return [];
 	}
 
-	const docs = await PermissionModel.find({ id: { $in: permissionIds } }).lean<
+	const docs = await PermissionModel.find({
+		_id: { $in: permissionIds },
+	}).lean<
 		PermissionDocument[]
 	>();
-	const byId = new Map(docs.map((doc) => [doc.id, toPermission(doc)]));
+	const byId = new Map(docs.map((doc) => [doc._id.toString(), toPermission(doc)]));
 
 	return permissionIds
 		.map((permissionId) => byId.get(permissionId) ?? null)
@@ -179,7 +171,6 @@ export const PermissionService = {
 
 		const seed = PERMISSION_CATALOG[key];
 		const created = await PermissionModel.create({
-			id: randomUUID(),
 			key,
 			name: seed.name,
 			description: seed.description,
@@ -192,9 +183,7 @@ export const PermissionService = {
 
 	findById: async (id: string): Promise<Permission | null> => {
 		await initializeDefaults();
-		const permission = await PermissionModel.findOne({
-			id,
-		}).lean<PermissionDocument | null>();
+		const permission = await PermissionModel.findById(id).lean<PermissionDocument | null>();
 		return permission ? toPermission(permission) : null;
 	},
 
@@ -212,10 +201,10 @@ export const PermissionService = {
 		}
 
 		const permissionDocs = await PermissionModel.find({
-			id: { $in: ids },
+			_id: { $in: ids },
 		}).lean<PermissionDocument[]>();
 		const byId = new Map(
-			permissionDocs.map((doc) => [doc.id, toPermission(doc)]),
+			permissionDocs.map((doc) => [doc._id.toString(), toPermission(doc)]),
 		);
 		return ids
 			.map((id) => byId.get(id) ?? null)
@@ -251,7 +240,6 @@ export const RoleService = {
 	): Promise<Role> => {
 		await initializeDefaults();
 		const created = await RoleModel.create({
-			id: randomUUID(),
 			name: role.name,
 			description: role.description,
 			permissionIds: role.permissionIds,
@@ -262,7 +250,7 @@ export const RoleService = {
 
 	findById: async (id: string): Promise<Role | null> => {
 		await initializeDefaults();
-		const role = await RoleModel.findOne({ id }).lean<RoleDocument | null>();
+		const role = await RoleModel.findById(id).lean<RoleDocument | null>();
 		return role ? toRole(role) : null;
 	},
 
@@ -278,10 +266,10 @@ export const RoleService = {
 			return [];
 		}
 
-		const roleDocs = await RoleModel.find({ id: { $in: ids } }).lean<
+		const roleDocs = await RoleModel.find({ _id: { $in: ids } }).lean<
 			RoleDocument[]
 		>();
-		const byId = new Map(roleDocs.map((doc) => [doc.id, toRole(doc)]));
+		const byId = new Map(roleDocs.map((doc) => [doc._id.toString(), toRole(doc)]));
 
 		return ids
 			.map((id) => byId.get(id) ?? null)
@@ -290,13 +278,13 @@ export const RoleService = {
 
 	update: async (id: string, data: Partial<Role>): Promise<Role | null> => {
 		await initializeDefaults();
-		const role = await RoleModel.findOne({ id }).lean<RoleDocument | null>();
+		const role = await RoleModel.findById(id).lean<RoleDocument | null>();
 		if (!role || role.isSystem) {
 			return null;
 		}
 
-		const updatedRole = await RoleModel.findOneAndUpdate(
-			{ id },
+		const updatedRole = await RoleModel.findByIdAndUpdate(
+			id,
 			{
 				$set: {
 					name: data.name,
@@ -312,13 +300,13 @@ export const RoleService = {
 
 	delete: async (id: string): Promise<boolean> => {
 		await initializeDefaults();
-		const role = await RoleModel.findOne({ id }).lean();
+		const role = await RoleModel.findById(id).lean<RoleDocument | null>();
 		if (!role || role.isSystem) {
 			return false;
 		}
 
-		const result = await RoleModel.deleteOne({ id });
-		return result.deletedCount === 1;
+		const result = await RoleModel.findByIdAndDelete(id);
+		return result !== null;
 	},
 };
 
@@ -328,7 +316,6 @@ export const UserService = {
 	): Promise<User> => {
 		await initializeDefaults();
 		const created = await UserModel.create({
-			id: randomUUID(),
 			email: user.email,
 			password: user.password,
 			name: user.name,
@@ -340,7 +327,7 @@ export const UserService = {
 
 	findById: async (id: string): Promise<User | null> => {
 		await initializeDefaults();
-		const user = await UserModel.findOne({ id }).lean<UserDocument | null>();
+		const user = await UserModel.findById(id).lean<UserDocument | null>();
 		return user ? toUser(user) : null;
 	},
 
@@ -358,8 +345,8 @@ export const UserService = {
 
 	update: async (id: string, data: Partial<User>): Promise<User | null> => {
 		await initializeDefaults();
-		const updatedUser = await UserModel.findOneAndUpdate(
-			{ id },
+		const updatedUser = await UserModel.findByIdAndUpdate(
+			id,
 			{
 				$set: {
 					email: data.email,
@@ -377,14 +364,14 @@ export const UserService = {
 
 	delete: async (id: string): Promise<boolean> => {
 		await initializeDefaults();
-		const result = await UserModel.deleteOne({ id });
-		return result.deletedCount === 1;
+		const result = await UserModel.findByIdAndDelete(id);
+		return result !== null;
 	},
 
 	addRole: async (userId: string, roleId: string): Promise<User | null> => {
 		await initializeDefaults();
-		const updatedUser = await UserModel.findOneAndUpdate(
-			{ id: userId },
+		const updatedUser = await UserModel.findByIdAndUpdate(
+			userId,
 			{ $addToSet: { roleIds: roleId } },
 			{ returnDocument: "after" },
 		).lean<UserDocument | null>();
@@ -394,8 +381,8 @@ export const UserService = {
 
 	removeRole: async (userId: string, roleId: string): Promise<User | null> => {
 		await initializeDefaults();
-		const updatedUser = await UserModel.findOneAndUpdate(
-			{ id: userId },
+		const updatedUser = await UserModel.findByIdAndUpdate(
+			userId,
 			{ $pull: { roleIds: roleId } },
 			{ returnDocument: "after" },
 		).lean<UserDocument | null>();
