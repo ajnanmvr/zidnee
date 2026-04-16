@@ -1,7 +1,9 @@
 {
 	"info": {
+		"_postman_id": "9f818f62-5fc9-4b11-9b65-759c2f8b1188",
 		"name": "Zidnee API",
 		"description": "Zidnee backend API collection. Import this with the Zidnee Local environment.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "copilot"
 	},
 	"item": [
@@ -15,8 +17,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/health",
-							"host": ["{{baseUrl}}"],
-							"path": ["health"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
 						}
 					},
 					"response": []
@@ -28,6 +34,21 @@
 			"item": [
 				{
 					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"  const body = pm.response.json();",
+									"  if (body.token) pm.environment.set('authToken', body.token);",
+									"  if (body.user?.id) pm.environment.set('userId', body.user.id);",
+									"}"
+								]
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -42,33 +63,35 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
 						}
 					},
+					"response": []
+				},
+				{
+					"name": "Login",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"if (pm.response.code === 200) {",
 									"  const body = pm.response.json();",
-									"  if (body.token) {",
-									"    pm.environment.set('authToken', body.token);",
-									"  }",
-									"  if (body.user && body.user.id) {",
-									"    pm.environment.set('userId', body.user.id);",
-									"  }",
+									"  if (body.token) pm.environment.set('authToken', body.token);",
+									"  if (body.user?.id) pm.environment.set('userId', body.user.id);",
 									"}"
 								]
 							}
 						}
 					],
-					"response": []
-				},
-				{
-					"name": "Login",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -83,29 +106,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
 						}
 					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"  const body = pm.response.json();",
-									"  if (body.token) {",
-									"    pm.environment.set('authToken', body.token);",
-									"  }",
-									"  if (body.user && body.user.id) {",
-									"    pm.environment.set('userId', body.user.id);",
-									"  }",
-									"}"
-								]
-							}
-						}
-					],
 					"response": []
 				},
 				{
@@ -125,8 +135,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/me",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "me"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
 						}
 					},
 					"response": []
@@ -138,6 +154,21 @@
 			"item": [
 				{
 					"name": "List Roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  const body = pm.response.json();",
+									"  const firstRoleId = body.roles?.[0]?.id;",
+									"  if (firstRoleId) pm.environment.set('roleId', firstRoleId);",
+									"}"
+								]
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -153,8 +184,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles"
+							]
 						}
 					},
 					"response": []
@@ -185,8 +221,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles"
+							]
 						}
 					},
 					"response": []
@@ -208,8 +249,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles", "{{roleId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"{{roleId}}"
+							]
 						}
 					},
 					"response": []
@@ -240,8 +287,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles", "{{roleId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"{{roleId}}"
+							]
 						}
 					},
 					"response": []
@@ -263,8 +316,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles", "{{roleId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"{{roleId}}"
+							]
 						}
 					},
 					"response": []
@@ -276,6 +335,21 @@
 			"item": [
 				{
 					"name": "List Permissions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  const body = pm.response.json();",
+									"  const firstPermissionId = body.permissions?.[0]?.id;",
+									"  if (firstPermissionId) pm.environment.set('permissionId', firstPermissionId);",
+									"}"
+								]
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -291,8 +365,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "permissions"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"permissions"
+							]
 						}
 					},
 					"response": []
@@ -314,8 +393,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/permissions/{{permissionId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "permissions", "{{permissionId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"permissions",
+								"{{permissionId}}"
+							]
 						}
 					},
 					"response": []
@@ -342,8 +427,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
 						}
 					},
 					"response": []
@@ -365,8 +455,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/{{userId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "{{userId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{userId}}"
+							]
 						}
 					},
 					"response": []
@@ -397,8 +493,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/{{userId}}/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "{{userId}}", "roles"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{userId}}",
+								"roles"
+							]
 						}
 					},
 					"response": []
@@ -429,8 +532,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/{{userId}}/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "{{userId}}", "roles"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{userId}}",
+								"roles"
+							]
 						}
 					},
 					"response": []

@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/roles/{{roleId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "description": "Updated role description"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4000

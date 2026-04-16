@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/roles"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code === 200) {
+        const body = pm.response.json();
+        const firstRoleId = body.roles?.[0]?.id;
+        if (firstRoleId) pm.environment.set('roleId', firstRoleId);
+      }
+    language: text/javascript
+order: 1000
