@@ -40,17 +40,15 @@ Status legend:
   - Effective permission aggregation by role assignment
 - Implemented:
   - Hardcoded permission catalog with stable keys (for example USER_CREATE, ROLE_UPDATE, VIEW_REPORTS)
-  - In-memory stores for users, roles, permissions
+  - MongoDB/Mongoose persistence for users, roles, and permissions
   - Default seed roles and permissions (Admin/User)
   - Relation helpers: getUserWithRelations, getRoleWithPermissions
   - Permission merge and map helpers
 - Missing:
-  - Persistent repository/model layer (Mongo/Mongoose)
   - Audit trail for role/permission changes
 - Test coverage status:
   - rbac.service and rbac.permissions test suites exist
 - Next actions:
-  - Replace in-memory maps with model/repository implementation
   - Add transactional protections where needed
 
 ### Roles Module

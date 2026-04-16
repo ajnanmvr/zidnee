@@ -4,8 +4,8 @@ import app from "@/app.js";
 import { resetRbacStore } from "@/modules/rbac/rbac.service.js";
 
 describe("app routes", () => {
-	beforeEach(() => {
-		resetRbacStore();
+	beforeEach(async () => {
+		await resetRbacStore();
 	});
 
 	it("GET /health returns ok", async () => {

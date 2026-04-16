@@ -11,9 +11,14 @@ export const listUsersController = async (
 	_req: Request,
 	res: Response,
 ): Promise<void> => {
+	const users = await UserService.findAll();
+	const usersWithRelations = await Promise.all(
+		users.map((user) => getUserWithRelations(user)),
+	);
+
 	res.json({
 		ok: true,
-		users: UserService.findAll().map(getUserWithRelations),
+		users: usersWithRelations,
 	});
 };
 
@@ -22,7 +27,7 @@ export const getUserController = async (
 	res: Response,
 ): Promise<void> => {
 	const userId = requireStringValue(req.params.userId, "userId");
-	const user = UserService.findById(userId);
+	const user = await UserService.findById(userId);
 
 	if (!user) {
 		throw new NotFoundError("User");
@@ -30,7 +35,7 @@ export const getUserController = async (
 
 	res.json({
 		ok: true,
-		...getUserWithRelations(user),
+		...(await getUserWithRelations(user)),
 	});
 };
 
@@ -41,24 +46,24 @@ export const assignRoleController = async (
 	const userId = requireStringValue(req.params.userId, "userId");
 	const roleId = requireStringValue(req.body.roleId, "roleId");
 
-	const user = UserService.findById(userId);
+	const user = await UserService.findById(userId);
 	if (!user) {
 		throw new NotFoundError("User");
 	}
 
-	const role = RoleService.findById(roleId);
+	const role = await RoleService.findById(roleId);
 	if (!role) {
 		throw new NotFoundError("Role");
 	}
 
-	const updatedUser = UserService.addRole(userId, roleId);
+	const updatedUser = await UserService.addRole(userId, roleId);
 	if (!updatedUser) {
 		throw new Error("Failed to assign role");
 	}
 
 	res.json({
 		ok: true,
-		...getUserWithRelations(updatedUser),
+		...(await getUserWithRelations(updatedUser)),
 	});
 };
 
@@ -69,18 +74,18 @@ export const removeRoleController = async (
 	const userId = requireStringValue(req.params.userId, "userId");
 	const roleId = requireStringValue(req.body.roleId, "roleId");
 
-	const user = UserService.findById(userId);
+	const user = await UserService.findById(userId);
 	if (!user) {
 		throw new NotFoundError("User");
 	}
 
-	const updatedUser = UserService.removeRole(userId, roleId);
+	const updatedUser = await UserService.removeRole(userId, roleId);
 	if (!updatedUser) {
 		throw new Error("Failed to remove role");
 	}
 
 	res.json({
 		ok: true,
-		...getUserWithRelations(updatedUser),
+		...(await getUserWithRelations(updatedUser)),
 	});
 };

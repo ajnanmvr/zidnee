@@ -1,4 +1,4 @@
-import { type PermissionKey } from "@repo/schema";
+import type { PermissionKey } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,

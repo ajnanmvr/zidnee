@@ -174,6 +174,7 @@ zidnee/
   - API routes mounted under `/api` (auth, roles, permissions, users)
 - [apps/server/src/config/env.ts](apps/server/src/config/env.ts) loads dotenv and exports runtime env values.
 - Server includes implemented middleware, module, route, and utils layers for RBAC/auth flows.
+- RBAC persistence is now split into module-scoped Mongoose model files under [apps/server/src/modules/rbac](apps/server/src/modules/rbac): `permission.model.ts`, `role.model.ts`, and `user.model.ts`.
 
 #### Server Environment
 

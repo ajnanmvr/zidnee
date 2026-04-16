@@ -24,8 +24,8 @@ const createResponse = (): Response => {
 	return {} as Response;
 };
 
-const getFirstPermission = () => {
-	const permission = PermissionService.findAll()[0];
+const getFirstPermission = async () => {
+	const permission = (await PermissionService.findAll())[0];
 	if (!permission) {
 		throw new Error("Expected at least one seeded permission");
 	}
@@ -34,8 +34,8 @@ const getFirstPermission = () => {
 };
 
 describe("auth middleware", () => {
-	beforeEach(() => {
-		resetRbacStore();
+	beforeEach(async () => {
+		await resetRbacStore();
 	});
 
 	it("authMiddleware attaches req.user for valid token", () => {
@@ -69,8 +69,8 @@ describe("auth middleware", () => {
 		expect(next.mock.calls[0]?.[0]).toBeInstanceOf(AuthenticationError);
 	});
 
-	it("requirePermission allows valid permission", () => {
-		const permission = getFirstPermission();
+	it("requirePermission allows valid permission", async () => {
+		const permission = await getFirstPermission();
 		const middleware = requirePermission({
 			key: permission.key,
 		});
@@ -87,13 +87,13 @@ describe("auth middleware", () => {
 		});
 		const next = vi.fn();
 
-		middleware(req, createResponse(), next);
+		await middleware(req, createResponse(), next);
 
 		expect(next).toHaveBeenCalledWith();
 	});
 
-	it("requirePermission blocks missing permission", () => {
-		const permission = getFirstPermission();
+	it("requirePermission blocks missing permission", async () => {
+		const permission = await getFirstPermission();
 		const middleware = requirePermission({
 			key: permission.key,
 		});
@@ -110,7 +110,7 @@ describe("auth middleware", () => {
 		});
 		const next = vi.fn();
 
-		middleware(req, createResponse(), next);
+		await middleware(req, createResponse(), next);
 
 		expect(next).toHaveBeenCalledTimes(1);
 		expect(next.mock.calls[0]?.[0]).toBeInstanceOf(AuthorizationError);

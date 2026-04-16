@@ -17,12 +17,8 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/health",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"health"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
 						}
 					},
 					"response": []
@@ -63,14 +59,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/register",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"register"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
 						}
 					},
 					"response": []
@@ -106,14 +96,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
 						}
 					},
 					"response": []
@@ -135,14 +119,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"me"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "me"]
 						}
 					},
 					"response": []
@@ -184,13 +162,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"roles"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "roles"]
 						}
 					},
 					"response": []
@@ -221,13 +194,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"roles"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "roles"]
 						}
 					},
 					"response": []
@@ -249,14 +217,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"roles",
-								"{{roleId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "roles", "{{roleId}}"]
 						}
 					},
 					"response": []
@@ -287,14 +249,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"roles",
-								"{{roleId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "roles", "{{roleId}}"]
 						}
 					},
 					"response": []
@@ -316,14 +272,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"roles",
-								"{{roleId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "roles", "{{roleId}}"]
 						}
 					},
 					"response": []
@@ -365,13 +315,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/permissions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"permissions"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "permissions"]
 						}
 					},
 					"response": []
@@ -393,14 +338,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/permissions/{{permissionId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"permissions",
-								"{{permissionId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "permissions", "{{permissionId}}"]
 						}
 					},
 					"response": []
@@ -427,13 +366,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
 						}
 					},
 					"response": []
@@ -455,14 +389,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/{{userId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"{{userId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
 						}
 					},
 					"response": []
@@ -493,15 +421,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/{{userId}}/roles",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"{{userId}}",
-								"roles"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}", "roles"]
 						}
 					},
 					"response": []
@@ -532,15 +453,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/{{userId}}/roles",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"{{userId}}",
-								"roles"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}", "roles"]
 						}
 					},
 					"response": []

@@ -110,4 +110,6 @@ export const CreatePermissionPayloadSchema = z.object({
 	key: PermissionKeySchema,
 });
 
-export type CreatePermissionPayload = z.infer<typeof CreatePermissionPayloadSchema>;
+export type CreatePermissionPayload = z.infer<
+	typeof CreatePermissionPayloadSchema
+>;

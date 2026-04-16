@@ -17,12 +17,16 @@ import { hashPassword, verifyPassword } from "./auth.password.js";
 import { createToken } from "./auth.token.js";
 
 const createAuthToken = (userId: string, email: string, roleIds: string[]) => {
-	return createToken({
-		userId,
-		email,
-		roleIds,
-		permissionIds: getEffectivePermissionIds(roleIds),
-	});
+	const create = async (): Promise<string> => {
+		return createToken({
+			userId,
+			email,
+			roleIds,
+			permissionIds: await getEffectivePermissionIds(roleIds),
+		});
+	};
+
+	return create();
 };
 
 export const loginController = async (
@@ -35,7 +39,7 @@ export const loginController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const user = UserService.findByEmail(result.data.email);
+	const user = await UserService.findByEmail(result.data.email);
 	if (!user) {
 		throw new AuthenticationError("Invalid email or password");
 	}
@@ -53,7 +57,7 @@ export const loginController = async (
 		throw new AuthenticationError("User account is inactive");
 	}
 
-	const token = createAuthToken(user.id, user.email, user.roleIds);
+	const token = await createAuthToken(user.id, user.email, user.roleIds);
 
 	res.json({
 		ok: true,
@@ -73,7 +77,7 @@ export const registerController = async (
 	}
 
 	// Check if user already exists
-	const existingUser = UserService.findByEmail(result.data.email);
+	const existingUser = await UserService.findByEmail(result.data.email);
 	if (existingUser) {
 		throw new ConflictError("Email already in use");
 	}
@@ -81,7 +85,7 @@ export const registerController = async (
 	// Hash password
 	const hashedPassword = await hashPassword(result.data.password);
 
-	const defaultRole = RoleService.findAll().find(
+	const defaultRole = (await RoleService.findAll()).find(
 		(role) => role.name === "User",
 	);
 
@@ -90,7 +94,7 @@ export const registerController = async (
 	}
 
 	// Create new user
-	const newUser = UserService.create({
+	const newUser = await UserService.create({
 		email: result.data.email,
 		password: hashedPassword,
 		name: result.data.name,
@@ -98,7 +102,11 @@ export const registerController = async (
 		isActive: true,
 	});
 
-	const token = createAuthToken(newUser.id, newUser.email, newUser.roleIds);
+	const token = await createAuthToken(
+		newUser.id,
+		newUser.email,
+		newUser.roleIds,
+	);
 
 	res.status(201).json({
 		ok: true,
@@ -115,13 +123,13 @@ export const getMeController = async (
 		throw new AuthenticationError("User not authenticated");
 	}
 
-	const user = UserService.findById(req.user.userId);
+	const user = await UserService.findById(req.user.userId);
 	if (!user) {
 		throw new NotFoundError("User");
 	}
 
 	res.json({
 		ok: true,
-		...getUserWithRelations(user),
+		...(await getUserWithRelations(user)),
 	});
 };

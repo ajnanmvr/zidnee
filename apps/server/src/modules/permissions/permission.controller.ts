@@ -9,7 +9,7 @@ export const listPermissionsController = async (
 ): Promise<void> => {
 	res.json({
 		ok: true,
-		permissions: PermissionService.findAll(),
+		permissions: await PermissionService.findAll(),
 	});
 };
 
@@ -21,7 +21,7 @@ export const getPermissionController = async (
 		req.params.permissionId,
 		"permissionId",
 	);
-	const permission = PermissionService.findById(permissionId);
+	const permission = await PermissionService.findById(permissionId);
 
 	if (!permission) {
 		throw new NotFoundError("Permission");

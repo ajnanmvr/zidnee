@@ -61,11 +61,16 @@ export const requirePermission = (
 };
 
 export const requirePermissionByResourceAction = (
-	checks: { resource: string; action: string } | Array<{ resource: string; action: string }>,
+	checks:
+		| { resource: string; action: string }
+		| Array<{ resource: string; action: string }>,
 ) => {
 	const checksArray = Array.isArray(checks) ? checks : [checks];
 	const keys = checksArray.map((check) => {
-		const key = getPermissionKeyFromResourceAction(check.resource, check.action);
+		const key = getPermissionKeyFromResourceAction(
+			check.resource,
+			check.action,
+		);
 		if (!key) {
 			throw new AuthorizationError(
 				`No hardcoded permission key found for ${check.resource}:${check.action}`,
@@ -78,22 +83,21 @@ export const requirePermissionByResourceAction = (
 	return requirePermissionKey(keys);
 };
 
-export const requirePermissionKey = (
-	keys: PermissionKey | PermissionKey[],
-) => {
-	return (req: Request, _res: Response, next: NextFunction): void => {
+export const requirePermissionKey = (keys: PermissionKey | PermissionKey[]) => {
+	return async (
+		req: Request,
+		_res: Response,
+		next: NextFunction,
+	): Promise<void> => {
 		try {
 			if (!req.user) {
 				throw new AuthenticationError("User not authenticated");
 			}
 
 			const checksArray = Array.isArray(keys) ? keys : [keys];
-			const userPermissions = req.user.permissionIds
-				.map((permissionId) => PermissionService.findById(permissionId))
-				.filter(
-					(permission): permission is NonNullable<typeof permission> =>
-						permission !== null,
-				);
+			const userPermissions = await PermissionService.findByIds(
+				req.user.permissionIds,
+			);
 
 			const hasPermission = checksArray.every((requiredKey) =>
 				userPermissions.some((permission) => permission.key === requiredKey),

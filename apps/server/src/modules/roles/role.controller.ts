@@ -12,9 +12,11 @@ import {
 	RoleService,
 } from "../rbac/rbac.service.js";
 
-const ensurePermissionIdsExist = (permissionIds: string[]): void => {
+const ensurePermissionIdsExist = async (
+	permissionIds: string[],
+): Promise<void> => {
 	for (const permissionId of permissionIds) {
-		if (!PermissionService.findById(permissionId)) {
+		if (!(await PermissionService.findById(permissionId))) {
 			throw new ValidationError({
 				permissionIds: [`Permission ${permissionId} not found`],
 			});
@@ -31,14 +33,14 @@ export const createRoleController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const existingRoles = RoleService.findAll();
+	const existingRoles = await RoleService.findAll();
 	if (existingRoles.some((role) => role.name === result.data.name)) {
 		throw new ConflictError("Role with this name already exists");
 	}
 
-	ensurePermissionIdsExist(result.data.permissionIds);
+	await ensurePermissionIdsExist(result.data.permissionIds);
 
-	const role = RoleService.create({
+	const role = await RoleService.create({
 		name: result.data.name,
 		description: result.data.description,
 		permissionIds: result.data.permissionIds,
@@ -47,7 +49,7 @@ export const createRoleController = async (
 
 	res.status(201).json({
 		ok: true,
-		role: getRoleWithPermissions(role),
+		role: await getRoleWithPermissions(role),
 	});
 };
 
@@ -55,9 +57,14 @@ export const listRolesController = async (
 	_req: Request,
 	res: Response,
 ): Promise<void> => {
+	const roles = await RoleService.findAll();
+	const rolesWithPermissions = await Promise.all(
+		roles.map((role) => getRoleWithPermissions(role)),
+	);
+
 	res.json({
 		ok: true,
-		roles: RoleService.findAll().map(getRoleWithPermissions),
+		roles: rolesWithPermissions,
 	});
 };
 
@@ -66,7 +73,7 @@ export const getRoleController = async (
 	res: Response,
 ): Promise<void> => {
 	const roleId = requireStringValue(req.params.roleId, "roleId");
-	const role = RoleService.findById(roleId);
+	const role = await RoleService.findById(roleId);
 
 	if (!role) {
 		throw new NotFoundError("Role");
@@ -74,7 +81,7 @@ export const getRoleController = async (
 
 	res.json({
 		ok: true,
-		role: getRoleWithPermissions(role),
+		role: await getRoleWithPermissions(role),
 	});
 };
 
@@ -89,7 +96,7 @@ export const updateRoleController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const role = RoleService.findById(roleId);
+	const role = await RoleService.findById(roleId);
 	if (!role) {
 		throw new NotFoundError("Role");
 	}
@@ -101,7 +108,7 @@ export const updateRoleController = async (
 	}
 
 	if (result.data.name) {
-		const existingRoles = RoleService.findAll();
+		const existingRoles = await RoleService.findAll();
 		if (
 			existingRoles.some(
 				(existingRole) =>
@@ -113,17 +120,17 @@ export const updateRoleController = async (
 	}
 
 	if (result.data.permissionIds) {
-		ensurePermissionIdsExist(result.data.permissionIds);
+		await ensurePermissionIdsExist(result.data.permissionIds);
 	}
 
-	const updatedRole = RoleService.update(roleId, result.data);
+	const updatedRole = await RoleService.update(roleId, result.data);
 	if (!updatedRole) {
 		throw new Error("Failed to update role");
 	}
 
 	res.json({
 		ok: true,
-		role: getRoleWithPermissions(updatedRole),
+		role: await getRoleWithPermissions(updatedRole),
 	});
 };
 
@@ -132,7 +139,7 @@ export const deleteRoleController = async (
 	res: Response,
 ): Promise<void> => {
 	const roleId = requireStringValue(req.params.roleId, "roleId");
-	const role = RoleService.findById(roleId);
+	const role = await RoleService.findById(roleId);
 
 	if (!role) {
 		throw new NotFoundError("Role");
@@ -144,7 +151,7 @@ export const deleteRoleController = async (
 		});
 	}
 
-	const deleted = RoleService.delete(roleId);
+	const deleted = await RoleService.delete(roleId);
 	if (!deleted) {
 		throw new Error("Failed to delete role");
 	}

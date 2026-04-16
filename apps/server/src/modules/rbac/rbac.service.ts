@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 import {
 	PERMISSION_CATALOG,
 	PERMISSION_KEYS,
@@ -7,18 +7,13 @@ import {
 	type Role,
 	type User,
 } from "@repo/schema";
+import {
+	type PermissionDocument,
+	PermissionModel,
+} from "../permissions/permission.model.js";
 import { mergePermissions } from "./rbac.permissions.js";
-
-const users = new Map<string, User>();
-const roles = new Map<string, Role>();
-const permissions = new Map<string, Permission>();
-
-type PermissionSeed = Omit<Permission, "id" | "createdAt" | "updatedAt">;
-
-const defaultPermissionSeeds: PermissionSeed[] = PERMISSION_KEYS.map((key) => ({
-	key,
-	...PERMISSION_CATALOG[key],
-}));
+import { type RoleDocument, RoleModel } from "../roles/role.model.js";
+import { type UserDocument, UserModel } from "../users/user.model.js";
 
 export type PublicUser = Omit<User, "password">;
 export type RoleWithPermissions = Role & { permissions: Permission[] };
@@ -27,235 +22,385 @@ export type UserWithRelations = PublicUser & {
 	permissions: Permission[];
 };
 
-const initializeDefaults = (): void => {
-	if (permissions.size > 0) {
+let defaultsInitialized = false;
+let defaultsInitPromise: Promise<void> | null = null;
+
+const toPermission = (doc: PermissionDocument): Permission => {
+	return {
+		id: doc.id,
+		key: doc.key,
+		name: doc.name,
+		description: doc.description,
+		resource: doc.resource,
+		action: doc.action,
+		createdAt: doc.createdAt,
+		updatedAt: doc.updatedAt,
+	};
+};
+
+const toRole = (doc: RoleDocument): Role => {
+	return {
+		id: doc.id,
+		name: doc.name,
+		description: doc.description,
+		permissionIds: doc.permissionIds,
+		isSystem: doc.isSystem,
+		createdAt: doc.createdAt,
+		updatedAt: doc.updatedAt,
+	};
+};
+
+const toUser = (doc: UserDocument): User => {
+	return {
+		id: doc.id,
+		email: doc.email,
+		password: doc.password,
+		name: doc.name,
+		roleIds: doc.roleIds,
+		isActive: doc.isActive,
+		createdAt: doc.createdAt,
+		updatedAt: doc.updatedAt,
+	};
+};
+
+const initializeDefaults = async (): Promise<void> => {
+	if (defaultsInitialized) {
 		return;
 	}
 
-	for (const seed of defaultPermissionSeeds) {
-		const permission: Permission = {
-			...seed,
-			id: randomUUID(),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		};
-		permissions.set(permission.id, permission);
+	if (defaultsInitPromise) {
+		await defaultsInitPromise;
+		return;
 	}
 
-	const adminRole: Role = {
-		id: randomUUID(),
-		name: "Admin",
-		description: "Administrator with full access",
-		permissionIds: Array.from(permissions.keys()),
-		isSystem: true,
-		createdAt: new Date(),
-		updatedAt: new Date(),
-	};
-	roles.set(adminRole.id, adminRole);
+	defaultsInitPromise = (async () => {
+		for (const key of PERMISSION_KEYS) {
+			const seed = PERMISSION_CATALOG[key];
+			await PermissionModel.updateOne(
+				{ key },
+				{
+					$set: {
+						name: seed.name,
+						description: seed.description,
+						resource: seed.resource,
+						action: seed.action,
+					},
+					$setOnInsert: {
+						id: randomUUID(),
+						key,
+					},
+				},
+				{ upsert: true },
+			);
+		}
 
-	const userRole: Role = {
-		id: randomUUID(),
-		name: "User",
-		description: "Default user role with read permissions",
-		permissionIds: Array.from(permissions.values())
+		const allPermissions = await PermissionModel.find()
+			.select("id action")
+			.lean<Pick<PermissionDocument, "id" | "action">[]>();
+
+		const adminPermissionIds = allPermissions.map(
+			(permission) => permission.id,
+		);
+		const userPermissionIds = allPermissions
 			.filter(
 				(permission) =>
 					permission.action === "read" || permission.action === "view",
 			)
-			.map((permission) => permission.id),
-		isSystem: true,
-		createdAt: new Date(),
-		updatedAt: new Date(),
-	};
-	roles.set(userRole.id, userRole);
+			.map((permission) => permission.id);
+
+		await RoleModel.updateOne(
+			{ name: "Admin" },
+			{
+				$set: {
+					description: "Administrator with full access",
+					permissionIds: adminPermissionIds,
+					isSystem: true,
+				},
+				$setOnInsert: {
+					id: randomUUID(),
+					name: "Admin",
+				},
+			},
+			{ upsert: true },
+		);
+
+		await RoleModel.updateOne(
+			{ name: "User" },
+			{
+				$set: {
+					description: "Default user role with read permissions",
+					permissionIds: userPermissionIds,
+					isSystem: true,
+				},
+				$setOnInsert: {
+					id: randomUUID(),
+					name: "User",
+				},
+			},
+			{ upsert: true },
+		);
+
+		defaultsInitialized = true;
+	})();
+
+	try {
+		await defaultsInitPromise;
+	} finally {
+		defaultsInitPromise = null;
+	}
 };
 
-const collectPermissionsByIds = (permissionIds: string[]): Permission[] => {
+const collectPermissionsByIds = async (
+	permissionIds: string[],
+): Promise<Permission[]> => {
+	if (permissionIds.length === 0) {
+		return [];
+	}
+
+	const docs = await PermissionModel.find({ id: { $in: permissionIds } }).lean<
+		PermissionDocument[]
+	>();
+	const byId = new Map(docs.map((doc) => [doc.id, toPermission(doc)]));
+
 	return permissionIds
-		.map((permissionId) => permissions.get(permissionId) ?? null)
+		.map((permissionId) => byId.get(permissionId) ?? null)
 		.filter((permission): permission is Permission => permission !== null);
 };
 
 export const PermissionService = {
-	create: (key: PermissionKey): Permission => {
-		const existingPermission = Array.from(permissions.values()).find(
-			(permission) => permission.key === key,
-		);
-
+	create: async (key: PermissionKey): Promise<Permission> => {
+		await initializeDefaults();
+		const existingPermission = await PermissionModel.findOne({
+			key,
+		}).lean<PermissionDocument | null>();
 		if (existingPermission) {
-			return existingPermission;
+			return toPermission(existingPermission);
 		}
 
 		const seed = PERMISSION_CATALOG[key];
-		const newPermission: Permission = {
+		const created = await PermissionModel.create({
+			id: randomUUID(),
 			key,
 			name: seed.name,
 			description: seed.description,
 			resource: seed.resource,
 			action: seed.action,
-			id: randomUUID(),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		};
-		permissions.set(newPermission.id, newPermission);
-		return newPermission;
+		});
+
+		return toPermission(created.toObject() as PermissionDocument);
 	},
 
-	findById: (id: string): Permission | null => {
-		return permissions.get(id) ?? null;
+	findById: async (id: string): Promise<Permission | null> => {
+		await initializeDefaults();
+		const permission = await PermissionModel.findOne({
+			id,
+		}).lean<PermissionDocument | null>();
+		return permission ? toPermission(permission) : null;
 	},
 
-	findAll: (): Permission[] => {
-		return Array.from(permissions.values());
+	findAll: async (): Promise<Permission[]> => {
+		await initializeDefaults();
+		const permissionDocs =
+			await PermissionModel.find().lean<PermissionDocument[]>();
+		return permissionDocs.map(toPermission);
 	},
 
-	findByKey: (key: PermissionKey): Permission | null => {
-		for (const permission of permissions.values()) {
-			if (permission.key === key) {
-				return permission;
-			}
+	findByIds: async (ids: string[]): Promise<Permission[]> => {
+		await initializeDefaults();
+		if (ids.length === 0) {
+			return [];
 		}
 
-		return null;
+		const permissionDocs = await PermissionModel.find({
+			id: { $in: ids },
+		}).lean<PermissionDocument[]>();
+		const byId = new Map(
+			permissionDocs.map((doc) => [doc.id, toPermission(doc)]),
+		);
+		return ids
+			.map((id) => byId.get(id) ?? null)
+			.filter((permission): permission is Permission => permission !== null);
 	},
 
-	update: (id: string, data: Partial<Permission>): Permission | null => {
+	findByKey: async (key: PermissionKey): Promise<Permission | null> => {
+		await initializeDefaults();
+		const permission = await PermissionModel.findOne({
+			key,
+		}).lean<PermissionDocument | null>();
+		return permission ? toPermission(permission) : null;
+	},
+
+	update: async (
+		id: string,
+		data: Partial<Permission>,
+	): Promise<Permission | null> => {
 		void id;
 		void data;
 		return null;
 	},
 
-	delete: (id: string): boolean => {
+	delete: async (id: string): Promise<boolean> => {
 		void id;
 		return false;
 	},
 };
 
 export const RoleService = {
-	create: (role: Omit<Role, "id" | "createdAt" | "updatedAt">): Role => {
-		const newRole: Role = {
-			...role,
+	create: async (
+		role: Omit<Role, "id" | "createdAt" | "updatedAt">,
+	): Promise<Role> => {
+		await initializeDefaults();
+		const created = await RoleModel.create({
 			id: randomUUID(),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		};
-		roles.set(newRole.id, newRole);
-		return newRole;
+			name: role.name,
+			description: role.description,
+			permissionIds: role.permissionIds,
+			isSystem: role.isSystem,
+		});
+		return toRole(created.toObject() as RoleDocument);
 	},
 
-	findById: (id: string): Role | null => {
-		return roles.get(id) ?? null;
+	findById: async (id: string): Promise<Role | null> => {
+		await initializeDefaults();
+		const role = await RoleModel.findOne({ id }).lean<RoleDocument | null>();
+		return role ? toRole(role) : null;
 	},
 
-	findAll: (): Role[] => {
-		return Array.from(roles.values());
+	findAll: async (): Promise<Role[]> => {
+		await initializeDefaults();
+		const roleDocs = await RoleModel.find().lean<RoleDocument[]>();
+		return roleDocs.map(toRole);
 	},
 
-	findByIds: (ids: string[]): Role[] => {
+	findByIds: async (ids: string[]): Promise<Role[]> => {
+		await initializeDefaults();
+		if (ids.length === 0) {
+			return [];
+		}
+
+		const roleDocs = await RoleModel.find({ id: { $in: ids } }).lean<
+			RoleDocument[]
+		>();
+		const byId = new Map(roleDocs.map((doc) => [doc.id, toRole(doc)]));
+
 		return ids
-			.map((id) => roles.get(id))
-			.filter((role): role is Role => role !== undefined);
+			.map((id) => byId.get(id) ?? null)
+			.filter((role): role is Role => role !== null);
 	},
 
-	update: (id: string, data: Partial<Role>): Role | null => {
-		const role = roles.get(id);
+	update: async (id: string, data: Partial<Role>): Promise<Role | null> => {
+		await initializeDefaults();
+		const role = await RoleModel.findOne({ id }).lean<RoleDocument | null>();
 		if (!role || role.isSystem) {
 			return null;
 		}
 
-		const updatedRole: Role = {
-			...role,
-			...data,
-			id: role.id,
-			isSystem: role.isSystem,
-			createdAt: role.createdAt,
-			updatedAt: new Date(),
-		};
+		const updatedRole = await RoleModel.findOneAndUpdate(
+			{ id },
+			{
+				$set: {
+					name: data.name,
+					description: data.description,
+					permissionIds: data.permissionIds,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<RoleDocument | null>();
 
-		roles.set(id, updatedRole);
-		return updatedRole;
+		return updatedRole ? toRole(updatedRole) : null;
 	},
 
-	delete: (id: string): boolean => {
-		const role = roles.get(id);
+	delete: async (id: string): Promise<boolean> => {
+		await initializeDefaults();
+		const role = await RoleModel.findOne({ id }).lean();
 		if (!role || role.isSystem) {
 			return false;
 		}
-		return roles.delete(id);
+
+		const result = await RoleModel.deleteOne({ id });
+		return result.deletedCount === 1;
 	},
 };
 
 export const UserService = {
-	create: (user: Omit<User, "id" | "createdAt" | "updatedAt">): User => {
-		const newUser: User = {
-			...user,
+	create: async (
+		user: Omit<User, "id" | "createdAt" | "updatedAt">,
+	): Promise<User> => {
+		await initializeDefaults();
+		const created = await UserModel.create({
 			id: randomUUID(),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		};
-		users.set(newUser.id, newUser);
-		return newUser;
-	},
-
-	findById: (id: string): User | null => {
-		return users.get(id) ?? null;
-	},
-
-	findByEmail: (email: string): User | null => {
-		for (const user of users.values()) {
-			if (user.email === email) {
-				return user;
-			}
-		}
-		return null;
-	},
-
-	findAll: (): User[] => {
-		return Array.from(users.values());
-	},
-
-	update: (id: string, data: Partial<User>): User | null => {
-		const user = users.get(id);
-		if (!user) {
-			return null;
-		}
-
-		const updatedUser: User = {
-			...user,
-			...data,
-			id: user.id,
-			createdAt: user.createdAt,
-			updatedAt: new Date(),
-		};
-
-		users.set(id, updatedUser);
-		return updatedUser;
-	},
-
-	delete: (id: string): boolean => {
-		return users.delete(id);
-	},
-
-	addRole: (userId: string, roleId: string): User | null => {
-		const user = users.get(userId);
-		if (!user) {
-			return null;
-		}
-
-		const nextRoleIds = new Set(user.roleIds);
-		nextRoleIds.add(roleId);
-		return UserService.update(userId, { roleIds: Array.from(nextRoleIds) });
-	},
-
-	removeRole: (userId: string, roleId: string): User | null => {
-		const user = users.get(userId);
-		if (!user) {
-			return null;
-		}
-
-		return UserService.update(userId, {
-			roleIds: user.roleIds.filter((id) => id !== roleId),
+			email: user.email,
+			password: user.password,
+			name: user.name,
+			roleIds: user.roleIds,
+			isActive: user.isActive,
 		});
+		return toUser(created.toObject());
+	},
+
+	findById: async (id: string): Promise<User | null> => {
+		await initializeDefaults();
+		const user = await UserModel.findOne({ id }).lean<UserDocument | null>();
+		return user ? toUser(user) : null;
+	},
+
+	findByEmail: async (email: string): Promise<User | null> => {
+		await initializeDefaults();
+		const user = await UserModel.findOne({ email }).lean<UserDocument | null>();
+		return user ? toUser(user) : null;
+	},
+
+	findAll: async (): Promise<User[]> => {
+		await initializeDefaults();
+		const userDocs = await UserModel.find().lean<UserDocument[]>();
+		return userDocs.map(toUser);
+	},
+
+	update: async (id: string, data: Partial<User>): Promise<User | null> => {
+		await initializeDefaults();
+		const updatedUser = await UserModel.findOneAndUpdate(
+			{ id },
+			{
+				$set: {
+					email: data.email,
+					password: data.password,
+					name: data.name,
+					roleIds: data.roleIds,
+					isActive: data.isActive,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<UserDocument | null>();
+
+		return updatedUser ? toUser(updatedUser) : null;
+	},
+
+	delete: async (id: string): Promise<boolean> => {
+		await initializeDefaults();
+		const result = await UserModel.deleteOne({ id });
+		return result.deletedCount === 1;
+	},
+
+	addRole: async (userId: string, roleId: string): Promise<User | null> => {
+		await initializeDefaults();
+		const updatedUser = await UserModel.findOneAndUpdate(
+			{ id: userId },
+			{ $addToSet: { roleIds: roleId } },
+			{ returnDocument: "after" },
+		).lean<UserDocument | null>();
+
+		return updatedUser ? toUser(updatedUser) : null;
+	},
+
+	removeRole: async (userId: string, roleId: string): Promise<User | null> => {
+		await initializeDefaults();
+		const updatedUser = await UserModel.findOneAndUpdate(
+			{ id: userId },
+			{ $pull: { roleIds: roleId } },
+			{ returnDocument: "after" },
+		).lean<UserDocument | null>();
+
+		return updatedUser ? toUser(updatedUser) : null;
 	},
 };
 
@@ -264,40 +409,50 @@ export const toPublicUser = (user: User): PublicUser => {
 	return publicUser;
 };
 
-export const getRoleWithPermissions = (role: Role): RoleWithPermissions => {
+export const getRoleWithPermissions = async (
+	role: Role,
+): Promise<RoleWithPermissions> => {
 	return {
 		...role,
-		permissions: collectPermissionsByIds(role.permissionIds),
+		permissions: await collectPermissionsByIds(role.permissionIds),
 	};
 };
 
-export const getEffectivePermissions = (roleIds: string[]): Permission[] => {
-	return mergePermissions(
-		RoleService.findByIds(roleIds).map((role) =>
-			collectPermissionsByIds(role.permissionIds),
-		),
+export const getEffectivePermissions = async (
+	roleIds: string[],
+): Promise<Permission[]> => {
+	const roles = await RoleService.findByIds(roleIds);
+	const permissionArrays = await Promise.all(
+		roles.map((role) => collectPermissionsByIds(role.permissionIds)),
 	);
+	return mergePermissions(permissionArrays);
 };
 
-export const getEffectivePermissionIds = (roleIds: string[]): string[] => {
-	return getEffectivePermissions(roleIds).map((permission) => permission.id);
+export const getEffectivePermissionIds = async (
+	roleIds: string[],
+): Promise<string[]> => {
+	const permissions = await getEffectivePermissions(roleIds);
+	return permissions.map((permission) => permission.id);
 };
 
-export const getUserWithRelations = (user: User): UserWithRelations => {
+export const getUserWithRelations = async (
+	user: User,
+): Promise<UserWithRelations> => {
 	return {
 		...toPublicUser(user),
-		roles: RoleService.findByIds(user.roleIds),
-		permissions: getEffectivePermissions(user.roleIds),
+		roles: await RoleService.findByIds(user.roleIds),
+		permissions: await getEffectivePermissions(user.roleIds),
 	};
 };
 
-export const resetRbacStore = (): void => {
-	users.clear();
-	roles.clear();
-	permissions.clear();
-	initializeDefaults();
+export const resetRbacStore = async (): Promise<void> => {
+	defaultsInitialized = false;
+	await Promise.all([
+		UserModel.deleteMany({}),
+		RoleModel.deleteMany({}),
+		PermissionModel.deleteMany({}),
+	]);
+	await initializeDefaults();
 };
 
-initializeDefaults();
-
-export { permissions, roles, users };
+export const ensureRbacDefaults = initializeDefaults;

@@ -69,7 +69,9 @@ export const PERMISSION_CATALOG = {
 
 export type PermissionKey = keyof typeof PERMISSION_CATALOG;
 
-export const PERMISSION_KEYS = Object.keys(PERMISSION_CATALOG) as PermissionKey[];
+export const PERMISSION_KEYS = Object.keys(
+	PERMISSION_CATALOG,
+) as PermissionKey[];
 
 const permissionKeyByResourceAction = new Map<string, PermissionKey>(
 	PERMISSION_KEYS.map((key) => {
