@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last updated: 2026-04-15
+Last updated: 2026-04-16
 
 This file tracks module-by-module implementation status for Zidnee.
 
@@ -39,6 +39,7 @@ Status legend:
   - Core role, permission, and user relation computation
   - Effective permission aggregation by role assignment
 - Implemented:
+  - Hardcoded permission catalog with stable keys (for example USER_CREATE, ROLE_UPDATE, VIEW_REPORTS)
   - In-memory stores for users, roles, permissions
   - Default seed roles and permissions (Admin/User)
   - Relation helpers: getUserWithRelations, getRoleWithPermissions
@@ -74,14 +75,14 @@ Status legend:
 ### Permissions Module
 - Status: Implemented
 - Scope:
-  - Permission CRUD baseline for RBAC policy control
+  - Permission catalog read API for RBAC policy visibility
 - Implemented:
-  - Routes protected by auth + permission middleware
-  - Create/list/get/delete permission controllers
-  - Duplicate resource:action conflict checks
+  - Hardcoded permission catalog source in shared schema package
+  - Read-only endpoints for list/get permission visibility
+  - Routes protected by auth + key-based permission middleware
 - Missing:
-  - Update endpoint behavior and migration strategy for renamed permissions
-  - Guardrails for deleting permissions currently attached to roles
+  - Persistence bootstrap sync for hardcoded catalog against database
+  - Backward-compat migration plan for legacy resource:action checks in external clients
 - Test coverage status:
   - Permission helper logic tested in rbac.permissions tests
   - No dedicated permission route/controller tests yet
@@ -114,7 +115,7 @@ Status legend:
 - Scope:
   - Authentication, authorization, async error handling
 - Implemented:
-  - authMiddleware, requirePermission, requireRole
+  - authMiddleware, requirePermissionKey, requirePermission, requireRole
   - errorMiddleware and asyncHandler
 - Missing:
   - Request correlation IDs and structured logging context

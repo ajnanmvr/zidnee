@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/permissions/{{permissionId}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 2000

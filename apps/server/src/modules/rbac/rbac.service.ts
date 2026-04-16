@@ -1,5 +1,12 @@
 import { randomUUID } from "node:crypto";
-import type { Permission, Role, User } from "@repo/schema";
+import {
+	PERMISSION_CATALOG,
+	PERMISSION_KEYS,
+	type Permission,
+	type PermissionKey,
+	type Role,
+	type User,
+} from "@repo/schema";
 import { mergePermissions } from "./rbac.permissions.js";
 
 const users = new Map<string, User>();
@@ -8,80 +15,10 @@ const permissions = new Map<string, Permission>();
 
 type PermissionSeed = Omit<Permission, "id" | "createdAt" | "updatedAt">;
 
-const defaultPermissionSeeds: PermissionSeed[] = [
-	{
-		name: "Create User",
-		resource: "users",
-		action: "create",
-		description: "Create a new user",
-	},
-	{
-		name: "Read User",
-		resource: "users",
-		action: "read",
-		description: "Read user information",
-	},
-	{
-		name: "Update User",
-		resource: "users",
-		action: "update",
-		description: "Update user information",
-	},
-	{
-		name: "Delete User",
-		resource: "users",
-		action: "delete",
-		description: "Delete a user",
-	},
-	{
-		name: "Create Role",
-		resource: "roles",
-		action: "create",
-		description: "Create a new role",
-	},
-	{
-		name: "Read Role",
-		resource: "roles",
-		action: "read",
-		description: "Read role information",
-	},
-	{
-		name: "Update Role",
-		resource: "roles",
-		action: "update",
-		description: "Update role information",
-	},
-	{
-		name: "Delete Role",
-		resource: "roles",
-		action: "delete",
-		description: "Delete a role",
-	},
-	{
-		name: "Create Permission",
-		resource: "permissions",
-		action: "create",
-		description: "Create a new permission",
-	},
-	{
-		name: "Read Permission",
-		resource: "permissions",
-		action: "read",
-		description: "Read permission information",
-	},
-	{
-		name: "Update Permission",
-		resource: "permissions",
-		action: "update",
-		description: "Update permission information",
-	},
-	{
-		name: "Delete Permission",
-		resource: "permissions",
-		action: "delete",
-		description: "Delete a permission",
-	},
-];
+const defaultPermissionSeeds: PermissionSeed[] = PERMISSION_KEYS.map((key) => ({
+	key,
+	...PERMISSION_CATALOG[key],
+}));
 
 export type PublicUser = Omit<User, "password">;
 export type RoleWithPermissions = Role & { permissions: Permission[] };
@@ -121,7 +58,10 @@ const initializeDefaults = (): void => {
 		name: "User",
 		description: "Default user role with read permissions",
 		permissionIds: Array.from(permissions.values())
-			.filter((permission) => permission.action === "read")
+			.filter(
+				(permission) =>
+					permission.action === "read" || permission.action === "view",
+			)
 			.map((permission) => permission.id),
 		isSystem: true,
 		createdAt: new Date(),
@@ -137,11 +77,22 @@ const collectPermissionsByIds = (permissionIds: string[]): Permission[] => {
 };
 
 export const PermissionService = {
-	create: (
-		permission: Omit<Permission, "id" | "createdAt" | "updatedAt">,
-	): Permission => {
+	create: (key: PermissionKey): Permission => {
+		const existingPermission = Array.from(permissions.values()).find(
+			(permission) => permission.key === key,
+		);
+
+		if (existingPermission) {
+			return existingPermission;
+		}
+
+		const seed = PERMISSION_CATALOG[key];
 		const newPermission: Permission = {
-			...permission,
+			key,
+			name: seed.name,
+			description: seed.description,
+			resource: seed.resource,
+			action: seed.action,
 			id: randomUUID(),
 			createdAt: new Date(),
 			updatedAt: new Date(),
@@ -158,26 +109,25 @@ export const PermissionService = {
 		return Array.from(permissions.values());
 	},
 
-	update: (id: string, data: Partial<Permission>): Permission | null => {
-		const permission = permissions.get(id);
-		if (!permission) {
-			return null;
+	findByKey: (key: PermissionKey): Permission | null => {
+		for (const permission of permissions.values()) {
+			if (permission.key === key) {
+				return permission;
+			}
 		}
 
-		const updatedPermission: Permission = {
-			...permission,
-			...data,
-			id: permission.id,
-			createdAt: permission.createdAt,
-			updatedAt: new Date(),
-		};
+		return null;
+	},
 
-		permissions.set(id, updatedPermission);
-		return updatedPermission;
+	update: (id: string, data: Partial<Permission>): Permission | null => {
+		void id;
+		void data;
+		return null;
 	},
 
 	delete: (id: string): boolean => {
-		return permissions.delete(id);
+		void id;
+		return false;
 	},
 };
 

@@ -1,3 +1,4 @@
 export * from "./env.schema.js";
 export * from "./login.schema.js";
+export * from "./permission-catalog.js";
 export * from "./rbac.schema.js";

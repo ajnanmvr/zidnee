@@ -1,7 +1,8 @@
+import { type PermissionKey } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
-	requirePermission,
+	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
@@ -17,22 +18,22 @@ router.use(authMiddleware);
 
 router.get(
 	"/",
-	requirePermission({ resource: "users", action: "read" }),
+	requirePermissionKey("USER_READ" satisfies PermissionKey),
 	asyncHandler(listUsersController),
 );
 router.get(
 	"/:userId",
-	requirePermission({ resource: "users", action: "read" }),
+	requirePermissionKey("USER_READ" satisfies PermissionKey),
 	asyncHandler(getUserController),
 );
 router.post(
 	"/:userId/roles",
-	requirePermission({ resource: "users", action: "update" }),
+	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
 	asyncHandler(assignRoleController),
 );
 router.delete(
 	"/:userId/roles",
-	requirePermission({ resource: "users", action: "update" }),
+	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
 	asyncHandler(removeRoleController),
 );
 

@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/users/{{userId}}/roles"
+method: DELETE
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "roleId": "{{roleId}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4000

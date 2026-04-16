@@ -151,6 +151,7 @@ Structure:
 
 Rules:
 - No hardcoded roles
+- Permission catalog is hardcoded and source-controlled (for example USER_CREATE, ORDER_DELETE, VIEW_REPORTS)
 - Permissions enforced via middleware
 - JWT should include userId, roleId, and permissions
 
@@ -275,11 +276,13 @@ Required updates after meaningful code changes:
 - Update this file when architecture rules, domain rules, or implementation conventions change.
 - Update module progress in docs/IMPLEMENTATION-STATUS.md when any module scope changes.
 - Update docs/PROJECT-STRUCTURE.md when folders, scripts, runtime behavior, or package responsibilities change.
+- Update docs/postman/Zidnee.postman_collection.json and related environment files when API routes or request shapes change.
 
 Definition of done for AI-generated feature work includes:
 - Code updated
 - Tests updated
 - Relevant documentation updated
+- Postman collection updated if API surface changed
 
 If a requested change conflicts with this system context, AI should follow this document and explicitly note the conflict.
 

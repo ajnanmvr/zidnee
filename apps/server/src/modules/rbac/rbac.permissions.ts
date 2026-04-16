@@ -9,7 +9,7 @@ export const buildPermissionMap = (
 ): PermissionMap => {
 	const map: PermissionMap = {};
 	for (const permission of permissions) {
-		map[`${permission.resource}:${permission.action}`] = permission;
+		map[permission.key] = permission;
 	}
 	return map;
 };
@@ -18,10 +18,7 @@ export const hasPermission = (
 	userPermissions: Permission[],
 	check: PermissionCheck,
 ): boolean => {
-	const key = `${check.resource}:${check.action}`;
-	return userPermissions.some(
-		(permission) => `${permission.resource}:${permission.action}` === key,
-	);
+	return userPermissions.some((permission) => permission.key === check.key);
 };
 
 export const hasAnyPermission = (

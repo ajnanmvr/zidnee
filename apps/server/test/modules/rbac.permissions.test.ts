@@ -10,6 +10,7 @@ import {
 
 const readUsersPermission = {
 	id: randomUUID(),
+	key: "USER_READ",
 	name: "Read users",
 	resource: "users",
 	action: "read",
@@ -17,6 +18,7 @@ const readUsersPermission = {
 
 const createUsersPermission = {
 	id: randomUUID(),
+	key: "USER_CREATE",
 	name: "Create users",
 	resource: "users",
 	action: "create",
@@ -29,26 +31,26 @@ describe("rbac permission helpers", () => {
 			createUsersPermission,
 		] as any);
 
-		expect(map["users:read"]?.id).toBe(readUsersPermission.id);
-		expect(map["users:create"]?.id).toBe(createUsersPermission.id);
+		expect(map.USER_READ?.id).toBe(readUsersPermission.id);
+		expect(map.USER_CREATE?.id).toBe(createUsersPermission.id);
 	});
 
 	it("checks single, any, and all permissions", () => {
 		const permissions = [readUsersPermission, createUsersPermission] as any;
 
 		expect(
-			hasPermission(permissions, { resource: "users", action: "read" }),
+			hasPermission(permissions, { key: "USER_READ" }),
 		).toBe(true);
 		expect(
 			hasAnyPermission(permissions, [
-				{ resource: "users", action: "delete" },
-				{ resource: "users", action: "create" },
+				{ key: "USER_DELETE" },
+				{ key: "USER_CREATE" },
 			]),
 		).toBe(true);
 		expect(
 			hasAllPermissions(permissions, [
-				{ resource: "users", action: "read" },
-				{ resource: "users", action: "create" },
+				{ key: "USER_READ" },
+				{ key: "USER_CREATE" },
 			]),
 		).toBe(true);
 	});
