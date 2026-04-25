@@ -6,6 +6,7 @@ import {
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
+	createUserController,
 	assignRoleController,
 	getUserController,
 	listUsersController,
@@ -16,6 +17,11 @@ const router: ReturnType<typeof Router> = Router();
 
 router.use(authMiddleware);
 
+router.post(
+	"/",
+	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
+	asyncHandler(createUserController),
+);
 router.get(
 	"/",
 	requirePermissionKey("USER_READ" satisfies PermissionKey),

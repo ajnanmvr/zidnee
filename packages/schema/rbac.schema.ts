@@ -36,6 +36,7 @@ export type Role = z.infer<typeof RoleSchema>;
 // Users with role assignments
 export const UserSchema = z.object({
 	id: ObjectIdStringSchema,
+	username: z.string().min(1).max(100).optional(),
 	email: z.email(),
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
@@ -49,19 +50,24 @@ export type User = z.infer<typeof UserSchema>;
 
 // Auth Payloads
 export const LoginPayloadSchema = z.object({
-	email: z.email(),
-	password: z.string().min(8),
+	username: z.string().min(1).max(255),
+	password: z.string().min(6),
 });
 
 export type LoginPayload = z.infer<typeof LoginPayloadSchema>;
 
 export const RegisterPayloadSchema = z.object({
+	username: z.string().min(1).max(100),
 	email: z.email(),
-	password: z.string().min(8).max(255),
+	password: z.string().min(6).max(255),
 	name: z.string().min(1).max(255),
 });
 
 export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
+
+export const CreateUserPayloadSchema = RegisterPayloadSchema;
+
+export type CreateUserPayload = z.infer<typeof CreateUserPayloadSchema>;
 
 // JWT Token Payload
 export const JWTPayloadSchema = z.object({

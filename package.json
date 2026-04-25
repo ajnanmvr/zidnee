@@ -6,6 +6,8 @@
 		"dev": "turbo run dev",
 		"dev:api": "pnpm --filter api dev",
 		"dev:web": "pnpm --filter web dev",
+		"seed": "pnpm --filter api seed",
+		"seed:api": "pnpm --filter api seed",
 		"test:api": "pnpm --filter api test",
 		"lint": "turbo run lint",
 		"fix": "biome check --write .",

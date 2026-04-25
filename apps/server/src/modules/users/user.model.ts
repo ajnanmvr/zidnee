@@ -7,6 +7,13 @@ export type UserDocument = Omit<User, "id"> & {
 
 const userSchema = new Schema<UserDocument>(
 	{
+		username: {
+			type: String,
+			required: false,
+			unique: true,
+			sparse: true,
+			index: true,
+		},
 		email: {
 			type: String,
 			required: true,

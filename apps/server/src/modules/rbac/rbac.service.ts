@@ -24,6 +24,42 @@ export type UserWithRelations = PublicUser & {
 let defaultsInitialized = false;
 let defaultsInitPromise: Promise<void> | null = null;
 
+const dropLegacyIdIndex = async (
+	collection: {
+		listIndexes: () => { toArray: () => Promise<Array<{ name: string }>> };
+		dropIndex: (indexName: string) => Promise<unknown>;
+	},
+): Promise<void> => {
+	try {
+		const indexes = await collection.listIndexes().toArray();
+		const staleIdIndex = indexes.find((index) => index.name === "id_1");
+
+		if (staleIdIndex) {
+			await collection.dropIndex("id_1");
+		}
+	} catch (error: unknown) {
+		// Ignore missing-collection errors; index cleanup will run once collection exists.
+		if (
+			typeof error === "object" &&
+			error !== null &&
+			"code" in error &&
+			error.code === 26
+		) {
+			return;
+		}
+
+		throw error;
+	}
+};
+
+const ensureCollectionIndexes = async (): Promise<void> => {
+	await Promise.all([
+		dropLegacyIdIndex(PermissionModel.collection),
+		dropLegacyIdIndex(RoleModel.collection),
+		dropLegacyIdIndex(UserModel.collection),
+	]);
+};
+
 const toPermission = (doc: PermissionDocument): Permission => {
 	return {
 		id: doc._id.toString(),
@@ -52,6 +88,7 @@ const toRole = (doc: RoleDocument): Role => {
 const toUser = (doc: UserDocument): User => {
 	return {
 		id: doc._id.toString(),
+		username: doc.username,
 		email: doc.email,
 		password: doc.password,
 		name: doc.name,
@@ -73,6 +110,8 @@ const initializeDefaults = async (): Promise<void> => {
 	}
 
 	defaultsInitPromise = (async () => {
+		await ensureCollectionIndexes();
+
 		for (const key of PERMISSION_KEYS) {
 			const seed = PERMISSION_CATALOG[key];
 			await PermissionModel.updateOne(
@@ -105,14 +144,14 @@ const initializeDefaults = async (): Promise<void> => {
 			.map((permission) => permission._id.toString());
 
 		await RoleModel.updateOne(
-			{ name: "Admin" },
+			{ name: "SuperAdmin" },
 			{
 				$set: {
-					description: "Administrator with full access",
+					description: "System super administrator with full access",
 					permissionIds: adminPermissionIds,
 					isSystem: true,
 				},
-				$setOnInsert: { name: "Admin" },
+				$setOnInsert: { name: "SuperAdmin" },
 			},
 			{ upsert: true },
 		);
@@ -316,6 +355,7 @@ export const UserService = {
 	): Promise<User> => {
 		await initializeDefaults();
 		const created = await UserModel.create({
+			username: user.username,
 			email: user.email,
 			password: user.password,
 			name: user.name,
@@ -337,6 +377,12 @@ export const UserService = {
 		return user ? toUser(user) : null;
 	},
 
+	findByUsername: async (username: string): Promise<User | null> => {
+		await initializeDefaults();
+		const user = await UserModel.findOne({ username }).lean<UserDocument | null>();
+		return user ? toUser(user) : null;
+	},
+
 	findAll: async (): Promise<User[]> => {
 		await initializeDefaults();
 		const userDocs = await UserModel.find().lean<UserDocument[]>();
@@ -349,6 +395,7 @@ export const UserService = {
 			id,
 			{
 				$set: {
+					username: data.username,
 					email: data.email,
 					password: data.password,
 					name: data.name,

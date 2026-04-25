@@ -1,11 +1,57 @@
+import { CreateUserPayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
-import { NotFoundError } from "../../utils/index.js";
+import { hashPassword } from "../auth/auth.password.js";
+import { ConflictError, NotFoundError, ValidationError } from "../../utils/index.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import {
 	getUserWithRelations,
 	RoleService,
 	UserService,
 } from "../rbac/rbac.service.js";
+
+export const createUserController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const result = CreateUserPayloadSchema.safeParse(req.body);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const existingByEmail = await UserService.findByEmail(result.data.email);
+	if (existingByEmail) {
+		throw new ConflictError("Email already in use");
+	}
+
+	const existingByUsername = await UserService.findByUsername(result.data.username);
+	if (existingByUsername) {
+		throw new ConflictError("Username already in use");
+	}
+
+	const defaultRole = (await RoleService.findAll()).find(
+		(role) => role.name === "User",
+	);
+
+	if (!defaultRole) {
+		throw new NotFoundError("Default user role");
+	}
+
+	const password = await hashPassword(result.data.password);
+	const createdUser = await UserService.create({
+		username: result.data.username,
+		email: result.data.email,
+		password,
+		name: result.data.name,
+		roleIds: [defaultRole.id],
+		isActive: true,
+	});
+
+	res.status(201).json({
+		ok: true,
+		...(await getUserWithRelations(createdUser)),
+	});
+};
 
 export const listUsersController = async (
 	_req: Request,
