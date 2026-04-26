@@ -114,6 +114,8 @@ zidnee/
 - Dependencies:
   - `react`
   - `react-dom`
+  - `react-router-dom`
+  - `@tanstack/react-query`
   - `@repo/schema`
 - Dev dependencies:
   - `@repo/typescript-config`
@@ -131,11 +133,12 @@ zidnee/
 #### Client Source
 
 - [apps/client/src/main.tsx](apps/client/src/main.tsx) mounts React and checks that `#root` exists.
-- [apps/client/src/App.tsx](apps/client/src/App.tsx) is a login form example.
-- The form validates with `LoginSchema` from `@repo/schema`.
-- The form posts to `http://localhost:3001/login`.
+- [apps/client/src/App.tsx](apps/client/src/App.tsx) provides the query client, session context, and router provider.
+- [apps/client/src/router.tsx](apps/client/src/router.tsx) defines the public login route and protected dashboard routes.
+- [apps/client/src/components](apps/client/src/components) contains reusable dashboard UI pieces such as the sidebar, header, panels, and form fields.
+- [apps/client/src/features](apps/client/src/features) contains route-level pages plus auth and dashboard data hooks.
+- [apps/client/src/lib](apps/client/src/lib) contains the API helper, query client, and session state.
 - [apps/client/src/index.css](apps/client/src/index.css) sets the global page styling.
-- [apps/client/src/App.css](apps/client/src/App.css) styles the login card.
 - [apps/client/src/assets](apps/client/src/assets) contains bundled static assets.
 
 ### Server: [apps/server/package.json](apps/server/package.json)

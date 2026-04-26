@@ -1,0 +1,371 @@
+import type { ReactNode } from "react";
+import { NavLink } from "react-router-dom";
+
+export type NavigationItem = {
+	to: string;
+	label: string;
+	description: string;
+	icon: ReactNode;
+};
+
+export type Tone = "brand" | "accent" | "ink" | "sky" | "warm";
+
+const toneStyles: Record<Tone, { dot: string; fill: string; border: string }> =
+	{
+		brand: { dot: "bg-brand", fill: "bg-brand", border: "border-brand/20" },
+		accent: { dot: "bg-accent", fill: "bg-accent", border: "border-accent/20" },
+		ink: { dot: "bg-ink", fill: "bg-ink", border: "border-border" },
+		sky: { dot: "bg-sky", fill: "bg-sky", border: "border-sky/20" },
+		warm: { dot: "bg-warm", fill: "bg-warm", border: "border-warm/20" },
+	};
+
+type SidebarProps = {
+	items: NavigationItem[];
+	open: boolean;
+	onToggle: () => void;
+	onLogout: () => void;
+};
+
+type DashboardHeaderProps = {
+	title: string;
+	breadcrumbs: string[];
+	stats: Array<{ label: string; value: string; tone: Tone }>;
+	userName: string;
+	userLabel: string;
+	onToggleSidebar: () => void;
+};
+
+type MetricCardProps = {
+	label: string;
+	value: string;
+	tone: Tone;
+	progress: number;
+};
+
+type PanelProps = {
+	title: string;
+	description?: string;
+	children: ReactNode;
+	action?: ReactNode;
+};
+
+type FieldProps = {
+	label: string;
+	value: string;
+	onChange: (value: string) => void;
+	placeholder?: string;
+	type?: string;
+	error?: string;
+};
+
+type TextAreaProps = {
+	label: string;
+	value: string;
+	onChange: (value: string) => void;
+	placeholder?: string;
+	error?: string;
+};
+
+export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
+	return (
+		<aside
+			className="sticky top-0 hidden min-h-screen overflow-hidden border-r border-border bg-surface transition-[width] duration-300 ease-out lg:flex lg:flex-col"
+			style={{ width: open ? "18rem" : "5.5rem" }}
+		>
+			<div className="flex items-center justify-between gap-3 border-b border-border px-5 py-5">
+				<div
+					className={
+						open
+							? "flex items-center gap-3 overflow-hidden"
+							: "flex items-center justify-center overflow-hidden"
+					}
+				>
+					<img
+						src="/logo.png"
+						alt="Zidnee logo"
+						className="h-11 w-11 shrink-0 rounded-2xl border border-border bg-surface-muted p-1.5"
+					/>
+					{open ? (
+						<div>
+							<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand">
+								Zidnee CRM
+							</p>
+							<h1 className="text-lg font-semibold text-ink">Workspace</h1>
+						</div>
+					) : null}
+				</div>
+				<button
+					type="button"
+					className="grid h-10 w-10 place-items-center rounded-full border border-border bg-surface text-ink transition duration-200 hover:border-brand hover:text-brand"
+					onClick={onToggle}
+					aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+				>
+					<svg
+						viewBox="0 0 24 24"
+						className={
+							open
+								? "h-5 w-5 transition-transform duration-300"
+								: "h-5 w-5 rotate-180 transition-transform duration-300"
+						}
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.8"
+						aria-hidden="true"
+					>
+						<path
+							d="M9 18 15 12 9 6"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						/>
+					</svg>
+				</button>
+			</div>
+
+			<nav className="flex-1 px-3 py-4" aria-label="Dashboard sections">
+				<div className="grid gap-1.5">
+					{items.map((item) => (
+						<NavLink
+							key={item.to}
+							to={item.to}
+							end={item.to === "/"}
+							className={({ isActive }) =>
+								isActive
+									? `flex items-center gap-3 rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-left text-ink transition duration-200 ${open ? "justify-start" : "justify-center px-3"}`
+									: `flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-ink-soft transition duration-200 hover:bg-surface-muted hover:text-ink ${open ? "justify-start" : "justify-center px-3"}`
+							}
+						>
+							<span className="text-brand">{item.icon}</span>
+							{open ? (
+								<div className="min-w-0 flex-1">
+									<div className="flex items-center justify-between gap-2">
+										<span className="block truncate text-sm font-semibold">
+											{item.label}
+										</span>
+										<span className="text-xs text-ink-soft">
+											{item.description}
+										</span>
+									</div>
+								</div>
+							) : null}
+						</NavLink>
+					))}
+				</div>
+
+				<div className="mt-6 rounded-3xl border border-border bg-surface-muted p-4">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-ink-soft">
+						Navigation
+					</p>
+					<p className="mt-2 text-sm leading-6 text-ink-soft">
+						Use the route sections to work through dashboard views.
+					</p>
+					<button
+						type="button"
+						className="mt-4 w-full rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-surface transition duration-200 hover:bg-brand"
+						onClick={onLogout}
+					>
+						Log out
+					</button>
+				</div>
+			</nav>
+		</aside>
+	);
+};
+
+export const DashboardHeader = ({
+	title,
+	breadcrumbs,
+	stats,
+	userName,
+	userLabel,
+	onToggleSidebar,
+}: DashboardHeaderProps) => {
+	const lastCrumb = breadcrumbs.at(-1);
+
+	return (
+		<header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur-xl">
+			<div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+				<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+					<div className="flex items-center gap-3">
+						<button
+							type="button"
+							className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-surface text-ink transition duration-200 hover:border-brand hover:text-brand lg:hidden"
+							onClick={onToggleSidebar}
+							aria-label="Toggle sidebar"
+						>
+							<svg
+								viewBox="0 0 24 24"
+								className="h-5 w-5"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="1.8"
+								aria-hidden="true"
+							>
+								<path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+							</svg>
+						</button>
+						<div className="flex items-center gap-3">
+							<img
+								src="/logo.png"
+								alt="Zidnee logo"
+								className="h-11 w-11 rounded-2xl border border-border bg-surface-muted p-1.5"
+							/>
+							<div>
+								<p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-brand">
+									Control panel
+								</p>
+								<h2 className="mt-1 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+									{title}
+								</h2>
+							</div>
+						</div>
+					</div>
+
+					<div className="flex items-center justify-between gap-3 rounded-3xl border border-border bg-surface-muted px-4 py-3 lg:min-w-[18rem] lg:justify-start">
+						<img
+							src="/logo.png"
+							alt="Zidnee logo"
+							className="h-10 w-10 rounded-2xl border border-border bg-surface p-1.5"
+						/>
+						<div className="min-w-0">
+							<p className="truncate text-sm font-semibold text-ink">
+								{userName}
+							</p>
+							<p className="truncate text-xs text-ink-soft">{userLabel}</p>
+						</div>
+					</div>
+				</div>
+
+				<div className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+					{breadcrumbs.map((crumb) => (
+						<span
+							key={crumb}
+							className={
+								crumb === lastCrumb
+									? "rounded-full border border-brand/15 bg-brand-soft px-3 py-1.5 font-medium text-brand"
+									: "rounded-full border border-border bg-surface px-3 py-1.5 font-medium"
+							}
+						>
+							{crumb}
+						</span>
+					))}
+				</div>
+
+				<div className="grid gap-3 lg:grid-cols-3">
+					{stats.map((stat) => (
+						<div
+							key={stat.label}
+							className={`rounded-3xl border ${toneStyles[stat.tone].border} bg-surface px-4 py-3 shadow-sm`}
+						>
+							<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
+								{stat.label}
+							</p>
+							<p className="mt-1 text-sm font-semibold text-ink">
+								{stat.value}
+							</p>
+						</div>
+					))}
+				</div>
+			</div>
+		</header>
+	);
+};
+
+export const MetricCard = ({
+	label,
+	value,
+	tone,
+	progress,
+}: MetricCardProps) => {
+	const styles = toneStyles[tone];
+
+	return (
+		<div
+			className={`rounded-4xl border ${styles.border} bg-surface p-5 shadow-sm`}
+		>
+			<div className="flex items-center justify-between gap-3">
+				<p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-soft">
+					{label}
+				</p>
+				<span className={`h-2.5 w-2.5 rounded-full ${styles.dot}`} />
+			</div>
+			<p className="mt-4 text-2xl font-semibold tracking-tight text-ink">
+				{value}
+			</p>
+			<div className="mt-4 h-1.5 w-full rounded-full bg-surface-muted">
+				<div
+					className={`h-full rounded-full ${styles.fill}`}
+					style={{ width: `${progress}%` }}
+				/>
+			</div>
+		</div>
+	);
+};
+
+export const Panel = ({ title, description, children, action }: PanelProps) => {
+	return (
+		<section className="rounded-4xl border border-border bg-surface p-6 shadow-sm">
+			<div className="flex items-center justify-between gap-4">
+				<div>
+					<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand">
+						{description}
+					</p>
+					<h3 className="mt-1 text-xl font-semibold text-ink">{title}</h3>
+				</div>
+				{action}
+			</div>
+			<div className="mt-5">{children}</div>
+		</section>
+	);
+};
+
+export const Field = ({
+	label,
+	value,
+	onChange,
+	placeholder,
+	type = "text",
+	error,
+}: FieldProps) => {
+	return (
+		<label className="grid gap-2 text-sm font-medium text-ink-soft">
+			<span>{label}</span>
+			<input
+				className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition placeholder:text-ink-soft/50 focus:border-brand focus:ring-4 focus:ring-brand-soft"
+				type={type}
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				placeholder={placeholder}
+			/>
+			{error ? (
+				<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+					{error}
+				</p>
+			) : null}
+		</label>
+	);
+};
+
+export const TextAreaField = ({
+	label,
+	value,
+	onChange,
+	placeholder,
+	error,
+}: TextAreaProps) => {
+	return (
+		<label className="grid gap-2 text-sm font-medium text-ink-soft">
+			<span>{label}</span>
+			<textarea
+				className="min-h-28 rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition placeholder:text-ink-soft/50 focus:border-brand focus:ring-4 focus:ring-brand-soft"
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				placeholder={placeholder}
+			/>
+			{error ? (
+				<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+					{error}
+				</p>
+			) : null}
+		</label>
+	);
+};

@@ -1,8 +1,8 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import app from "@/app.js";
-import { resetRbacStore } from "@/modules/rbac/rbac.service.js";
 import { seedInitialSuperAdmin } from "@/modules/rbac/rbac.seed.js";
+import { resetRbacStore } from "@/modules/rbac/rbac.service.js";
 
 describe("app routes", () => {
 	beforeEach(async () => {

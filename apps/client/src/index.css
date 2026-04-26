@@ -2,6 +2,22 @@
 
 @theme {
 	--font-sans: "Inter", "Segoe UI", sans-serif;
+	--color-ink: #1b1d22;
+	--color-ink-soft: #5f6672;
+	--color-surface: #ffffff;
+	--color-surface-muted: #f4f7f8;
+	--color-panel: #eef3f6;
+	--color-border: #d8e0e6;
+	--color-brand: #5f8276;
+	--color-brand-soft: #e1ece7;
+	--color-accent: #97a84a;
+	--color-accent-soft: #eff4d6;
+	--color-sky: #8fb6cf;
+	--color-sky-soft: #e2eff7;
+	--color-warm: #d9c6b3;
+	--color-warm-soft: #f4ece3;
+	--color-danger: #d98f9a;
+	--color-danger-soft: #f7e3e6;
 }
 
 @layer base {
@@ -13,16 +29,17 @@
 		text-rendering: optimizeLegibility;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+		color-scheme: light;
 	}
 
-	html,r
+	html,
 	body,
 	#root {
 		min-height: 100%;
 	}
 
 	body {
-		@apply m-0 bg-slate-100 text-slate-900;
+		@apply m-0 bg-surface-muted text-ink;
 	}
 
 	button,
@@ -30,5 +47,10 @@
 	textarea,
 	select {
 		font: inherit;
+	}
+
+	::selection {
+		background: var(--color-brand-soft);
+		color: var(--color-ink);
 	}
 }

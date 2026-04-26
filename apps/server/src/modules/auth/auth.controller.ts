@@ -82,7 +82,9 @@ export const registerController = async (
 		throw new ConflictError("Email already in use");
 	}
 
-	const existingUsername = await UserService.findByUsername(result.data.username);
+	const existingUsername = await UserService.findByUsername(
+		result.data.username,
+	);
 	if (existingUsername) {
 		throw new ConflictError("Username already in use");
 	}

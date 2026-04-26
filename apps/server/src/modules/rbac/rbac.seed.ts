@@ -1,7 +1,11 @@
 import { hashPassword } from "../auth/auth.password.js";
-import { PermissionService, RoleService, ensureRbacDefaults } from "./rbac.service.js";
 import { RoleModel } from "../roles/role.model.js";
 import { UserModel } from "../users/user.model.js";
+import {
+	ensureRbacDefaults,
+	PermissionService,
+	RoleService,
+} from "./rbac.service.js";
 
 export const INITIAL_SUPERADMIN_USERNAME = "admin";
 export const INITIAL_SUPERADMIN_EMAIL = "admin@zidnee.local";

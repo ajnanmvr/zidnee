@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last updated: 2026-04-16
+Last updated: 2026-04-26
 
 This file tracks module-by-module implementation status for Zidnee.
 
@@ -200,6 +200,7 @@ Last updated: 2026-04-25
 - Implemented:
   - Login and environment schemas
   - RBAC schemas and auth payload schemas
+  - Shared API response schemas for login, me, users, roles, permissions, and error payloads
 - Missing:
   - Lead, FollowUp, Note, Student, Counsellor, Batch, ZID schemas
 - Test coverage status:
@@ -210,21 +211,24 @@ Last updated: 2026-04-25
 ## Frontend
 
 ### apps/client
-- Status: In Progress
+- Status: Implemented
 - Scope:
   - UI surface for platform workflows
 - Implemented:
-  - Basic login form using shared LoginSchema
+  - React Router app shell with protected dashboard routes
+  - TanStack React Query data loading for auth, users, roles, and permissions
+  - Shared Zod validation for login and role creation forms
+  - Shared Zod response validation for API payloads from the monorepo schema package
+  - Routed login page and componentized dashboard pages/layout
   - Vite build and alias setup
 - Missing:
-  - Workflow-driven CRM interfaces
-  - Correct API integration with backend auth route namespace
-  - Role-aware views and follow-up dashboards
+  - Frontend test coverage
+  - Follow-up, note, lead, student, counsellor, and batch UI surfaces
 - Test coverage status:
   - No frontend tests currently
 - Next actions:
-  - Align client auth endpoint usage with backend route conventions
-  - Begin feature UI after Lead and FollowUp backend foundations
+  - Add focused client tests for routing, login, and role creation
+  - Expand workflow UI as the missing backend modules land
 
 ## Overall Execution Readiness
 - Implemented foundations:

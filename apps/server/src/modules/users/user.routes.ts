@@ -6,8 +6,8 @@ import {
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
-	createUserController,
 	assignRoleController,
+	createUserController,
 	getUserController,
 	listUsersController,
 	removeRoleController,

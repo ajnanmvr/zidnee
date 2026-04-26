@@ -10,9 +10,9 @@ import {
 	type PermissionDocument,
 	PermissionModel,
 } from "../permissions/permission.model.js";
-import { mergePermissions } from "./rbac.permissions.js";
 import { type RoleDocument, RoleModel } from "../roles/role.model.js";
 import { type UserDocument, UserModel } from "../users/user.model.js";
+import { mergePermissions } from "./rbac.permissions.js";
 
 export type PublicUser = Omit<User, "password">;
 export type RoleWithPermissions = Role & { permissions: Permission[] };
@@ -24,12 +24,10 @@ export type UserWithRelations = PublicUser & {
 let defaultsInitialized = false;
 let defaultsInitPromise: Promise<void> | null = null;
 
-const dropLegacyIdIndex = async (
-	collection: {
-		listIndexes: () => { toArray: () => Promise<Array<{ name: string }>> };
-		dropIndex: (indexName: string) => Promise<unknown>;
-	},
-): Promise<void> => {
+const dropLegacyIdIndex = async (collection: {
+	listIndexes: () => { toArray: () => Promise<Array<{ name: string }>> };
+	dropIndex: (indexName: string) => Promise<unknown>;
+}): Promise<void> => {
 	try {
 		const indexes = await collection.listIndexes().toArray();
 		const staleIdIndex = indexes.find((index) => index.name === "id_1");
@@ -133,8 +131,8 @@ const initializeDefaults = async (): Promise<void> => {
 			.select("_id action")
 			.lean<Pick<PermissionDocument, "_id" | "action">[]>();
 
-		const adminPermissionIds = allPermissions.map(
-			(permission) => permission._id.toString(),
+		const adminPermissionIds = allPermissions.map((permission) =>
+			permission._id.toString(),
 		);
 		const userPermissionIds = allPermissions
 			.filter(
@@ -188,10 +186,10 @@ const collectPermissionsByIds = async (
 
 	const docs = await PermissionModel.find({
 		_id: { $in: permissionIds },
-	}).lean<
-		PermissionDocument[]
-	>();
-	const byId = new Map(docs.map((doc) => [doc._id.toString(), toPermission(doc)]));
+	}).lean<PermissionDocument[]>();
+	const byId = new Map(
+		docs.map((doc) => [doc._id.toString(), toPermission(doc)]),
+	);
 
 	return permissionIds
 		.map((permissionId) => byId.get(permissionId) ?? null)
@@ -222,7 +220,9 @@ export const PermissionService = {
 
 	findById: async (id: string): Promise<Permission | null> => {
 		await initializeDefaults();
-		const permission = await PermissionModel.findById(id).lean<PermissionDocument | null>();
+		const permission = await PermissionModel.findById(
+			id,
+		).lean<PermissionDocument | null>();
 		return permission ? toPermission(permission) : null;
 	},
 
@@ -308,7 +308,9 @@ export const RoleService = {
 		const roleDocs = await RoleModel.find({ _id: { $in: ids } }).lean<
 			RoleDocument[]
 		>();
-		const byId = new Map(roleDocs.map((doc) => [doc._id.toString(), toRole(doc)]));
+		const byId = new Map(
+			roleDocs.map((doc) => [doc._id.toString(), toRole(doc)]),
+		);
 
 		return ids
 			.map((id) => byId.get(id) ?? null)
@@ -379,7 +381,9 @@ export const UserService = {
 
 	findByUsername: async (username: string): Promise<User | null> => {
 		await initializeDefaults();
-		const user = await UserModel.findOne({ username }).lean<UserDocument | null>();
+		const user = await UserModel.findOne({
+			username,
+		}).lean<UserDocument | null>();
 		return user ? toUser(user) : null;
 	},
 

@@ -1,7 +1,11 @@
 import { CreateUserPayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
+import {
+	ConflictError,
+	NotFoundError,
+	ValidationError,
+} from "../../utils/index.js";
 import { hashPassword } from "../auth/auth.password.js";
-import { ConflictError, NotFoundError, ValidationError } from "../../utils/index.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import {
 	getUserWithRelations,
@@ -24,7 +28,9 @@ export const createUserController = async (
 		throw new ConflictError("Email already in use");
 	}
 
-	const existingByUsername = await UserService.findByUsername(result.data.username);
+	const existingByUsername = await UserService.findByUsername(
+		result.data.username,
+	);
 	if (existingByUsername) {
 		throw new ConflictError("Username already in use");
 	}
