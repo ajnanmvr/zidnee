@@ -1,10 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-	fetchMe,
-	fetchPermissions,
-	fetchRoles,
-	fetchUsers,
-} from "@/lib/api.js";
+import { fetchMe, fetchPermissions, fetchRoles, fetchUsers } from "@/lib/api";
 
 export const dashboardQueryKeys = {
 	me: (token: string) => ["me", token] as const,

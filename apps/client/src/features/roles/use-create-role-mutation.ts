@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { dashboardQueryKeys } from "@/features/dashboard/dashboard.queries.js";
-import { createRole } from "@/lib/api.js";
-import type { CreateRoleForm } from "@/lib/dashboard-types.js";
-import { useSession } from "@/lib/session.js";
+import { dashboardQueryKeys } from "@/features/dashboard/dashboard.queries";
+import { createRole } from "@/lib/api";
+import type { CreateRoleForm } from "@/lib/dashboard-types";
+import { useSession } from "@/lib/session";
 
 export const useCreateRoleMutation = () => {
 	const { token } = useSession();

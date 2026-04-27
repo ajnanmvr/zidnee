@@ -1,11 +1,12 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { LoginPage } from "@/features/auth/LoginPage.js";
-import { RequireAuth } from "@/features/auth/RequireAuth.js";
-import { DashboardLayout } from "@/features/dashboard/DashboardLayout.js";
-import { OverviewPage } from "@/features/dashboard/OverviewPage.js";
-import { PermissionsPage } from "@/features/dashboard/PermissionsPage.js";
-import { RolesPage } from "@/features/dashboard/RolesPage.js";
-import { UsersPage } from "@/features/dashboard/UsersPage.js";
+import { LoginPage } from "@/features/auth/LoginPage";
+import { RequireAuth } from "@/features/auth/RequireAuth";
+import { CreateRolePage } from "@/features/dashboard/CreateRolePage";
+import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
+import { MePage } from "@/features/dashboard/MePage";
+import { OverviewPage } from "@/features/dashboard/OverviewPage";
+import { RolesPage } from "@/features/dashboard/RolesPage";
+import { UsersPage } from "@/features/dashboard/UsersPage";
 
 export const router = createBrowserRouter([
 	{
@@ -31,8 +32,12 @@ export const router = createBrowserRouter([
 						element: <RolesPage />,
 					},
 					{
-						path: "permissions",
-						element: <PermissionsPage />,
+						path: "roles/create",
+						element: <CreateRolePage />,
+					},
+					{
+						path: "me",
+						element: <MePage />,
 					},
 				],
 			},

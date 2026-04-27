@@ -1,130 +1,53 @@
 import { useEffect, useState } from "react";
+import {
+	HiClipboardDocumentList,
+	HiShieldCheck,
+	HiSquares2X2,
+	HiUsers,
+} from "react-icons/hi2";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
 	DashboardHeader,
 	type NavigationItem,
 	Sidebar,
-} from "@/components/dashboard-ui.js";
-import { useMeQuery } from "@/features/dashboard/dashboard.queries.js";
-import { ApiError } from "@/lib/api.js";
-import { useSession } from "@/lib/session.js";
+} from "@/components/dashboard-ui";
+import { useMeQuery } from "@/features/dashboard/dashboard.queries";
+import { ApiError } from "@/lib/api";
+import { useSession } from "@/lib/session";
 
 const navItems: NavigationItem[] = [
 	{
 		to: "/",
 		label: "Overview",
 		description: "Snapshot",
-		icon: (
-			<svg
-				viewBox="0 0 24 24"
-				fill="none"
-				aria-hidden="true"
-				className="h-5 w-5"
-			>
-				<path
-					d="M4 12h6V4H4v8Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinejoin="round"
-				/>
-				<path
-					d="M14 20h6v-8h-6v8Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinejoin="round"
-				/>
-				<path
-					d="M14 10h6V4h-6v6Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinejoin="round"
-				/>
-				<path
-					d="M4 20h6v-6H4v6Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinejoin="round"
-				/>
-			</svg>
-		),
+		icon: <HiSquares2X2 className="h-5 w-5" aria-hidden="true" />,
 	},
 	{
 		to: "/users",
 		label: "Users",
 		description: "People",
-		icon: (
-			<svg
-				viewBox="0 0 24 24"
-				fill="none"
-				aria-hidden="true"
-				className="h-5 w-5"
-			>
-				<path
-					d="M16 19c0-2.2-2.2-4-4-4s-4 1.8-4 4"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinecap="round"
-				/>
-				<path
-					d="M12 12a3.2 3.2 0 1 0 0-6.4A3.2 3.2 0 0 0 12 12Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-				/>
-			</svg>
-		),
+		icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 	},
 	{
 		to: "/roles",
-		label: "Roles",
+		label: "Role Permissions",
 		description: "Access",
-		icon: (
-			<svg
-				viewBox="0 0 24 24"
-				fill="none"
-				aria-hidden="true"
-				className="h-5 w-5"
-			>
-				<path
-					d="M12 3 5 7v5c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V7l-7-4Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinejoin="round"
-				/>
-			</svg>
-		),
+		icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
 	},
 	{
-		to: "/permissions",
-		label: "Permissions",
-		description: "Policy",
-		icon: (
-			<svg
-				viewBox="0 0 24 24"
-				fill="none"
-				aria-hidden="true"
-				className="h-5 w-5"
-			>
-				<path
-					d="M6 7.5A3.5 3.5 0 0 1 9.5 4h5A3.5 3.5 0 0 1 18 7.5v9A3.5 3.5 0 0 1 14.5 20h-5A3.5 3.5 0 0 1 6 16.5v-9Z"
-					stroke="currentColor"
-					strokeWidth="1.8"
-				/>
-				<path
-					d="M9 11.5h6M9 15h4"
-					stroke="currentColor"
-					strokeWidth="1.8"
-					strokeLinecap="round"
-				/>
-			</svg>
-		),
+		to: "/me",
+		label: "My Profile",
+		description: "Account",
+		icon: <HiShieldCheck className="h-5 w-5" aria-hidden="true" />,
 	},
 ];
 
 const titles: Record<string, string> = {
 	"/": "Overview",
 	"/users": "Users",
-	"/roles": "Roles",
-	"/permissions": "Permissions",
+	"/roles": "Role Permissions",
+	"/roles/create": "Create Role",
+	"/me": "Me",
 };
 
 export const DashboardLayout = () => {
@@ -144,11 +67,6 @@ export const DashboardLayout = () => {
 
 	const title = titles[location.pathname] ?? "Overview";
 	const roleLabel = me?.roles[0]?.name ?? "Workspace member";
-	const stats = [
-		{ label: "Active user", value: meName, tone: "brand" as const },
-		{ label: "Role", value: roleLabel, tone: "accent" as const },
-		{ label: "Session", value: token ? "Live" : "Idle", tone: "ink" as const },
-	];
 
 	return (
 		<main className="min-h-screen bg-surface-muted text-ink">
@@ -163,10 +81,9 @@ export const DashboardLayout = () => {
 				<section className="min-w-0 bg-surface-muted">
 					<DashboardHeader
 						title={title}
-						breadcrumbs={["Dashboard", title, meName]}
-						stats={stats}
+						breadcrumbs={["Dashboard", title]}
 						userName={meName}
-						userLabel={me?.username ?? roleLabel}
+						userLabel={`${me?.username ?? "user"} • ${roleLabel}`}
 						onToggleSidebar={() => setSidebarOpen((current) => !current)}
 					/>
 

@@ -43,6 +43,16 @@
 
 	"overrides": [
 		{
+			"includes": ["apps/client/src/**/*.{ts,tsx}"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"useImportExtensions": "off"
+					}
+				}
+			}
+		},
+		{
 			"includes": ["**/*.test.ts", "**/*.spec.ts"],
 			"linter": {
 				"rules": {

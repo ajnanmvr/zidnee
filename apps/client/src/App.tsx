@@ -1,8 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
-import { queryClient } from "@/lib/query-client.js";
-import { SessionProvider } from "@/lib/session.js";
-import { router } from "@/router.js";
+import { queryClient } from "@/lib/query-client";
+import { SessionProvider } from "@/lib/session";
+import { router } from "@/router";
 
 const App = () => {
 	return (

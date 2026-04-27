@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
-import { loginUser } from "@/lib/api.js";
-import type { LoginForm } from "@/lib/dashboard-types.js";
-import { useSession } from "@/lib/session.js";
+import { loginUser } from "@/lib/api";
+import type { LoginForm } from "@/lib/dashboard-types";
+import { useSession } from "@/lib/session";
 
 export const useLoginMutation = () => {
 	const { setToken } = useSession();

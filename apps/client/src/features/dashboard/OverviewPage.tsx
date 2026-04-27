@@ -1,11 +1,11 @@
-import { MetricCard, Panel } from "@/components/dashboard-ui.js";
+import { MetricCard, Panel } from "@/components/dashboard-ui";
 import {
 	useMeQuery,
 	usePermissionsQuery,
 	useRolesQuery,
 	useUsersQuery,
-} from "@/features/dashboard/dashboard.queries.js";
-import { useSession } from "@/lib/session.js";
+} from "@/features/dashboard/dashboard.queries";
+import { useSession } from "@/lib/session";
 
 export const OverviewPage = () => {
 	const { token } = useSession();

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { HiBars3, HiChevronRight } from "react-icons/hi2";
+import { Link, NavLink } from "react-router-dom";
 
 export type NavigationItem = {
 	to: string;
@@ -29,7 +30,6 @@ type SidebarProps = {
 type DashboardHeaderProps = {
 	title: string;
 	breadcrumbs: string[];
-	stats: Array<{ label: string; value: string; tone: Tone }>;
 	userName: string;
 	userLabel: string;
 	onToggleSidebar: () => void;
@@ -100,24 +100,14 @@ export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
 					onClick={onToggle}
 					aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
 				>
-					<svg
-						viewBox="0 0 24 24"
+					<HiChevronRight
 						className={
 							open
 								? "h-5 w-5 transition-transform duration-300"
 								: "h-5 w-5 rotate-180 transition-transform duration-300"
 						}
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.8"
 						aria-hidden="true"
-					>
-						<path
-							d="M9 18 15 12 9 6"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-						/>
-					</svg>
+					/>
 				</button>
 			</div>
 
@@ -174,96 +164,67 @@ export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
 export const DashboardHeader = ({
 	title,
 	breadcrumbs,
-	stats,
 	userName,
 	userLabel,
 	onToggleSidebar,
 }: DashboardHeaderProps) => {
 	const lastCrumb = breadcrumbs.at(-1);
+	const avatarSeed = userName.trim().charAt(0).toUpperCase() || "U";
 
 	return (
 		<header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur-xl">
-			<div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-				<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+			<div className="px-4 py-3 sm:px-6 lg:px-8">
+				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 					<div className="flex items-center gap-3">
 						<button
 							type="button"
-							className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-surface text-ink transition duration-200 hover:border-brand hover:text-brand lg:hidden"
+							className="grid h-10 w-10 place-items-center rounded-2xl border border-border bg-surface text-ink transition duration-200 hover:border-brand hover:text-brand lg:hidden"
 							onClick={onToggleSidebar}
 							aria-label="Toggle sidebar"
 						>
-							<svg
-								viewBox="0 0 24 24"
-								className="h-5 w-5"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.8"
-								aria-hidden="true"
-							>
-								<path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
-							</svg>
+							<HiBars3 className="h-5 w-5" aria-hidden="true" />
 						</button>
-						<div className="flex items-center gap-3">
-							<img
-								src="/logo.png"
-								alt="Zidnee logo"
-								className="h-11 w-11 rounded-2xl border border-border bg-surface-muted p-1.5"
-							/>
-							<div>
-								<p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-brand">
-									Control panel
-								</p>
-								<h2 className="mt-1 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-									{title}
-								</h2>
-							</div>
+						<h2 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+							{title}
+						</h2>
+						<div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-medium text-ink-soft sm:text-sm">
+							{breadcrumbs.map((crumb, index) => (
+								<div
+									key={`${crumb}-${+index}`}
+									className="flex items-center gap-1.5"
+								>
+									{index > 0 ? (
+										<HiChevronRight
+											aria-hidden="true"
+											className="h-3.5 w-3.5 text-ink-soft/60"
+										/>
+									) : null}
+									<span
+										className={
+											crumb === lastCrumb ? "text-brand" : "text-ink-soft"
+										}
+									>
+										{crumb}
+									</span>
+								</div>
+							))}
 						</div>
 					</div>
 
-					<div className="flex items-center justify-between gap-3 rounded-3xl border border-border bg-surface-muted px-4 py-3 lg:min-w-[18rem] lg:justify-start">
-						<img
-							src="/logo.png"
-							alt="Zidnee logo"
-							className="h-10 w-10 rounded-2xl border border-border bg-surface p-1.5"
-						/>
+					<Link
+						to="/me"
+						className="flex items-center gap-3 rounded-2xl border border-border bg-surface-muted px-3 py-2 text-left transition duration-200 hover:border-brand/30 hover:bg-surface"
+					>
+						<span className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-brand-soft text-sm font-semibold text-brand">
+							{avatarSeed}
+						</span>
 						<div className="min-w-0">
 							<p className="truncate text-sm font-semibold text-ink">
 								{userName}
 							</p>
 							<p className="truncate text-xs text-ink-soft">{userLabel}</p>
 						</div>
-					</div>
-				</div>
-
-				<div className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
-					{breadcrumbs.map((crumb) => (
-						<span
-							key={crumb}
-							className={
-								crumb === lastCrumb
-									? "rounded-full border border-brand/15 bg-brand-soft px-3 py-1.5 font-medium text-brand"
-									: "rounded-full border border-border bg-surface px-3 py-1.5 font-medium"
-							}
-						>
-							{crumb}
-						</span>
-					))}
-				</div>
-
-				<div className="grid gap-3 lg:grid-cols-3">
-					{stats.map((stat) => (
-						<div
-							key={stat.label}
-							className={`rounded-3xl border ${toneStyles[stat.tone].border} bg-surface px-4 py-3 shadow-sm`}
-						>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
-								{stat.label}
-							</p>
-							<p className="mt-1 text-sm font-semibold text-ink">
-								{stat.value}
-							</p>
-						</div>
-					))}
+					</Link>
 				</div>
 			</div>
 		</header>

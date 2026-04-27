@@ -1,6 +1,6 @@
-import { Panel } from "@/components/dashboard-ui.js";
-import { useUsersQuery } from "@/features/dashboard/dashboard.queries.js";
-import { useSession } from "@/lib/session.js";
+import { Panel } from "@/components/dashboard-ui";
+import { useUsersQuery } from "@/features/dashboard/dashboard.queries";
+import { useSession } from "@/lib/session";
 
 export const UsersPage = () => {
 	const { token } = useSession();

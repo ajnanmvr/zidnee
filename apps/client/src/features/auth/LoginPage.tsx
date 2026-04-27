@@ -1,11 +1,11 @@
 import { LoginPayloadSchema } from "@repo/schema";
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Field } from "@/components/dashboard-ui.js";
-import { useLoginMutation } from "@/features/auth/use-login-mutation.js";
-import { ApiError } from "@/lib/api.js";
-import type { LoginForm } from "@/lib/dashboard-types.js";
-import { useSession } from "@/lib/session.js";
+import { Field } from "@/components/dashboard-ui";
+import { useLoginMutation } from "@/features/auth/use-login-mutation";
+import { ApiError } from "@/lib/api";
+import type { LoginForm } from "@/lib/dashboard-types";
+import { useSession } from "@/lib/session";
 
 export const LoginPage = () => {
 	const navigate = useNavigate();
