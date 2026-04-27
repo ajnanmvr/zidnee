@@ -1,10 +1,8 @@
 import { MetricCard, Panel } from "@/components/dashboard-ui";
-import {
-	useMeQuery,
-	usePermissionsQuery,
-	useRolesQuery,
-	useUsersQuery,
-} from "@/features/dashboard/dashboard.queries";
+import { useMeQuery } from "@/features/auth/auth.queries";
+import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
+import { useRolesQuery } from "@/features/roles/roles.queries";
+import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
 export const OverviewPage = () => {

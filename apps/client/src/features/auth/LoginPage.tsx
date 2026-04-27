@@ -1,9 +1,10 @@
 import { LoginPayloadSchema } from "@repo/schema";
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { ApiError } from "@/api/request";
 import { Field } from "@/components/dashboard-ui";
 import { useLoginMutation } from "@/features/auth/use-login-mutation";
-import { ApiError } from "@/lib/api";
 import type { LoginForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
@@ -11,8 +12,13 @@ export const LoginPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
 	const loginMutation = useLoginMutation();
-	const [form, setForm] = useState<LoginForm>({ username: "", password: "" });
-	const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+	const {
+		control,
+		handleSubmit,
+		setError,
+	} = useForm<LoginForm>({
+		defaultValues: { username: "", password: "" },
+	});
 	const [banner, setBanner] = useState("");
 
 	useEffect(() => {
@@ -21,14 +27,23 @@ export const LoginPage = () => {
 		}
 	}, [navigate, token]);
 
-	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		setFieldErrors({});
+	const onSubmit = async (form: LoginForm) => {
 		setBanner("");
 
 		const validation = LoginPayloadSchema.safeParse(form);
 		if (!validation.success) {
-			setFieldErrors(validation.error.flatten().fieldErrors);
+			const errors = validation.error.flatten().fieldErrors;
+			const usernameError = errors.username?.[0];
+			const passwordError = errors.password?.[0];
+
+			if (usernameError) {
+				setError("username", { type: "manual", message: usernameError });
+			}
+
+			if (passwordError) {
+				setError("password", { type: "manual", message: passwordError });
+			}
+
 			return;
 		}
 
@@ -42,7 +57,17 @@ export const LoginPage = () => {
 			setBanner(response.message ?? "Login succeeded but token was missing");
 		} catch (error) {
 			if (error instanceof ApiError) {
-				setFieldErrors(error.payload.errors ?? {});
+				const usernameError = error.payload.errors?.username?.[0];
+				const passwordError = error.payload.errors?.password?.[0];
+
+				if (usernameError) {
+					setError("username", { type: "server", message: usernameError });
+				}
+
+				if (passwordError) {
+					setError("password", { type: "server", message: passwordError });
+				}
+
 				setBanner(error.payload.message ?? "Unable to sign in");
 				return;
 			}
@@ -103,7 +128,7 @@ export const LoginPage = () => {
 
 				<form
 					className="rounded-[2.5rem] border border-border bg-surface gap-5 p-8 shadow-sm md:p-10 lg:p-12"
-					onSubmit={handleSubmit}
+					onSubmit={handleSubmit(onSubmit)}
 				>
 					<div>
 						<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">
@@ -117,25 +142,33 @@ export const LoginPage = () => {
 						</p>
 					</div>
 
-					<Field
-						label="Username"
-						value={form.username}
-						onChange={(value) =>
-							setForm((current) => ({ ...current, username: value }))
-						}
-						placeholder="admin"
-						error={fieldErrors.username?.[0]}
+					<Controller
+						name="username"
+						control={control}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Username"
+								value={field.value}
+								onChange={field.onChange}
+								placeholder="admin"
+								error={fieldState.error?.message}
+							/>
+						)}
 					/>
 
-					<Field
-						label="Password"
-						value={form.password}
-						onChange={(value) =>
-							setForm((current) => ({ ...current, password: value }))
-						}
-						type="password"
-						placeholder="Minimum 6 characters"
-						error={fieldErrors.password?.[0]}
+					<Controller
+						name="password"
+						control={control}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Password"
+								value={field.value}
+								onChange={field.onChange}
+								type="password"
+								placeholder="Minimum 6 characters"
+								error={fieldState.error?.message}
+							/>
+						)}
 					/>
 
 					<button

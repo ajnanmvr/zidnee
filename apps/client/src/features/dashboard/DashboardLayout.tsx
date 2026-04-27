@@ -11,8 +11,8 @@ import {
 	type NavigationItem,
 	Sidebar,
 } from "@/components/dashboard-ui";
-import { useMeQuery } from "@/features/dashboard/dashboard.queries";
-import { ApiError } from "@/lib/api";
+import { ApiError } from "@/api/request";
+import { useMeQuery } from "@/features/auth/auth.queries";
 import { useSession } from "@/lib/session";
 
 const navItems: NavigationItem[] = [
@@ -45,9 +45,22 @@ const navItems: NavigationItem[] = [
 const titles: Record<string, string> = {
 	"/": "Overview",
 	"/users": "Users",
+	"/users/create": "Create User",
 	"/roles": "Role Permissions",
 	"/roles/create": "Create Role",
 	"/me": "Me",
+};
+
+const resolveTitle = (pathname: string): string => {
+	if (/^\/users\/[^/]+\/edit$/.test(pathname)) {
+		return "Edit User";
+	}
+
+	if (/^\/roles\/[^/]+\/edit$/.test(pathname)) {
+		return "Edit Role";
+	}
+
+	return titles[pathname] ?? "Overview";
 };
 
 export const DashboardLayout = () => {
@@ -65,7 +78,7 @@ export const DashboardLayout = () => {
 		}
 	}, [clearToken, error, navigate]);
 
-	const title = titles[location.pathname] ?? "Overview";
+	const title = resolveTitle(location.pathname);
 	const roleLabel = me?.roles[0]?.name ?? "Workspace member";
 
 	return (

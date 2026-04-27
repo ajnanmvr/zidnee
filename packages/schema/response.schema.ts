@@ -8,6 +8,13 @@ export const ApiErrorResponseSchema = z.object({
 
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
 
+export const MessageResponseSchema = z.object({
+	ok: z.boolean(),
+	message: z.string().optional(),
+});
+
+export type MessageResponse = z.infer<typeof MessageResponseSchema>;
+
 export const PublicUserResponseSchema = UserSchema.omit({
 	password: true,
 	createdAt: true,

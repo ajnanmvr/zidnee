@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 This file tracks module-by-module implementation status for Zidnee.
 
@@ -70,6 +70,10 @@ Last updated: 2026-04-25
   - Routes protected by auth + permission middleware
   - List/get users with role+permission relations
   - Assign/remove role operations
+  - Update/delete user endpoints
+  - Activate/deactivate user endpoint
+  - Admin user-password reset endpoint
+  - Current-user password change endpoint
   - User profile update and lifecycle state transitions
   - Active/inactive workflow safeguards
   - Covered partially by app/auth integration path
@@ -220,6 +224,10 @@ Last updated: 2026-04-25
   - Shared Zod validation for login and role creation forms
   - Shared Zod response validation for API payloads from the monorepo schema package
   - Routed login page and componentized dashboard pages/layout
+  - User creation flow with role assignment
+  - Users table with edit, delete, activate/deactivate, and admin password reset actions
+  - Roles table with edit and delete actions
+  - My Profile password change form for current user
   - Vite build and alias setup
 - Missing:
   - Frontend test coverage

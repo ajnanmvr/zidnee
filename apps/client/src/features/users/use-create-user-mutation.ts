@@ -1,29 +1,33 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { authQueryKeys } from "@/features/auth/auth.queries";
 import { rolesQueryKeys } from "@/features/roles/roles.queries";
-import { createRole } from "@/features/roles/roles.service";
-import type { CreateRoleForm } from "@/lib/dashboard-types";
+import { usersQueryKeys } from "@/features/users/users.queries";
+import { createUser } from "@/features/users/users.service";
+import type { CreateUserForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
-export const useCreateRoleMutation = () => {
+export const useCreateUserMutation = () => {
 	const { token } = useSession();
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (payload: CreateRoleForm) => {
+		mutationFn: async (payload: CreateUserForm) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
 
-			return createRole(token, payload);
+			return createUser(token, payload);
 		},
 		onSuccess: async () => {
+			if (!token) {
+				return;
+			}
+
 			await Promise.all([
 				queryClient.invalidateQueries({
-					queryKey: rolesQueryKeys.roles(token),
+					queryKey: usersQueryKeys.users(token),
 				}),
 				queryClient.invalidateQueries({
-					queryKey: authQueryKeys.me(token),
+					queryKey: rolesQueryKeys.roles(token),
 				}),
 			]);
 		},

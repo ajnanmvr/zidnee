@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { loginUser } from "@/lib/api";
+import { loginUser } from "@/features/auth/auth.service";
 import type { LoginForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 

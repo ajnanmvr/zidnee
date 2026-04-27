@@ -65,9 +65,41 @@ export const RegisterPayloadSchema = z.object({
 
 export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
 
-export const CreateUserPayloadSchema = RegisterPayloadSchema;
+export const CreateUserPayloadSchema = RegisterPayloadSchema.extend({
+	roleIds: z.array(ObjectIdStringSchema).optional(),
+});
 
 export type CreateUserPayload = z.infer<typeof CreateUserPayloadSchema>;
+
+export const UpdateUserPayloadSchema = z.object({
+	username: z.string().min(1).max(100).optional(),
+	email: z.email().optional(),
+	name: z.string().min(1).max(255).optional(),
+	roleIds: z.array(ObjectIdStringSchema).optional(),
+});
+
+export type UpdateUserPayload = z.infer<typeof UpdateUserPayloadSchema>;
+
+export const SetUserStatusPayloadSchema = z.object({
+	isActive: z.boolean(),
+});
+
+export type SetUserStatusPayload = z.infer<typeof SetUserStatusPayloadSchema>;
+
+export const ChangePasswordPayloadSchema = z.object({
+	currentPassword: z.string().min(6).max(255),
+	newPassword: z.string().min(6).max(255),
+});
+
+export type ChangePasswordPayload = z.infer<typeof ChangePasswordPayloadSchema>;
+
+export const AdminChangePasswordPayloadSchema = z.object({
+	newPassword: z.string().min(6).max(255),
+});
+
+export type AdminChangePasswordPayload = z.infer<
+	typeof AdminChangePasswordPayloadSchema
+>;
 
 // JWT Token Payload
 export const JWTPayloadSchema = z.object({

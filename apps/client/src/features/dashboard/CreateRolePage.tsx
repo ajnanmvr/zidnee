@@ -1,9 +1,13 @@
 import { CreateRolePayloadSchema } from "@repo/schema";
-import { type FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
+import { Link } from "react-router-dom";
+import { ApiError } from "@/api/request";
 import { Field, TextAreaField } from "@/components/dashboard-ui";
-import { usePermissionsQuery } from "@/features/dashboard/dashboard.queries";
+import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useCreateRoleMutation } from "@/features/roles/use-create-role-mutation";
-import { ApiError } from "@/lib/api";
+import type { CreateRoleForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
 type PermissionGroup = {
@@ -20,12 +24,23 @@ export const CreateRolePage = () => {
 	const { token } = useSession();
 	const permissionsQuery = usePermissionsQuery(token);
 	const createRoleMutation = useCreateRoleMutation();
-	const [form, setForm] = useState({
-		name: "",
-		description: "",
-		permissionIds: [] as string[],
+	const {
+		control,
+		formState,
+		handleSubmit,
+		reset,
+		setError,
+		setValue,
+		watch,
+	} = useForm<CreateRoleForm>({
+		defaultValues: {
+			name: "",
+			description: "",
+			permissionIds: [],
+		},
 	});
-	const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+	const formValues = watch();
+	const selectedPermissionIds = formValues.permissionIds ?? [];
 	const [banner, setBanner] = useState("");
 
 	const groupedPermissions = useMemo<PermissionGroup[]>(() => {
@@ -52,17 +67,17 @@ export const CreateRolePage = () => {
 	}, [permissionsQuery.data?.permissions]);
 
 	const togglePermission = (permissionId: string) => {
-		setForm((current) => ({
-			...current,
-			permissionIds: current.permissionIds.includes(permissionId)
-				? current.permissionIds.filter((id) => id !== permissionId)
-				: [...current.permissionIds, permissionId],
-		}));
+		const nextPermissionIds = selectedPermissionIds.includes(permissionId)
+			? selectedPermissionIds.filter((id) => id !== permissionId)
+			: [...selectedPermissionIds, permissionId];
+
+		setValue("permissionIds", nextPermissionIds, {
+			shouldValidate: true,
+			shouldDirty: true,
+		});
 	};
 
-	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		setFieldErrors({});
+	const onSubmit = async (form: CreateRoleForm) => {
 		setBanner("");
 
 		const validation = CreateRolePayloadSchema.safeParse({
@@ -72,17 +87,61 @@ export const CreateRolePage = () => {
 		});
 
 		if (!validation.success) {
-			setFieldErrors(validation.error.flatten().fieldErrors);
+			const errors = validation.error.flatten().fieldErrors;
+			const nameError = errors.name?.[0];
+			const descriptionError = errors.description?.[0];
+			const permissionIdsError = errors.permissionIds?.[0];
+
+			if (nameError) {
+				setError("name", { type: "manual", message: nameError });
+			}
+
+			if (descriptionError) {
+				setError("description", {
+					type: "manual",
+					message: descriptionError,
+				});
+			}
+
+			if (permissionIdsError) {
+				setError("permissionIds", {
+					type: "manual",
+					message: permissionIdsError,
+				});
+			}
+
 			return;
 		}
 
 		try {
 			await createRoleMutation.mutateAsync(validation.data);
 			setBanner("Role created successfully.");
-			setForm({ name: "", description: "", permissionIds: [] });
+			reset({ name: "", description: "", permissionIds: [] });
 		} catch (error) {
 			if (error instanceof ApiError) {
-				setFieldErrors(error.payload.errors ?? {});
+				const serverErrors = error.payload.errors ?? {};
+				const nameError = serverErrors.name?.[0];
+				const descriptionError = serverErrors.description?.[0];
+				const permissionIdsError = serverErrors.permissionIds?.[0];
+
+				if (nameError) {
+					setError("name", { type: "server", message: nameError });
+				}
+
+				if (descriptionError) {
+					setError("description", {
+						type: "server",
+						message: descriptionError,
+					});
+				}
+
+				if (permissionIdsError) {
+					setError("permissionIds", {
+						type: "server",
+						message: permissionIdsError,
+					});
+				}
+
 				setBanner(error.payload.message ?? "Unable to create role");
 				return;
 			}
@@ -103,29 +162,37 @@ export const CreateRolePage = () => {
 					<h3 className="mt-1 text-xl font-semibold text-ink">Create role</h3>
 				</div>
 				<span className="rounded-full bg-accent-soft px-3 py-1.5 text-sm font-medium text-ink">
-					{form.permissionIds.length} selected
+					{selectedPermissionIds.length} selected
 				</span>
 			</div>
 
-			<form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
+			<form className="mt-5 grid gap-4" onSubmit={handleSubmit(onSubmit)}>
 				<div className="grid gap-4 md:grid-cols-2">
-					<Field
-						label="Name"
-						value={form.name}
-						onChange={(value) =>
-							setForm((current) => ({ ...current, name: value }))
-						}
-						placeholder="Support Agent"
-						error={fieldErrors.name?.[0]}
+					<Controller
+						name="name"
+						control={control}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Name"
+								value={field.value}
+								onChange={field.onChange}
+								placeholder="Support Agent"
+								error={fieldState.error?.message}
+							/>
+						)}
 					/>
-					<TextAreaField
-						label="Description"
-						value={form.description}
-						onChange={(value) =>
-							setForm((current) => ({ ...current, description: value }))
-						}
-						placeholder="Short role summary"
-						error={fieldErrors.description?.[0]}
+					<Controller
+						name="description"
+						control={control}
+						render={({ field, fieldState }) => (
+							<TextAreaField
+								label="Description"
+								value={field.value ?? ""}
+								onChange={field.onChange}
+								placeholder="Short role summary"
+								error={fieldState.error?.message}
+							/>
+						)}
 					/>
 				</div>
 
@@ -141,7 +208,7 @@ export const CreateRolePage = () => {
 							</p>
 							<div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 								{group.items.map((permission) => {
-									const selected = form.permissionIds.includes(permission.id);
+									const selected = selectedPermissionIds.includes(permission.id);
 
 									return (
 										<button
@@ -168,22 +235,29 @@ export const CreateRolePage = () => {
 					))}
 				</div>
 
-				{fieldErrors.permissionIds?.map((error) => (
-					<p
-						className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink"
-						key={error}
-					>
-						{error}
+				{formState.errors.permissionIds?.message ? (
+					<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+						{formState.errors.permissionIds.message}
 					</p>
-				))}
+				) : null}
 
-				<button
-					className="rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-surface transition duration-200 hover:bg-brand disabled:cursor-not-allowed disabled:opacity-70"
-					type="submit"
-					disabled={createRoleMutation.isPending}
-				>
-					{createRoleMutation.isPending ? "Saving..." : "Create role"}
-				</button>
+				<div className="flex flex-wrap gap-2">
+					<button
+						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						type="submit"
+						disabled={createRoleMutation.isPending}
+					>
+						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+						{createRoleMutation.isPending ? "Saving..." : "Create role"}
+					</button>
+					<Link
+						to="/roles"
+						className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+					>
+						<HiXCircle className="h-4 w-4 text-danger" aria-hidden="true" />
+						Cancel
+					</Link>
+				</div>
 
 				{banner ? (
 					<p className="rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
