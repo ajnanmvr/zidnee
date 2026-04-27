@@ -6,7 +6,10 @@ import {
 } from "@repo/schema";
 import type { NextFunction, Request, Response } from "express";
 import { verifyToken } from "../modules/auth/auth.token.js";
-import { PermissionService } from "../modules/rbac/rbac.service.js";
+import {
+	getEffectivePermissions,
+	PermissionService,
+} from "../modules/rbac/rbac.service.js";
 import {
 	AuthenticationError,
 	AuthorizationError,
@@ -95,9 +98,9 @@ export const requirePermissionKey = (keys: PermissionKey | PermissionKey[]) => {
 			}
 
 			const checksArray = Array.isArray(keys) ? keys : [keys];
-			const userPermissions = await PermissionService.findByIds(
-				req.user.permissionIds,
-			);
+			const userPermissions = req.user.roleIds.length
+				? await getEffectivePermissions(req.user.roleIds)
+				: await PermissionService.findByIds(req.user.permissionIds);
 
 			const hasPermission = checksArray.every((requiredKey) =>
 				userPermissions.some((permission) => permission.key === requiredKey),
