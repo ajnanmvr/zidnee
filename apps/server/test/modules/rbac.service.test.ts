@@ -17,7 +17,7 @@ describe("rbac service", () => {
 		const roleNames = (await RoleService.findAll()).map((role) => role.name);
 		const allPermissions = await PermissionService.findAll();
 
-		expect(roleNames).toContain("Admin");
+		expect(roleNames).toContain("SuperAdmin");
 		expect(roleNames).toContain("User");
 		expect(allPermissions.length).toBeGreaterThan(0);
 	});

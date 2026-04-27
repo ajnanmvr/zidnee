@@ -39,9 +39,9 @@ export const loginController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const user = await UserService.findByEmail(result.data.email);
+	const user = await UserService.findByUsername(result.data.username);
 	if (!user) {
-		throw new AuthenticationError("Invalid email or password");
+		throw new AuthenticationError("Invalid username or password");
 	}
 
 	const isPasswordValid = await verifyPassword(
@@ -50,7 +50,7 @@ export const loginController = async (
 	);
 
 	if (!isPasswordValid) {
-		throw new AuthenticationError("Invalid email or password");
+		throw new AuthenticationError("Invalid username or password");
 	}
 
 	if (!user.isActive) {
@@ -82,6 +82,13 @@ export const registerController = async (
 		throw new ConflictError("Email already in use");
 	}
 
+	const existingUsername = await UserService.findByUsername(
+		result.data.username,
+	);
+	if (existingUsername) {
+		throw new ConflictError("Username already in use");
+	}
+
 	// Hash password
 	const hashedPassword = await hashPassword(result.data.password);
 
@@ -95,6 +102,7 @@ export const registerController = async (
 
 	// Create new user
 	const newUser = await UserService.create({
+		username: result.data.username,
 		email: result.data.email,
 		password: hashedPassword,
 		name: result.data.name,

@@ -114,6 +114,8 @@ zidnee/
 - Dependencies:
   - `react`
   - `react-dom`
+  - `react-router-dom`
+  - `@tanstack/react-query`
   - `@repo/schema`
 - Dev dependencies:
   - `@repo/typescript-config`
@@ -131,34 +133,31 @@ zidnee/
 #### Client Source
 
 - [apps/client/src/main.tsx](apps/client/src/main.tsx) mounts React and checks that `#root` exists.
-- [apps/client/src/App.tsx](apps/client/src/App.tsx) is a login form example.
-- The form validates with `LoginSchema` from `@repo/schema`.
-- The form posts to `http://localhost:3001/login`.
+- [apps/client/src/App.tsx](apps/client/src/App.tsx) provides the query client, session context, and router provider.
+- [apps/client/src/router.tsx](apps/client/src/router.tsx) defines the public login route and protected dashboard routes.
+- [apps/client/src/components](apps/client/src/components) contains reusable dashboard UI pieces such as the sidebar, header, panels, and form fields.
+- [apps/client/src/features](apps/client/src/features) contains route-level pages plus auth and dashboard data hooks.
+- Route-level dashboard pages now include [apps/client/src/features/dashboard/CreateUserPage.tsx](apps/client/src/features/dashboard/CreateUserPage.tsx), [apps/client/src/features/dashboard/UsersPage.tsx](apps/client/src/features/dashboard/UsersPage.tsx), [apps/client/src/features/dashboard/RolesPage.tsx](apps/client/src/features/dashboard/RolesPage.tsx), and [apps/client/src/features/dashboard/MePage.tsx](apps/client/src/features/dashboard/MePage.tsx) with table-based management actions.
+- Feature-local services and hooks are organized under [apps/client/src/features/auth](apps/client/src/features/auth), [apps/client/src/features/users](apps/client/src/features/users), [apps/client/src/features/roles](apps/client/src/features/roles), and [apps/client/src/features/permissions](apps/client/src/features/permissions).
+- [apps/client/src/api/client.ts](apps/client/src/api/client.ts) defines a shared axios instance with `baseURL` and request `timeout`.
+- [apps/client/src/api/request.ts](apps/client/src/api/request.ts) provides shared typed request + API error handling utilities.
+- [apps/client/src/lib](apps/client/src/lib) contains query client, session state, and local dashboard form types.
 - [apps/client/src/index.css](apps/client/src/index.css) sets the global page styling.
-- [apps/client/src/App.css](apps/client/src/App.css) styles the login card.
 - [apps/client/src/assets](apps/client/src/assets) contains bundled static assets.
 
 ### Server: [apps/server/package.json](apps/server/package.json)
-
 - Name: `@repo/api`
 - Type: ESM module
 - Scripts:
+  - `seed`: `tsx scripts/seed.ts`
   - `dev`: `tsx watch src/index.ts`
-  - `build`: `tsc -p tsconfig.json`
-  - `start`: `node dist/index.js`
+- [apps/server/scripts/seed.ts](apps/server/scripts/seed.ts) seeds the default `admin` user with password `1234`.
   - `check-types`: `tsc --noEmit`
-- Dependencies:
-  - `express`
-  - `cors`
-  - `dotenv`
-  - `zod`
-  - `@repo/schema`
-- Dev dependencies:
+  - [apps/client/src/App.tsx](apps/client/src/App.tsx) renders the auth-gated dashboard and username login screen.
+  - The login form validates with `LoginPayloadSchema` from `@repo/schema`.
+  - The form posts to `http://localhost:3001/api/auth/login`.
   - `@repo/typescript-config`
-  - `tsx`
-  - `typescript`
-  - Node and Express type packages
-
+  - Username-based login validation
 #### Server TypeScript
 
 - [apps/server/tsconfig.json](apps/server/tsconfig.json) extends `../../packages/typescript-config/node.json`.
@@ -172,9 +171,11 @@ zidnee/
 - It exposes:
   - `GET /health`
   - API routes mounted under `/api` (auth, roles, permissions, users)
+- User management routes now include user update/delete, activate/deactivate, admin password reset, and current-user password change endpoints under `/api/users`.
 - [apps/server/src/config/env.ts](apps/server/src/config/env.ts) loads dotenv and exports runtime env values.
 - Server includes implemented middleware, module, route, and utils layers for RBAC/auth flows.
 - RBAC persistence is now split into module-scoped Mongoose model files under [apps/server/src/modules/rbac](apps/server/src/modules/rbac): `permission.model.ts`, `role.model.ts`, and `user.model.ts`.
+- [apps/server/scripts/seed.ts](apps/server/scripts/seed.ts) seeds the initial `admin` user as `SuperAdmin` with password `123456`.
 
 #### Server Environment
 
@@ -207,7 +208,7 @@ zidnee/
 - [packages/schema/index.ts](packages/schema/index.ts) exports login, env, RBAC schemas, and permission catalog utilities.
 - [packages/schema/permission-catalog.ts](packages/schema/permission-catalog.ts) defines hardcoded permission keys and metadata.
 - Current schema includes:
-  - Login validation
+  - Username login validation (password minimum length: 6)
   - Environment validation
   - RBAC entities, payloads, and JWT payload
   - Key-based permission checks
