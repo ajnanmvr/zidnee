@@ -24,21 +24,14 @@ export const CreateRolePage = () => {
 	const { token } = useSession();
 	const permissionsQuery = usePermissionsQuery(token);
 	const createRoleMutation = useCreateRoleMutation();
-	const {
-		control,
-		formState,
-		handleSubmit,
-		reset,
-		setError,
-		setValue,
-		watch,
-	} = useForm<CreateRoleForm>({
-		defaultValues: {
-			name: "",
-			description: "",
-			permissionIds: [],
-		},
-	});
+	const { control, formState, handleSubmit, reset, setError, setValue, watch } =
+		useForm<CreateRoleForm>({
+			defaultValues: {
+				name: "",
+				description: "",
+				permissionIds: [],
+			},
+		});
 	const formValues = watch();
 	const selectedPermissionIds = formValues.permissionIds ?? [];
 	const [banner, setBanner] = useState("");
@@ -208,7 +201,9 @@ export const CreateRolePage = () => {
 							</p>
 							<div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 								{group.items.map((permission) => {
-									const selected = selectedPermissionIds.includes(permission.id);
+									const selected = selectedPermissionIds.includes(
+										permission.id,
+									);
 
 									return (
 										<button

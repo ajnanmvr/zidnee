@@ -12,17 +12,13 @@ export const MePage = () => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
 	const changeMyPasswordMutation = useChangeMyPasswordMutation();
-	const {
-		control,
-		handleSubmit,
-		reset,
-		setError,
-	} = useForm<ChangePasswordForm>({
-		defaultValues: {
-			currentPassword: "",
-			newPassword: "",
-		},
-	});
+	const { control, handleSubmit, reset, setError } =
+		useForm<ChangePasswordForm>({
+			defaultValues: {
+				currentPassword: "",
+				newPassword: "",
+			},
+		});
 	const me = meQuery.data;
 	const [banner, setBanner] = useState("");
 
@@ -172,7 +168,9 @@ export const MePage = () => {
 							className="rounded-2xl bg-ink px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand"
 							disabled={changeMyPasswordMutation.isPending}
 						>
-							{changeMyPasswordMutation.isPending ? "Saving..." : "Update password"}
+							{changeMyPasswordMutation.isPending
+								? "Saving..."
+								: "Update password"}
 						</button>
 					</div>
 				</form>

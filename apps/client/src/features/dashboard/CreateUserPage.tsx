@@ -15,22 +15,16 @@ export const CreateUserPage = () => {
 	const { token } = useSession();
 	const rolesQuery = useRolesQuery(token);
 	const createUserMutation = useCreateUserMutation();
-	const {
-		control,
-		formState,
-		handleSubmit,
-		setError,
-		setValue,
-		watch,
-	} = useForm<CreateUserForm>({
-		defaultValues: {
-			name: "",
-			username: "",
-			email: "",
-			password: "",
-			roleIds: [],
-		},
-	});
+	const { control, formState, handleSubmit, setError, setValue, watch } =
+		useForm<CreateUserForm>({
+			defaultValues: {
+				name: "",
+				username: "",
+				email: "",
+				password: "",
+				roleIds: [],
+			},
+		});
 	const selectedRoleIds = watch("roleIds") ?? [];
 	const [banner, setBanner] = useState("");
 

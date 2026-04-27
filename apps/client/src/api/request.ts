@@ -1,7 +1,4 @@
-import {
-	type ApiErrorResponse,
-	ApiErrorResponseSchema,
-} from "@repo/schema";
+import { type ApiErrorResponse, ApiErrorResponseSchema } from "@repo/schema";
 import axios from "axios";
 import { api } from "@/api/client";
 

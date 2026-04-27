@@ -10,11 +10,23 @@ import {
 import { requestWithSchema } from "@/api/request";
 
 export const fetchUsers = async (token: string) => {
-	return requestWithSchema("/users", UsersResponseSchema, "GET", undefined, token);
+	return requestWithSchema(
+		"/users",
+		UsersResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
 };
 
 export const createUser = async (token: string, payload: CreateUserPayload) => {
-	return requestWithSchema("/users", UserResponseSchema, "POST", payload, token);
+	return requestWithSchema(
+		"/users",
+		UserResponseSchema,
+		"POST",
+		payload,
+		token,
+	);
 };
 
 export const updateUser = async (

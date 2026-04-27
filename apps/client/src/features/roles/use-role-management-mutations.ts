@@ -9,7 +9,13 @@ export const useUpdateRoleMutation = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ roleId, payload }: { roleId: string; payload: UpdateRoleForm }) => {
+		mutationFn: async ({
+			roleId,
+			payload,
+		}: {
+			roleId: string;
+			payload: UpdateRoleForm;
+		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}

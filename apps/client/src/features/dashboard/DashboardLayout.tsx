@@ -6,12 +6,12 @@ import {
 	HiUsers,
 } from "react-icons/hi2";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ApiError } from "@/api/request";
 import {
 	DashboardHeader,
 	type NavigationItem,
 	Sidebar,
 } from "@/components/dashboard-ui";
-import { ApiError } from "@/api/request";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { useSession } from "@/lib/session";
 

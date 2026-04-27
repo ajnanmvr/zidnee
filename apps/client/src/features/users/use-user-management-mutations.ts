@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { usersQueryKeys } from "@/features/users/users.queries";
 import {
 	changeMyPassword,
 	changeUserPassword,
@@ -6,7 +7,6 @@ import {
 	setUserStatus,
 	updateUser,
 } from "@/features/users/users.service";
-import { usersQueryKeys } from "@/features/users/users.queries";
 import type {
 	AdminChangePasswordForm,
 	ChangePasswordForm,
@@ -19,7 +19,13 @@ export const useUpdateUserMutation = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ userId, payload }: { userId: string; payload: UpdateUserForm }) => {
+		mutationFn: async ({
+			userId,
+			payload,
+		}: {
+			userId: string;
+			payload: UpdateUserForm;
+		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
@@ -67,7 +73,13 @@ export const useSetUserStatusMutation = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+		mutationFn: async ({
+			userId,
+			isActive,
+		}: {
+			userId: string;
+			isActive: boolean;
+		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
@@ -90,7 +102,13 @@ export const useChangeUserPasswordMutation = () => {
 	const { token } = useSession();
 
 	return useMutation({
-		mutationFn: async ({ userId, payload }: { userId: string; payload: AdminChangePasswordForm }) => {
+		mutationFn: async ({
+			userId,
+			payload,
+		}: {
+			userId: string;
+			payload: AdminChangePasswordForm;
+		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}

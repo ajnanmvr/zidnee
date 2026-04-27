@@ -12,11 +12,7 @@ export const LoginPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
 	const loginMutation = useLoginMutation();
-	const {
-		control,
-		handleSubmit,
-		setError,
-	} = useForm<LoginForm>({
+	const { control, handleSubmit, setError } = useForm<LoginForm>({
 		defaultValues: { username: "", password: "" },
 	});
 	const [banner, setBanner] = useState("");
