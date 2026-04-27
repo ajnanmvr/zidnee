@@ -6,6 +6,7 @@ import { CreateUserPage } from "@/features/dashboard/CreateUserPage";
 import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
 import { EditRolePage } from "@/features/dashboard/EditRolePage";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
+import { LeadsPage } from "@/features/dashboard/LeadsPage";
 import { MePage } from "@/features/dashboard/MePage";
 import { OverviewPage } from "@/features/dashboard/OverviewPage";
 import { RolesPage } from "@/features/dashboard/RolesPage";
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
 					{
 						index: true,
 						element: <OverviewPage />,
+					},
+					{
+						path: "leads",
+						element: <LeadsPage />,
 					},
 					{
 						path: "users",

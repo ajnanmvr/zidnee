@@ -1,5 +1,6 @@
 import { MetricCard, Panel } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -8,10 +9,12 @@ import { useSession } from "@/lib/session";
 export const OverviewPage = () => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
+	const dueLeadsQuery = useDueLeadFollowUpsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const rolesQuery = useRolesQuery(token);
 	const permissionsQuery = usePermissionsQuery(token);
 
+	const leadCount = dueLeadsQuery.data?.leads.length ?? 0;
 	const userCount = usersQuery.data?.users.length ?? 0;
 	const roleCount = rolesQuery.data?.roles.length ?? 0;
 	const permissionCount = permissionsQuery.data?.permissions.length ?? 0;
@@ -33,6 +36,9 @@ export const OverviewPage = () => {
 						permissions, and manage roles with the seeded SuperAdmin account.
 					</p>
 					<div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold">
+						<span className="rounded-full bg-brand-soft px-4 py-2 text-brand">
+							{leadCount} due leads
+						</span>
 						<span className="rounded-full bg-brand-soft px-4 py-2 text-brand">
 							{userCount} users
 						</span>

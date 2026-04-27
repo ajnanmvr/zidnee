@@ -136,9 +136,9 @@ zidnee/
 - [apps/client/src/App.tsx](apps/client/src/App.tsx) provides the query client, session context, and router provider.
 - [apps/client/src/router.tsx](apps/client/src/router.tsx) defines the public login route and protected dashboard routes.
 - [apps/client/src/components](apps/client/src/components) contains reusable dashboard UI pieces such as the sidebar, header, panels, and form fields.
-- [apps/client/src/features](apps/client/src/features) contains route-level pages plus auth and dashboard data hooks.
+- [apps/client/src/features](apps/client/src/features) contains route-level pages plus auth and domain data hooks.
 - Route-level dashboard pages now include [apps/client/src/features/dashboard/CreateUserPage.tsx](apps/client/src/features/dashboard/CreateUserPage.tsx), [apps/client/src/features/dashboard/UsersPage.tsx](apps/client/src/features/dashboard/UsersPage.tsx), [apps/client/src/features/dashboard/RolesPage.tsx](apps/client/src/features/dashboard/RolesPage.tsx), and [apps/client/src/features/dashboard/MePage.tsx](apps/client/src/features/dashboard/MePage.tsx) with table-based management actions.
-- Feature-local services and hooks are organized under [apps/client/src/features/auth](apps/client/src/features/auth), [apps/client/src/features/users](apps/client/src/features/users), [apps/client/src/features/roles](apps/client/src/features/roles), and [apps/client/src/features/permissions](apps/client/src/features/permissions).
+- Feature-local services and hooks are organized under [apps/client/src/features/auth](apps/client/src/features/auth), [apps/client/src/features/users](apps/client/src/features/users), [apps/client/src/features/roles](apps/client/src/features/roles), [apps/client/src/features/permissions](apps/client/src/features/permissions), and [apps/client/src/features/leads](apps/client/src/features/leads).
 - [apps/client/src/api/client.ts](apps/client/src/api/client.ts) defines a shared axios instance with `baseURL` and request `timeout`.
 - [apps/client/src/api/request.ts](apps/client/src/api/request.ts) provides shared typed request + API error handling utilities.
 - [apps/client/src/lib](apps/client/src/lib) contains query client, session state, and local dashboard form types.
@@ -170,8 +170,9 @@ zidnee/
 - [apps/server/src/index.ts](apps/server/src/index.ts) starts the Express app.
 - It exposes:
   - `GET /health`
-  - API routes mounted under `/api` (auth, roles, permissions, users)
+  - API routes mounted under `/api` (auth, roles, permissions, users, leads)
 - User management routes now include user update/delete, activate/deactivate, admin password reset, and current-user password change endpoints under `/api/users`.
+- Lead routes now include create-lead, due follow-up listing, and follow-up postpone endpoints under `/api/leads`.
 - [apps/server/src/config/env.ts](apps/server/src/config/env.ts) loads dotenv and exports runtime env values.
 - Server includes implemented middleware, module, route, and utils layers for RBAC/auth flows.
 - RBAC persistence is now split into module-scoped Mongoose model files under [apps/server/src/modules/rbac](apps/server/src/modules/rbac): `permission.model.ts`, `role.model.ts`, and `user.model.ts`.
@@ -211,6 +212,7 @@ zidnee/
   - Username login validation (password minimum length: 6)
   - Environment validation
   - RBAC entities, payloads, and JWT payload
+  - Lead entity and lead follow-up payload/response schemas
   - Key-based permission checks
 
 ### TypeScript Config: [packages/typescript-config/package.json](packages/typescript-config/package.json)

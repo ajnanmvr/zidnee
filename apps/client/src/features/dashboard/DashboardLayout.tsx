@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
 	HiClipboardDocumentList,
+	HiPhone,
 	HiShieldCheck,
 	HiSquares2X2,
 	HiUsers,
@@ -21,6 +22,12 @@ const navItems: NavigationItem[] = [
 		label: "Overview",
 		description: "Snapshot",
 		icon: <HiSquares2X2 className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/leads",
+		label: "Leads",
+		description: "Follow-up",
+		icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
 	},
 	{
 		to: "/users",
@@ -44,6 +51,7 @@ const navItems: NavigationItem[] = [
 
 const titles: Record<string, string> = {
 	"/": "Overview",
+	"/leads": "Leads",
 	"/users": "Users",
 	"/users/create": "Create User",
 	"/roles": "Role Permissions",
