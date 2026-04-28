@@ -1,7 +1,10 @@
 import type {
 	AdminChangePasswordPayload,
 	ChangePasswordPayload,
+	ConfirmAdmissionPayload,
 	CreateLeadPayload,
+	CreateCounsellorPayload,
+	CreateMentorPayload,
 	CreateRolePayload,
 	CreateUserPayload,
 	LoginPayload,
@@ -13,9 +16,16 @@ import type {
 export type LoginForm = LoginPayload;
 export type CreateRoleForm = CreateRolePayload;
 export type CreateUserForm = CreateUserPayload;
+export type CreateMentorForm = CreateMentorPayload;
+export type CreateCounsellorForm = CreateCounsellorPayload;
 export type UpdateRoleForm = UpdateRolePayload;
 export type UpdateUserForm = UpdateUserPayload;
 export type ChangePasswordForm = ChangePasswordPayload;
 export type AdminChangePasswordForm = AdminChangePasswordPayload;
 export type CreateLeadForm = CreateLeadPayload;
 export type PostponeLeadFollowUpForm = PostponeLeadFollowUpPayload;
+export type ConfirmAdmissionForm = ConfirmAdmissionPayload;
+export type RedemoLeadForm = {
+	mentorId: string;
+	note?: string;
+};

@@ -1,11 +1,42 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { leadsQueryKeys } from "@/features/leads/leads.queries";
-import { createLead, postponeLeadFollowUp } from "@/features/leads/leads.service";
+import { studentsQueryKeys } from "@/features/students/students.queries";
+import {
+	assignDemoMentor,
+	confirmAdmission,
+	createLead,
+	deleteLead,
+	deleteLeadActivity,
+	markDemoCompleted,
+	postponeLeadFollowUp,
+	requestAdmission,
+	requestRedemo,
+	requestLeadDemo,
+} from "@/features/leads/leads.service";
 import type {
 	CreateLeadForm,
 	PostponeLeadFollowUpForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+
+const invalidateLeadQueries = async (
+	queryClient: QueryClient,
+	token: string,
+	leadId?: string,
+) => {
+	await queryClient.invalidateQueries({
+		queryKey: ["leads"],
+	});
+
+	if (leadId) {
+		await queryClient.invalidateQueries({
+			queryKey: leadsQueryKeys.detail(token, leadId),
+		});
+		await queryClient.invalidateQueries({
+			queryKey: leadsQueryKeys.activities(token, leadId),
+		});
+	}
+};
 
 export const useCreateLeadMutation = () => {
 	const { token } = useSession();
@@ -24,9 +55,7 @@ export const useCreateLeadMutation = () => {
 				return;
 			}
 
-			await queryClient.invalidateQueries({
-				queryKey: leadsQueryKeys.dueFollowUps(token),
-			});
+			await invalidateLeadQueries(queryClient, token);
 		},
 	});
 };
@@ -49,14 +78,210 @@ export const usePostponeLeadFollowUpMutation = () => {
 
 			return postponeLeadFollowUp(token, leadId, payload);
 		},
-		onSuccess: async () => {
+		onSuccess: async (_data, variables) => {
 			if (!token) {
 				return;
 			}
 
-			await queryClient.invalidateQueries({
-				queryKey: leadsQueryKeys.dueFollowUps(token),
-			});
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
+		},
+	});
+};
+
+export const useDeleteLeadMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (leadId: string) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return deleteLead(token, leadId);
+		},
+		onSuccess: async (_data, leadId) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, leadId);
+		},
+	});
+};
+
+export const useRequestLeadDemoMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (leadId: string) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return requestLeadDemo(token, leadId);
+		},
+		onSuccess: async (_data, leadId) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, leadId);
+		},
+	});
+};
+
+export const useMarkDemoCompletedMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ leadId, note }: { leadId: string; note?: string }) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return markDemoCompleted(token, leadId, { note });
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+		},
+	});
+};
+
+export const useRequestRedemoMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			leadId,
+			payload,
+		}: {
+			leadId: string;
+			payload: { mentorId: string; note?: string };
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return requestRedemo(token, leadId, payload);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+		},
+	});
+};
+
+export const useConfirmAdmissionMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			leadId,
+			payload,
+		}: {
+			leadId: string;
+			payload: { counsellorId?: string; note?: string };
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return confirmAdmission(token, leadId, payload);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+		},
+	});
+};
+
+export const useRequestAdmissionMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			leadId,
+			payload,
+		}: {
+			leadId: string;
+			payload: { counsellorId?: string; note?: string };
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return requestAdmission(token, leadId, payload);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+		},
+	});
+};
+
+export const useAssignDemoMentorMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			leadId,
+			payload,
+		}: {
+			leadId: string;
+			payload: { mentorId: string; demoScheduledFor: Date };
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return assignDemoMentor(token, leadId, payload);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
+		},
+	});
+};
+
+export const useDeleteActivityMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ leadId, activityId }: { leadId: string; activityId: string }) => {
+			if (!token) throw new Error("Missing session token");
+			return deleteLeadActivity(token, leadId, activityId);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) return;
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
 		},
 	});
 };

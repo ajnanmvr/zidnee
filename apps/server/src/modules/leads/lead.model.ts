@@ -1,10 +1,20 @@
-import type { Lead, LeadStatus } from "@repo/schema";
+import type { Lead } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type LeadDocument = Omit<Lead, "id"> & {
+export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	_id: Types.ObjectId;
+	createdBy: Types.ObjectId;
 	lastContactedAt?: Date;
 	customNextFollowUpAt?: Date;
+	demoRequestedAt?: Date;
+	demoMentorId?: Types.ObjectId;
+	demoAssignedAt?: Date;
+	demoScheduledFor?: Date;
+	demoCompletedAt?: Date;
+	admissionRequestedAt?: Date;
+	admissionCounsellorId?: Types.ObjectId;
+	admissionCompletedAt?: Date;
+	studentId?: Types.ObjectId;
 };
 
 const leadSchema = new Schema<LeadDocument>(
@@ -27,22 +37,15 @@ const leadSchema = new Schema<LeadDocument>(
 			trim: true,
 			maxlength: 100,
 		},
-		status: {
-			type: String,
-			required: true,
-			default: "NEW",
-			enum: [
-				"NEW",
-				"FOLLOW_UP",
-				"FORM_SENT",
-				"FORM_COMPLETED",
-				"CONVERTED",
-				"CLOSED",
-			] satisfies LeadStatus[],
-		},
 		assignedTo: {
 			type: String,
 			required: false,
+		},
+		createdBy: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+			index: true,
 		},
 		demoRequired: {
 			type: Boolean,
@@ -77,6 +80,46 @@ const leadSchema = new Schema<LeadDocument>(
 			type: Date,
 			required: false,
 			index: true,
+		},
+		demoRequestedAt: {
+			type: Date,
+			required: false,
+			index: true,
+		},
+		demoMentorId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
+		demoAssignedAt: {
+			type: Date,
+			required: false,
+		},
+		demoScheduledFor: {
+			type: Date,
+			required: false,
+		},
+		demoCompletedAt: {
+			type: Date,
+			required: false,
+		},
+		admissionRequestedAt: {
+			type: Date,
+			required: false,
+		},
+		admissionCounsellorId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
+		admissionCompletedAt: {
+			type: Date,
+			required: false,
+		},
+		studentId: {
+			type: Schema.Types.ObjectId,
+			ref: "Student",
+			required: false,
 		},
 	},
 	{

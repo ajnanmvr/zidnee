@@ -40,6 +40,8 @@ export const UserSchema = z.object({
 	email: z.email(),
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
+	mentorId: z.string().min(1).max(100).optional(),
+	counsellorId: z.string().min(1).max(100).optional(),
 	roleIds: z.array(ObjectIdStringSchema),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
@@ -70,6 +72,21 @@ export const CreateUserPayloadSchema = RegisterPayloadSchema.extend({
 });
 
 export type CreateUserPayload = z.infer<typeof CreateUserPayloadSchema>;
+
+export const CreateMentorPayloadSchema = z.object({
+	name: z.string().min(1).max(255),
+	counsellorId: ObjectIdStringSchema.optional(),
+});
+
+export type CreateMentorPayload = z.infer<typeof CreateMentorPayloadSchema>;
+
+export const CreateCounsellorPayloadSchema = z.object({
+	name: z.string().min(1).max(255),
+});
+
+export type CreateCounsellorPayload = z.infer<
+	typeof CreateCounsellorPayloadSchema
+>;
 
 export const UpdateUserPayloadSchema = z.object({
 	username: z.string().min(1).max(100).optional(),

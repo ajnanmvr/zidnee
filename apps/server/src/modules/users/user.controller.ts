@@ -1,11 +1,14 @@
 import {
 	AdminChangePasswordPayloadSchema,
+	CreateCounsellorPayloadSchema,
+	CreateMentorPayloadSchema,
 	ChangePasswordPayloadSchema,
 	CreateUserPayloadSchema,
 	SetUserStatusPayloadSchema,
 	UpdateUserPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import {
 	AuthenticationError,
 	ConflictError,
@@ -19,6 +22,10 @@ import {
 	RoleService,
 	UserService,
 } from "../rbac/rbac.service.js";
+import {
+	buildSequentialIdentity,
+	USER_IDENTITY_PREFIXES,
+} from "./user.identity.js";
 
 const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 	for (const roleId of roleIds) {
@@ -28,6 +35,26 @@ const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 			});
 		}
 	}
+};
+
+const sanitizeSlug = (value: string): string =>
+	value
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 32) || "mentor";
+
+const findRoleByName = async (roleName: string) => {
+	return (await RoleService.findAll()).find((role) => role.name === roleName) ?? null;
+};
+
+const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
+	const users = await UserService.findAll();
+	const existingIds = users.map((user) =>
+		kind === "mentor" ? user.mentorId : user.counsellorId,
+	);
+
+	return buildSequentialIdentity(USER_IDENTITY_PREFIXES[kind], existingIds);
 };
 
 export const createUserController = async (
@@ -74,6 +101,101 @@ export const createUserController = async (
 		password,
 		name: result.data.name,
 		roleIds,
+		isActive: true,
+	});
+
+	res.status(201).json({
+		ok: true,
+		...(await getUserWithRelations(createdUser)),
+	});
+};
+
+export const createMentorController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const result = CreateMentorPayloadSchema.safeParse(req.body);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const mentorRole = await findRoleByName("Mentor");
+	if (!mentorRole) {
+		throw new NotFoundError("Mentor role");
+	}
+
+	if (result.data.counsellorId) {
+		const counsellor = await UserService.findById(result.data.counsellorId);
+		if (!counsellor) {
+			throw new NotFoundError("Counsellor");
+		}
+
+		const counsellorRole = await findRoleByName("Counsellor");
+
+		const isCounsellor = counsellorRole
+			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
+			: false;
+		if (!isCounsellor) {
+			throw new ValidationError({
+				counsellorId: ["Selected user is not a counsellor"],
+			});
+		}
+	}
+
+	const slug = sanitizeSlug(result.data.name);
+	const mentorId = await nextIdentity("mentor");
+	const username = `${mentorId}-${slug}`;
+	const email = `${username}@zidnee.local`;
+	const password = randomUUID();
+
+	const hashedPassword = await hashPassword(password);
+	const createdUser = await UserService.create({
+		username,
+		email,
+		password: hashedPassword,
+		name: result.data.name,
+		mentorId,
+		counsellorId: result.data.counsellorId,
+		roleIds: [mentorRole.id],
+		isActive: true,
+	});
+
+	res.status(201).json({
+		ok: true,
+		...(await getUserWithRelations(createdUser)),
+	});
+};
+
+export const createCounsellorController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const result = CreateCounsellorPayloadSchema.safeParse(req.body);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const counsellorRole = await findRoleByName("Counsellor");
+	if (!counsellorRole) {
+		throw new NotFoundError("Counsellor role");
+	}
+
+	const slug = sanitizeSlug(result.data.name);
+	const counsellorId = await nextIdentity("counsellor");
+	const username = `${counsellorId}-${slug}`;
+	const email = `${username}@zidnee.local`;
+	const password = randomUUID();
+
+	const hashedPassword = await hashPassword(password);
+	const createdUser = await UserService.create({
+		username,
+		email,
+		password: hashedPassword,
+		name: result.data.name,
+		counsellorId,
+		roleIds: [counsellorRole.id],
 		isActive: true,
 	});
 

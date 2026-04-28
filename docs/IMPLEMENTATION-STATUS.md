@@ -1,6 +1,6 @@
 # Zidnee Implementation Tracker
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 Reference: [docs/ZIDNEE-MASTER-PLAN.md](docs/ZIDNEE-MASTER-PLAN.md)
 
 ## How To Use This File
@@ -37,6 +37,7 @@ Checklist:
 - [x] RBAC permissions and role enforcement middleware
 - [x] Role CRUD baseline
 - [x] User CRUD baseline with status and password operations
+- [x] Role-specific mentor/counsellor creation with generated identity IDs
 - [x] Shared schema package baseline for auth and RBAC payloads
 - [x] Frontend login, users, roles, me pages
 - [x] Frontend API integration with axios + feature services/hooks
@@ -47,6 +48,7 @@ Test coverage status:
 
 Notes:
 - This step is functionally present and ready for domain expansion.
+- User management now includes generated mentor/counsellor identity IDs and role-specific create flows.
 
 ## Step 2 - Lead Module (Priority Domain Start)
 
@@ -56,6 +58,7 @@ Scope:
 - Pre-conversion lead lifecycle owned by sales
 - Lead-level follow-up fields and state transitions
 - Optional demo requirement flag
+- Activity tracking and audit trail for all lead operations
 
 Checklist:
 - [x] Add lead schemas in packages/schema
@@ -64,12 +67,24 @@ Checklist:
 - [x] Build lead controller and routes
 - [x] Add permission keys and middleware protection for lead routes
 - [x] Add lead module unit/integration tests
-- [ ] Add lead list/create/update APIs to Postman docs
 - [x] Add frontend lead list/create/edit screens
+- [x] Activity tracking schema and model for audit trail
+- [x] Activity service and logging integration
+- [x] Activity API endpoints (GET /leads/:leadId/activities)
+- [x] Frontend activity feed component and queries
+- [ ] Add lead list/create/update APIs to Postman docs
+
+Features Added (Active Work):
+- **Activity Logging**: Automatic logging on lead create, postpone, delete with performer info
+- **Activity Tracking Fields**: type (CREATED/FOLLOW_UP_POSTPONED/DELETED etc), oldValue, newValue, performedBy, performedByName
+- **Activity API**: GET /leads/:leadId/activities returns full audit trail sorted by date
+- **Frontend Activity UI**: ActivityFeed component displays timeline with relative dates and change details
+- **Audit Fields**: All changes tracked with who, what, when, old vs new values
 
 Definition of done:
 - Lead CRUD and assignment works with RBAC
 - Follow-up fields exist and are queryable
+- Activity tracking logs all mutations with user context
 - Tests pass and docs are updated
 
 ## Step 3 - Follow-up Engine (Core Engine)

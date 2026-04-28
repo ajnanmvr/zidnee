@@ -350,6 +350,70 @@
 			"name": "Users",
 			"item": [
 				{
+					"name": "Create Counsellor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Ajnan\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/counsellors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "counsellors"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Mentor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Ajnan\",\n  \"counsellorId\": \"{{userId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/mentors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "mentors"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "List Users",
 					"request": {
 						"method": "GET",

@@ -24,9 +24,18 @@ export const LeadSchema = z.object({
 	name: z.string().max(255).optional(),
 	phone: PhoneNumberSchema,
 	level: z.string().max(100).optional(),
-	status: LeadStatusSchema,
 	assignedTo: ObjectIdStringSchema.optional(),
+	createdBy: ObjectIdStringSchema,
 	demoRequired: z.boolean().default(false),
+	demoRequestedAt: z.date().optional(),
+	demoMentorId: ObjectIdStringSchema.optional(),
+	demoAssignedAt: z.date().optional(),
+	demoScheduledFor: z.date().optional(),
+	demoCompletedAt: z.date().optional(),
+	admissionRequestedAt: z.date().optional(),
+	admissionCounsellorId: ObjectIdStringSchema.optional(),
+	admissionCompletedAt: z.date().optional(),
+	studentId: ObjectIdStringSchema.optional(),
 	formSent: z.boolean().default(false),
 	formCompleted: z.boolean().default(false),
 	followUpCount: z.number().int().min(0).default(0),
@@ -58,8 +67,23 @@ export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
 
 export const PostponeLeadFollowUpPayloadSchema = z.object({
 	customNextFollowUpAt: z.coerce.date(),
+	note: z.string().max(500).optional(),
 });
 
 export type PostponeLeadFollowUpPayload = z.infer<
 	typeof PostponeLeadFollowUpPayloadSchema
 >;
+
+export const RedemoLeadPayloadSchema = z.object({
+	mentorId: ObjectIdStringSchema,
+	note: z.string().max(500).optional(),
+});
+
+export type RedemoLeadPayload = z.infer<typeof RedemoLeadPayloadSchema>;
+
+export const AssignDemoPayloadSchema = z.object({
+	mentorId: ObjectIdStringSchema,
+	demoScheduledFor: z.coerce.date(),
+});
+
+export type AssignDemoPayload = z.infer<typeof AssignDemoPayloadSchema>;

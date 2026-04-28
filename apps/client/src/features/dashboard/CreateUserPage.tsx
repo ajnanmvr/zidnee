@@ -1,7 +1,7 @@
 import { CreateUserPayloadSchema } from "@repo/schema";
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
+import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Field, Panel } from "@/components/dashboard-ui";
@@ -26,11 +26,8 @@ export const CreateUserPage = () => {
 			},
 		});
 	const selectedRoleIds = watch("roleIds") ?? [];
-	const [banner, setBanner] = useState("");
 
 	const onSubmit = async (form: CreateUserForm) => {
-		setBanner("");
-
 		const validation = CreateUserPayloadSchema.safeParse(form);
 
 		if (!validation.success) {
@@ -66,6 +63,7 @@ export const CreateUserPage = () => {
 
 		try {
 			await createUserMutation.mutateAsync(validation.data);
+			toast.success("User created successfully.");
 			navigate("/users", { replace: true });
 		} catch (error) {
 			if (error instanceof ApiError) {
@@ -96,11 +94,11 @@ export const CreateUserPage = () => {
 					setError("roleIds", { type: "server", message: roleIdsError });
 				}
 
-				setBanner(error.payload.message ?? "Unable to create user");
+				toast.error(error.payload.message ?? "Unable to create user");
 				return;
 			}
 
-			setBanner(
+			toast.error(
 				error instanceof Error ? error.message : "Unable to create user",
 			);
 		}
@@ -219,12 +217,6 @@ export const CreateUserPage = () => {
 						Cancel
 					</Link>
 				</div>
-
-				{banner ? (
-					<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
-						{banner}
-					</p>
-				) : null}
 			</form>
 		</Panel>
 	);

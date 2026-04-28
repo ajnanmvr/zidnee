@@ -1,6 +1,7 @@
 import { LoginPayloadSchema } from "@repo/schema";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Field } from "@/components/dashboard-ui";
@@ -15,7 +16,6 @@ export const LoginPage = () => {
 	const { control, handleSubmit, setError } = useForm<LoginForm>({
 		defaultValues: { username: "", password: "" },
 	});
-	const [banner, setBanner] = useState("");
 
 	useEffect(() => {
 		if (token) {
@@ -24,8 +24,6 @@ export const LoginPage = () => {
 	}, [navigate, token]);
 
 	const onSubmit = async (form: LoginForm) => {
-		setBanner("");
-
 		const validation = LoginPayloadSchema.safeParse(form);
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
@@ -50,7 +48,7 @@ export const LoginPage = () => {
 				return;
 			}
 
-			setBanner(response.message ?? "Login succeeded but token was missing");
+			toast.error(response.message ?? "Login succeeded but token was missing");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const usernameError = error.payload.errors?.username?.[0];
@@ -64,11 +62,11 @@ export const LoginPage = () => {
 					setError("password", { type: "server", message: passwordError });
 				}
 
-				setBanner(error.payload.message ?? "Unable to sign in");
+				toast.error(error.payload.message ?? "Unable to sign in");
 				return;
 			}
 
-			setBanner(
+			toast.error(
 				error instanceof Error ? error.message : "Cannot reach API server",
 			);
 		}
@@ -174,11 +172,6 @@ export const LoginPage = () => {
 					>
 						{loginMutation.isPending ? "Signing in..." : "Sign in"}
 					</button>
-					{banner ? (
-						<p className="rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
-							{banner}
-						</p>
-					) : null}
 				</form>
 			</div>
 		</main>

@@ -1,3 +1,4 @@
+export * from "./activity.schema.js";
 export * from "./env.schema.js";
 export * from "./lead.response.schema.js";
 export * from "./lead.schema.js";
@@ -5,3 +6,4 @@ export * from "./login.schema.js";
 export * from "./permission-catalog.js";
 export * from "./rbac.schema.js";
 export * from "./response.schema.js";
+export * from "./student.schema.js";

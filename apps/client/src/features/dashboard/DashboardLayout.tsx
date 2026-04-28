@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import {
+	HiBookmarkSquare,
+	HiCalendarDays,
 	HiClipboardDocumentList,
 	HiPhone,
 	HiShieldCheck,
 	HiSquares2X2,
+	HiUserGroup,
 	HiUsers,
 } from "react-icons/hi2";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -26,8 +29,50 @@ const navItems: NavigationItem[] = [
 	{
 		to: "/leads",
 		label: "Leads",
-		description: "Follow-up",
+		description: "All users",
 		icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/my-leads",
+		label: "My Leads",
+		description: "Time focus",
+		icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/for-demo",
+		label: "For Demo",
+		description: "Assign",
+		icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/demo-requests",
+		label: "Assigned Demos",
+		description: "Completion",
+		icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/admissions",
+		label: "For Admission",
+		description: "Queue",
+		icon: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/students",
+		label: "Students",
+		description: "Enrolled",
+		icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/counsellors",
+		label: "Counsellors",
+		description: "People",
+		icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+	},
+	{
+		to: "/mentors",
+		label: "Mentors",
+		description: "People",
+		icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 	},
 	{
 		to: "/users",
@@ -52,6 +97,15 @@ const navItems: NavigationItem[] = [
 const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
+	"/my-leads": "My Leads",
+	"/for-demo": "For Demo",
+	"/demo-requests": "Assigned Demos",
+	"/admissions": "For Admission",
+	"/students": "Students",
+	"/counsellors": "Counsellors",
+	"/counsellors/create": "Create Counsellor",
+	"/mentors": "Mentors",
+	"/mentors/create": "Create Mentor",
 	"/users": "Users",
 	"/users/create": "Create User",
 	"/roles": "Role Permissions",
@@ -64,8 +118,20 @@ const resolveTitle = (pathname: string): string => {
 		return "Edit User";
 	}
 
+	if (/^\/counsellors\/create$/.test(pathname)) {
+		return "Create Counsellor";
+	}
+
+	if (/^\/mentors\/create$/.test(pathname)) {
+		return "Create Mentor";
+	}
+
 	if (/^\/roles\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit Role";
+	}
+
+	if (/^\/admissions\/[^/]+$/.test(pathname)) {
+		return "Admission Details";
 	}
 
 	return titles[pathname] ?? "Overview";

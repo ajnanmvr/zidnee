@@ -77,6 +77,12 @@ export const PERMISSION_CATALOG = {
 		resource: "leads",
 		action: "delete",
 	},
+	STUDENT_READ: {
+		name: "Read Student",
+		description: "Read student information",
+		resource: "students",
+		action: "read",
+	},
 	ORDER_DELETE: {
 		name: "Delete Order",
 		description: "Delete order records",

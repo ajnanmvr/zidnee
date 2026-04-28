@@ -1,6 +1,8 @@
 import {
 	type AdminChangePasswordPayload,
 	type ChangePasswordPayload,
+	type CreateCounsellorPayload,
+	type CreateMentorPayload,
 	type CreateUserPayload,
 	MessageResponseSchema,
 	type UpdateUserPayload,
@@ -22,6 +24,32 @@ export const fetchUsers = async (token: string) => {
 export const createUser = async (token: string, payload: CreateUserPayload) => {
 	return requestWithSchema(
 		"/users",
+		UserResponseSchema,
+		"POST",
+		payload,
+		token,
+	);
+};
+
+export const createMentor = async (
+	token: string,
+	payload: CreateMentorPayload,
+) => {
+	return requestWithSchema(
+		"/users/mentors",
+		UserResponseSchema,
+		"POST",
+		payload,
+		token,
+	);
+};
+
+export const createCounsellor = async (
+	token: string,
+	payload: CreateCounsellorPayload,
+) => {
+	return requestWithSchema(
+		"/users/counsellors",
 		UserResponseSchema,
 		"POST",
 		payload,

@@ -1,24 +1,44 @@
 import {
 	CreateLeadPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
+	RedemoLeadPayloadSchema,
+	type LeadResponse,
+	ConfirmAdmissionPayloadSchema,
 } from "@repo/schema";
-import { useState } from "react";
+import toast from "react-hot-toast";
+import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { HiCalendarDays, HiClock, HiPlusCircle } from "react-icons/hi2";
-import { ApiError } from "@/api/request";
+import { useNavigate } from "react-router-dom";
 import {
-	Field,
-	Modal,
-	Panel,
-} from "@/components/dashboard-ui";
+	HiAcademicCap,
+	HiArrowPath,
+	HiCalendarDays,
+	HiClock,
+	HiEye,
+	HiPlusCircle,
+	HiTrash,
+} from "react-icons/hi2";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ApiError } from "@/api/request";
+import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { ActionButton } from "@/components/ActionButton";
+import { DateCell } from "@/components/DateCell";
+import { DataTable } from "@/components/DataTable";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
 	useCreateLeadMutation,
+	useDeleteLeadMutation,
 	usePostponeLeadFollowUpMutation,
+	useRequestAdmissionMutation,
+	useRequestLeadDemoMutation,
+	useRequestRedemoMutation,
 } from "@/features/leads/use-lead-mutations";
+import { useUsersQuery } from "@/features/users/users.queries";
 import type {
+	ConfirmAdmissionForm,
 	CreateLeadForm,
 	PostponeLeadFollowUpForm,
+	RedemoLeadForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
@@ -37,20 +57,36 @@ const toInputDateTimeLocal = (value: string | null): string => {
 	return localDate.toISOString().slice(0, 16);
 };
 
+const isMentorRole = (roleName: string) => roleName.toLowerCase() === "mentor";
+const isCounsellorRole = (roleName: string) => roleName.toLowerCase() === "counsellor";
+
+const formatUserName = (userName?: string | null) => userName?.trim() || "-";
+
 export const LeadsPage = () => {
 	const { token } = useSession();
-	const dueLeadsQuery = useDueLeadFollowUpsQuery(token);
+	const navigate = useNavigate();
+	const dueLeadsQuery = useDueLeadFollowUpsQuery(token, {
+		scope: "all",
+		timeFilter: "all",
+	});
+	const usersQuery = useUsersQuery(token);
 	const createLeadMutation = useCreateLeadMutation();
+	const requestDemoMutation = useRequestLeadDemoMutation();
+	const requestRedemoMutation = useRequestRedemoMutation();
+	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const postponeLeadMutation = usePostponeLeadFollowUpMutation();
-	const [banner, setBanner] = useState("");
+	const deleteLeadMutation = useDeleteLeadMutation();
 	const [createOpen, setCreateOpen] = useState(false);
 	const [postponeLeadId, setPostponeLeadId] = useState<string | null>(null);
+	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
+	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
+	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
+	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
 
 	const {
 		control: createControl,
 		handleSubmit: handleCreateSubmit,
 		reset: resetCreate,
-		setError: setCreateError,
 	} = useForm<CreateLeadForm>({
 		defaultValues: {
 			phone: "",
@@ -67,71 +103,74 @@ export const LeadsPage = () => {
 	} = useForm<PostponeLeadFollowUpForm>({
 		defaultValues: {
 			customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			note: "",
 		},
 	});
 
-	const onCreateLead = async (form: CreateLeadForm) => {
-		setBanner("");
+	const {
+		control: redemoControl,
+		handleSubmit: handleRedemoSubmit,
+		reset: resetRedemo,
+		setError: setRedemoError,
+	} = useForm<RedemoLeadForm>({
+		defaultValues: {
+			mentorId: "",
+			note: "",
+		},
+	});
 
-		const validation = CreateLeadPayloadSchema.safeParse(form);
+	const {
+		control: admissionControl,
+		handleSubmit: handleAdmissionSubmit,
+		reset: resetAdmission,
+		setError: setAdmissionError,
+	} = useForm<ConfirmAdmissionForm>({
+		defaultValues: {
+			counsellorId: undefined,
+			note: "",
+		},
+	});
+
+	const allUsers = usersQuery.data?.users ?? [];
+	const mentors = useMemo(
+		() => allUsers.filter((user) => user.roles.some((role) => isMentorRole(role.name))),
+		[allUsers],
+	);
+	const counsellors = useMemo(
+		() =>
+			allUsers.filter((user) =>
+				user.roles.some((role) => isCounsellorRole(role.name)),
+			),
+		[allUsers],
+	);
+
+	const userNameById = useMemo(
+		() =>
+			new Map(
+				allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)]),
+			),
+		[allUsers],
+	);
+
+	const onCreateLead = async (payload: CreateLeadForm) => {
+		const validation = CreateLeadPayloadSchema.safeParse(payload);
 		if (!validation.success) {
-			const errors = validation.error.flatten().fieldErrors;
-			if (errors.phone?.[0]) {
-				setCreateError("phone", {
-					type: "manual",
-					message: errors.phone[0],
-				});
-			}
-			if (errors.name?.[0]) {
-				setCreateError("name", {
-					type: "manual",
-					message: errors.name[0],
-				});
-			}
-			if (errors.customNextFollowUpAt?.[0]) {
-				setCreateError("customNextFollowUpAt", {
-					type: "manual",
-					message: errors.customNextFollowUpAt[0],
-				});
-			}
+			toast.error("Validation failed");
 			return;
 		}
 
 		try {
 			await createLeadMutation.mutateAsync(validation.data);
-			setBanner("Lead created and added to follow-up flow.");
+			toast.success("Lead created successfully.");
+			resetCreate();
 			setCreateOpen(false);
-			resetCreate({
-				phone: "",
-				name: "",
-				customNextFollowUpAt: undefined,
-			});
 		} catch (error) {
 			if (error instanceof ApiError) {
-				const serverErrors = error.payload.errors ?? {};
-				if (serverErrors.phone?.[0]) {
-					setCreateError("phone", {
-						type: "server",
-						message: serverErrors.phone[0],
-					});
-				}
-				if (serverErrors.name?.[0]) {
-					setCreateError("name", {
-						type: "server",
-						message: serverErrors.name[0],
-					});
-				}
-				if (serverErrors.customNextFollowUpAt?.[0]) {
-					setCreateError("customNextFollowUpAt", {
-						type: "server",
-						message: serverErrors.customNextFollowUpAt[0],
-					});
-				}
-				setBanner(error.payload.message ?? "Unable to create lead");
+				toast.error(error.payload.message ?? "Unable to create lead");
 				return;
 			}
 
-			setBanner(error instanceof Error ? error.message : "Unable to create lead");
+			toast.error(error instanceof Error ? error.message : "Unable to create lead");
 		}
 	};
 
@@ -140,7 +179,6 @@ export const LeadsPage = () => {
 			return;
 		}
 
-		setBanner("");
 		const validation = PostponeLeadFollowUpPayloadSchema.safeParse(payload);
 		if (!validation.success) {
 			const error = validation.error.flatten().fieldErrors.customNextFollowUpAt?.[0];
@@ -149,6 +187,7 @@ export const LeadsPage = () => {
 					type: "manual",
 					message: error,
 				});
+				toast.error(error);
 			}
 			return;
 		}
@@ -158,8 +197,9 @@ export const LeadsPage = () => {
 				leadId: postponeLeadId,
 				payload: validation.data,
 			});
-			setBanner("Lead follow-up postponed successfully.");
+			toast.success("Lead follow-up postponed successfully.");
 			setPostponeLeadId(null);
+			setSelectedDuration(1);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const dtError = error.payload.errors?.customNextFollowUpAt?.[0];
@@ -169,90 +209,332 @@ export const LeadsPage = () => {
 						message: dtError,
 					});
 				}
-				setBanner(error.payload.message ?? "Unable to postpone follow-up");
+				toast.error(error.payload.message ?? "Unable to postpone follow-up");
 				return;
 			}
 
-			setBanner(
+			toast.error(
 				error instanceof Error ? error.message : "Unable to postpone follow-up",
+			);
+		}
+	};
+
+	const onDeleteLead = async () => {
+		if (!deleteLeadId) {
+			return;
+		}
+
+		try {
+			await deleteLeadMutation.mutateAsync(deleteLeadId);
+			toast.success("Lead deleted successfully.");
+			setDeleteLeadId(null);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to delete lead");
+				return;
+			}
+
+			toast.error(error instanceof Error ? error.message : "Unable to delete lead");
+		}
+	};
+
+	const onRedemoLead = async (payload: RedemoLeadForm) => {
+		if (!redemoLeadId) {
+			return;
+		}
+
+		const validation = RedemoLeadPayloadSchema.safeParse(payload);
+		if (!validation.success) {
+			const errors = validation.error.flatten().fieldErrors;
+			if (errors.mentorId?.[0]) {
+				setRedemoError("mentorId", { type: "manual", message: errors.mentorId[0] });
+			}
+			if (errors.note?.[0]) {
+				setRedemoError("note", { type: "manual", message: errors.note[0] });
+			}
+			return;
+		}
+
+		try {
+			await requestRedemoMutation.mutateAsync({
+				leadId: redemoLeadId,
+				payload: validation.data,
+			});
+			toast.success("Lead moved for redemo.");
+			setRedemoLeadId(null);
+			resetRedemo({ mentorId: "", note: "" });
+			navigate("/demo-requests");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				const mentorError = error.payload.errors?.mentorId?.[0];
+				if (mentorError) {
+					setRedemoError("mentorId", { type: "server", message: mentorError });
+				}
+				toast.error(error.payload.message ?? "Unable to request redemo");
+				return;
+			}
+
+			toast.error(error instanceof Error ? error.message : "Unable to request redemo");
+		}
+	};
+
+	const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
+		if (!admissionLeadId) {
+			return;
+		}
+
+		const validation = ConfirmAdmissionPayloadSchema.safeParse(payload);
+		if (!validation.success) {
+			const errors = validation.error.flatten().fieldErrors;
+			if (errors.counsellorId?.[0]) {
+				setAdmissionError("counsellorId", {
+					type: "manual",
+					message: errors.counsellorId[0],
+				});
+			}
+			if (errors.note?.[0]) {
+				setAdmissionError("note", { type: "manual", message: errors.note[0] });
+			}
+			return;
+		}
+
+		try {
+			await requestAdmissionMutation.mutateAsync({
+				leadId: admissionLeadId,
+				payload: validation.data,
+			});
+			toast.success("Lead moved to for admission.");
+			setAdmissionLeadId(null);
+			resetAdmission({ counsellorId: undefined, note: "" });
+			navigate("/admissions");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				const counsellorError = error.payload.errors?.counsellorId?.[0];
+				if (counsellorError) {
+					setAdmissionError("counsellorId", {
+						type: "server",
+						message: counsellorError,
+					});
+				}
+				toast.error(error.payload.message ?? "Unable to move lead to admission");
+				return;
+			}
+
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Unable to move lead to admission",
 			);
 		}
 	};
 
 	const selectedLead =
 		dueLeadsQuery.data?.leads.find((lead) => lead.id === postponeLeadId) ?? null;
+	const redemoLead =
+		dueLeadsQuery.data?.leads.find((lead) => lead.id === redemoLeadId) ?? null;
+	const admissionLead =
+		dueLeadsQuery.data?.leads.find((lead) => lead.id === admissionLeadId) ?? null;
+
+	const defaultCounsellorId = admissionLead?.demoMentorId
+		? allUsers.find((user) => user.id === admissionLead.demoMentorId)?.counsellorId
+		: undefined;
+
+	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLead?.demoMentorId);
+
+	const columns: ColumnDef<LeadResponse>[] = useMemo(
+		() => [
+			{
+				accessorKey: "phone",
+				header: "Phone",
+				cell: (info) => (
+					<div className="font-semibold text-ink">{String(info.getValue())}</div>
+				),
+				enableSorting: true,
+			},
+			{
+				accessorKey: "name",
+				header: "Name",
+				cell: (info) => <span>{(info.getValue() as string) ?? "-"}</span>,
+				enableSorting: true,
+			},
+			{
+				id: "demoStatus",
+				header: "Demo Status",
+				cell: (info) => {
+					const lead = info.row.original;
+					if (lead.demoCompletedAt) {
+						return (
+							<span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+								Demo completed
+							</span>
+						);
+					}
+
+					if (lead.demoRequestedAt) {
+						return (
+							<span className="rounded-full bg-sky/10 px-3 py-1 text-xs font-semibold text-sky">
+								Demo requested
+							</span>
+						);
+					}
+
+					return (
+						<span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-soft">
+							Lead follow-up
+						</span>
+					);
+				},
+			},
+			{
+				accessorKey: "customNextFollowUpAt",
+				header: "Follow-up",
+				cell: (info) => {
+					const customDate = info.getValue() as string | undefined;
+					const row = info.row.original;
+					const date = customDate ?? row.nextFollowUpAt;
+					return <DateCell date={date} />;
+				},
+				enableSorting: true,
+			},
+			{
+				id: "lastMentor",
+				header: "Last Mentor",
+				cell: (info) => {
+					const lead = info.row.original;
+					return (
+						<span>{lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}</span>
+					);
+				},
+			},
+			{
+				id: "actions",
+				header: "Actions",
+				cell: (info) => {
+					const lead = info.row.original;
+					const showPostDemoActions = Boolean(lead.demoCompletedAt);
+
+					return (
+						<div className="flex flex-wrap items-center gap-2">
+							<ActionButton
+								icon={<HiEye className="h-4 w-4" />}
+								label="View Activity"
+								onClick={() => navigate(`/leads/${lead.id}`)}
+								color="green"
+							/>
+							{showPostDemoActions ? (
+								<>
+									<ActionButton
+										icon={<HiArrowPath className="h-4 w-4" />}
+										label="Redemo"
+										onClick={() => {
+											setRedemoLeadId(lead.id);
+											resetRedemo({ mentorId: "", note: "" });
+										}}
+										color="orange"
+									/>
+									<ActionButton
+										icon={<HiAcademicCap className="h-4 w-4" />}
+										label="Admission"
+										onClick={() => {
+											setAdmissionLeadId(lead.id);
+											resetAdmission({
+												counsellorId:
+													lead.demoMentorId
+														? allUsers.find((user) => user.id === lead.demoMentorId)
+																?.counsellorId ?? undefined
+														: undefined,
+												note: "",
+											});
+										}}
+										color="sky"
+									/>
+								</>
+							) : (
+								<ActionButton
+									icon={<HiCalendarDays className="h-4 w-4" />}
+									label="Request Demo"
+									onClick={async () => {
+										if (!confirm("Request demo for this lead?")) {
+											return;
+										}
+
+										await requestDemoMutation.mutateAsync(lead.id);
+									}}
+									color="sky"
+									isLoading={requestDemoMutation.isPending}
+									loadingLabel="Requesting..."
+								/>
+							)}
+							<ActionButton
+								icon={<HiClock className="h-4 w-4" />}
+								label="Postpone"
+								onClick={() => {
+									setPostponeLeadId(lead.id);
+									resetPostpone({
+										customNextFollowUpAt: new Date(
+											Date.now() + 24 * 60 * 60 * 1000,
+										),
+										note: "",
+									});
+								}}
+								color="orange"
+							/>
+							<ActionButton
+								icon={<HiTrash className="h-4 w-4" />}
+								label="Delete"
+								onClick={() => setDeleteLeadId(lead.id)}
+								color="red"
+								isLoading={deleteLeadMutation.isPending}
+								loadingLabel="Deleting..."
+							/>
+						</div>
+					);
+				},
+				enableSorting: false,
+			},
+		],
+		[
+			allUsers,
+			deleteLeadMutation.isPending,
+			navigate,
+			requestDemoMutation,
+			resetAdmission,
+			resetPostpone,
+			resetRedemo,
+			userNameById,
+		],
+	);
 
 	return (
 		<div className="grid gap-6">
 			<Panel
-				title="Leads Follow-up"
-				description="Sales"
+				title="Leads"
+				description="Active follow-ups and post-demo decisions"
 				action={
-					<button
-						type="button"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
-						onClick={() => setCreateOpen(true)}
-					>
-						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
-						Create lead
-					</button>
+					<div className="flex items-center gap-3">
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+							onClick={() => setCreateOpen(true)}
+						>
+							<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+							Create lead
+						</button>
+					</div>
 				}
 			>
-				<div className="overflow-x-auto rounded-3xl border border-border">
-					<table className="min-w-full border-collapse bg-surface text-left text-sm">
-						<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
-							<tr>
-								<th className="px-4 py-3 font-semibold">Phone</th>
-								<th className="px-4 py-3 font-semibold">Name</th>
-								<th className="px-4 py-3 font-semibold">Status</th>
-								<th className="px-4 py-3 font-semibold">Next Follow-up</th>
-								<th className="px-4 py-3 font-semibold">Custom Follow-up</th>
-								<th className="px-4 py-3 font-semibold">Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{dueLeadsQuery.data?.leads.map((lead) => (
-								<tr key={lead.id} className="border-t border-border align-top">
-									<td className="px-4 py-3 font-semibold text-ink">{lead.phone}</td>
-									<td className="px-4 py-3 text-ink-soft">{lead.name ?? "-"}</td>
-									<td className="px-4 py-3 text-ink-soft">{lead.status}</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{new Date(lead.nextFollowUpAt).toLocaleString()}
-									</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{lead.customNextFollowUpAt
-											? new Date(lead.customNextFollowUpAt).toLocaleString()
-											: "-"}
-									</td>
-									<td className="px-4 py-3">
-										<button
-											type="button"
-											className="inline-flex items-center gap-1 rounded-full border border-sky/30 bg-sky-soft px-3 py-1 text-xs font-semibold text-ink"
-											onClick={() => {
-												setPostponeLeadId(lead.id);
-												resetPostpone({
-													customNextFollowUpAt: new Date(
-														Date.now() + 24 * 60 * 60 * 1000,
-													),
-												});
-											}}
-										>
-											<HiClock className="h-3.5 w-3.5" aria-hidden="true" />
-											Postpone
-										</button>
-									</td>
-								</tr>
-							))}
-							{dueLeadsQuery.data && dueLeadsQuery.data.leads.length === 0 ? (
-								<tr>
-									<td className="px-4 py-5 text-sm text-ink-soft" colSpan={6}>
-										No due follow-ups right now.
-									</td>
-								</tr>
-							) : null}
-						</tbody>
-					</table>
-				</div>
+				{dueLeadsQuery.isLoading ? (
+					<div className="py-8 text-center text-ink-soft">Loading...</div>
+				) : dueLeadsQuery.isError ? (
+					<div className="py-8 text-center text-ink-soft">Unable to load leads.</div>
+				) : (
+					<DataTable
+						columns={columns}
+						data={dueLeadsQuery.data?.leads ?? []}
+						exportFilename="leads"
+						searchPlaceholder="Search leads..."
+					/>
+				)}
 			</Panel>
 
 			<Modal
@@ -333,13 +615,19 @@ export const LeadsPage = () => {
 				open={Boolean(postponeLeadId)}
 				title="Postpone follow-up"
 				description={selectedLead ? `Lead ${selectedLead.phone}` : "Lead"}
-				onClose={() => setPostponeLeadId(null)}
+				onClose={() => {
+					setPostponeLeadId(null);
+					setSelectedDuration(1);
+				}}
 				footer={
 					<>
 						<button
 							type="button"
 							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
-							onClick={() => setPostponeLeadId(null)}
+							onClick={() => {
+								setPostponeLeadId(null);
+								setSelectedDuration(1);
+							}}
 						>
 							Cancel
 						</button>
@@ -355,21 +643,145 @@ export const LeadsPage = () => {
 					</>
 				}
 			>
-				<form
-					className="grid gap-4"
-					onSubmit={handlePostponeSubmit(onPostponeLead)}
-				>
+				<div className="grid gap-4">
+					<div className="grid grid-cols-2 gap-2">
+						{[
+							{ label: "1 Day", days: 1 },
+							{ label: "3 Days", days: 3 },
+							{ label: "5 Days", days: 5 },
+							{ label: "1 Week", days: 7 },
+							{ label: "1 Month", days: 30 },
+						].map((option) => (
+							<button
+								key={option.days}
+								type="button"
+								className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${
+									selectedDuration === option.days
+										? "border-brand bg-brand text-surface"
+										: "border-border bg-surface-muted text-ink hover:border-brand hover:bg-brand hover:text-surface"
+								}`}
+								onClick={() => {
+									const futureDate = new Date(
+										Date.now() + option.days * 24 * 60 * 60 * 1000,
+									);
+									resetPostpone({
+										customNextFollowUpAt: futureDate,
+										note: "",
+									});
+									setSelectedDuration(option.days);
+								}}
+							>
+								{option.label}
+							</button>
+						))}
+					</div>
+
+					<form className="grid gap-4" onSubmit={handlePostponeSubmit(onPostponeLead)}>
+						<Controller
+							name="customNextFollowUpAt"
+							control={postponeControl}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Next follow-up date"
+									type="datetime-local"
+									value={toInputDateTimeLocal(
+										field.value ? field.value.toISOString() : null,
+									)}
+									onChange={(value) => {
+										field.onChange(new Date(value));
+										setSelectedDuration(null);
+									}}
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+						<Controller
+							name="note"
+							control={postponeControl}
+							render={({ field, fieldState }) => (
+								<TextAreaField
+									label="Note (optional)"
+									value={field.value ?? ""}
+									onChange={field.onChange}
+									placeholder="Add notes about the follow-up..."
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+					</form>
+				</div>
+			</Modal>
+
+			<Modal
+				open={Boolean(redemoLeadId)}
+				title="Request redemo"
+				description={
+					redemoLead
+						? `Previous mentor: ${redemoLead.demoMentorId ? userNameById.get(redemoLead.demoMentorId) ?? "-" : "-"}`
+						: "Select a different mentor"
+				}
+				onClose={() => {
+					setRedemoLeadId(null);
+					resetRedemo({ mentorId: "", note: "" });
+				}}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							onClick={() => {
+								setRedemoLeadId(null);
+								resetRedemo({ mentorId: "", note: "" });
+							}}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-orange px-4 py-2 text-sm font-semibold text-surface"
+							onClick={() => void handleRedemoSubmit(onRedemoLead)()}
+							disabled={requestRedemoMutation.isPending}
+						>
+							<HiArrowPath className="h-4 w-4" aria-hidden="true" />
+							{requestRedemoMutation.isPending ? "Saving..." : "Request redemo"}
+						</button>
+					</>
+				}
+			>
+				<form className="grid gap-4" onSubmit={handleRedemoSubmit(onRedemoLead)}>
 					<Controller
-						name="customNextFollowUpAt"
-						control={postponeControl}
+						name="mentorId"
+						control={redemoControl}
 						render={({ field, fieldState }) => (
-							<Field
-								label="Next follow-up date"
-								type="datetime-local"
-								value={toInputDateTimeLocal(
-									field.value ? field.value.toISOString() : null,
-								)}
-								onChange={(value) => field.onChange(new Date(value))}
+							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+								<span>Mentor</span>
+								<select
+									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									value={field.value ?? ""}
+									onChange={(event) => field.onChange(event.target.value)}
+								>
+									<option value="">Select another mentor</option>
+									{redemoMentors.map((mentor) => (
+										<option key={mentor.id} value={mentor.id}>
+											{formatUserName(mentor.name ?? mentor.username)}
+										</option>
+									))}
+								</select>
+								{fieldState.error?.message ? (
+									<span className="text-xs text-danger">{fieldState.error.message}</span>
+								) : null}
+							</label>
+						)}
+					/>
+					<Controller
+						name="note"
+						control={redemoControl}
+						render={({ field, fieldState }) => (
+							<TextAreaField
+								label="Redemo note"
+								value={field.value ?? ""}
+								onChange={field.onChange}
+								placeholder="Why is another demo needed?"
 								error={fieldState.error?.message}
 							/>
 						)}
@@ -377,11 +789,114 @@ export const LeadsPage = () => {
 				</form>
 			</Modal>
 
-			{banner ? (
-				<p className="rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
-					{banner}
+			<Modal
+				open={Boolean(admissionLeadId)}
+				title="Move to for admission"
+				description="Preselecting the counsellor linked to the last demo mentor. You can still change it."
+				onClose={() => {
+					setAdmissionLeadId(null);
+					resetAdmission({ counsellorId: undefined, note: "" });
+				}}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							onClick={() => {
+								setAdmissionLeadId(null);
+								resetAdmission({ counsellorId: undefined, note: "" });
+							}}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+							onClick={() => void handleAdmissionSubmit(onRequestAdmission)()}
+							disabled={requestAdmissionMutation.isPending}
+						>
+							<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
+							{requestAdmissionMutation.isPending ? "Saving..." : "Move to admission"}
+						</button>
+					</>
+				}
+			>
+				<form className="grid gap-4" onSubmit={handleAdmissionSubmit(onRequestAdmission)}>
+					{admissionLead?.demoMentorId ? (
+						<div className="rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm text-ink-soft">
+							Last demo mentor: {userNameById.get(admissionLead.demoMentorId) ?? "-"}
+						</div>
+					) : null}
+					<Controller
+						name="counsellorId"
+						control={admissionControl}
+						render={({ field, fieldState }) => (
+							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+								<span>Counsellor</span>
+								<select
+									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									value={field.value ?? defaultCounsellorId ?? ""}
+									onChange={(event) => field.onChange(event.target.value || undefined)}
+								>
+									<option value="">Select counsellor</option>
+									{counsellors.map((counsellor) => (
+										<option key={counsellor.id} value={counsellor.id}>
+											{formatUserName(counsellor.name ?? counsellor.username)}
+										</option>
+									))}
+								</select>
+								{fieldState.error?.message ? (
+									<span className="text-xs text-danger">{fieldState.error.message}</span>
+								) : null}
+							</label>
+						)}
+					/>
+					<Controller
+						name="note"
+						control={admissionControl}
+						render={({ field, fieldState }) => (
+							<TextAreaField
+								label="Admission note"
+								value={field.value ?? ""}
+								onChange={field.onChange}
+								placeholder="Ready for admission follow-up"
+								error={fieldState.error?.message}
+							/>
+						)}
+					/>
+				</form>
+			</Modal>
+
+			<Modal
+				open={Boolean(deleteLeadId)}
+				title="Delete lead"
+				description="This action cannot be undone"
+				onClose={() => setDeleteLeadId(null)}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							onClick={() => setDeleteLeadId(null)}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+							onClick={() => void onDeleteLead()}
+							disabled={deleteLeadMutation.isPending}
+						>
+							<HiTrash className="h-4 w-4" aria-hidden="true" />
+							{deleteLeadMutation.isPending ? "Deleting..." : "Delete"}
+						</button>
+					</>
+				}
+			>
+				<p className="text-sm text-ink-soft">
+					Are you sure you want to delete this lead? This cannot be undone.
 				</p>
-			) : null}
+			</Modal>
 		</div>
 	);
 };

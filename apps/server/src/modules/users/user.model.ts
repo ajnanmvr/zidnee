@@ -28,6 +28,20 @@ const userSchema = new Schema<UserDocument>(
 			type: String,
 			required: true,
 		},
+		mentorId: {
+			type: String,
+			required: false,
+			unique: true,
+			sparse: true,
+			index: true,
+		},
+		counsellorId: {
+			type: String,
+			required: false,
+			unique: true,
+			sparse: true,
+			index: true,
+		},
 		roleIds: {
 			type: [String],
 			required: true,
