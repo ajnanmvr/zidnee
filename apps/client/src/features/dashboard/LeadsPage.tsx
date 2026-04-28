@@ -1,29 +1,24 @@
 import {
+	ConfirmAdmissionPayloadSchema,
 	CreateLeadPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
 	RedemoLeadPayloadSchema,
-	type LeadResponse,
-	ConfirmAdmissionPayloadSchema,
 } from "@repo/schema";
 import toast from "react-hot-toast";
 import { useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import {
 	HiAcademicCap,
 	HiArrowPath,
 	HiCalendarDays,
-	HiClock,
-	HiEye,
 	HiPlusCircle,
 	HiTrash,
 } from "react-icons/hi2";
-import type { ColumnDef } from "@tanstack/react-table";
 import { ApiError } from "@/api/request";
-import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
-import { ActionButton } from "@/components/ActionButton";
-import { DateCell } from "@/components/DateCell";
 import { DataTable } from "@/components/DataTable";
+import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { buildLeadColumns, formatUserName } from "@/features/dashboard/lead-table";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
 	useCreateLeadMutation,
@@ -41,6 +36,7 @@ import type {
 	RedemoLeadForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
 
 const toInputDateTimeLocal = (value: string | null): string => {
 	if (!value) {
@@ -59,8 +55,6 @@ const toInputDateTimeLocal = (value: string | null): string => {
 
 const isMentorRole = (roleName: string) => roleName.toLowerCase() === "mentor";
 const isCounsellorRole = (roleName: string) => roleName.toLowerCase() === "counsellor";
-
-const formatUserName = (userName?: string | null) => userName?.trim() || "-";
 
 export const LeadsPage = () => {
 	const { token } = useSession();
@@ -151,6 +145,14 @@ export const LeadsPage = () => {
 			),
 		[allUsers],
 	);
+
+	const postponeNoteValue = useWatch({
+		control: postponeControl,
+		name: "note",
+	});
+	const postponeSuggestions = postponeNoteValue
+		? formatSuggestionsForUI(postponeNoteValue)
+		: [];
 
 	const onCreateLead = async (payload: CreateLeadForm) => {
 		const validation = CreateLeadPayloadSchema.safeParse(payload);
@@ -341,161 +343,49 @@ export const LeadsPage = () => {
 
 	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLead?.demoMentorId);
 
-	const columns: ColumnDef<LeadResponse>[] = useMemo(
-		() => [
-			{
-				accessorKey: "phone",
-				header: "Phone",
-				cell: (info) => (
-					<div className="font-semibold text-ink">{String(info.getValue())}</div>
-				),
-				enableSorting: true,
-			},
-			{
-				accessorKey: "name",
-				header: "Name",
-				cell: (info) => <span>{(info.getValue() as string) ?? "-"}</span>,
-				enableSorting: true,
-			},
-			{
-				id: "demoStatus",
-				header: "Demo Status",
-				cell: (info) => {
-					const lead = info.row.original;
-					if (lead.demoCompletedAt) {
-						return (
-							<span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-								Demo completed
-							</span>
-						);
+	const columns = useMemo(
+		() =>
+			buildLeadColumns({
+				userNameById,
+				onView: (leadId) => navigate(`/leads/${leadId}`),
+				onRequestDemo: async (leadId) => {
+					if (!confirm("Request demo for this lead?")) {
+						return;
 					}
 
-					if (lead.demoRequestedAt) {
-						return (
-							<span className="rounded-full bg-sky/10 px-3 py-1 text-xs font-semibold text-sky">
-								Demo requested
-							</span>
-						);
-					}
-
-					return (
-						<span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-soft">
-							Lead follow-up
-						</span>
-					);
+					await requestDemoMutation.mutateAsync(leadId);
 				},
-			},
-			{
-				accessorKey: "customNextFollowUpAt",
-				header: "Follow-up",
-				cell: (info) => {
-					const customDate = info.getValue() as string | undefined;
-					const row = info.row.original;
-					const date = customDate ?? row.nextFollowUpAt;
-					return <DateCell date={date} />;
+				onPostpone: (leadId) => {
+					setPostponeLeadId(leadId);
+					resetPostpone({
+						customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+						note: "",
+					});
 				},
-				enableSorting: true,
-			},
-			{
-				id: "lastMentor",
-				header: "Last Mentor",
-				cell: (info) => {
-					const lead = info.row.original;
-					return (
-						<span>{lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}</span>
-					);
+				onDelete: (leadId) => setDeleteLeadId(leadId),
+				onRedemo: (leadId) => {
+					setRedemoLeadId(leadId);
+					resetRedemo({ mentorId: "", note: "" });
 				},
-			},
-			{
-				id: "actions",
-				header: "Actions",
-				cell: (info) => {
-					const lead = info.row.original;
-					const showPostDemoActions = Boolean(lead.demoCompletedAt);
-
-					return (
-						<div className="flex flex-wrap items-center gap-2">
-							<ActionButton
-								icon={<HiEye className="h-4 w-4" />}
-								label="View Activity"
-								onClick={() => navigate(`/leads/${lead.id}`)}
-								color="green"
-							/>
-							{showPostDemoActions ? (
-								<>
-									<ActionButton
-										icon={<HiArrowPath className="h-4 w-4" />}
-										label="Redemo"
-										onClick={() => {
-											setRedemoLeadId(lead.id);
-											resetRedemo({ mentorId: "", note: "" });
-										}}
-										color="orange"
-									/>
-									<ActionButton
-										icon={<HiAcademicCap className="h-4 w-4" />}
-										label="Admission"
-										onClick={() => {
-											setAdmissionLeadId(lead.id);
-											resetAdmission({
-												counsellorId:
-													lead.demoMentorId
-														? allUsers.find((user) => user.id === lead.demoMentorId)
-																?.counsellorId ?? undefined
-														: undefined,
-												note: "",
-											});
-										}}
-										color="sky"
-									/>
-								</>
-							) : (
-								<ActionButton
-									icon={<HiCalendarDays className="h-4 w-4" />}
-									label="Request Demo"
-									onClick={async () => {
-										if (!confirm("Request demo for this lead?")) {
-											return;
-										}
-
-										await requestDemoMutation.mutateAsync(lead.id);
-									}}
-									color="sky"
-									isLoading={requestDemoMutation.isPending}
-									loadingLabel="Requesting..."
-								/>
-							)}
-							<ActionButton
-								icon={<HiClock className="h-4 w-4" />}
-								label="Postpone"
-								onClick={() => {
-									setPostponeLeadId(lead.id);
-									resetPostpone({
-										customNextFollowUpAt: new Date(
-											Date.now() + 24 * 60 * 60 * 1000,
-										),
-										note: "",
-									});
-								}}
-								color="orange"
-							/>
-							<ActionButton
-								icon={<HiTrash className="h-4 w-4" />}
-								label="Delete"
-								onClick={() => setDeleteLeadId(lead.id)}
-								color="red"
-								isLoading={deleteLeadMutation.isPending}
-								loadingLabel="Deleting..."
-							/>
-						</div>
-					);
+				onAdmission: (leadId) => {
+					const lead = dueLeadsQuery.data?.leads.find((entry) => entry.id === leadId);
+					setAdmissionLeadId(leadId);
+					resetAdmission({
+						counsellorId:
+							lead?.demoMentorId
+								? allUsers.find((user) => user.id === lead.demoMentorId)?.counsellorId ??
+									undefined
+								: undefined,
+						note: "",
+					});
 				},
-				enableSorting: false,
-			},
-		],
+				requestDemoPending: requestDemoMutation.isPending,
+				deletePending: deleteLeadMutation.isPending,
+			}),
 		[
 			allUsers,
 			deleteLeadMutation.isPending,
+			dueLeadsQuery.data?.leads,
 			navigate,
 			requestDemoMutation,
 			resetAdmission,
@@ -666,7 +556,7 @@ export const LeadsPage = () => {
 									);
 									resetPostpone({
 										customNextFollowUpAt: futureDate,
-										note: "",
+										note: postponeNoteValue ?? "",
 									});
 									setSelectedDuration(option.days);
 								}}
@@ -699,13 +589,40 @@ export const LeadsPage = () => {
 							name="note"
 							control={postponeControl}
 							render={({ field, fieldState }) => (
-								<TextAreaField
-									label="Note (optional)"
-									value={field.value ?? ""}
-									onChange={field.onChange}
-									placeholder="Add notes about the follow-up..."
-									error={fieldState.error?.message}
-								/>
+								<div className="grid gap-2">
+									<TextAreaField
+										label="Note (optional)"
+										value={field.value ?? ""}
+										onChange={field.onChange}
+										placeholder="Add notes about the follow-up..."
+										error={fieldState.error?.message}
+									/>
+									{postponeSuggestions.length > 0 ? (
+										<div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
+											<p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
+												Suggested follow-up times
+											</p>
+											<div className="flex flex-wrap gap-2">
+												{postponeSuggestions.map((suggestion) => (
+													<button
+														key={`${suggestion.label}-${suggestion.date.toISOString()}`}
+														type="button"
+														className="rounded-full border border-brand/20 bg-brand-soft px-3 py-1 text-xs font-semibold text-brand"
+														onClick={() => {
+															resetPostpone({
+																customNextFollowUpAt: suggestion.date,
+																note: field.value ?? "",
+															});
+															setSelectedDuration(null);
+														}}
+													>
+														{suggestion.label}
+													</button>
+												))}
+											</div>
+										</div>
+									) : null}
+								</div>
 							)}
 						/>
 					</form>

@@ -275,6 +275,7 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
+		const nextFollowUpAt = new Date(demoScheduledFor.getTime() + 60 * 60 * 1000);
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
@@ -282,6 +283,8 @@ export const LeadService = {
 					demoMentorId: mentorId,
 					demoAssignedAt: now,
 					demoScheduledFor,
+					nextFollowUpAt,
+					customNextFollowUpAt: nextFollowUpAt,
 				},
 			},
 			{ returnDocument: "after" },
@@ -296,11 +299,13 @@ export const LeadService = {
 				{
 					demoMentorId: existingLead.demoMentorId?.toString(),
 					demoScheduledFor: existingLead.demoScheduledFor?.toISOString(),
+					customNextFollowUpAt: existingLead.customNextFollowUpAt?.toISOString(),
 				},
 				{
 					demoMentorId: mentorId,
 					demoAssignedAt: now.toISOString(),
 					demoScheduledFor: demoScheduledFor.toISOString(),
+					customNextFollowUpAt: nextFollowUpAt.toISOString(),
 				},
 			);
 		}

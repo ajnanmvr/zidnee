@@ -1,7 +1,10 @@
+import type { LeadResponse } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { ApiError } from "@/api/request";
+import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
@@ -10,21 +13,6 @@ import { useSession } from "@/lib/session";
 
 const isMentorRole = (roleName: string) => roleName.toLowerCase() === "mentor";
 const formatUserName = (userName?: string | null) => userName?.trim() || "-";
-
-const toInputDateTimeLocal = (value: string | null): string => {
-	if (!value) {
-		return "";
-	}
-
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) {
-		return "";
-	}
-
-	const timezoneOffset = date.getTimezoneOffset() * 60000;
-	const localDate = new Date(date.getTime() - timezoneOffset);
-	return localDate.toISOString().slice(0, 16);
-};
 
 export const ForDemoPage = () => {
 	const { token } = useSession();
@@ -73,7 +61,88 @@ export const ForDemoPage = () => {
 		}
 	};
 
-	const rows = requestsQuery.data?.leads ?? [];
+	const columns: ColumnDef<LeadResponse>[] = useMemo(
+		() => [
+			{
+				accessorKey: "name",
+				header: "Lead",
+				cell: (info) => (
+					<div className="font-semibold text-ink">
+						{(info.getValue() as string) ?? "Unnamed lead"}
+					</div>
+				),
+			},
+			{
+				accessorKey: "phone",
+				header: "Phone",
+			},
+			{
+				accessorKey: "demoRequestedAt",
+				header: "Requested",
+				cell: (info) =>
+					info.getValue()
+						? new Date(String(info.getValue())).toLocaleString()
+						: "-",
+			},
+			{
+				id: "mentor",
+				header: "Mentor",
+				cell: (info) => (
+					<select
+						className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
+						value={selectedMentorByLeadId[info.row.original.id] ?? ""}
+						onChange={(event) =>
+							setSelectedMentorByLeadId((current) => ({
+								...current,
+								[info.row.original.id]: event.target.value,
+							}))
+						}
+					>
+						<option value="">Select mentor</option>
+						{mentors.map((mentor) => (
+							<option key={mentor.id} value={mentor.id}>
+								{formatUserName(mentor.name ?? mentor.username)}
+							</option>
+						))}
+					</select>
+				),
+			},
+			{
+				id: "demoTime",
+				header: "Demo Time",
+				cell: (info) => (
+					<input
+						type="datetime-local"
+						className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
+						value={scheduledTimeByLeadId[info.row.original.id] ?? ""}
+						onChange={(event) =>
+							setScheduledTimeByLeadId((current) => ({
+								...current,
+								[info.row.original.id]: event.target.value,
+							}))
+						}
+					/>
+				),
+			},
+			{
+				id: "actions",
+				header: "Actions",
+				enableSorting: false,
+				cell: (info) => (
+					<button
+						type="button"
+						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						disabled={assignDemoMentorMutation.isPending}
+						onClick={() => void handleAssign(info.row.original.id)}
+					>
+						<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
+						Assign demo
+					</button>
+				),
+			},
+		],
+		[assignDemoMentorMutation.isPending, mentors, scheduledTimeByLeadId, selectedMentorByLeadId],
+	);
 
 	return (
 		<div className="grid gap-6">
@@ -81,91 +150,19 @@ export const ForDemoPage = () => {
 				title="For Demo"
 				description="Leads requesting demo and waiting for assignment"
 			>
-				{mentors.length === 0 ? (
-					<div className="mb-4 rounded-2xl border border-warm/20 bg-warm-soft px-4 py-3 text-sm text-ink-soft">
-						No mentors are available yet.
-					</div>
-				) : null}
-				{rows.length === 0 ? (
-					<div className="py-8 text-center text-sm text-ink-soft">
-						No demo requests waiting for assignment.
-					</div>
+				{requestsQuery.isLoading ? (
+					<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+				) : requestsQuery.isError ? (
+					<div className="py-8 text-center text-sm text-ink-soft">Unable to load demo requests.</div>
 				) : (
-					<div className="overflow-x-auto rounded-3xl border border-border">
-						<table className="min-w-full border-collapse bg-surface text-left text-sm">
-							<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
-								<tr>
-									<th className="px-4 py-3 font-semibold">Lead</th>
-									<th className="px-4 py-3 font-semibold">Phone</th>
-									<th className="px-4 py-3 font-semibold">Requested</th>
-									<th className="px-4 py-3 font-semibold">Mentor</th>
-									<th className="px-4 py-3 font-semibold">Demo Time</th>
-									<th className="px-4 py-3 font-semibold">Action</th>
-								</tr>
-							</thead>
-							<tbody>
-								{rows.map((lead) => (
-									<tr key={lead.id} className="border-t border-border align-top">
-										<td className="px-4 py-3 font-semibold text-ink">
-											{lead.name ?? "Unnamed lead"}
-										</td>
-										<td className="px-4 py-3 text-ink-soft">{lead.phone}</td>
-										<td className="px-4 py-3 text-ink-soft">
-											{lead.demoRequestedAt
-												? new Date(lead.demoRequestedAt).toLocaleString()
-												: "-"}
-										</td>
-										<td className="px-4 py-3">
-											<select
-												className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-												value={selectedMentorByLeadId[lead.id] ?? ""}
-												onChange={(event) =>
-													setSelectedMentorByLeadId((current) => ({
-														...current,
-														[lead.id]: event.target.value,
-													}))
-												}
-											>
-												<option value="">Select mentor</option>
-												{mentors.map((mentor) => (
-													<option key={mentor.id} value={mentor.id}>
-														{formatUserName(mentor.name ?? mentor.username)}
-													</option>
-												))}
-											</select>
-										</td>
-										<td className="px-4 py-3">
-											<input
-												type="datetime-local"
-												className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-												value={scheduledTimeByLeadId[lead.id] ?? toInputDateTimeLocal(null)}
-												onChange={(event) =>
-													setScheduledTimeByLeadId((current) => ({
-														...current,
-														[lead.id]: event.target.value,
-													}))
-												}
-											/>
-										</td>
-										<td className="px-4 py-3">
-											<button
-												type="button"
-												className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
-												disabled={assignDemoMentorMutation.isPending}
-												onClick={() => void handleAssign(lead.id)}
-											>
-												<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
-												Assign demo
-											</button>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
+					<DataTable
+						columns={columns}
+						data={requestsQuery.data?.leads ?? []}
+						exportFilename="for-demo"
+						searchPlaceholder="Search demo requests..."
+					/>
 				)}
 			</Panel>
-
 		</div>
 	);
 };

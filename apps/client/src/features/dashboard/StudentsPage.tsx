@@ -1,4 +1,7 @@
+import type { StudentResponse } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
+import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -21,43 +24,53 @@ export const StudentsPage = () => {
 		[allUsers],
 	);
 
+	const columns: ColumnDef<StudentResponse>[] = useMemo(
+		() => [
+			{
+				accessorKey: "zid",
+				header: "Student ID",
+				cell: (info) => <div className="font-semibold text-ink">{String(info.getValue())}</div>,
+			},
+			{ accessorKey: "name", header: "Name" },
+			{ accessorKey: "phone", header: "Phone" },
+			{
+				id: "counsellor",
+				header: "Counsellor",
+				cell: (info) =>
+					info.row.original.counsellorId
+						? userNameById.get(info.row.original.counsellorId) ?? "-"
+						: "-",
+			},
+			{
+				id: "mentor",
+				header: "Mentor",
+				cell: (info) =>
+					info.row.original.mentorId
+						? userNameById.get(info.row.original.mentorId) ?? "-"
+						: "-",
+			},
+			{
+				accessorKey: "admittedAt",
+				header: "Admitted",
+				cell: (info) => new Date(String(info.getValue())).toLocaleDateString(),
+			},
+		],
+		[userNameById],
+	);
+
 	return (
 		<Panel title="Students" description="Admissions converted to enrolled students">
-			{rows.length === 0 ? (
-				<div className="py-8 text-center text-sm text-ink-soft">No students created yet.</div>
+			{studentsQuery.isLoading ? (
+				<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+			) : studentsQuery.isError ? (
+				<div className="py-8 text-center text-sm text-ink-soft">Unable to load students.</div>
 			) : (
-				<div className="overflow-x-auto rounded-3xl border border-border">
-					<table className="min-w-full border-collapse bg-surface text-left text-sm">
-						<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
-							<tr>
-								<th className="px-4 py-3 font-semibold">Student ID</th>
-								<th className="px-4 py-3 font-semibold">Name</th>
-								<th className="px-4 py-3 font-semibold">Phone</th>
-								<th className="px-4 py-3 font-semibold">Counsellor</th>
-								<th className="px-4 py-3 font-semibold">Mentor</th>
-								<th className="px-4 py-3 font-semibold">Admitted</th>
-							</tr>
-						</thead>
-						<tbody>
-							{rows.map((student) => (
-								<tr key={student.id} className="border-t border-border">
-									<td className="px-4 py-3 font-semibold text-ink">{student.zid}</td>
-									<td className="px-4 py-3 text-ink-soft">{student.name}</td>
-									<td className="px-4 py-3 text-ink-soft">{student.phone}</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{student.counsellorId ? userNameById.get(student.counsellorId) ?? "-" : "-"}
-									</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{student.mentorId ? userNameById.get(student.mentorId) ?? "-" : "-"}
-									</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{new Date(student.admittedAt).toLocaleDateString()}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+				<DataTable
+					columns={columns}
+					data={rows}
+					exportFilename="students"
+					searchPlaceholder="Search students..."
+				/>
 			)}
 		</Panel>
 	);

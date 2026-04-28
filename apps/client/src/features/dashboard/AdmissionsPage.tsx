@@ -1,6 +1,9 @@
+import type { LeadResponse } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiAcademicCap } from "react-icons/hi2";
+import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
 import { useAdmissionLeadsQuery } from "@/features/leads/leads.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -24,57 +27,69 @@ export const AdmissionsPage = () => {
 		[allUsers],
 	);
 
+	const columns: ColumnDef<LeadResponse>[] = useMemo(
+		() => [
+			{
+				accessorKey: "name",
+				header: "Lead",
+				cell: (info) => (
+					<div className="font-semibold text-ink">
+						{(info.getValue() as string) ?? "Unnamed lead"}
+					</div>
+				),
+			},
+			{ accessorKey: "phone", header: "Phone" },
+			{
+				id: "mentor",
+				header: "Demo mentor",
+				cell: (info) =>
+					info.row.original.demoMentorId
+						? userNameById.get(info.row.original.demoMentorId) ?? "-"
+						: "-",
+			},
+			{
+				id: "counsellor",
+				header: "Counsellor",
+				cell: (info) =>
+					info.row.original.admissionCounsellorId
+						? userNameById.get(info.row.original.admissionCounsellorId) ?? "-"
+						: "-",
+			},
+			{
+				id: "actions",
+				header: "Actions",
+				enableSorting: false,
+				cell: (info) => (
+					<button
+						type="button"
+						onClick={() => navigate(`/admissions/${info.row.original.id}`)}
+						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+					>
+						<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
+						Confirm admission
+					</button>
+				),
+			},
+		],
+		[navigate, userNameById],
+	);
+
 	return (
 		<Panel
 			title="For Admission"
 			description="Leads waiting for final admission confirmation"
 		>
-			{rows.length === 0 ? (
-				<div className="py-8 text-center text-sm text-ink-soft">
-					No leads are waiting for admission yet.
-				</div>
+			{admissionsQuery.isLoading ? (
+				<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+			) : admissionsQuery.isError ? (
+				<div className="py-8 text-center text-sm text-ink-soft">Unable to load admissions.</div>
 			) : (
-				<div className="overflow-x-auto rounded-3xl border border-border">
-					<table className="min-w-full border-collapse bg-surface text-left text-sm">
-						<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
-							<tr>
-								<th className="px-4 py-3 font-semibold">Lead</th>
-								<th className="px-4 py-3 font-semibold">Phone</th>
-								<th className="px-4 py-3 font-semibold">Demo mentor</th>
-								<th className="px-4 py-3 font-semibold">Counsellor</th>
-								<th className="px-4 py-3 font-semibold">Action</th>
-							</tr>
-						</thead>
-						<tbody>
-							{rows.map((lead) => (
-								<tr key={lead.id} className="border-t border-border align-top">
-									<td className="px-4 py-3 font-semibold text-ink">
-										{lead.name ?? "Unnamed lead"}
-									</td>
-									<td className="px-4 py-3 text-ink-soft">{lead.phone}</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}
-									</td>
-									<td className="px-4 py-3 text-ink-soft">
-										{lead.admissionCounsellorId
-											? userNameById.get(lead.admissionCounsellorId) ?? "-"
-											: "-"}
-									</td>
-									<td className="px-4 py-3">
-										<button
-											type="button"
-											onClick={() => navigate(`/admissions/${lead.id}`)}
-											className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
-										>
-											<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
-											Confirm admission
-										</button>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+				<DataTable
+					columns={columns}
+					data={rows}
+					exportFilename="for-admission"
+					searchPlaceholder="Search admission leads..."
+				/>
 			)}
 		</Panel>
 	);

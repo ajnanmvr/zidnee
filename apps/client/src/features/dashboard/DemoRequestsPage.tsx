@@ -1,8 +1,11 @@
+import type { LeadResponse } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { HiCheckCircle } from "react-icons/hi2";
+import { HiCheckCircle, HiPencilSquare, HiXMark } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { ApiError } from "@/api/request";
+import { DataTable } from "@/components/DataTable";
 import { Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import {
 	useAssignDemoMentorMutation,
@@ -16,15 +19,9 @@ const isMentorRole = (roleName: string) => roleName.toLowerCase() === "mentor";
 const formatUserName = (userName?: string | null) => userName?.trim() || "-";
 
 const toInputDateTimeLocal = (value: string | null): string => {
-	if (!value) {
-		return "";
-	}
-
+	if (!value) return "";
 	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) {
-		return "";
-	}
-
+	if (Number.isNaN(date.getTime())) return "";
 	const timezoneOffset = date.getTimezoneOffset() * 60000;
 	const localDate = new Date(date.getTime() - timezoneOffset);
 	return localDate.toISOString().slice(0, 16);
@@ -42,6 +39,7 @@ export const DemoRequestsPage = () => {
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const [selectedMentorByLeadId, setSelectedMentorByLeadId] = useState<Record<string, string>>({});
 	const [scheduledTimeByLeadId, setScheduledTimeByLeadId] = useState<Record<string, string>>({});
+	const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const allUsers = usersQuery.data?.users ?? [];
 
@@ -69,7 +67,6 @@ export const DemoRequestsPage = () => {
 			toast.error("Select a mentor first.");
 			return;
 		}
-
 		if (!demoScheduledFor) {
 			toast.error("Select the demo date and time.");
 			return;
@@ -84,20 +81,18 @@ export const DemoRequestsPage = () => {
 				},
 			});
 			toast.success("Demo schedule updated successfully.");
+			setEditingLeadId(null);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to update demo");
 				return;
 			}
-
 			toast.error(error instanceof Error ? error.message : "Unable to update demo");
 		}
 	};
 
 	const handleCompleteDemo = async (form: CompleteDemoForm) => {
-		if (!completeLeadId) {
-			return;
-		}
+		if (!completeLeadId) return;
 
 		try {
 			await markDemoCompletedMutation.mutateAsync({
@@ -112,15 +107,174 @@ export const DemoRequestsPage = () => {
 				toast.error(error.payload.message ?? "Unable to mark demo completed");
 				return;
 			}
-
-			toast.error(
-				error instanceof Error ? error.message : "Unable to mark demo completed",
-			);
+			toast.error(error instanceof Error ? error.message : "Unable to mark demo completed");
 		}
 	};
 
 	const rows = requestsQuery.data?.leads ?? [];
 	const completingLead = rows.find((lead) => lead.id === completeLeadId);
+
+	const columns: ColumnDef<LeadResponse>[] = useMemo(
+		() => [
+			{
+				accessorKey: "name",
+				header: "Lead",
+				cell: (info) => (
+					<div className="font-semibold text-ink">
+						{(info.getValue() as string) ?? "Unnamed lead"}
+					</div>
+				),
+			},
+			{
+				accessorKey: "phone",
+				header: "Phone",
+			},
+			{
+				accessorKey: "demoRequestedAt",
+				header: "Requested",
+				cell: (info) =>
+					info.getValue() ? new Date(String(info.getValue())).toLocaleString() : "-",
+			},
+			{
+				id: "mentor",
+				header: "Mentor",
+				cell: (info) => {
+					const lead = info.row.original;
+					if (editingLeadId === lead.id) {
+						return (
+							<select
+								className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
+								value={selectedMentorByLeadId[lead.id] ?? lead.demoMentorId ?? ""}
+								onChange={(event) =>
+									setSelectedMentorByLeadId((current) => ({
+										...current,
+										[lead.id]: event.target.value,
+									}))
+								}
+							>
+								<option value="">Select mentor</option>
+								{mentors.map((mentor) => (
+									<option key={mentor.id} value={mentor.id}>
+										{formatUserName(mentor.name ?? mentor.username)}
+									</option>
+								))}
+							</select>
+						);
+					}
+					return <span>{lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}</span>;
+				},
+			},
+			{
+				accessorKey: "demoScheduledFor",
+				header: "Demo Time",
+				cell: (info) => {
+					const lead = info.row.original;
+					if (editingLeadId === lead.id) {
+						return (
+							<input
+								type="datetime-local"
+								className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
+								value={
+									scheduledTimeByLeadId[lead.id] ??
+									toInputDateTimeLocal(lead.demoScheduledFor ?? null)
+								}
+								onChange={(event) =>
+									setScheduledTimeByLeadId((current) => ({
+										...current,
+										[lead.id]: event.target.value,
+									}))
+								}
+							/>
+						);
+					}
+					return (
+						<div className="grid gap-1">
+							<span>{lead.demoScheduledFor ? new Date(lead.demoScheduledFor).toLocaleString() : "-"}</span>
+							<span className="text-xs text-ink-soft">
+								Assigned: {lead.demoAssignedAt ? new Date(lead.demoAssignedAt).toLocaleString() : "-"}
+							</span>
+						</div>
+					);
+				},
+			},
+			{
+				id: "actions",
+				header: "Actions",
+				enableSorting: false,
+				cell: (info) => {
+					const lead = info.row.original;
+					const editing = editingLeadId === lead.id;
+
+					return (
+						<div className="flex flex-wrap gap-2">
+							{editing ? (
+								<>
+									<button
+										type="button"
+										className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+										disabled={assignDemoMentorMutation.isPending}
+										onClick={() => void handleAssign(lead.id)}
+									>
+										<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
+										Save
+									</button>
+									<button
+										type="button"
+										className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+										onClick={() => setEditingLeadId(null)}
+									>
+										<HiXMark className="h-4 w-4" aria-hidden="true" />
+										Cancel
+									</button>
+								</>
+							) : (
+								<button
+									type="button"
+									className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+									onClick={() => {
+										setEditingLeadId(lead.id);
+										setSelectedMentorByLeadId((current) => ({
+											...current,
+											[lead.id]: current[lead.id] ?? lead.demoMentorId ?? "",
+										}));
+										setScheduledTimeByLeadId((current) => ({
+											...current,
+											[lead.id]: current[lead.id] ?? toInputDateTimeLocal(lead.demoScheduledFor ?? null),
+										}));
+									}}
+								>
+									<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
+									Edit
+								</button>
+							)}
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-green px-4 py-2 text-sm font-semibold text-surface"
+								disabled={markDemoCompletedMutation.isPending}
+								onClick={() => {
+									setCompleteLeadId(lead.id);
+									reset({ note: "" });
+								}}
+							>
+								<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
+								Demo completed
+							</button>
+						</div>
+					);
+				},
+			},
+		],
+		[
+			assignDemoMentorMutation.isPending,
+			editingLeadId,
+			mentors,
+			markDemoCompletedMutation.isPending,
+			reset,
+			scheduledTimeByLeadId,
+			selectedMentorByLeadId,
+			userNameById,
+		],
+	);
 
 	return (
 		<div className="grid gap-6">
@@ -128,111 +282,17 @@ export const DemoRequestsPage = () => {
 				title="Assigned Demos"
 				description="Leads already assigned with scheduled demo time"
 			>
-				{mentors.length === 0 ? (
-					<div className="mb-4 rounded-2xl border border-warm/20 bg-warm-soft px-4 py-3 text-sm text-ink-soft">
-						No mentors are available yet.
-					</div>
-				) : null}
-				{rows.length === 0 ? (
-					<div className="py-8 text-center text-sm text-ink-soft">
-						No assigned demos yet.
-					</div>
+				{requestsQuery.isLoading ? (
+					<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+				) : requestsQuery.isError ? (
+					<div className="py-8 text-center text-sm text-ink-soft">Unable to load assigned demos.</div>
 				) : (
-					<div className="overflow-x-auto rounded-3xl border border-border">
-						<table className="min-w-full border-collapse bg-surface text-left text-sm">
-							<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
-								<tr>
-									<th className="px-4 py-3 font-semibold">Lead</th>
-									<th className="px-4 py-3 font-semibold">Phone</th>
-									<th className="px-4 py-3 font-semibold">Requested</th>
-									<th className="px-4 py-3 font-semibold">Mentor</th>
-									<th className="px-4 py-3 font-semibold">Demo Time</th>
-									<th className="px-4 py-3 font-semibold">Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{rows.map((lead) => (
-									<tr key={lead.id} className="border-t border-border align-top">
-										<td className="px-4 py-3 font-semibold text-ink">
-											{lead.name ?? "Unnamed lead"}
-										</td>
-										<td className="px-4 py-3 text-ink-soft">{lead.phone}</td>
-										<td className="px-4 py-3 text-ink-soft">
-											{lead.demoRequestedAt
-												? new Date(lead.demoRequestedAt).toLocaleString()
-												: "-"}
-										</td>
-										<td className="px-4 py-3">
-											<select
-												className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-												value={selectedMentorByLeadId[lead.id] ?? lead.demoMentorId ?? ""}
-												onChange={(event) =>
-													setSelectedMentorByLeadId((current) => ({
-														...current,
-														[lead.id]: event.target.value,
-													}))
-												}
-											>
-												<option value="">Select mentor</option>
-												{mentors.map((mentor) => (
-													<option key={mentor.id} value={mentor.id}>
-														{formatUserName(mentor.name ?? mentor.username)}
-													</option>
-												))}
-											</select>
-											<p className="mt-2 text-xs text-ink-soft">
-												Current: {lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}
-											</p>
-										</td>
-										<td className="px-4 py-3">
-											<input
-												type="datetime-local"
-												className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-												value={
-													scheduledTimeByLeadId[lead.id] ??
-													toInputDateTimeLocal(lead.demoScheduledFor ?? null)
-												}
-												onChange={(event) =>
-													setScheduledTimeByLeadId((current) => ({
-														...current,
-														[lead.id]: event.target.value,
-													}))
-												}
-											/>
-											<p className="mt-2 text-xs text-ink-soft">
-												Assigned at: {lead.demoAssignedAt ? new Date(lead.demoAssignedAt).toLocaleString() : "-"}
-											</p>
-										</td>
-										<td className="px-4 py-3">
-											<div className="flex flex-wrap gap-2">
-												<button
-													type="button"
-													className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
-													disabled={assignDemoMentorMutation.isPending}
-													onClick={() => void handleAssign(lead.id)}
-												>
-													<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
-													Update schedule
-												</button>
-												<button
-													type="button"
-													className="inline-flex items-center gap-2 rounded-2xl bg-green px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
-													disabled={markDemoCompletedMutation.isPending}
-													onClick={() => {
-														setCompleteLeadId(lead.id);
-														reset({ note: "" });
-													}}
-												>
-													<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
-													Demo completed
-												</button>
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
+					<DataTable
+						columns={columns}
+						data={rows}
+						exportFilename="assigned-demos"
+						searchPlaceholder="Search assigned demos..."
+					/>
 				)}
 			</Panel>
 
