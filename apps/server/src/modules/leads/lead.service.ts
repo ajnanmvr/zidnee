@@ -2,34 +2,82 @@ import type { Lead } from "@repo/schema";
 import { LeadModel, type LeadDocument } from "./lead.model.js";
 import { ActivityService } from "./activity.service.js";
 
-const toLead = (doc: LeadDocument): Lead => {
-	return {
-		id: doc._id.toString(),
-		name: doc.name,
-		phone: doc.phone,
-		level: doc.level,
-		assignedTo: doc.assignedTo,
-		createdBy: doc.createdBy.toString(),
-		demoRequired: doc.demoRequired,
-		formSent: doc.formSent,
-		formCompleted: doc.formCompleted,
-		followUpCount: doc.followUpCount,
-		lastContactedAt: doc.lastContactedAt,
-		nextFollowUpAt: doc.nextFollowUpAt,
-		customNextFollowUpAt: doc.customNextFollowUpAt,
-		demoRequestedAt: doc.demoRequestedAt,
-		demoMentorId: doc.demoMentorId?.toString(),
-		demoAssignedAt: doc.demoAssignedAt,
-		demoScheduledFor: doc.demoScheduledFor,
-		demoCompletedAt: doc.demoCompletedAt,
-		admissionRequestedAt: doc.admissionRequestedAt,
-		admissionCounsellorId: doc.admissionCounsellorId?.toString(),
-		admissionCompletedAt: doc.admissionCompletedAt,
-		studentId: doc.studentId?.toString(),
-		createdAt: doc.createdAt,
-		updatedAt: doc.updatedAt,
-	};
+type LeadDemo = NonNullable<Lead["demos"]>[number];
+
+const toDemo = (demo: NonNullable<LeadDocument["demos"]>[number]): LeadDemo => ({
+	mentorId: demo.mentorId?.toString(),
+	requestedAt: demo.requestedAt,
+	assignedAt: demo.assignedAt,
+	demoScheduledFor: demo.demoScheduledFor,
+	completedAt: demo.completedAt,
+	demoRequired: demo.demoRequired,
+	lastContactedAt: demo.lastContactedAt,
+	nextFollowUpAt: demo.nextFollowUpAt,
+	customNextFollowUpAt: demo.customNextFollowUpAt,
+	admissionRequestedAt: demo.admissionRequestedAt,
+	admissionCounsellorId: demo.admissionCounsellorId?.toString(),
+	admissionCompletedAt: demo.admissionCompletedAt,
+	studentId: demo.studentId?.toString(),
+	note: demo.note,
+});
+
+const fromDemo = (demo: LeadDemo): NonNullable<LeadDocument["demos"]>[number] => ({
+	mentorId: demo.mentorId,
+	requestedAt: demo.requestedAt,
+	assignedAt: demo.assignedAt,
+	demoScheduledFor: demo.demoScheduledFor,
+	completedAt: demo.completedAt,
+	demoRequired: demo.demoRequired,
+	lastContactedAt: demo.lastContactedAt,
+	nextFollowUpAt: demo.nextFollowUpAt,
+	customNextFollowUpAt: demo.customNextFollowUpAt,
+	admissionRequestedAt: demo.admissionRequestedAt,
+	admissionCounsellorId: demo.admissionCounsellorId,
+	admissionCompletedAt: demo.admissionCompletedAt,
+	studentId: demo.studentId,
+	note: demo.note,
+});
+
+const getLatestDemo = (lead: LeadDocument): NonNullable<LeadDocument["demos"]>[number] | null => {
+	const demos = lead.demos ?? [];
+	return demos.length > 0 ? demos[demos.length - 1] ?? null : null;
 };
+
+const setLatestDemo = (
+	lead: LeadDocument,
+	patch: Partial<NonNullable<LeadDocument["demos"]>[number]>,
+): NonNullable<LeadDocument["demos"]> => {
+	const demos = [...(lead.demos ?? [])];
+	if (demos.length === 0) {
+		demos.push({ demoRequired: false, ...patch } as NonNullable<LeadDocument["demos"]>[number]);
+		return demos;
+	}
+
+	const latestDemo = demos[demos.length - 1]!;
+	demos[demos.length - 1] = {
+		...latestDemo,
+		...patch,
+		demoRequired: patch.demoRequired ?? latestDemo.demoRequired ?? false,
+	};
+
+	return demos;
+};
+
+const mapLead = (doc: LeadDocument): Lead => ({
+	id: doc._id.toString(),
+	name: doc.name,
+	phone: doc.phone,
+	level: doc.level,
+	assignedTo: doc.assignedTo,
+	createdBy: doc.createdBy.toString(),
+	formSent: doc.formSent,
+	formCompleted: doc.formCompleted,
+	followUpCount: doc.followUpCount,
+	nextFollowUpAt: doc.nextFollowUpAt,
+	demos: (doc.demos ?? []).map(toDemo),
+	createdAt: doc.createdAt,
+	updatedAt: doc.updatedAt,
+});
 
 export const LeadService = {
 	create: async (lead: {
@@ -47,26 +95,14 @@ export const LeadService = {
 			name: lead.name,
 			createdBy: lead.createdBy,
 			followUpCount: 0,
-			lastContactedAt: undefined,
 			nextFollowUpAt: effectiveNextFollowUpAt,
-			customNextFollowUpAt: lead.customNextFollowUpAt,
-			demoRequired: false,
-			demoRequestedAt: undefined,
-			demoMentorId: undefined,
-			demoAssignedAt: undefined,
-			demoScheduledFor: undefined,
-			demoCompletedAt: undefined,
-			admissionRequestedAt: undefined,
-			admissionCounsellorId: undefined,
-			admissionCompletedAt: undefined,
-			studentId: undefined,
+			demos: [],
 			formSent: false,
 			formCompleted: false,
 		});
 
-		const leadObj = toLead(created.toObject() as LeadDocument);
+		const leadObj = mapLead(created.toObject() as LeadDocument);
 
-		// Log activity if user info provided
 		if (lead.createdBy) {
 			await ActivityService.logActivity(
 				leadObj.id,
@@ -83,7 +119,7 @@ export const LeadService = {
 
 	findById: async (leadId: string): Promise<Lead | null> => {
 		const lead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
-		return lead ? toLead(lead) : null;
+		return lead ? mapLead(lead) : null;
 	},
 
 	listLeads: async (filters: {
@@ -91,14 +127,13 @@ export const LeadService = {
 		scope: "all" | "mine";
 		timeFilter: "all" | "today";
 	}): Promise<Lead[]> => {
-		const query: Record<string, unknown> = {
-			demoRequired: { $ne: true },
-			admissionRequestedAt: { $exists: false },
-			studentId: { $exists: false },
-		};
+		const leads = await LeadModel.find()
+			.sort({ nextFollowUpAt: 1, createdAt: -1 })
+			.lean<LeadDocument[]>();
 
+		let filtered = leads;
 		if (filters.scope === "mine") {
-			query.createdBy = filters.createdBy;
+			filtered = filtered.filter((lead) => lead.createdBy.toString() === filters.createdBy);
 		}
 
 		if (filters.timeFilter === "today") {
@@ -106,53 +141,45 @@ export const LeadService = {
 			startOfDay.setHours(0, 0, 0, 0);
 			const endOfDay = new Date();
 			endOfDay.setHours(23, 59, 59, 999);
-
-			query.$or = [
-				{ customNextFollowUpAt: { $gte: startOfDay, $lte: endOfDay } },
-				{ nextFollowUpAt: { $gte: startOfDay, $lte: endOfDay } },
-			];
+			filtered = filtered.filter((lead) => lead.nextFollowUpAt >= startOfDay && lead.nextFollowUpAt <= endOfDay);
 		}
 
-		const leads = await LeadModel.find(query)
-			.sort({ customNextFollowUpAt: 1, nextFollowUpAt: 1, createdAt: -1 })
-			.lean<LeadDocument[]>();
-
-		return leads.map(toLead);
+		return filtered
+			.filter((lead) => {
+				const latestDemo = getLatestDemo(lead);
+				return !latestDemo?.studentId;
+			})
+			.map(mapLead);
 	},
 
 	listPendingDemoRequests: async (): Promise<Lead[]> => {
-		const leads = await LeadModel.find({
-			demoRequired: true,
-			demoAssignedAt: { $exists: false },
-			studentId: { $exists: false },
-		})
-			.sort({ demoRequestedAt: -1, createdAt: -1 })
-			.lean<LeadDocument[]>();
-
-		return leads.map(toLead);
+		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
+		return leads
+			.filter((lead) => {
+				const latestDemo = getLatestDemo(lead);
+				return Boolean(latestDemo?.requestedAt && !latestDemo?.assignedAt && !latestDemo?.completedAt);
+			})
+			.map(mapLead);
 	},
 
 	listDemoRequests: async (): Promise<Lead[]> => {
-		const leads = await LeadModel.find({
-			demoRequired: true,
-			demoAssignedAt: { $exists: true },
-			studentId: { $exists: false },
-		})
-			.sort({ demoScheduledFor: 1, demoRequestedAt: -1, createdAt: -1 })
-			.lean<LeadDocument[]>();
-
-		return leads.map(toLead);
+		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
+		return leads
+			.filter((lead) => {
+				const latestDemo = getLatestDemo(lead);
+				return Boolean(latestDemo?.assignedAt && !latestDemo?.completedAt);
+			})
+			.map(mapLead);
 	},
 
 	listAdmissionLeads: async (): Promise<Lead[]> => {
-		const leads = await LeadModel.find({
-			admissionRequestedAt: { $exists: true },
-			studentId: { $exists: false },
-		})
-			.sort({ admissionRequestedAt: -1, createdAt: -1 })
-			.lean<LeadDocument[]>();
-
-		return leads.map(toLead);
+		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
+		return leads
+			.filter((lead) => {
+				const latestDemo = getLatestDemo(lead);
+				return Boolean(latestDemo?.admissionRequestedAt && !latestDemo?.studentId);
+			})
+			.map(mapLead);
 	},
 
 	requestDemo: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
@@ -160,15 +187,19 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
+		const demos = [...(existingLead.demos ?? [])];
+		demos.push({
+			demoRequired: true,
+			requestedAt: now,
+			nextFollowUpAt: now,
+		});
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					demoRequired: true,
-					demoRequestedAt: now,
-					demoMentorId: undefined,
-					demoAssignedAt: undefined,
-					demoScheduledFor: undefined,
+					demos,
+					nextFollowUpAt: now,
 				},
 			},
 			{ returnDocument: "after" },
@@ -180,12 +211,12 @@ export const LeadService = {
 				"DEMO_SCHEDULED",
 				performedBy,
 				`Requested demo for ${existingLead.phone}`,
-				{ demoRequired: false },
-				{ demoRequired: true, demoRequestedAt: now.toISOString() },
+				undefined,
+				{ requestedAt: now.toISOString() },
 			);
 		}
 
-		return updatedLead ? toLead(updatedLead) : null;
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	markDemoCompleted: async (leadId: string, performedBy?: string, note?: string): Promise<Lead | null> => {
@@ -193,12 +224,16 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
+		const demos = setLatestDemo(existingLead, {
+			completedAt: now,
+			demoRequired: false,
+		});
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					demoRequired: false,
-					demoCompletedAt: now,
+					demos,
 				},
 			},
 			{ returnDocument: "after" },
@@ -210,13 +245,13 @@ export const LeadService = {
 				"DEMO_COMPLETED",
 				performedBy,
 				`Marked demo complete for ${existingLead.phone}`,
-				{ demoRequired: true },
-				{ demoRequired: false, demoCompletedAt: now.toISOString() },
+				undefined,
+				{ completedAt: now.toISOString() },
 				note,
 			);
 		}
 
-		return updatedLead ? toLead(updatedLead) : null;
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	redemo: async (
@@ -229,21 +264,23 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
+		const demos = [...(existingLead.demos ?? [])];
+		demos.push({
+			mentorId,
+			requestedAt: now,
+			assignedAt: now,
+			demoRequired: true,
+			nextFollowUpAt: now,
+		});
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					demoRequired: true,
-					demoRequestedAt: now,
-					demoMentorId: mentorId,
-					demoAssignedAt: now,
-					demoScheduledFor: undefined,
-					demoCompletedAt: undefined,
+					demos,
+					nextFollowUpAt: now,
 				},
 				$unset: {
-					admissionRequestedAt: 1,
-					admissionCounsellorId: 1,
-					admissionCompletedAt: 1,
 					studentId: 1,
 				},
 			},
@@ -256,13 +293,13 @@ export const LeadService = {
 				"DEMO_REDONE",
 				performedBy,
 				`Requested redemo for ${existingLead.phone}`,
-				{ demoMentorId: existingLead.demoMentorId?.toString() },
-				{ demoMentorId: mentorId, demoRequestedAt: now.toISOString() },
+				{ mentorId: getLatestDemo(existingLead)?.mentorId?.toString() },
+				{ mentorId, requestedAt: now.toISOString() },
 				note,
 			);
 		}
 
-		return updatedLead ? toLead(updatedLead) : null;
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	assignDemoMentor: async (
@@ -276,15 +313,20 @@ export const LeadService = {
 
 		const now = new Date();
 		const nextFollowUpAt = new Date(demoScheduledFor.getTime() + 60 * 60 * 1000);
+		const demos = setLatestDemo(existingLead, {
+			mentorId,
+			assignedAt: now,
+			demoScheduledFor,
+			demoRequired: true,
+			nextFollowUpAt,
+		});
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					demoMentorId: mentorId,
-					demoAssignedAt: now,
-					demoScheduledFor,
+					demos,
 					nextFollowUpAt,
-					customNextFollowUpAt: nextFollowUpAt,
 				},
 			},
 			{ returnDocument: "after" },
@@ -297,20 +339,18 @@ export const LeadService = {
 				performedBy,
 				`Assigned demo mentor`,
 				{
-					demoMentorId: existingLead.demoMentorId?.toString(),
-					demoScheduledFor: existingLead.demoScheduledFor?.toISOString(),
-					customNextFollowUpAt: existingLead.customNextFollowUpAt?.toISOString(),
+					mentorId: getLatestDemo(existingLead)?.mentorId?.toString(),
+					demoScheduledFor: getLatestDemo(existingLead)?.demoScheduledFor?.toISOString(),
 				},
 				{
-					demoMentorId: mentorId,
-					demoAssignedAt: now.toISOString(),
+					mentorId,
+					assignedAt: now.toISOString(),
 					demoScheduledFor: demoScheduledFor.toISOString(),
-					customNextFollowUpAt: nextFollowUpAt.toISOString(),
 				},
 			);
 		}
 
-		return updatedLead ? toLead(updatedLead) : null;
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	requestAdmission: async (
@@ -323,12 +363,16 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
+		const demos = setLatestDemo(existingLead, {
+			admissionRequestedAt: now,
+			admissionCounsellorId: counsellorId,
+		});
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					admissionRequestedAt: now,
-					admissionCounsellorId: counsellorId,
+					demos,
 				},
 			},
 			{ returnDocument: "after" },
@@ -340,13 +384,13 @@ export const LeadService = {
 				"ADMISSION_CONFIRMED",
 				performedBy,
 				`Moved lead to admission for ${existingLead.phone}`,
-				{ admissionCounsellorId: existingLead.admissionCounsellorId?.toString() },
+				{ admissionCounsellorId: getLatestDemo(existingLead)?.admissionCounsellorId?.toString() },
 				{ admissionCounsellorId: counsellorId, admissionRequestedAt: now.toISOString() },
 				note,
 			);
 		}
 
-		return updatedLead ? toLead(updatedLead) : null;
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	postponeFollowUp: async (
@@ -358,38 +402,43 @@ export const LeadService = {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
+		const now = new Date();
+		const demos = setLatestDemo(existingLead, {
+			lastContactedAt: now,
+			customNextFollowUpAt,
+			nextFollowUpAt: customNextFollowUpAt,
+		});
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					customNextFollowUpAt,
 					nextFollowUpAt: customNextFollowUpAt,
+					demos,
 				},
 			},
 			{ returnDocument: "after" },
 		).lean<LeadDocument | null>();
 
-		// Log activity if user info provided
 		if (performedBy && updatedLead) {
 			await ActivityService.logActivity(
 				leadId,
 				"FOLLOW_UP_POSTPONED",
 				performedBy,
 				`Postponed follow-up to ${customNextFollowUpAt.toISOString()}`,
-				{ customNextFollowUpAt: existingLead.customNextFollowUpAt?.toISOString() },
+				{ customNextFollowUpAt: getLatestDemo(existingLead)?.customNextFollowUpAt?.toISOString() },
 				{ customNextFollowUpAt: customNextFollowUpAt.toISOString() },
 				note,
 			);
 		}
 
-		return updatedLead ? toLead(updatedLead) : null;
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	delete: async (leadId: string, performedBy?: string, performedByName?: string): Promise<boolean> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		const result = await LeadModel.findByIdAndDelete(leadId);
 
-		// Log activity if user info provided
 		if (performedBy && existingLead) {
 			await ActivityService.logActivity(
 				leadId,

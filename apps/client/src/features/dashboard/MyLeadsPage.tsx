@@ -11,6 +11,7 @@ import { HiAcademicCap, HiArrowPath, HiCalendarDays, HiTrash } from "react-icons
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { buildLeadColumns, formatUserName, getLeadUrgency } from "@/features/dashboard/lead-table";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
@@ -50,10 +51,9 @@ const isCounsellorRole = (roleName: string) => roleName.toLowerCase() === "couns
 export const MyLeadsPage = () => {
 	const { token } = useSession();
 	const navigate = useNavigate();
-	const [timeFilter, setTimeFilter] = useState<"today" | "all">("today");
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "mine",
-		timeFilter,
+		timeFilter: "all",
 	});
 	const usersQuery = useUsersQuery(token);
 	const requestDemoMutation = useRequestLeadDemoMutation();
@@ -258,15 +258,16 @@ export const MyLeadsPage = () => {
 	const selectedLead = leads.find((lead) => lead.id === postponeLeadId) ?? null;
 	const redemoLead = leads.find((lead) => lead.id === redemoLeadId) ?? null;
 	const admissionLead = leads.find((lead) => lead.id === admissionLeadId) ?? null;
-	const defaultCounsellorId = admissionLead?.demoMentorId
-		? allUsers.find((user) => user.id === admissionLead.demoMentorId)?.counsellorId
+	const admissionLeadLatestDemo = admissionLead ? getLatestLeadDemo(admissionLead) : null;
+	const redemoLeadLatestDemo = redemoLead ? getLatestLeadDemo(redemoLead) : null;
+	const defaultCounsellorId = admissionLeadLatestDemo?.mentorId
+		? allUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId)?.counsellorId
 		: undefined;
-	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLead?.demoMentorId);
+	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLeadLatestDemo?.mentorId);
 
 	const columns = useMemo(
 		() =>
 			buildLeadColumns({
-				userNameById,
 				onView: (leadId) => navigate(`/leads/${leadId}`),
 				onRequestDemo: async (leadId) => {
 					if (!confirm("Request demo for this lead?")) return;
@@ -286,11 +287,12 @@ export const MyLeadsPage = () => {
 				},
 				onAdmission: (leadId) => {
 					const lead = leads.find((entry) => entry.id === leadId);
+					const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 					setAdmissionLeadId(leadId);
 					resetAdmission({
 						counsellorId:
-							lead?.demoMentorId
-								? allUsers.find((user) => user.id === lead.demoMentorId)?.counsellorId ??
+							latestDemo?.mentorId
+								? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId ??
 									undefined
 								: undefined,
 						note: "",
@@ -308,7 +310,6 @@ export const MyLeadsPage = () => {
 			resetAdmission,
 			resetPostpone,
 			resetRedemo,
-			userNameById,
 		],
 	);
 
@@ -317,40 +318,15 @@ export const MyLeadsPage = () => {
 			<Panel
 				title="My Leads"
 				description="Your leads"
-				action={
-					<div className="flex items-center gap-2">
-						<button
-							type="button"
-							className={
-								timeFilter === "today"
-									? "rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
-									: "rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
-							}
-							onClick={() => setTimeFilter("today")}
-						>
-							Today
-						</button>
-						<button
-							type="button"
-							className={
-								timeFilter === "all"
-									? "rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
-									: "rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
-							}
-							onClick={() => setTimeFilter("all")}
-						>
-							All Time
-						</button>
-					</div>
-				}
+				action={null}
 			>
 				<div className="mb-4 rounded-3xl border border-warm/30 bg-warm-soft px-4 py-3">
 					<div className="flex items-center gap-2 text-sm font-semibold text-ink">
 						<HiCalendarDays className="h-4 w-4" aria-hidden="true" />
-						Today Focus
+						My Tasks
 					</div>
 					<p className="mt-1 text-sm text-ink-soft">
-						{todayCount} lead{todayCount === 1 ? "" : "s"} are scheduled for today.
+						{todayCount} lead{todayCount === 1 ? "" : "s"} are due now.
 					</p>
 				</div>
 
@@ -497,7 +473,7 @@ export const MyLeadsPage = () => {
 				title="Request redemo"
 				description={
 					redemoLead
-						? `Previous mentor: ${redemoLead.demoMentorId ? userNameById.get(redemoLead.demoMentorId) ?? "-" : "-"}`
+						? `Previous mentor: ${redemoLeadLatestDemo?.mentorId ? userNameById.get(redemoLeadLatestDemo.mentorId) ?? "-" : "-"}`
 						: "Select a different mentor"
 				}
 				onClose={() => {
@@ -602,9 +578,9 @@ export const MyLeadsPage = () => {
 				}
 			>
 				<form className="grid gap-4" onSubmit={handleAdmissionSubmit(onRequestAdmission)}>
-					{admissionLead?.demoMentorId ? (
+					{admissionLeadLatestDemo?.mentorId ? (
 						<div className="rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm text-ink-soft">
-							Last demo mentor: {userNameById.get(admissionLead.demoMentorId) ?? "-"}
+							Last demo mentor: {userNameById.get(admissionLeadLatestDemo.mentorId) ?? "-"}
 						</div>
 					) : null}
 					<Controller

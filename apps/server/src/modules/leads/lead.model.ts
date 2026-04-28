@@ -1,20 +1,11 @@
 import type { Lead } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import type { LeadDemo } from "@repo/schema";
 
 export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	_id: Types.ObjectId;
 	createdBy: Types.ObjectId;
-	lastContactedAt?: Date;
-	customNextFollowUpAt?: Date;
-	demoRequestedAt?: Date;
-	demoMentorId?: Types.ObjectId;
-	demoAssignedAt?: Date;
-	demoScheduledFor?: Date;
-	demoCompletedAt?: Date;
-	admissionRequestedAt?: Date;
-	admissionCounsellorId?: Types.ObjectId;
-	admissionCompletedAt?: Date;
-	studentId?: Types.ObjectId;
+	demos?: LeadDemo[];
 };
 
 const leadSchema = new Schema<LeadDocument>(
@@ -47,11 +38,6 @@ const leadSchema = new Schema<LeadDocument>(
 			required: true,
 			index: true,
 		},
-		demoRequired: {
-			type: Boolean,
-			required: true,
-			default: false,
-		},
 		formSent: {
 			type: Boolean,
 			required: true,
@@ -67,59 +53,44 @@ const leadSchema = new Schema<LeadDocument>(
 			required: true,
 			default: 0,
 		},
-		lastContactedAt: {
-			type: Date,
-			required: false,
-		},
 		nextFollowUpAt: {
 			type: Date,
 			required: true,
 			index: true,
 		},
-		customNextFollowUpAt: {
-			type: Date,
+		demos: {
+			type: [
+				{
+					mentorId: {
+						type: Schema.Types.ObjectId,
+						ref: "User",
+						required: false,
+					},
+					requestedAt: { type: Date, required: false },
+					assignedAt: { type: Date, required: false },
+					demoScheduledFor: { type: Date, required: false },
+					completedAt: { type: Date, required: false },
+					demoRequired: { type: Boolean, required: false },
+					lastContactedAt: { type: Date, required: false },
+					nextFollowUpAt: { type: Date, required: false },
+					customNextFollowUpAt: { type: Date, required: false },
+					admissionRequestedAt: { type: Date, required: false },
+					admissionCounsellorId: {
+						type: Schema.Types.ObjectId,
+						ref: "User",
+						required: false,
+					},
+					admissionCompletedAt: { type: Date, required: false },
+					studentId: {
+						type: Schema.Types.ObjectId,
+						ref: "Student",
+						required: false,
+					},
+					note: { type: String, required: false },
+				},
+			],
 			required: false,
-			index: true,
-		},
-		demoRequestedAt: {
-			type: Date,
-			required: false,
-			index: true,
-		},
-		demoMentorId: {
-			type: Schema.Types.ObjectId,
-			ref: "User",
-			required: false,
-		},
-		demoAssignedAt: {
-			type: Date,
-			required: false,
-		},
-		demoScheduledFor: {
-			type: Date,
-			required: false,
-		},
-		demoCompletedAt: {
-			type: Date,
-			required: false,
-		},
-		admissionRequestedAt: {
-			type: Date,
-			required: false,
-		},
-		admissionCounsellorId: {
-			type: Schema.Types.ObjectId,
-			ref: "User",
-			required: false,
-		},
-		admissionCompletedAt: {
-			type: Date,
-			required: false,
-		},
-		studentId: {
-			type: Schema.Types.ObjectId,
-			ref: "Student",
-			required: false,
+			default: [],
 		},
 	},
 	{

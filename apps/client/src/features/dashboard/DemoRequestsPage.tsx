@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	useAssignDemoMentorMutation,
 	useMarkDemoCompletedMutation,
@@ -49,14 +50,6 @@ export const DemoRequestsPage = () => {
 
 	const mentors = useMemo(
 		() => allUsers.filter((user) => user.roles.some((role) => isMentorRole(role.name))),
-		[allUsers],
-	);
-
-	const userNameById = useMemo(
-		() =>
-			new Map(
-				allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)]),
-			),
 		[allUsers],
 	);
 
@@ -132,19 +125,22 @@ export const DemoRequestsPage = () => {
 			{
 				accessorKey: "demoRequestedAt",
 				header: "Requested",
-				cell: (info) =>
-					info.getValue() ? new Date(String(info.getValue())).toLocaleString() : "-",
+				cell: (info) => {
+					const latestDemo = getLatestLeadDemo(info.row.original);
+					return latestDemo?.requestedAt ? new Date(latestDemo.requestedAt).toLocaleString() : "-";
+				},
 			},
 			{
-				id: "mentor",
-				header: "Mentor",
+				accessorKey: "followUpCount",
+				header: "Follow-ups",
 				cell: (info) => {
 					const lead = info.row.original;
+					const latestDemo = getLatestLeadDemo(lead);
 					if (editingLeadId === lead.id) {
 						return (
 							<select
 								className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-								value={selectedMentorByLeadId[lead.id] ?? lead.demoMentorId ?? ""}
+								value={selectedMentorByLeadId[lead.id] ?? latestDemo?.mentorId ?? ""}
 								onChange={(event) =>
 									setSelectedMentorByLeadId((current) => ({
 										...current,
@@ -161,7 +157,7 @@ export const DemoRequestsPage = () => {
 							</select>
 						);
 					}
-					return <span>{lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}</span>;
+					return <span className="font-semibold text-ink">{lead.followUpCount}</span>;
 				},
 			},
 			{
@@ -169,15 +165,13 @@ export const DemoRequestsPage = () => {
 				header: "Demo Time",
 				cell: (info) => {
 					const lead = info.row.original;
+					const latestDemo = getLatestLeadDemo(lead);
 					if (editingLeadId === lead.id) {
 						return (
 							<input
 								type="datetime-local"
 								className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-								value={
-									scheduledTimeByLeadId[lead.id] ??
-									toInputDateTimeLocal(lead.demoScheduledFor ?? null)
-								}
+								value={scheduledTimeByLeadId[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null)}
 								onChange={(event) =>
 									setScheduledTimeByLeadId((current) => ({
 										...current,
@@ -189,9 +183,9 @@ export const DemoRequestsPage = () => {
 					}
 					return (
 						<div className="grid gap-1">
-							<span>{lead.demoScheduledFor ? new Date(lead.demoScheduledFor).toLocaleString() : "-"}</span>
+							<span>{latestDemo?.demoScheduledFor ? new Date(latestDemo.demoScheduledFor).toLocaleString() : "-"}</span>
 							<span className="text-xs text-ink-soft">
-								Assigned: {lead.demoAssignedAt ? new Date(lead.demoAssignedAt).toLocaleString() : "-"}
+								Assigned: {latestDemo?.assignedAt ? new Date(latestDemo.assignedAt).toLocaleString() : "-"}
 							</span>
 						</div>
 					);
@@ -233,13 +227,14 @@ export const DemoRequestsPage = () => {
 									className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
 									onClick={() => {
 										setEditingLeadId(lead.id);
+										const latestDemo = getLatestLeadDemo(lead);
 										setSelectedMentorByLeadId((current) => ({
 											...current,
-											[lead.id]: current[lead.id] ?? lead.demoMentorId ?? "",
+											[lead.id]: current[lead.id] ?? latestDemo?.mentorId ?? "",
 										}));
 										setScheduledTimeByLeadId((current) => ({
 											...current,
-											[lead.id]: current[lead.id] ?? toInputDateTimeLocal(lead.demoScheduledFor ?? null),
+										[lead.id]: current[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null),
 										}));
 									}}
 								>
@@ -272,7 +267,6 @@ export const DemoRequestsPage = () => {
 			reset,
 			scheduledTimeByLeadId,
 			selectedMentorByLeadId,
-			userNameById,
 		],
 	);
 

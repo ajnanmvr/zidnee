@@ -18,6 +18,7 @@ import {
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { buildLeadColumns, formatUserName } from "@/features/dashboard/lead-table";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
@@ -336,17 +337,18 @@ export const LeadsPage = () => {
 		dueLeadsQuery.data?.leads.find((lead) => lead.id === redemoLeadId) ?? null;
 	const admissionLead =
 		dueLeadsQuery.data?.leads.find((lead) => lead.id === admissionLeadId) ?? null;
+	const redemoLeadLatestDemo = redemoLead ? getLatestLeadDemo(redemoLead) : null;
+	const admissionLeadLatestDemo = admissionLead ? getLatestLeadDemo(admissionLead) : null;
 
-	const defaultCounsellorId = admissionLead?.demoMentorId
-		? allUsers.find((user) => user.id === admissionLead.demoMentorId)?.counsellorId
+	const defaultCounsellorId = admissionLeadLatestDemo?.mentorId
+		? allUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId)?.counsellorId
 		: undefined;
 
-	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLead?.demoMentorId);
+	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLeadLatestDemo?.mentorId);
 
 	const columns = useMemo(
 		() =>
 			buildLeadColumns({
-				userNameById,
 				onView: (leadId) => navigate(`/leads/${leadId}`),
 				onRequestDemo: async (leadId) => {
 					if (!confirm("Request demo for this lead?")) {
@@ -369,11 +371,12 @@ export const LeadsPage = () => {
 				},
 				onAdmission: (leadId) => {
 					const lead = dueLeadsQuery.data?.leads.find((entry) => entry.id === leadId);
+					const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 					setAdmissionLeadId(leadId);
 					resetAdmission({
 						counsellorId:
-							lead?.demoMentorId
-								? allUsers.find((user) => user.id === lead.demoMentorId)?.counsellorId ??
+							latestDemo?.mentorId
+								? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId ??
 									undefined
 								: undefined,
 						note: "",
@@ -391,7 +394,6 @@ export const LeadsPage = () => {
 			resetAdmission,
 			resetPostpone,
 			resetRedemo,
-			userNameById,
 		],
 	);
 
@@ -634,7 +636,7 @@ export const LeadsPage = () => {
 				title="Request redemo"
 				description={
 					redemoLead
-						? `Previous mentor: ${redemoLead.demoMentorId ? userNameById.get(redemoLead.demoMentorId) ?? "-" : "-"}`
+						? `Previous mentor: ${redemoLeadLatestDemo?.mentorId ? userNameById.get(redemoLeadLatestDemo.mentorId) ?? "-" : "-"}`
 						: "Select a different mentor"
 				}
 				onClose={() => {
@@ -739,9 +741,9 @@ export const LeadsPage = () => {
 				}
 			>
 				<form className="grid gap-4" onSubmit={handleAdmissionSubmit(onRequestAdmission)}>
-					{admissionLead?.demoMentorId ? (
+					{admissionLeadLatestDemo?.mentorId ? (
 						<div className="rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm text-ink-soft">
-							Last demo mentor: {userNameById.get(admissionLead.demoMentorId) ?? "-"}
+							Last demo mentor: {userNameById.get(admissionLeadLatestDemo.mentorId) ?? "-"}
 						</div>
 					) : null}
 					<Controller

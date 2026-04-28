@@ -14,7 +14,28 @@ import { UserModel } from "../users/user.model.js";
 import { RoleService } from "../rbac/rbac.service.js";
 import { StudentService } from "../students/student.service.js";
 
+const getLatestDemo = (lead: Lead) => {
+	return lead.demos.length > 0 ? lead.demos[lead.demos.length - 1] : null;
+};
+
 const toLeadResponse = (lead: Lead) => {
+	const demos = lead.demos.map((demo) => ({
+		mentorId: demo.mentorId ?? null,
+		requestedAt: demo.requestedAt?.toISOString() ?? null,
+		assignedAt: demo.assignedAt?.toISOString() ?? null,
+		demoScheduledFor: demo.demoScheduledFor?.toISOString() ?? null,
+		completedAt: demo.completedAt?.toISOString() ?? null,
+		demoRequired: demo.demoRequired,
+		lastContactedAt: demo.lastContactedAt?.toISOString() ?? null,
+		nextFollowUpAt: demo.nextFollowUpAt?.toISOString() ?? null,
+		customNextFollowUpAt: demo.customNextFollowUpAt?.toISOString() ?? null,
+		admissionRequestedAt: demo.admissionRequestedAt?.toISOString() ?? null,
+		admissionCounsellorId: demo.admissionCounsellorId ?? null,
+		admissionCompletedAt: demo.admissionCompletedAt?.toISOString() ?? null,
+		studentId: demo.studentId ?? null,
+		note: demo.note ?? null,
+	}));
+
 	return {
 		id: lead.id,
 		name: lead.name,
@@ -22,22 +43,11 @@ const toLeadResponse = (lead: Lead) => {
 		level: lead.level,
 		assignedTo: lead.assignedTo,
 		createdBy: lead.createdBy,
-		demoRequired: lead.demoRequired,
 		formSent: lead.formSent,
 		formCompleted: lead.formCompleted,
 		followUpCount: lead.followUpCount,
-		lastContactedAt: lead.lastContactedAt?.toISOString() ?? null,
 		nextFollowUpAt: lead.nextFollowUpAt.toISOString(),
-		customNextFollowUpAt: lead.customNextFollowUpAt?.toISOString() ?? null,
-		demoRequestedAt: lead.demoRequestedAt?.toISOString() ?? null,
-		demoMentorId: lead.demoMentorId,
-		demoAssignedAt: lead.demoAssignedAt?.toISOString() ?? null,
-		demoScheduledFor: lead.demoScheduledFor?.toISOString() ?? null,
-		demoCompletedAt: lead.demoCompletedAt?.toISOString() ?? null,
-		admissionRequestedAt: lead.admissionRequestedAt?.toISOString() ?? null,
-		admissionCounsellorId: lead.admissionCounsellorId,
-		admissionCompletedAt: lead.admissionCompletedAt?.toISOString() ?? null,
-		studentId: lead.studentId,
+		demos,
 	};
 };
 
@@ -163,12 +173,7 @@ export const postponeLeadFollowUpController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const now = new Date();
-	if (result.data.customNextFollowUpAt <= now) {
-		throw new ValidationError({
-			customNextFollowUpAt: ["Postpone date must be in the future"],
-		});
-	}
+	// Postpone may be set to a past date. Client should show a warning if needed.
 
 	// User ID is passed for activity logging (name will be populated from User doc)
 	const updatedLead = await LeadService.postponeFollowUp(
@@ -254,7 +259,8 @@ export const redemoLeadController = async (
 		throw new NotFoundError("Lead");
 	}
 
-	if (lead.demoMentorId === result.data.mentorId) {
+	const latestDemo = getLatestDemo(lead);
+	if (latestDemo?.mentorId === result.data.mentorId) {
 		throw new ValidationError({
 			mentorId: ["Select a different mentor for redemo"],
 		});
@@ -297,8 +303,9 @@ export const confirmAdmissionController = async (
 	}
 
 	let counsellorId = result.data.counsellorId;
-	if (!counsellorId && lead.demoMentorId) {
-		const mentor = await UserModel.findById(lead.demoMentorId).lean();
+	const latestDemo = getLatestDemo(lead);
+	if (!counsellorId && latestDemo?.mentorId) {
+		const mentor = await UserModel.findById(latestDemo.mentorId).lean();
 		counsellorId = mentor?.counsellorId;
 	}
 
@@ -350,8 +357,9 @@ export const requestAdmissionController = async (
 	}
 
 	let counsellorId = result.data.counsellorId;
-	if (!counsellorId && lead.demoMentorId) {
-		const mentor = await UserModel.findById(lead.demoMentorId).lean();
+	const latestDemo = getLatestDemo(lead);
+	if (!counsellorId && latestDemo?.mentorId) {
+		const mentor = await UserModel.findById(latestDemo.mentorId).lean();
 		counsellorId = mentor?.counsellorId;
 	}
 

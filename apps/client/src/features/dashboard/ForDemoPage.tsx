@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -79,10 +80,10 @@ export const ForDemoPage = () => {
 			{
 				accessorKey: "demoRequestedAt",
 				header: "Requested",
-				cell: (info) =>
-					info.getValue()
-						? new Date(String(info.getValue())).toLocaleString()
-						: "-",
+				cell: (info) => {
+					const latestDemo = getLatestLeadDemo(info.row.original);
+					return latestDemo?.requestedAt ? new Date(latestDemo.requestedAt).toLocaleString() : "-";
+				},
 			},
 			{
 				id: "mentor",
@@ -90,7 +91,7 @@ export const ForDemoPage = () => {
 				cell: (info) => (
 					<select
 						className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-						value={selectedMentorByLeadId[info.row.original.id] ?? ""}
+						value={selectedMentorByLeadId[info.row.original.id] ?? getLatestLeadDemo(info.row.original)?.mentorId ?? ""}
 						onChange={(event) =>
 							setSelectedMentorByLeadId((current) => ({
 								...current,
@@ -114,7 +115,7 @@ export const ForDemoPage = () => {
 					<input
 						type="datetime-local"
 						className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-						value={scheduledTimeByLeadId[info.row.original.id] ?? ""}
+						value={scheduledTimeByLeadId[info.row.original.id] ?? getLatestLeadDemo(info.row.original)?.demoScheduledFor ?? ""}
 						onChange={(event) =>
 							setScheduledTimeByLeadId((current) => ({
 								...current,

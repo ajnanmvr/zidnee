@@ -5,6 +5,29 @@ import { UserModel } from "../users/user.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
 import { StudentModel, type StudentDocument } from "./student.model.js";
 
+const getLatestLeadDemo = (lead: LeadDocument) => {
+	const demos = lead.demos ?? [];
+	return demos.length > 0 ? demos[demos.length - 1] ?? null : null;
+};
+
+const setLatestLeadDemo = (
+	lead: LeadDocument,
+	patch: Record<string, unknown>,
+) => {
+	const demos = [...(lead.demos ?? [])];
+	if (demos.length === 0) {
+		demos.push(patch as NonNullable<LeadDocument["demos"]>[number]);
+		return demos;
+	}
+
+	demos[demos.length - 1] = {
+		...demos[demos.length - 1],
+		...patch,
+	} as NonNullable<LeadDocument["demos"]>[number];
+
+	return demos;
+};
+
 const toStudent = (doc: StudentDocument): Student => {
 	return {
 		id: doc._id.toString(),
@@ -48,9 +71,10 @@ export const StudentService = {
 			return toStudent(existingStudent);
 		}
 
+		const latestDemo = getLatestLeadDemo(existingLead);
 		let resolvedCounsellorId = counsellorId;
-		if (!resolvedCounsellorId && existingLead.demoMentorId) {
-			const mentor = await UserModel.findById(existingLead.demoMentorId).lean();
+		if (!resolvedCounsellorId && latestDemo?.mentorId) {
+			const mentor = await UserModel.findById(latestDemo.mentorId).lean();
 			resolvedCounsellorId = mentor?.counsellorId?.toString();
 		}
 
@@ -61,21 +85,24 @@ export const StudentService = {
 			leadId: existingLead._id,
 			name: existingLead.name ?? existingLead.phone,
 			phone: existingLead.phone,
-			mentorId: existingLead.demoMentorId,
+			mentorId: latestDemo?.mentorId,
 			counsellorId: resolvedCounsellorId,
 			status: "ACTIVE",
 			admittedAt,
 		});
 
+		const updatedDemos = setLatestLeadDemo(existingLead, {
+			admissionRequestedAt: admittedAt,
+			admissionCounsellorId: resolvedCounsellorId,
+			admissionCompletedAt: admittedAt,
+			studentId: createdStudent._id.toString(),
+		});
+
 		await LeadModel.findByIdAndUpdate(leadId, {
 			$set: {
-				studentId: createdStudent._id,
-				admissionRequestedAt: admittedAt,
-				admissionCounsellorId: resolvedCounsellorId,
-				admissionCompletedAt: admittedAt,
 				formSent: true,
 				formCompleted: true,
-				demoRequired: false,
+				demos: updatedDemos,
 			},
 		});
 
@@ -85,7 +112,7 @@ export const StudentService = {
 				"ADMISSION_CONFIRMED",
 				performedBy,
 				`Confirmed admission for ${existingLead.phone}`,
-				{ studentId: existingLead.studentId?.toString() },
+				{ studentId: latestDemo?.studentId },
 				{
 					studentId: createdStudent._id.toString(),
 					counsellorId: resolvedCounsellorId,

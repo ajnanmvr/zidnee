@@ -4,6 +4,7 @@ import { useLeadDetailQuery } from "@/features/leads/leads.queries";
 import { useSession } from "@/lib/session";
 import { Panel } from "@/components/dashboard-ui";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 
 export const LeadDetailPage = () => {
 	const { leadId } = useParams<{ leadId: string }>();
@@ -37,6 +38,7 @@ export const LeadDetailPage = () => {
 	}
 
 	const lead = leadQuery.data?.lead;
+	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 
 	if (!lead && leadQuery.isError) {
 		return (
@@ -71,27 +73,25 @@ export const LeadDetailPage = () => {
 								{lead.name || lead.phone}
 							</h1>
 							<p className="text-sm text-ink-soft">Phone: {lead.phone}</p>
-							{lead.demoRequired ? (
-								<p className="text-sm text-ink-soft">Demo request: Pending</p>
-							) : null}
-							{lead.demoRequestedAt ? (
+							{latestDemo?.requestedAt ? (
 								<p className="text-sm text-ink-soft">
-									Demo requested at: {new Date(lead.demoRequestedAt).toLocaleString()}
+									Demo requested at: {new Date(latestDemo.requestedAt).toLocaleString()}
 								</p>
 							) : null}
-							{lead.demoMentorId ? (
+							{latestDemo?.mentorId ? (
 								<p className="text-sm text-ink-soft">Demo mentor assigned</p>
 							) : null}
-							{lead.demoScheduledFor ? (
+							{latestDemo?.demoScheduledFor ? (
 								<p className="text-sm text-ink-soft">
-									Demo scheduled for: {new Date(lead.demoScheduledFor).toLocaleString()}
+									Demo scheduled for: {new Date(latestDemo.demoScheduledFor).toLocaleString()}
 								</p>
 							) : null}
-							{lead.customNextFollowUpAt && (
+							{latestDemo?.customNextFollowUpAt && (
 								<p className="text-sm text-ink-soft">
-									Next Follow-up: {new Date(lead.customNextFollowUpAt).toLocaleString()}
+									Next Follow-up: {new Date(latestDemo.customNextFollowUpAt).toLocaleString()}
 								</p>
 							)}
+							<p className="text-sm text-ink-soft">Current due: {new Date(lead.nextFollowUpAt).toLocaleString()}</p>
 						</div>
 					</div>
 				)}

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { HiAcademicCap } from "react-icons/hi2";
 import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { useAdmissionLeadsQuery } from "@/features/leads/leads.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
@@ -42,18 +43,20 @@ export const AdmissionsPage = () => {
 			{
 				id: "mentor",
 				header: "Demo mentor",
-				cell: (info) =>
-					info.row.original.demoMentorId
-						? userNameById.get(info.row.original.demoMentorId) ?? "-"
-						: "-",
+				cell: (info) => {
+					const latestDemo = getLatestLeadDemo(info.row.original);
+					return latestDemo?.mentorId ? userNameById.get(latestDemo.mentorId) ?? "-" : "-";
+				},
 			},
 			{
 				id: "counsellor",
 				header: "Counsellor",
-				cell: (info) =>
-					info.row.original.admissionCounsellorId
-						? userNameById.get(info.row.original.admissionCounsellorId) ?? "-"
-						: "-",
+				cell: (info) => {
+					const latestDemo = getLatestLeadDemo(info.row.original);
+					return latestDemo?.admissionCounsellorId
+						? userNameById.get(latestDemo.admissionCounsellorId) ?? "-"
+						: "-";
+				},
 			},
 			{
 				id: "actions",

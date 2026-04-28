@@ -1,28 +1,24 @@
 import { z } from "zod";
-import { LeadSchema } from "./lead.schema.js";
+import { LeadSchema, LeadDemoSchema } from "./lead.schema.js";
+
+const LeadDemoResponseSchema = LeadDemoSchema.extend({
+	requestedAt: z.string().datetime().nullable(),
+	assignedAt: z.string().datetime().nullable(),
+	demoScheduledFor: z.string().datetime().nullable(),
+	completedAt: z.string().datetime().nullable(),
+	lastContactedAt: z.string().datetime().nullable(),
+	nextFollowUpAt: z.string().datetime().nullable(),
+	customNextFollowUpAt: z.string().datetime().nullable(),
+	admissionRequestedAt: z.string().datetime().nullable(),
+	admissionCompletedAt: z.string().datetime().nullable(),
+});
 
 export const LeadResponseSchema = LeadSchema.omit({
 	createdAt: true,
 	updatedAt: true,
-	lastContactedAt: true,
-	nextFollowUpAt: true,
-	customNextFollowUpAt: true,
-	demoRequestedAt: true,
-	demoAssignedAt: true,
-	demoScheduledFor: true,
-	demoCompletedAt: true,
-	admissionRequestedAt: true,
-	admissionCompletedAt: true,
 }).extend({
-	lastContactedAt: z.string().datetime().nullable(),
 	nextFollowUpAt: z.string().datetime(),
-	customNextFollowUpAt: z.string().datetime().nullable(),
-	demoRequestedAt: z.string().datetime().nullable(),
-	demoAssignedAt: z.string().datetime().nullable(),
-	demoScheduledFor: z.string().datetime().nullable(),
-	demoCompletedAt: z.string().datetime().nullable(),
-	admissionRequestedAt: z.string().datetime().nullable(),
-	admissionCompletedAt: z.string().datetime().nullable(),
+	demos: z.array(LeadDemoResponseSchema),
 });
 
 export type LeadResponse = z.infer<typeof LeadResponseSchema>;

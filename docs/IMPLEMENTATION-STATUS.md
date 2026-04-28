@@ -80,6 +80,8 @@ Features Added (Active Work):
 - **Activity API**: GET /leads/:leadId/activities returns full audit trail sorted by date
 - **Frontend Activity UI**: ActivityFeed component displays timeline with relative dates and change details
 - **Audit Fields**: All changes tracked with who, what, when, old vs new values
+- **Demo History Array**: Lead demo/admission state now lives in `demos[]` so multiple demos and admissions are tracked in a single history trail
+- **Admission Handoff**: Student creation now derives mentor and counsellor context from the latest demo entry
 
 Definition of done:
 - Lead CRUD and assignment works with RBAC
@@ -212,7 +214,7 @@ Definition of done:
 ## Current Sprint Focus
 
 Current sprint goal:
-- Begin Step 2 (Lead Module)
+- Finish Step 2 lead lifecycle hardening and demo-history migration
 
 Sprint checklist:
 - [x] Lead schema draft in packages/schema

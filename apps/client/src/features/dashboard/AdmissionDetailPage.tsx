@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Panel, TextAreaField } from "@/components/dashboard-ui";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
 import { useLeadDetailQuery } from "@/features/leads/leads.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -40,9 +41,10 @@ export const AdmissionDetailPage = () => {
 	);
 
 	const lead = leadQuery.data?.lead;
-	const defaultCounsellorId = lead?.admissionCounsellorId
-		?? (lead?.demoMentorId
-			? allUsers.find((user) => user.id === lead.demoMentorId)?.counsellorId
+	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
+	const defaultCounsellorId = latestDemo?.admissionCounsellorId
+		?? (latestDemo?.mentorId
+			? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
 			: undefined);
 
 	useEffect(() => {
@@ -114,7 +116,7 @@ export const AdmissionDetailPage = () => {
 
 			<div className="mb-6 grid gap-3 rounded-3xl border border-border bg-surface-muted p-4 text-sm text-ink-soft">
 				<p>Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})</p>
-				<p>Demo mentor: {lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}</p>
+				<p>Demo mentor: {latestDemo?.mentorId ? userNameById.get(latestDemo.mentorId) ?? "-" : "-"}</p>
 				<p>Selected counsellor will handle form sending, details collection, and final admission confirmation.</p>
 				<p>Student ID will be generated automatically on confirmation in the format `ZID001`.</p>
 			</div>

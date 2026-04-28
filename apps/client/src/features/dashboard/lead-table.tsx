@@ -10,11 +10,12 @@ import {
 } from "react-icons/hi2";
 import { ActionButton } from "@/components/ActionButton";
 import { DateCell } from "@/components/DateCell";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 
 export const formatUserName = (userName?: string | null) => userName?.trim() || "-";
 
 const getLeadFollowUpDate = (lead: LeadResponse) =>
-	lead.customNextFollowUpAt ?? lead.nextFollowUpAt;
+	lead.nextFollowUpAt;
 
 export const getLeadUrgency = (lead: LeadResponse) => {
 	const dateValue = getLeadFollowUpDate(lead);
@@ -64,7 +65,6 @@ const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
 };
 
 type BuildLeadColumnsArgs = {
-	userNameById: Map<string, string>;
 	onView: (leadId: string) => void;
 	onRequestDemo: (leadId: string) => void | Promise<void>;
 	onPostpone: (leadId: string) => void;
@@ -76,7 +76,6 @@ type BuildLeadColumnsArgs = {
 };
 
 export const buildLeadColumns = ({
-	userNameById,
 	onView,
 	onRequestDemo,
 	onPostpone,
@@ -111,7 +110,9 @@ export const buildLeadColumns = ({
 		header: "Demo Status",
 		cell: (info) => {
 			const lead = info.row.original;
-			if (lead.demoCompletedAt) {
+			const latestDemo = getLatestLeadDemo(lead);
+
+			if (latestDemo?.completedAt) {
 				return (
 					<span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
 						Demo completed
@@ -119,7 +120,15 @@ export const buildLeadColumns = ({
 				);
 			}
 
-			if (lead.demoRequestedAt) {
+			if (latestDemo?.assignedAt) {
+				return (
+					<span className="rounded-full bg-sky/10 px-3 py-1 text-xs font-semibold text-sky">
+						Demo assigned
+					</span>
+				);
+			}
+
+			if (latestDemo?.requestedAt) {
 				return (
 					<span className="rounded-full bg-sky/10 px-3 py-1 text-xs font-semibold text-sky">
 						Demo requested
@@ -135,22 +144,19 @@ export const buildLeadColumns = ({
 		},
 	},
 	{
-		accessorKey: "customNextFollowUpAt",
+		accessorKey: "nextFollowUpAt",
 		header: "Follow-up",
 		cell: (info) => {
-			const customDate = info.getValue() as string | undefined;
-			const row = info.row.original;
-			const date = customDate ?? row.nextFollowUpAt;
-			return <DateCell date={date} />;
+			return <DateCell date={String(info.getValue())} />;
 		},
 		enableSorting: true,
 	},
 	{
-		id: "lastMentor",
-		header: "Last Mentor",
+		id: "followUpCount",
+		header: "Follow-ups",
 		cell: (info) => {
 			const lead = info.row.original;
-			return <span>{lead.demoMentorId ? userNameById.get(lead.demoMentorId) ?? "-" : "-"}</span>;
+			return <span className="font-semibold text-ink">{lead.followUpCount}</span>;
 		},
 	},
 	{
@@ -158,7 +164,9 @@ export const buildLeadColumns = ({
 		header: "Actions",
 		cell: (info) => {
 			const lead = info.row.original;
-			const showPostDemoActions = Boolean(lead.demoCompletedAt);
+			const latestDemo = getLatestLeadDemo(lead);
+			const showPostDemoActions = Boolean(latestDemo?.completedAt);
+			const showRequestDemo = !latestDemo;
 
 			return (
 				<div className="flex flex-wrap items-center gap-2">
@@ -183,7 +191,7 @@ export const buildLeadColumns = ({
 								color="sky"
 							/>
 						</>
-					) : (
+					) : showRequestDemo ? (
 						<ActionButton
 							icon={<HiCalendarDays className="h-4 w-4" />}
 							label="Request Demo"
@@ -192,6 +200,10 @@ export const buildLeadColumns = ({
 							isLoading={requestDemoPending}
 							loadingLabel="Requesting..."
 						/>
+					) : (
+						<span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-soft">
+							Demo in progress
+						</span>
 					)}
 					<ActionButton
 						icon={<HiClock className="h-4 w-4" />}

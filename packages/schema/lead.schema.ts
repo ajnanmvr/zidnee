@@ -19,6 +19,25 @@ const PhoneNumberSchema = z
 	.max(20)
 	.regex(/^[+]?\d{8,20}$/, "Phone number must contain only digits");
 
+export const LeadDemoSchema = z.object({
+	mentorId: ObjectIdStringSchema.optional(),
+	requestedAt: z.date().optional(),
+	assignedAt: z.date().optional(),
+	demoScheduledFor: z.date().optional(),
+	completedAt: z.date().optional(),
+	demoRequired: z.boolean().default(false),
+	lastContactedAt: z.date().optional(),
+	nextFollowUpAt: z.date().optional(),
+	customNextFollowUpAt: z.date().optional(),
+	admissionRequestedAt: z.date().optional(),
+	admissionCounsellorId: ObjectIdStringSchema.optional(),
+	admissionCompletedAt: z.date().optional(),
+	studentId: ObjectIdStringSchema.optional(),
+	note: z.string().max(500).optional(),
+});
+
+export type LeadDemo = z.infer<typeof LeadDemoSchema>;
+
 export const LeadSchema = z.object({
 	id: ObjectIdStringSchema,
 	name: z.string().max(255).optional(),
@@ -26,22 +45,11 @@ export const LeadSchema = z.object({
 	level: z.string().max(100).optional(),
 	assignedTo: ObjectIdStringSchema.optional(),
 	createdBy: ObjectIdStringSchema,
-	demoRequired: z.boolean().default(false),
-	demoRequestedAt: z.date().optional(),
-	demoMentorId: ObjectIdStringSchema.optional(),
-	demoAssignedAt: z.date().optional(),
-	demoScheduledFor: z.date().optional(),
-	demoCompletedAt: z.date().optional(),
-	admissionRequestedAt: z.date().optional(),
-	admissionCounsellorId: ObjectIdStringSchema.optional(),
-	admissionCompletedAt: z.date().optional(),
-	studentId: ObjectIdStringSchema.optional(),
 	formSent: z.boolean().default(false),
 	formCompleted: z.boolean().default(false),
 	followUpCount: z.number().int().min(0).default(0),
-	lastContactedAt: z.date().optional(),
 	nextFollowUpAt: z.date(),
-	customNextFollowUpAt: z.date().optional(),
+	demos: z.array(LeadDemoSchema).default([]),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
