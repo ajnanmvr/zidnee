@@ -208,7 +208,7 @@ export const LeadService = {
 		if (performedBy && updatedLead) {
 			await ActivityService.logActivity(
 				leadId,
-				"DEMO_SCHEDULED",
+				"DEMO_REQUESTED",
 				performedBy,
 				`Requested demo for ${existingLead.phone}`,
 				undefined,
@@ -335,9 +335,9 @@ export const LeadService = {
 		if (performedBy && updatedLead) {
 			await ActivityService.logActivity(
 				leadId,
-				"ASSIGNED",
+				"DEMO_SCHEDULED",
 				performedBy,
-				`Assigned demo mentor`,
+				`Scheduled demo for ${existingLead.phone}`,
 				{
 					mentorId: getLatestDemo(existingLead)?.mentorId?.toString(),
 					demoScheduledFor: getLatestDemo(existingLead)?.demoScheduledFor?.toISOString(),
@@ -381,9 +381,9 @@ export const LeadService = {
 		if (performedBy && updatedLead) {
 			await ActivityService.logActivity(
 				leadId,
-				"ADMISSION_CONFIRMED",
+				"ADMISSION_REQUESTED",
 				performedBy,
-				`Moved lead to admission for ${existingLead.phone}`,
+				`Requested admission for ${existingLead.phone}`,
 				{ admissionCounsellorId: getLatestDemo(existingLead)?.admissionCounsellorId?.toString() },
 				{ admissionCounsellorId: counsellorId, admissionRequestedAt: now.toISOString() },
 				note,

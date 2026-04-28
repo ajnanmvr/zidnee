@@ -119,6 +119,20 @@ export const StudentService = {
 				},
 				note,
 			);
+
+			await ActivityService.logActivity(
+				leadId,
+				"STUDENT_CREATED",
+				performedBy,
+				`Student created with ZID: ${zid}`,
+				undefined,
+				{
+					zid,
+					studentId: createdStudent._id.toString(),
+					counsellorId: resolvedCounsellorId,
+				},
+				note,
+			);
 		}
 
 		return toStudent(createdStudent.toObject() as StudentDocument);

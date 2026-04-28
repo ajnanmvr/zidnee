@@ -1,4 +1,5 @@
 import {
+	CreateLeadPayloadSchema,
 	ConfirmAdmissionPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
 	RedemoLeadPayloadSchema,
@@ -7,7 +8,7 @@ import toast from "react-hot-toast";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { HiAcademicCap, HiArrowPath, HiCalendarDays, HiTrash } from "react-icons/hi2";
+import { HiAcademicCap, HiArrowPath, HiCalendarDays, HiPlusCircle, HiTrash } from "react-icons/hi2";
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
@@ -15,6 +16,7 @@ import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { buildLeadColumns, formatUserName, getLeadUrgency } from "@/features/dashboard/lead-table";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
+	useCreateLeadMutation,
 	useDeleteLeadMutation,
 	usePostponeLeadFollowUpMutation,
 	useRequestAdmissionMutation,
@@ -24,6 +26,7 @@ import {
 import { useUsersQuery } from "@/features/users/users.queries";
 import type {
 	ConfirmAdmissionForm,
+	CreateLeadForm,
 	PostponeLeadFollowUpForm,
 	RedemoLeadForm,
 } from "@/lib/dashboard-types";
@@ -56,16 +59,30 @@ export const MyLeadsPage = () => {
 		timeFilter: "all",
 	});
 	const usersQuery = useUsersQuery(token);
+	const createLeadMutation = useCreateLeadMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const postponeLeadMutation = usePostponeLeadFollowUpMutation();
 	const deleteLeadMutation = useDeleteLeadMutation();
+	const [createOpen, setCreateOpen] = useState(false);
 	const [postponeLeadId, setPostponeLeadId] = useState<string | null>(null);
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
 	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
+
+	const {
+		control: createControl,
+		handleSubmit: handleCreateSubmit,
+		reset: resetCreate,
+	} = useForm<CreateLeadForm>({
+		defaultValues: {
+			phone: "",
+			name: "",
+			customNextFollowUpAt: undefined,
+		},
+	});
 
 	const {
 		control: postponeControl,
@@ -130,6 +147,28 @@ export const MyLeadsPage = () => {
 	const postponeSuggestions = postponeNoteValue
 		? formatSuggestionsForUI(postponeNoteValue)
 		: [];
+
+	const onCreateLead = async (payload: CreateLeadForm) => {
+		const validation = CreateLeadPayloadSchema.safeParse(payload);
+		if (!validation.success) {
+			toast.error("Validation failed");
+			return;
+		}
+
+		try {
+			await createLeadMutation.mutateAsync(validation.data);
+			toast.success("Lead created successfully.");
+			resetCreate();
+			setCreateOpen(false);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to create lead");
+				return;
+			}
+
+			toast.error(error instanceof Error ? error.message : "Unable to create lead");
+		}
+	};
 
 	const leads = leadsQuery.data?.leads ?? [];
 	const todayCount = useMemo(
@@ -318,7 +357,16 @@ export const MyLeadsPage = () => {
 			<Panel
 				title="My Leads"
 				description="Your leads"
-				action={null}
+				action={
+					<button
+						type="button"
+						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+						onClick={() => setCreateOpen(true)}
+					>
+						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+						Create lead
+					</button>
+				}
 			>
 				<div className="mb-4 rounded-3xl border border-warm/30 bg-warm-soft px-4 py-3">
 					<div className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -343,6 +391,80 @@ export const MyLeadsPage = () => {
 					/>
 				)}
 			</Panel>
+
+			<Modal
+				open={createOpen}
+				title="Create lead"
+				description="Phone number is required"
+				onClose={() => setCreateOpen(false)}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							onClick={() => setCreateOpen(false)}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+							onClick={() => void handleCreateSubmit(onCreateLead)()}
+							disabled={createLeadMutation.isPending}
+						>
+							<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+							{createLeadMutation.isPending ? "Creating..." : "Create lead"}
+						</button>
+					</>
+				}
+			>
+				<form className="grid gap-4" onSubmit={handleCreateSubmit(onCreateLead)}>
+					<Controller
+						name="phone"
+						control={createControl}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Phone"
+								value={field.value ?? ""}
+								onChange={field.onChange}
+								placeholder="+919876543210"
+								error={fieldState.error?.message}
+							/>
+						)}
+					/>
+					<Controller
+						name="name"
+						control={createControl}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Name (optional)"
+								value={field.value ?? ""}
+								onChange={field.onChange}
+								error={fieldState.error?.message}
+							/>
+						)}
+					/>
+					<Controller
+						name="customNextFollowUpAt"
+						control={createControl}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Postpone follow-up (optional)"
+								type="datetime-local"
+								value={field.value ? toInputDateTimeLocal(field.value.toISOString()) : ""}
+								onChange={(value) => {
+									if (!value) {
+										field.onChange(undefined);
+										return;
+									}
+									field.onChange(new Date(value));
+								}}
+								error={fieldState.error?.message}
+							/>
+						)}
+					/>
+				</form>
+			</Modal>
 
 			<Modal
 				open={Boolean(postponeLeadId)}
