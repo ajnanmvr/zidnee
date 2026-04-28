@@ -5,7 +5,7 @@ import {
 	RedemoLeadPayloadSchema,
 } from "@repo/schema";
 import toast from "react-hot-toast";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { HiAcademicCap, HiArrowPath, HiCalendarDays, HiPlusCircle, HiTrash } from "react-icons/hi2";
@@ -14,13 +14,13 @@ import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { buildLeadColumns, formatUserName, getLeadUrgency } from "@/features/dashboard/lead-table";
+import { useMeQuery } from "@/features/auth/auth.queries";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
 	useCreateLeadMutation,
 	useDeleteLeadMutation,
 	usePostponeLeadFollowUpMutation,
 	useRequestAdmissionMutation,
-	useRequestLeadDemoMutation,
 	useRequestRedemoMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -54,13 +54,13 @@ const isCounsellorRole = (roleName: string) => roleName.toLowerCase() === "couns
 export const MyLeadsPage = () => {
 	const { token } = useSession();
 	const navigate = useNavigate();
+	const meQuery = useMeQuery(token);
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "mine",
 		timeFilter: "all",
 	});
 	const usersQuery = useUsersQuery(token);
 	const createLeadMutation = useCreateLeadMutation();
-	const requestDemoMutation = useRequestLeadDemoMutation();
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const postponeLeadMutation = usePostponeLeadFollowUpMutation();
@@ -80,9 +80,12 @@ export const MyLeadsPage = () => {
 		defaultValues: {
 			phone: "",
 			name: "",
+			assignedTo: "",
 			customNextFollowUpAt: undefined,
 		},
 	});
+
+	const currentUserId = meQuery.data?.id;
 
 	const {
 		control: postponeControl,
@@ -147,6 +150,19 @@ export const MyLeadsPage = () => {
 	const postponeSuggestions = postponeNoteValue
 		? formatSuggestionsForUI(postponeNoteValue)
 		: [];
+
+	useEffect(() => {
+		if (!createOpen) {
+			return;
+		}
+
+		resetCreate({
+			phone: "",
+			name: "",
+			assignedTo: currentUserId ?? "",
+			customNextFollowUpAt: undefined,
+		});
+	}, [createOpen, currentUserId, resetCreate]);
 
 	const onCreateLead = async (payload: CreateLeadForm) => {
 		const validation = CreateLeadPayloadSchema.safeParse(payload);
@@ -305,51 +321,8 @@ export const MyLeadsPage = () => {
 	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLeadLatestDemo?.mentorId);
 
 	const columns = useMemo(
-		() =>
-			buildLeadColumns({
-				onView: (leadId) => navigate(`/leads/${leadId}`),
-				onRequestDemo: async (leadId) => {
-					if (!confirm("Request demo for this lead?")) return;
-					await requestDemoMutation.mutateAsync(leadId);
-				},
-				onPostpone: (leadId) => {
-					setPostponeLeadId(leadId);
-					resetPostpone({
-						customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-						note: "",
-					});
-				},
-				onDelete: (leadId) => setDeleteLeadId(leadId),
-				onRedemo: (leadId) => {
-					setRedemoLeadId(leadId);
-					resetRedemo({ mentorId: "", note: "" });
-				},
-				onAdmission: (leadId) => {
-					const lead = leads.find((entry) => entry.id === leadId);
-					const latestDemo = lead ? getLatestLeadDemo(lead) : null;
-					setAdmissionLeadId(leadId);
-					resetAdmission({
-						counsellorId:
-							latestDemo?.mentorId
-								? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId ??
-									undefined
-								: undefined,
-						note: "",
-					});
-				},
-				requestDemoPending: requestDemoMutation.isPending,
-				deletePending: deleteLeadMutation.isPending,
-			}),
-		[
-			allUsers,
-			deleteLeadMutation.isPending,
-			leads,
-			navigate,
-			requestDemoMutation,
-			resetAdmission,
-			resetPostpone,
-			resetRedemo,
-		],
+		() => buildLeadColumns(),
+		[],
 	);
 
 	return (
@@ -388,6 +361,7 @@ export const MyLeadsPage = () => {
 						data={leads}
 						exportFilename="my-leads"
 						searchPlaceholder="Search my leads..."
+						initialSorting={[{ id: "nextFollowUpAt", desc: false }]}
 					/>
 				)}
 			</Panel>
@@ -419,6 +393,31 @@ export const MyLeadsPage = () => {
 				}
 			>
 				<form className="grid gap-4" onSubmit={handleCreateSubmit(onCreateLead)}>
+					<Controller
+						name="assignedTo"
+						control={createControl}
+						render={({ field, fieldState }) => (
+							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+								<span>Assign to</span>
+								<select
+									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									value={field.value ?? ""}
+									onChange={(event) => field.onChange(event.target.value)}
+								>
+									<option value="">Select user</option>
+									{allUsers.map((user) => (
+										<option key={user.id} value={user.id}>
+											{formatUserName(user.name ?? user.username)}
+											{user.id === currentUserId ? " (You)" : ""}
+										</option>
+									))}
+								</select>
+								{fieldState.error?.message ? (
+									<p className="text-xs text-red-600">{fieldState.error.message}</p>
+								) : null}
+							</label>
+						)}
+					/>
 					<Controller
 						name="phone"
 						control={createControl}

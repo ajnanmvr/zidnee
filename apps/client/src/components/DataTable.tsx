@@ -18,6 +18,7 @@ interface DataTableProps<T> {
 	data: T[];
 	exportFilename?: string;
 	searchPlaceholder?: string;
+	initialSorting?: SortingState;
 }
 
 export function DataTable<T>({
@@ -25,8 +26,9 @@ export function DataTable<T>({
 	data,
 	exportFilename = "export",
 	searchPlaceholder = "Search...",
+	initialSorting = [],
 }: DataTableProps<T>) {
-	const [sorting, setSorting] = useState<SortingState>([]);
+	const [sorting, setSorting] = useState<SortingState>(initialSorting);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [pageSize, setPageSize] = useState(10);

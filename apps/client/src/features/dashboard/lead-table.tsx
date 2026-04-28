@@ -1,14 +1,6 @@
 import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-	HiAcademicCap,
-	HiArrowPath,
-	HiCalendarDays,
-	HiClock,
-	HiEye,
-	HiTrash,
-} from "react-icons/hi2";
-import { ActionButton } from "@/components/ActionButton";
+import { Link } from "react-router-dom";
 import { DateCell } from "@/components/DateCell";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 
@@ -45,6 +37,40 @@ export const getLeadUrgency = (lead: LeadResponse) => {
 	return { tone: "upcoming", label: "Upcoming" };
 };
 
+const getLeadStatusTone = (lead: LeadResponse) => {
+	const latestDemo = getLatestLeadDemo(lead);
+
+	if (latestDemo?.studentId) {
+		return { className: "bg-emerald-500/10 text-emerald-700", label: "Student created" };
+	}
+
+	if (latestDemo?.admissionCompletedAt) {
+		return { className: "bg-teal-500/10 text-teal-700", label: "Admission completed" };
+	}
+
+	if (latestDemo?.admissionRequestedAt) {
+		return { className: "bg-amber-500/15 text-amber-800", label: "Admission requested" };
+	}
+
+	if (latestDemo?.completedAt) {
+		return { className: "bg-brand-soft text-brand", label: "Demo completed" };
+	}
+
+	if (latestDemo?.assignedAt && latestDemo?.demoScheduledFor) {
+		return { className: "bg-violet-500/10 text-violet-700", label: "Demo scheduled" };
+	}
+
+	if (latestDemo?.assignedAt) {
+		return { className: "bg-sky/10 text-sky", label: "Demo assigned" };
+	}
+
+	if (latestDemo?.requestedAt) {
+		return { className: "bg-amber-500/10 text-amber-700", label: "Demo requested" };
+	}
+
+	return { className: "bg-surface-muted text-ink-soft", label: "Lead follow-up" };
+};
+
 const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
 	const urgency = getLeadUrgency(lead);
 	const toneClasses =
@@ -64,30 +90,10 @@ const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
 	);
 };
 
-type BuildLeadColumnsArgs = {
-	onView: (leadId: string) => void;
-	onRequestDemo: (leadId: string) => void | Promise<void>;
-	onPostpone: (leadId: string) => void;
-	onDelete: (leadId: string) => void;
-	onRedemo: (leadId: string) => void;
-	onAdmission: (leadId: string) => void;
-	requestDemoPending: boolean;
-	deletePending: boolean;
-};
-
-export const buildLeadColumns = ({
-	onView,
-	onRequestDemo,
-	onPostpone,
-	onDelete,
-	onRedemo,
-	onAdmission,
-	requestDemoPending,
-	deletePending,
-}: BuildLeadColumnsArgs): ColumnDef<LeadResponse>[] => [
+export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 	{
 		id: "urgency",
-		header: "Lead",
+		header: "Status",
 		cell: (info) => <UrgencyIndicator lead={info.row.original} />,
 		enableSorting: false,
 	},
@@ -102,7 +108,11 @@ export const buildLeadColumns = ({
 	{
 		accessorKey: "name",
 		header: "Name",
-		cell: (info) => <span>{(info.getValue() as string) ?? "-"}</span>,
+		cell: (info) => (
+			<Link className="font-semibold text-brand hover:text-brand/80" to={`/leads/${info.row.original.id}`}>
+				{(info.getValue() as string) ?? "-"}
+			</Link>
+		),
 		enableSorting: true,
 	},
 	{
@@ -110,35 +120,10 @@ export const buildLeadColumns = ({
 		header: "Demo Status",
 		cell: (info) => {
 			const lead = info.row.original;
-			const latestDemo = getLatestLeadDemo(lead);
-
-			if (latestDemo?.completedAt) {
-				return (
-					<span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-						Demo completed
-					</span>
-				);
-			}
-
-			if (latestDemo?.assignedAt) {
-				return (
-					<span className="rounded-full bg-sky/10 px-3 py-1 text-xs font-semibold text-sky">
-						Demo assigned
-					</span>
-				);
-			}
-
-			if (latestDemo?.requestedAt) {
-				return (
-					<span className="rounded-full bg-sky/10 px-3 py-1 text-xs font-semibold text-sky">
-						Demo requested
-					</span>
-				);
-			}
-
+			const status = getLeadStatusTone(lead);
 			return (
-				<span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-soft">
-					Lead follow-up
+				<span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
+					{status.label}
 				</span>
 			);
 		},
@@ -152,73 +137,25 @@ export const buildLeadColumns = ({
 		enableSorting: true,
 	},
 	{
-		id: "followUpCount",
-		header: "Follow-ups",
+		id: "viewAction",
+		header: "",
 		cell: (info) => {
-			const lead = info.row.original;
-			return <span className="font-semibold text-ink">{lead.followUpCount}</span>;
-		},
-	},
-	{
-		id: "actions",
-		header: "Actions",
-		cell: (info) => {
-			const lead = info.row.original;
-			const latestDemo = getLatestLeadDemo(lead);
-			const showPostDemoActions = Boolean(latestDemo?.completedAt);
-			const showRequestDemo = !latestDemo;
+			const leadId = info.row.original.id;
 
 			return (
-				<div className="flex flex-wrap items-center gap-2">
-					<ActionButton
-						icon={<HiEye className="h-4 w-4" />}
-						label="View Activity"
-						onClick={() => onView(lead.id)}
-						color="green"
-					/>
-					{showPostDemoActions ? (
-						<>
-							<ActionButton
-								icon={<HiArrowPath className="h-4 w-4" />}
-								label="Redemo"
-								onClick={() => onRedemo(lead.id)}
-								color="orange"
-							/>
-							<ActionButton
-								icon={<HiAcademicCap className="h-4 w-4" />}
-								label="Admission"
-								onClick={() => onAdmission(lead.id)}
-								color="sky"
-							/>
-						</>
-					) : showRequestDemo ? (
-						<ActionButton
-							icon={<HiCalendarDays className="h-4 w-4" />}
-							label="Request Demo"
-							onClick={() => void onRequestDemo(lead.id)}
-							color="sky"
-							isLoading={requestDemoPending}
-							loadingLabel="Requesting..."
-						/>
-					) : (
-						<span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-soft">
-							Demo in progress
-						</span>
-					)}
-					<ActionButton
-						icon={<HiClock className="h-4 w-4" />}
-						label="Postpone"
-						onClick={() => onPostpone(lead.id)}
-						color="orange"
-					/>
-					<ActionButton
-						icon={<HiTrash className="h-4 w-4" />}
-						label="Delete"
-						onClick={() => onDelete(lead.id)}
-						color="red"
-						isLoading={deletePending}
-						loadingLabel="Deleting..."
-					/>
+				<div className="flex items-center gap-2">
+					<Link
+						className="inline-flex items-center rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand-soft"
+						to={`/leads/${leadId}`}
+					>
+						View
+					</Link>
+					<Link
+						className="inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50"
+						to={`/leads/${leadId}?action=postpone`}
+					>
+						Postpone
+					</Link>
 				</div>
 			);
 		},

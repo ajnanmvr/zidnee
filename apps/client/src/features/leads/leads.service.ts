@@ -8,6 +8,7 @@ import {
 	MessageResponseSchema,
 	PostponeLeadFollowUpPayloadSchema,
 	RedemoLeadPayloadSchema,
+	UpdateLeadPayloadSchema,
 	StudentResponseEnvelopeSchema,
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
@@ -67,6 +68,21 @@ export const createLead = async (token: string, payload: unknown) => {
 		"/leads",
 		LeadResponseEnvelopeSchema,
 		"POST",
+		parsedPayload,
+		token,
+	);
+};
+
+export const updateLead = async (
+	token: string,
+	leadId: string,
+	payload: unknown,
+) => {
+	const parsedPayload = UpdateLeadPayloadSchema.parse(payload);
+	return requestWithSchema(
+		`/leads/${leadId}`,
+		LeadResponseEnvelopeSchema,
+		"PATCH",
 		parsedPayload,
 		token,
 	);

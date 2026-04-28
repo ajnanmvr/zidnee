@@ -1,10 +1,6 @@
 import { formatTableDate } from "@/lib/utils/date";
 import { useSession } from "@/lib/session";
 import { useLeadActivitiesQuery } from "@/features/leads/leads.queries";
-import { ActionButton } from "./ActionButton";
-import { HiTrash } from "react-icons/hi2";
-import { useDeleteActivityMutation } from "@/features/leads/use-lead-mutations";
-import { useState } from "react";
 
 interface ActivityFeedProps {
 	leadId: string;
@@ -14,8 +10,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 	const { token } = useSession();
 
 	const activitiesQuery = useLeadActivitiesQuery(token, leadId);
-	const deleteActivityMutation = useDeleteActivityMutation();
-	const [deletingId, setDeletingId] = useState<string | null>(null);
 
 	if (activitiesQuery.isLoading) {
 		return <div className="text-sm text-ink-soft">Loading activities...</div>;
@@ -101,25 +95,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 									)}
 								</div>
 
-								<div className="flex flex-col items-end gap-2">
-									<ActionButton
-										icon={<HiTrash className="h-4 w-4" />}
-										tooltip="Delete activity"
-										color="red"
-										onClick={async () => {
-											if (!confirm("Delete this activity?")) return;
-											try {
-												setDeletingId(activity.id);
-												await deleteActivityMutation.mutateAsync({ leadId, activityId: activity.id });
-											} catch (err) {
-												console.error(err);
-											} finally {
-												setDeletingId(null);
-											}
-										}}
-										isLoading={deletingId === activity.id}
-									/>
-								</div>
+								<div className="flex flex-col items-end gap-2" />
 							</div>
 						</div>
 					</div>

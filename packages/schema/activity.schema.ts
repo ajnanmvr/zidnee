@@ -3,6 +3,7 @@ import { ObjectIdStringSchema } from "./rbac.schema.js";
 
 export const ActivityTypeSchema = z.enum([
 	"CREATED",
+	"UPDATED",
 	"FOLLOW_UP_POSTPONED",
 	"STATUS_CHANGED",
 	"ASSIGNED",

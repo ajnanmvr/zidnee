@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LeadSchema, LeadDemoSchema } from "./lead.schema.js";
 
 const LeadDemoResponseSchema = LeadDemoSchema.extend({
+	mentorId: z.string().nullable().optional(),
 	requestedAt: z.string().datetime().nullable(),
 	assignedAt: z.string().datetime().nullable(),
 	demoScheduledFor: z.string().datetime().nullable(),
@@ -10,7 +11,10 @@ const LeadDemoResponseSchema = LeadDemoSchema.extend({
 	nextFollowUpAt: z.string().datetime().nullable(),
 	customNextFollowUpAt: z.string().datetime().nullable(),
 	admissionRequestedAt: z.string().datetime().nullable(),
+	admissionCounsellorId: z.string().nullable().optional(),
 	admissionCompletedAt: z.string().datetime().nullable(),
+	studentId: z.string().nullable().optional(),
+	note: z.string().nullable().optional(),
 });
 
 export const LeadResponseSchema = LeadSchema.omit({

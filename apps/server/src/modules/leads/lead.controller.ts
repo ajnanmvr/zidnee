@@ -3,6 +3,7 @@ import {
 	CreateLeadPayloadSchema,
 	RedemoLeadPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
+	UpdateLeadPayloadSchema,
 	type Lead,
 	ConfirmAdmissionPayloadSchema,
 } from "@repo/schema";
@@ -71,6 +72,7 @@ export const createLeadController = async (
 	const createdLead = await LeadService.create({
 		phone: result.data.phone,
 		name: result.data.name,
+		assignedTo: result.data.assignedTo,
 		customNextFollowUpAt: result.data.customNextFollowUpAt,
 		createdBy: req.user.userId,
 		createdByName: userName,
@@ -79,6 +81,32 @@ export const createLeadController = async (
 	res.status(201).json({
 		ok: true,
 		lead: toLeadResponse(createdLead),
+	});
+};
+
+export const updateLeadController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new Error("User not authenticated");
+	}
+
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const result = UpdateLeadPayloadSchema.safeParse(req.body);
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const updatedLead = await LeadService.update(leadId, result.data, req.user.userId);
+
+	if (!updatedLead) {
+		throw new NotFoundError("Lead");
+	}
+
+	res.json({
+		ok: true,
+		lead: toLeadResponse(updatedLead),
 	});
 };
 

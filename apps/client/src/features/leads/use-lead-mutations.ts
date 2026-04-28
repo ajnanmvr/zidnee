@@ -6,12 +6,12 @@ import {
 	confirmAdmission,
 	createLead,
 	deleteLead,
-	deleteLeadActivity,
 	markDemoCompleted,
 	postponeLeadFollowUp,
 	requestAdmission,
 	requestRedemo,
 	requestLeadDemo,
+	updateLead,
 } from "@/features/leads/leads.service";
 import type {
 	CreateLeadForm,
@@ -56,6 +56,34 @@ export const useCreateLeadMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token);
+		},
+	});
+};
+
+export const useUpdateLeadMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			leadId,
+			payload,
+		}: {
+			leadId: string;
+			payload: { phone?: string; name?: string; level?: string; assignedTo?: string };
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return updateLead(token, leadId, payload);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
 		},
 	});
 };
@@ -270,18 +298,3 @@ export const useAssignDemoMentorMutation = () => {
 	});
 };
 
-export const useDeleteActivityMutation = () => {
-	const { token } = useSession();
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: async ({ leadId, activityId }: { leadId: string; activityId: string }) => {
-			if (!token) throw new Error("Missing session token");
-			return deleteLeadActivity(token, leadId, activityId);
-		},
-		onSuccess: async (_data, variables) => {
-			if (!token) return;
-			await invalidateLeadQueries(queryClient, token, variables.leadId);
-		},
-	});
-};

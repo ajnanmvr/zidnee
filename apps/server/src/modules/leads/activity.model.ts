@@ -24,7 +24,7 @@ const leadActivitySchema = new Schema<LeadActivityDocument>(
 		type: {
 			type: String,
 			required: true,
-			enum: ["CREATED", "FOLLOW_UP_POSTPONED", "STATUS_CHANGED", "ASSIGNED", "DELETED", "FORM_SENT", "DEMO_SCHEDULED"],
+			enum: ["CREATED", "UPDATED", "FOLLOW_UP_POSTPONED", "STATUS_CHANGED", "ASSIGNED", "DELETED", "FORM_SENT", "DEMO_SCHEDULED"],
 		},
 		performedBy: {
 			type: Schema.Types.ObjectId,

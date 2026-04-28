@@ -5,6 +5,7 @@ import type { LeadDemo } from "@repo/schema";
 export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	_id: Types.ObjectId;
 	createdBy: Types.ObjectId;
+	assignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
 	demos?: LeadDemo[];
 };
 
@@ -29,7 +30,8 @@ const leadSchema = new Schema<LeadDocument>(
 			maxlength: 100,
 		},
 		assignedTo: {
-			type: String,
+			type: Schema.Types.ObjectId,
+			ref: "User",
 			required: false,
 		},
 		createdBy: {

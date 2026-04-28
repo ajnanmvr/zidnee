@@ -19,6 +19,17 @@ const PhoneNumberSchema = z
 	.max(20)
 	.regex(/^[+]?\d{8,20}$/, "Phone number must contain only digits");
 
+const OptionalTextSchema = z.preprocess(
+	(value) => {
+		if (typeof value === "string" && value.trim() === "") {
+			return undefined;
+		}
+
+		return value;
+	},
+	z.string().trim().min(1).max(255).optional(),
+);
+
 export const LeadDemoSchema = z.object({
 	mentorId: ObjectIdStringSchema.optional(),
 	requestedAt: z.date().optional(),
@@ -58,20 +69,24 @@ export type Lead = z.infer<typeof LeadSchema>;
 
 export const CreateLeadPayloadSchema = z.object({
 	phone: PhoneNumberSchema,
-	name: z.preprocess(
-		(value) => {
-			if (typeof value === "string" && value.trim() === "") {
-				return undefined;
-			}
-
-			return value;
-		},
-		z.string().trim().min(1).max(255).optional(),
-	),
+	assignedTo: ObjectIdStringSchema.optional(),
+	name: OptionalTextSchema,
 	customNextFollowUpAt: z.coerce.date().optional(),
 });
 
 export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
+
+export const UpdateLeadPayloadSchema = z.object({
+	phone: PhoneNumberSchema.optional(),
+	name: OptionalTextSchema,
+	level: OptionalTextSchema,
+	assignedTo: ObjectIdStringSchema.optional(),
+}).refine(
+	(value) => value.phone !== undefined || value.name !== undefined || value.level !== undefined || value.assignedTo !== undefined,
+	{ message: "At least one field must be provided" },
+);
+
+export type UpdateLeadPayload = z.infer<typeof UpdateLeadPayloadSchema>;
 
 export const PostponeLeadFollowUpPayloadSchema = z.object({
 	customNextFollowUpAt: z.coerce.date(),

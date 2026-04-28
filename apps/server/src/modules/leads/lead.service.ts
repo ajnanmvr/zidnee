@@ -4,6 +4,79 @@ import { ActivityService } from "./activity.service.js";
 
 type LeadDemo = NonNullable<Lead["demos"]>[number];
 
+const toDateOrFallback = (value: unknown, fallback: Date): Date => {
+	if (value instanceof Date && !Number.isNaN(value.getTime())) {
+		return value;
+	}
+
+	if (typeof value === "string") {
+		const parsed = new Date(value);
+		if (!Number.isNaN(parsed.getTime())) {
+			return parsed;
+		}
+	}
+
+	return fallback;
+};
+
+const toObjectIdString = (value: unknown): string | undefined => {
+	if (!value) {
+		return undefined;
+	}
+
+	if (typeof value === "string") {
+		return value;
+	}
+
+	if (typeof value === "object" && "_id" in value && value._id) {
+		return String((value as { _id: { toString(): string } })._id.toString());
+	}
+
+	if (typeof value === "object" && "toString" in value) {
+		return String((value as { toString(): string }).toString());
+	}
+
+	return undefined;
+};
+
+const leadFieldPatch = (existingLead: LeadDocument, updates: {
+	name?: string;
+	phone?: string;
+	level?: string;
+	assignedTo?: string;
+}) => {
+	const patch: Record<string, string> = {};
+	const oldValue: Record<string, unknown> = {};
+	const newValue: Record<string, unknown> = {};
+
+	if (updates.name !== undefined && updates.name !== existingLead.name) {
+		patch.name = updates.name;
+		oldValue.name = existingLead.name ?? null;
+		newValue.name = updates.name;
+	}
+
+	if (updates.phone !== undefined && updates.phone !== existingLead.phone) {
+		patch.phone = updates.phone;
+		oldValue.phone = existingLead.phone;
+		newValue.phone = updates.phone;
+	}
+
+	if (updates.level !== undefined && updates.level !== existingLead.level) {
+		patch.level = updates.level;
+		oldValue.level = existingLead.level ?? null;
+		newValue.level = updates.level;
+	}
+
+	const currentAssignedTo = toObjectIdString(existingLead.assignedTo);
+	if (updates.assignedTo !== undefined && updates.assignedTo !== currentAssignedTo) {
+		patch.assignedTo = updates.assignedTo;
+		oldValue.assignedTo = currentAssignedTo ?? null;
+		newValue.assignedTo = updates.assignedTo;
+	}
+
+	return { patch, oldValue, newValue };
+};
+
 const toDemo = (demo: NonNullable<LeadDocument["demos"]>[number]): LeadDemo => ({
 	mentorId: demo.mentorId?.toString(),
 	requestedAt: demo.requestedAt,
@@ -68,12 +141,12 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	name: doc.name,
 	phone: doc.phone,
 	level: doc.level,
-	assignedTo: doc.assignedTo,
+	assignedTo: toObjectIdString(doc.assignedTo),
 	createdBy: doc.createdBy.toString(),
 	formSent: doc.formSent,
 	formCompleted: doc.formCompleted,
 	followUpCount: doc.followUpCount,
-	nextFollowUpAt: doc.nextFollowUpAt,
+	nextFollowUpAt: toDateOrFallback(doc.nextFollowUpAt, doc.createdAt ?? new Date()),
 	demos: (doc.demos ?? []).map(toDemo),
 	createdAt: doc.createdAt,
 	updatedAt: doc.updatedAt,
@@ -83,6 +156,7 @@ export const LeadService = {
 	create: async (lead: {
 		phone: string;
 		name?: string;
+		assignedTo?: string;
 		customNextFollowUpAt?: Date;
 		createdBy: string;
 		createdByName?: string;
@@ -93,6 +167,7 @@ export const LeadService = {
 		const created = await LeadModel.create({
 			phone: lead.phone,
 			name: lead.name,
+			assignedTo: lead.assignedTo ?? lead.createdBy,
 			createdBy: lead.createdBy,
 			followUpCount: 0,
 			nextFollowUpAt: effectiveNextFollowUpAt,
@@ -117,8 +192,51 @@ export const LeadService = {
 		return leadObj;
 	},
 
+	update: async (
+		leadId: string,
+		updates: {
+			name?: string;
+			phone?: string;
+			level?: string;
+			assignedTo?: string;
+		},
+		performedBy?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) {
+			return null;
+		}
+
+		const { patch, oldValue, newValue } = leadFieldPatch(existingLead, updates);
+		if (Object.keys(patch).length === 0) {
+			return mapLead(existingLead);
+		}
+
+		const updatedLead = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{ $set: patch },
+			{ returnDocument: "after" },
+		).lean<LeadDocument | null>();
+
+		if (performedBy && updatedLead) {
+			const type = Object.prototype.hasOwnProperty.call(patch, "assignedTo") && Object.keys(patch).length === 1 ? "ASSIGNED" : "UPDATED";
+			await ActivityService.logActivity(
+				leadId,
+				type,
+				performedBy,
+				type === "ASSIGNED"
+					? `Reassigned lead ${existingLead.phone}`
+					: `Updated lead ${existingLead.phone}`,
+				Object.keys(oldValue).length > 0 ? oldValue : undefined,
+				Object.keys(newValue).length > 0 ? newValue : undefined,
+			);
+		}
+
+		return updatedLead ? mapLead(updatedLead) : null;
+	},
+
 	findById: async (leadId: string): Promise<Lead | null> => {
-		const lead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const lead = await LeadModel.findById(leadId).populate("assignedTo", "name username").lean<LeadDocument | null>();
 		return lead ? mapLead(lead) : null;
 	},
 
@@ -128,12 +246,12 @@ export const LeadService = {
 		timeFilter: "all" | "today";
 	}): Promise<Lead[]> => {
 		const leads = await LeadModel.find()
-			.sort({ nextFollowUpAt: 1, createdAt: -1 })
+			.sort({ createdAt: -1 })
 			.lean<LeadDocument[]>();
 
 		let filtered = leads;
 		if (filters.scope === "mine") {
-			filtered = filtered.filter((lead) => lead.createdBy.toString() === filters.createdBy);
+			filtered = filtered.filter((lead) => toObjectIdString(lead.assignedTo) === filters.createdBy);
 		}
 
 		if (filters.timeFilter === "today") {
@@ -141,7 +259,10 @@ export const LeadService = {
 			startOfDay.setHours(0, 0, 0, 0);
 			const endOfDay = new Date();
 			endOfDay.setHours(23, 59, 59, 999);
-			filtered = filtered.filter((lead) => lead.nextFollowUpAt >= startOfDay && lead.nextFollowUpAt <= endOfDay);
+			filtered = filtered.filter((lead) => {
+				const nextFollowUpAt = toDateOrFallback(lead.nextFollowUpAt, lead.createdAt ?? new Date());
+				return nextFollowUpAt >= startOfDay && nextFollowUpAt <= endOfDay;
+			});
 		}
 
 		return filtered
@@ -403,11 +524,14 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
-		const demos = setLatestDemo(existingLead, {
-			lastContactedAt: now,
-			customNextFollowUpAt,
-			nextFollowUpAt: customNextFollowUpAt,
-		});
+		const latestDemo = getLatestDemo(existingLead);
+		const demos = latestDemo
+			? setLatestDemo(existingLead, {
+				lastContactedAt: now,
+				customNextFollowUpAt,
+				nextFollowUpAt: customNextFollowUpAt,
+			})
+			: existingLead.demos ?? [];
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,

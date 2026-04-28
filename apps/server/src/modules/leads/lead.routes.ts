@@ -20,8 +20,9 @@ import {
 	requestLeadDemoController,
 	redemoLeadController,
 	postponeLeadFollowUpController,
+	updateLeadController,
 } from "./lead.controller.js";
-import { getLeadActivitiesController, deleteLeadActivityController } from "./activity.controller.js";
+import { getLeadActivitiesController } from "./activity.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -61,6 +62,12 @@ router.get(
 	"/:leadId",
 	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
 	asyncHandler(getLeadByIdController),
+);
+
+router.patch(
+	"/:leadId",
+	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	asyncHandler(updateLeadController),
 );
 
 router.patch(
@@ -115,12 +122,6 @@ router.get(
 	"/:leadId/activities",
 	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
 	asyncHandler(getLeadActivitiesController),
-);
-
-router.delete(
-	"/:leadId/activities/:activityId",
-	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
-	asyncHandler(deleteLeadActivityController),
 );
 
 export default router;
