@@ -15,6 +15,13 @@ import { useSession } from "@/lib/session";
 const isMentorRole = (roleName: string) => roleName.toLowerCase() === "mentor";
 const formatUserName = (userName?: string | null) => userName?.trim() || "-";
 
+const isPastDate = (dateString: string | undefined): boolean => {
+	if (!dateString) return false;
+	const selectedDate = new Date(dateString);
+	if (Number.isNaN(selectedDate.getTime())) return false;
+	return selectedDate < new Date();
+};
+
 export const ForDemoPage = () => {
 	const { token } = useSession();
 	const requestsQuery = usePendingDemoRequestsQuery(token);
@@ -111,19 +118,30 @@ export const ForDemoPage = () => {
 			{
 				id: "demoTime",
 				header: "Demo Time",
-				cell: (info) => (
-					<input
-						type="datetime-local"
-						className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-						value={scheduledTimeByLeadId[info.row.original.id] ?? getLatestLeadDemo(info.row.original)?.demoScheduledFor ?? ""}
-						onChange={(event) =>
-							setScheduledTimeByLeadId((current) => ({
-								...current,
-								[info.row.original.id]: event.target.value,
-							}))
-						}
-					/>
-				),
+				cell: (info) => {
+					const selectedTime = scheduledTimeByLeadId[info.row.original.id];
+					const isPast = isPastDate(selectedTime);
+					return (
+						<div className="grid gap-2">
+							<input
+								type="datetime-local"
+								className={`w-full rounded-2xl border px-3 py-2 text-sm ${
+									isPast ? "border-amber-300 bg-amber-50 text-ink" : "border-border bg-surface text-ink"
+								}`}
+								value={scheduledTimeByLeadId[info.row.original.id] ?? getLatestLeadDemo(info.row.original)?.demoScheduledFor ?? ""}
+								onChange={(event) =>
+									setScheduledTimeByLeadId((current) => ({
+										...current,
+										[info.row.original.id]: event.target.value,
+									}))
+								}
+							/>
+							{isPast && (
+								<p className="text-xs text-amber-700 font-semibold">⚠️ This is a past date/time</p>
+							)}
+						</div>
+					);
+				},
 			},
 			{
 				id: "actions",

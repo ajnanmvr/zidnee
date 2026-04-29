@@ -2,7 +2,7 @@ import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { HiCheckCircle, HiPencilSquare, HiXMark } from "react-icons/hi2";
+import { HiCheckCircle, HiPencilSquare, HiXMark, HiExclamationTriangle } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
@@ -26,6 +26,13 @@ const toInputDateTimeLocal = (value: string | null): string => {
 	const timezoneOffset = date.getTimezoneOffset() * 60000;
 	const localDate = new Date(date.getTime() - timezoneOffset);
 	return localDate.toISOString().slice(0, 16);
+};
+
+const isPastDate = (dateString: string | undefined): boolean => {
+	if (!dateString) return false;
+	const selectedDate = new Date(dateString);
+	if (Number.isNaN(selectedDate.getTime())) return false;
+	return selectedDate < new Date();
 };
 
 type CompleteDemoForm = {
@@ -167,18 +174,27 @@ export const DemoRequestsPage = () => {
 					const lead = info.row.original;
 					const latestDemo = getLatestLeadDemo(lead);
 					if (editingLeadId === lead.id) {
+						const selectedTime = scheduledTimeByLeadId[lead.id];
+						const isPast = isPastDate(selectedTime);
 						return (
-							<input
-								type="datetime-local"
-								className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-								value={scheduledTimeByLeadId[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null)}
-								onChange={(event) =>
-									setScheduledTimeByLeadId((current) => ({
-										...current,
-										[lead.id]: event.target.value,
-									}))
-								}
-							/>
+							<div className="grid gap-2">
+								<input
+									type="datetime-local"
+									className={`w-full rounded-2xl border px-3 py-2 text-sm ${
+										isPast ? "border-amber-300 bg-amber-50 text-ink" : "border-border bg-surface text-ink"
+									}`}
+									value={scheduledTimeByLeadId[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null)}
+									onChange={(event) =>
+										setScheduledTimeByLeadId((current) => ({
+											...current,
+											[lead.id]: event.target.value,
+										}))
+									}
+								/>
+								{isPast && (
+									<p className="text-xs text-amber-700 font-semibold">⚠️ This is a past date/time</p>
+								)}
+							</div>
 						);
 					}
 					return (
@@ -222,38 +238,40 @@ export const DemoRequestsPage = () => {
 									</button>
 								</>
 							) : (
-								<button
-									type="button"
-									className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
-									onClick={() => {
-										setEditingLeadId(lead.id);
-										const latestDemo = getLatestLeadDemo(lead);
-										setSelectedMentorByLeadId((current) => ({
-											...current,
-											[lead.id]: current[lead.id] ?? latestDemo?.mentorId ?? "",
-										}));
-										setScheduledTimeByLeadId((current) => ({
-											...current,
-										[lead.id]: current[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null),
-										}));
-									}}
-								>
-									<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
-									Edit
-								</button>
+								<>
+									<button
+										type="button"
+										className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+										onClick={() => {
+											setEditingLeadId(lead.id);
+											const latestDemo = getLatestLeadDemo(lead);
+											setSelectedMentorByLeadId((current) => ({
+												...current,
+												[lead.id]: current[lead.id] ?? latestDemo?.mentorId ?? "",
+											}));
+											setScheduledTimeByLeadId((current) => ({
+												...current,
+											[lead.id]: current[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null),
+											}));
+										}}
+									>
+										<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
+										Edit
+									</button>
+									<button
+										type="button"
+										className="inline-flex items-center gap-2 rounded-2xl bg-green-600 px-4 py-2 text-sm font-semibold text-white"
+										disabled={markDemoCompletedMutation.isPending}
+										onClick={() => {
+											setCompleteLeadId(lead.id);
+											reset({ note: "" });
+										}}
+									>
+										<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
+										Demo completed
+									</button>
+								</>
 							)}
-							<button
-								type="button"
-								className="inline-flex items-center gap-2 rounded-2xl bg-green px-4 py-2 text-sm font-semibold text-surface"
-								disabled={markDemoCompletedMutation.isPending}
-								onClick={() => {
-									setCompleteLeadId(lead.id);
-									reset({ note: "" });
-								}}
-							>
-								<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
-								Demo completed
-							</button>
 						</div>
 					);
 				},
@@ -316,7 +334,7 @@ export const DemoRequestsPage = () => {
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-green px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-green-600 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleSubmit(handleCompleteDemo)()}
 							disabled={markDemoCompletedMutation.isPending}
 						>
@@ -326,21 +344,29 @@ export const DemoRequestsPage = () => {
 					</>
 				}
 			>
-				<form className="grid gap-4" onSubmit={handleSubmit(handleCompleteDemo)}>
-					<Controller
-						name="note"
-						control={control}
-						render={({ field, fieldState }) => (
-							<TextAreaField
-								label="Completion note"
-								value={field.value ?? ""}
-								onChange={field.onChange}
-								placeholder="Demo completed successfully"
-								error={fieldState.error?.message}
-							/>
-						)}
-					/>
-				</form>
+				<div className="grid gap-4">
+					<div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+						<HiExclamationTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+						<p className="text-sm text-amber-800">
+							<strong>Warning:</strong> Marking this demo as completed cannot be undone. This will finalize the demo status.
+						</p>
+					</div>
+					<form className="grid gap-4" onSubmit={handleSubmit(handleCompleteDemo)}>
+						<Controller
+							name="note"
+							control={control}
+							render={({ field, fieldState }) => (
+								<TextAreaField
+									label="Completion note"
+									value={field.value ?? ""}
+									onChange={field.onChange}
+									placeholder="Demo completed successfully"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+					</form>
+				</div>
 			</Modal>
 		</div>
 	);

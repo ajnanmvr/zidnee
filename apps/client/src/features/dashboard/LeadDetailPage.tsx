@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { HiAcademicCap, HiArrowLeft, HiArrowPath, HiCalendarDays, HiPencilSquare, HiTrash, HiArrowsRightLeft } from "react-icons/hi2";
+import { HiAcademicCap, HiArrowLeft, HiArrowPath, HiCalendarDays, HiPencilSquare, HiTrash, HiArrowsRightLeft, HiCheckCircle, HiExclamationTriangle } from "react-icons/hi2";
 import { ApiError } from "@/api/request";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
@@ -17,6 +17,7 @@ import {
 	useRequestLeadDemoMutation,
 	useRequestRedemoMutation,
 	useUpdateLeadMutation,
+	useMarkDemoCompletedMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -122,12 +123,14 @@ export const LeadDetailPage = () => {
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const postponeLeadMutation = usePostponeLeadFollowUpMutation();
 	const deleteLeadMutation = useDeleteLeadMutation();
+	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const [editOpen, setEditOpen] = useState(false);
 	const [reassignOpen, setReassignOpen] = useState(false);
 	const [postponeOpen, setPostponeOpen] = useState(false);
 	const [redemoOpen, setRedemoOpen] = useState(false);
 	const [admissionOpen, setAdmissionOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [completeOpen, setCompleteOpen] = useState(false);
 
 	const {
 		control: editControl,
@@ -185,6 +188,16 @@ export const LeadDetailPage = () => {
 	} = useForm<ConfirmAdmissionForm>({
 		defaultValues: {
 			counsellorId: undefined,
+			note: "",
+		},
+	});
+
+	const {
+		control: completeControl,
+		handleSubmit: handleCompleteSubmit,
+		reset: resetComplete,
+	} = useForm<{ note?: string }>({
+		defaultValues: {
 			note: "",
 		},
 	});
@@ -485,6 +498,26 @@ export const LeadDetailPage = () => {
 		}
 	};
 
+	const onCompleteDemo = async (payload: { note?: string }) => {
+		if (!lead) {
+			return;
+		}
+
+		try {
+			await markDemoCompletedMutation.mutateAsync({ leadId: lead.id, note: payload.note });
+			toast.success("Demo marked as completed. This action cannot be undone.");
+			setCompleteOpen(false);
+			resetComplete({ note: "" });
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to mark demo as completed");
+				return;
+			}
+
+			toast.error(error instanceof Error ? error.message : "Unable to mark demo as completed");
+		}
+	};
+
 	const onDeleteLead = async () => {
 		if (!lead) {
 			return;
@@ -623,21 +656,93 @@ export const LeadDetailPage = () => {
 					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 						{lead.demos.map((demo, index) => (
 							<div key={`${index}-${demo.requestedAt ?? index}`} className="rounded-3xl border border-border bg-surface-muted/60 p-4">
-								<div className="flex items-center justify-between gap-3">
+								<div className="flex items-center justify-between gap-3 mb-4">
 									<p className="text-sm font-semibold text-ink">Demo {index + 1}</p>
 									<span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
 										{demo.completedAt ? "Completed" : demo.admissionCompletedAt ? "Admission completed" : demo.admissionRequestedAt ? "Admission requested" : demo.assignedAt ? "Assigned" : demo.requestedAt ? "Requested" : "Pending"}
 									</span>
 								</div>
-								<div className="mt-4 grid gap-2 text-sm text-ink-soft">
-									<p>Mentor: {demo.mentorId ? formatUserName(allUsers.find((user) => user.id === demo.mentorId)?.name ?? null) : "-"}</p>
-									<p>Requested: {formatDateTime(demo.requestedAt)}</p>
-									<p>Assigned: {formatDateTime(demo.assignedAt)}</p>
-									<p>Completed: {formatDateTime(demo.completedAt)}</p>
-									<p>Admission requested: {formatDateTime(demo.admissionRequestedAt)}</p>
-									<p>Admission completed: {formatDateTime(demo.admissionCompletedAt)}</p>
-									{demo.note ? <p className="pt-2 text-ink">Note: {demo.note}</p> : null}
+								<div className="grid gap-3 text-xs">
+									{/* Request Section */}
+									{demo.requestedAt && (
+										<div className="space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Request</p>
+											<div className="flex justify-between items-start">
+												<span className="font-semibold text-ink-soft">Requested</span>
+												<span className="text-ink text-right">{formatDateTime(demo.requestedAt)}</span>
+											</div>
+										</div>
+									)}
+
+									{/* Assignment Section */}
+									{demo.assignedAt && (
+										<div className="border-t border-border pt-3 space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Assignment</p>
+											<div className="flex justify-between items-start">
+												<span className="font-semibold text-ink-soft">Mentor</span>
+												<span className="text-ink text-right">{demo.mentorId ? formatUserName(allUsers.find((user) => user.id === demo.mentorId)?.name ?? null) : "-"}</span>
+											</div>
+											<div className="flex justify-between items-start">
+												<span className="font-semibold text-ink-soft">Assigned</span>
+												<span className="text-ink text-right">{formatDateTime(demo.assignedAt)}</span>
+											</div>
+											{demo.demoScheduledFor && (
+												<div className="flex justify-between items-start">
+													<span className="font-semibold text-ink-soft">Scheduled</span>
+													<span className="text-ink text-right">{formatDateTime(demo.demoScheduledFor)}</span>
+												</div>
+											)}
+										</div>
+									)}
+
+									{/* Completion Section */}
+									{demo.completedAt && (
+										<div className="border-t border-border pt-3 space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Completion</p>
+											<div className="flex justify-between items-start">
+												<span className="font-semibold text-ink-soft">Completed</span>
+												<span className="text-ink text-right">{formatDateTime(demo.completedAt)}</span>
+											</div>
+										</div>
+									)}
+
+									{/* Admission Section */}
+									{(demo.admissionRequestedAt || demo.admissionCompletedAt) && (
+										<div className="border-t border-border pt-3 space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Admission</p>
+											{demo.admissionRequestedAt && (
+												<div className="flex justify-between items-start">
+													<span className="font-semibold text-ink-soft">Requested</span>
+													<span className="text-ink text-right">{formatDateTime(demo.admissionRequestedAt)}</span>
+												</div>
+											)}
+											{demo.admissionCompletedAt && (
+												<div className="flex justify-between items-start">
+													<span className="font-semibold text-ink-soft">Completed</span>
+													<span className="text-ink text-right">{formatDateTime(demo.admissionCompletedAt)}</span>
+												</div>
+											)}
+										</div>
+									)}
+
+									{/* Note Section */}
+									{demo.note && (
+										<div className="border-t border-border pt-3">
+											<p className="text-xs font-semibold text-ink-soft mb-2">Note</p>
+											<p className="text-ink text-xs bg-surface-muted/40 rounded-lg p-2">{demo.note}</p>
+										</div>
+									)}
 								</div>
+								{demo.assignedAt && !demo.completedAt && index === lead.demos.length - 1 && (
+									<button
+										type="button"
+										className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-surface hover:bg-emerald-700"
+										onClick={() => setCompleteOpen(true)}
+									>
+										<HiCheckCircle className="h-3 w-3" aria-hidden="true" />
+										Mark as completed
+									</button>
+								)}
 							</div>
 						))}
 					</div>
@@ -816,6 +921,36 @@ export const LeadDetailPage = () => {
 				}
 			>
 				<p className="text-sm text-ink-soft">This will permanently remove the lead record from the system.</p>
+			</Modal>
+
+			<Modal
+				open={completeOpen}
+				title="Mark demo as completed"
+				description="This action cannot be undone"
+				onClose={() => setCompleteOpen(false)}
+				footer={
+					<>
+						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setCompleteOpen(false)}>
+							Cancel
+						</button>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handleCompleteSubmit(onCompleteDemo)()} disabled={markDemoCompletedMutation.isPending}>
+							<HiCheckCircle className="h-4 w-4" />
+							{markDemoCompletedMutation.isPending ? "Completing..." : "Mark completed"}
+						</button>
+					</>
+				}
+			>
+				<div className="grid gap-4">
+					<div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+						<HiExclamationTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+						<p className="text-sm text-amber-800">
+							<strong>Warning:</strong> Marking this demo as completed cannot be undone. This will finalize the demo status for this lead.
+						</p>
+					</div>
+					<form onSubmit={handleCompleteSubmit(onCompleteDemo)}>
+						<Controller name="note" control={completeControl} render={({ field, fieldState }) => <TextAreaField label="Completion note (optional)" value={field.value ?? ""} onChange={field.onChange} placeholder="Add notes about demo completion..." error={fieldState.error?.message} />} />
+					</form>
+				</div>
 			</Modal>
 		</div>
 	);

@@ -1,6 +1,7 @@
-import { formatTableDate } from "@/lib/utils/date";
+import { formatActivityDateTime } from "@/lib/utils/date";
 import { useSession } from "@/lib/session";
 import { useLeadActivitiesQuery } from "@/features/leads/leads.queries";
+import { format } from "date-fns";
 
 interface ActivityFeedProps {
 	leadId: string;
@@ -52,6 +53,14 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 		}
 	};
 
+	const getActivityDescription = (activity: any): string => {
+		if (activity.type === "DEMO_SCHEDULED" && activity.newValue?.demoScheduledFor) {
+			const scheduledDate = new Date(activity.newValue.demoScheduledFor);
+			return `Demo scheduled for ${format(scheduledDate, "MMM dd, hh:mm a")}`;
+		}
+		return activity.description;
+	};
+
 	return (
 		<div className="relative pl-6">
 			<div className="absolute left-2 top-0 bottom-0 w-px bg-surface-muted" />
@@ -69,11 +78,11 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 										<span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold text-white ${typeColor(activity.type)}`}>
 											{activity.type.replace(/_/g, " ")}
 										</span>
-										<p className="text-sm font-medium text-ink truncate">{activity.description}</p>
+										<p className="text-sm font-medium text-ink truncate">{getActivityDescription(activity)}</p>
 									</div>
 
 									<div className="mt-1 text-xs text-ink-soft">
-										By {activity.performedByName} · {formatTableDate(activity.createdAt)}
+										By {activity.performedByName} · {formatActivityDateTime(activity.createdAt)}
 									</div>
 
 									{activity.oldValue && activity.newValue && (
