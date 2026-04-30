@@ -1,4 +1,4 @@
-import type { LeadResponse } from "@repo/schema";
+﻿import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Link } from "react-router-dom";
 import { DateCell } from "@/components/DateCell";
@@ -53,7 +53,7 @@ const getLeadStatusTone = (lead: LeadResponse) => {
 	}
 
 	if (latestDemo?.completedAt) {
-		return { className: "bg-brand-soft text-brand", label: "Demo completed" };
+		return { className: "bg-blue-100 text-blue-600", label: "Demo completed" };
 	}
 
 	if (latestDemo?.assignedAt && latestDemo?.demoScheduledFor) {
@@ -61,14 +61,14 @@ const getLeadStatusTone = (lead: LeadResponse) => {
 	}
 
 	if (latestDemo?.assignedAt) {
-		return { className: "bg-sky/10 text-sky", label: "Demo assigned" };
+		return { className: "bg-sky-600/10 text-sky-600", label: "Demo assigned" };
 	}
 
 	if (latestDemo?.requestedAt) {
 		return { className: "bg-amber-500/10 text-amber-700", label: "Demo requested" };
 	}
 
-	return { className: "bg-surface-muted text-ink-soft", label: "Lead follow-up" };
+	return { className: "bg-gray-50 text-gray-600", label: "Lead follow-up" };
 };
 
 const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
@@ -101,7 +101,7 @@ export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 		accessorKey: "phone",
 		header: "Phone",
 		cell: (info) => (
-			<div className="font-semibold text-ink">{String(info.getValue())}</div>
+			<div className="font-semibold text-gray-900">{String(info.getValue())}</div>
 		),
 		enableSorting: true,
 	},
@@ -109,7 +109,7 @@ export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 		accessorKey: "name",
 		header: "Name",
 		cell: (info) => (
-			<Link className="font-semibold text-brand hover:text-brand/80" to={`/leads/${info.row.original.id}`}>
+			<Link className="font-semibold text-blue-600 hover:text-blue-600/80" to={`/leads/${info.row.original.id}`}>
 				{(info.getValue() as string) ?? "-"}
 			</Link>
 		),
@@ -145,7 +145,7 @@ export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 			return (
 				<div className="flex items-center gap-2">
 					<Link
-						className="inline-flex items-center rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand-soft"
+						className="inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
 						to={`/leads/${leadId}`}
 					>
 						View
@@ -162,3 +162,7 @@ export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 		enableSorting: false,
 	},
 ];
+
+
+
+

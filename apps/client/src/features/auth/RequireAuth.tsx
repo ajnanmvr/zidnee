@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+﻿import { Navigate, Outlet } from "react-router-dom";
 import { useSession } from "@/lib/session";
 
 export const RequireAuth = () => {
@@ -10,3 +10,7 @@ export const RequireAuth = () => {
 
 	return <Outlet />;
 };
+
+
+
+

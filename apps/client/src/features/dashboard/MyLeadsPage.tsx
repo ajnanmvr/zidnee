@@ -1,4 +1,4 @@
-import {
+﻿import {
 	CreateLeadPayloadSchema,
 	ConfirmAdmissionPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
@@ -333,7 +333,7 @@ export const MyLeadsPage = () => {
 				action={
 					<button
 						type="button"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 						onClick={() => setCreateOpen(true)}
 					>
 						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
@@ -341,20 +341,20 @@ export const MyLeadsPage = () => {
 					</button>
 				}
 			>
-				<div className="mb-4 rounded-3xl border border-warm/30 bg-warm-soft px-4 py-3">
-					<div className="flex items-center gap-2 text-sm font-semibold text-ink">
+				<div className="mb-4 rounded-3xl border border-orange-600/30 bg-orange-600-soft px-4 py-3">
+					<div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
 						<HiCalendarDays className="h-4 w-4" aria-hidden="true" />
 						My Tasks
 					</div>
-					<p className="mt-1 text-sm text-ink-soft">
+					<p className="mt-1 text-sm text-gray-600">
 						{todayCount} lead{todayCount === 1 ? "" : "s"} are due now.
 					</p>
 				</div>
 
 				{leadsQuery.isLoading ? (
-					<div className="py-8 text-center text-ink-soft">Loading...</div>
+					<div className="py-8 text-center text-gray-600">Loading...</div>
 				) : leadsQuery.isError ? (
-					<div className="py-8 text-center text-ink-soft">Unable to load leads.</div>
+					<div className="py-8 text-center text-gray-600">Unable to load leads.</div>
 				) : (
 					<DataTable
 						columns={columns}
@@ -375,14 +375,14 @@ export const MyLeadsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => setCreateOpen(false)}
 						>
 							Cancel
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleCreateSubmit(onCreateLead)()}
 							disabled={createLeadMutation.isPending}
 						>
@@ -397,10 +397,10 @@ export const MyLeadsPage = () => {
 						name="assignedTo"
 						control={createControl}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Assign to</span>
 								<select
-									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 									value={field.value ?? ""}
 									onChange={(event) => field.onChange(event.target.value)}
 								>
@@ -477,7 +477,7 @@ export const MyLeadsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
 								setPostponeLeadId(null);
 								setSelectedDuration(1);
@@ -487,7 +487,7 @@ export const MyLeadsPage = () => {
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-sky px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handlePostponeSubmit(onPostponeLead)()}
 							disabled={postponeLeadMutation.isPending}
 						>
@@ -511,8 +511,8 @@ export const MyLeadsPage = () => {
 								type="button"
 								className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${
 									selectedDuration === option.days
-										? "border-brand bg-brand text-surface"
-										: "border-border bg-surface-muted text-ink hover:border-brand hover:bg-brand hover:text-surface"
+										? "border-blue-600 bg-blue-600 text-white"
+										: "border-gray-300 bg-gray-50 text-gray-900 hover:border-blue-600 hover:bg-blue-600 hover:text-white"
 								}`}
 								onClick={() => {
 									const futureDate = new Date(Date.now() + option.days * 24 * 60 * 60 * 1000);
@@ -558,8 +558,8 @@ export const MyLeadsPage = () => {
 										error={fieldState.error?.message}
 									/>
 									{postponeSuggestions.length > 0 ? (
-										<div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
-											<p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
+										<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3">
+											<p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-600">
 												Suggested follow-up times
 											</p>
 											<div className="flex flex-wrap gap-2">
@@ -567,7 +567,7 @@ export const MyLeadsPage = () => {
 													<button
 														key={`${suggestion.label}-${suggestion.date.toISOString()}`}
 														type="button"
-														className="rounded-full border border-brand/20 bg-brand-soft px-3 py-1 text-xs font-semibold text-brand"
+														className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
 														onClick={() => {
 															resetPostpone({
 																customNextFollowUpAt: suggestion.date,
@@ -605,7 +605,7 @@ export const MyLeadsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
 								setRedemoLeadId(null);
 								resetRedemo({ mentorId: "", note: "" });
@@ -615,7 +615,7 @@ export const MyLeadsPage = () => {
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-orange px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-orange px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleRedemoSubmit(onRedemoLead)()}
 							disabled={requestRedemoMutation.isPending}
 						>
@@ -630,10 +630,10 @@ export const MyLeadsPage = () => {
 						name="mentorId"
 						control={redemoControl}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Mentor</span>
 								<select
-									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 									value={field.value ?? ""}
 									onChange={(event) => field.onChange(event.target.value)}
 								>
@@ -645,7 +645,7 @@ export const MyLeadsPage = () => {
 									))}
 								</select>
 								{fieldState.error?.message ? (
-									<span className="text-xs text-danger">{fieldState.error.message}</span>
+									<span className="text-xs text-red-600">{fieldState.error.message}</span>
 								) : null}
 							</label>
 						)}
@@ -678,7 +678,7 @@ export const MyLeadsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
 								setAdmissionLeadId(null);
 								resetAdmission({ counsellorId: undefined, note: "" });
@@ -688,7 +688,7 @@ export const MyLeadsPage = () => {
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleAdmissionSubmit(onRequestAdmission)()}
 							disabled={requestAdmissionMutation.isPending}
 						>
@@ -700,7 +700,7 @@ export const MyLeadsPage = () => {
 			>
 				<form className="grid gap-4" onSubmit={handleAdmissionSubmit(onRequestAdmission)}>
 					{admissionLeadLatestDemo?.mentorId ? (
-						<div className="rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm text-ink-soft">
+						<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
 							Last demo mentor: {userNameById.get(admissionLeadLatestDemo.mentorId) ?? "-"}
 						</div>
 					) : null}
@@ -708,10 +708,10 @@ export const MyLeadsPage = () => {
 						name="counsellorId"
 						control={admissionControl}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Counsellor</span>
 								<select
-									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 									value={field.value ?? defaultCounsellorId ?? ""}
 									onChange={(event) => field.onChange(event.target.value || undefined)}
 								>
@@ -723,7 +723,7 @@ export const MyLeadsPage = () => {
 									))}
 								</select>
 								{fieldState.error?.message ? (
-									<span className="text-xs text-danger">{fieldState.error.message}</span>
+									<span className="text-xs text-red-600">{fieldState.error.message}</span>
 								) : null}
 							</label>
 						)}
@@ -753,7 +753,7 @@ export const MyLeadsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => setDeleteLeadId(null)}
 						>
 							Cancel
@@ -770,10 +770,14 @@ export const MyLeadsPage = () => {
 					</>
 				}
 			>
-				<p className="text-sm text-ink-soft">
+				<p className="text-sm text-gray-600">
 					Are you sure you want to delete this lead? This cannot be undone.
 				</p>
 			</Modal>
 		</div>
 	);
 };
+
+
+
+

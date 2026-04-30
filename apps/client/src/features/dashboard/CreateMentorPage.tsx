@@ -1,4 +1,4 @@
-import { CreateMentorPayloadSchema } from "@repo/schema";
+﻿import { CreateMentorPayloadSchema } from "@repo/schema";
 import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { HiUserPlus } from "react-icons/hi2";
@@ -73,14 +73,14 @@ export const CreateMentorPage = () => {
 					)}
 				/>
 
-				<label className="grid gap-2 text-sm font-medium text-ink-soft">
+				<label className="grid gap-2 text-sm font-medium text-gray-600">
 					<span>Optional counsellor</span>
 					<Controller
 						name="counsellorId"
 						control={control}
 						render={({ field }) => (
 							<select
-								className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+								className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 								value={field.value ?? ""}
 								onChange={(event) => field.onChange(event.target.value || undefined)}
 							>
@@ -98,7 +98,7 @@ export const CreateMentorPage = () => {
 				<div className="flex flex-wrap gap-2">
 					<button
 						type="submit"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
 						disabled={createMentorMutation.isPending}
 					>
 						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
@@ -106,7 +106,7 @@ export const CreateMentorPage = () => {
 					</button>
 					<Link
 						to="/mentors"
-						className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Cancel
 					</Link>
@@ -115,3 +115,7 @@ export const CreateMentorPage = () => {
 		</Panel>
 	);
 };
+
+
+
+

@@ -1,4 +1,4 @@
-import { CreateLeadPayloadSchema } from "@repo/schema";
+﻿import { CreateLeadPayloadSchema } from "@repo/schema";
 import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -102,7 +102,7 @@ export const LeadsPage = () => {
 				action={
 					<button
 						type="button"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 						onClick={() => setCreateOpen(true)}
 					>
 						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
@@ -111,9 +111,9 @@ export const LeadsPage = () => {
 				}
 			>
 				{dueLeadsQuery.isLoading ? (
-					<div className="py-8 text-center text-ink-soft">Loading...</div>
+					<div className="py-8 text-center text-gray-600">Loading...</div>
 				) : dueLeadsQuery.isError ? (
-					<div className="py-8 text-center text-ink-soft">Unable to load leads.</div>
+					<div className="py-8 text-center text-gray-600">Unable to load leads.</div>
 				) : (
 					<DataTable
 						columns={columns}
@@ -134,14 +134,14 @@ export const LeadsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => setCreateOpen(false)}
 						>
 							Cancel
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleCreateSubmit(onCreateLead)()}
 							disabled={createLeadMutation.isPending}
 						>
@@ -181,10 +181,10 @@ export const LeadsPage = () => {
 						name="assignedTo"
 						control={createControl}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Assign to</span>
 								<select
-									className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 									value={field.value ?? ""}
 									onChange={(event) => field.onChange(event.target.value)}
 								>
@@ -226,3 +226,6 @@ export const LeadsPage = () => {
 		</div>
 	);
 };
+
+
+

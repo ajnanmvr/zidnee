@@ -10,6 +10,7 @@ import {
 	confirmAdmissionController,
 	createLeadController,
 	deleteLeadController,
+	generateFormLinkController,
 	getLeadByIdController,
 	listAdmissionLeadsController,
 	listLeadsController,
@@ -22,7 +23,9 @@ import {
 	postponeLeadFollowUpController,
 	updateLeadController,
 } from "./lead.controller.js";
+import { submitLeadFormController } from "./lead.controller.js";
 import { getLeadActivitiesController } from "./activity.controller.js";
+import { validateFormLinkController } from "./lead.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -112,6 +115,12 @@ router.patch(
 	asyncHandler(assignDemoMentorController),
 );
 
+router.post(
+	"/:leadId/form-link",
+	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	asyncHandler(generateFormLinkController),
+);
+
 router.delete(
 	"/:leadId",
 	requirePermissionKey("LEAD_DELETE" satisfies PermissionKey),
@@ -125,3 +134,16 @@ router.get(
 );
 
 export default router;
+
+// Public routes (no authentication required)
+export const publicLeadRoutes: ReturnType<typeof Router> = Router();
+
+publicLeadRoutes.post(
+	"/:leadId/submit",
+	asyncHandler(submitLeadFormController),
+);
+
+publicLeadRoutes.get(
+	"/:leadId/validate",
+	asyncHandler(validateFormLinkController),
+);

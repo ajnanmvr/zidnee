@@ -1,4 +1,4 @@
-import { UpdateUserPayloadSchema } from "@repo/schema";
+﻿import { UpdateUserPayloadSchema } from "@repo/schema";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { HiCheckCircle, HiUserPlus } from "react-icons/hi2";
@@ -131,13 +131,13 @@ export const EditUserPage = () => {
 				action={
 					<Link
 						to="/users"
-						className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Back
 					</Link>
 				}
 			>
-				<p className="text-sm text-ink-soft">User not found.</p>
+				<p className="text-sm text-gray-600">User not found.</p>
 			</Panel>
 		);
 	}
@@ -149,7 +149,7 @@ export const EditUserPage = () => {
 			action={
 				<Link
 					to="/users"
-					className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+					className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 				>
 					<HiUserPlus className="h-4 w-4" aria-hidden="true" />
 					Back to users
@@ -196,7 +196,7 @@ export const EditUserPage = () => {
 					/>
 				</div>
 
-				<div className="mt-4 grid gap-2 text-sm font-medium text-ink-soft">
+				<div className="mt-4 grid gap-2 text-sm font-medium text-gray-600">
 					<span>Roles</span>
 					<div className="flex flex-wrap gap-2">
 						{rolesQuery.data?.roles.map((role) => {
@@ -207,8 +207,8 @@ export const EditUserPage = () => {
 									key={role.id}
 									className={
 										selected
-											? "rounded-full border border-brand bg-brand-soft px-3 py-2 text-xs font-semibold text-brand"
-											: "rounded-full border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-soft"
+											? "rounded-full border border-blue-600 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-600"
+											: "rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600"
 									}
 									onClick={() => {
 										const nextRoleIds = selected
@@ -227,7 +227,7 @@ export const EditUserPage = () => {
 						})}
 					</div>
 					{formState.errors.roleIds?.message ? (
-						<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+						<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
 							{formState.errors.roleIds.message}
 						</p>
 					) : null}
@@ -236,7 +236,7 @@ export const EditUserPage = () => {
 				<div className="mt-5 flex gap-2">
 					<button
 						type="submit"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 						disabled={updateUserMutation.isPending}
 					>
 						<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
@@ -244,7 +244,7 @@ export const EditUserPage = () => {
 					</button>
 					<Link
 						to="/users"
-						className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Cancel
 					</Link>
@@ -252,10 +252,14 @@ export const EditUserPage = () => {
 			</form>
 
 			{banner ? (
-				<p className="mt-4 rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
+				<p className="mt-4 rounded-2xl border border-blue-600/15 bg-blue-100 px-4 py-3 text-sm text-blue-600">
 					{banner}
 				</p>
 			) : null}
 		</Panel>
 	);
 };
+
+
+
+

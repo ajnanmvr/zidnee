@@ -1,6 +1,7 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+﻿import { createBrowserRouter, Navigate } from "react-router-dom";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
+import PublicFormPage from "@/features/public/PublicFormPage";
 import { CreateRolePage } from "@/features/dashboard/CreateRolePage";
 import { CreateCounsellorPage } from "@/features/dashboard/CreateCounsellorPage";
 import { CreateMentorPage } from "@/features/dashboard/CreateMentorPage";
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
 		path: "/login",
 		element: <LoginPage />,
 	},
+		{
+			path: "/form/:leadId",
+			element: <PublicFormPage />,
+		},
 	{
 		element: <RequireAuth />,
 		children: [
@@ -123,3 +128,7 @@ export const router = createBrowserRouter([
 		element: <Navigate to="/" replace />,
 	},
 ]);
+
+
+
+

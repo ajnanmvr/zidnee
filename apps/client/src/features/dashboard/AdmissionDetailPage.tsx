@@ -1,4 +1,4 @@
-import { ConfirmAdmissionPayloadSchema } from "@repo/schema";
+﻿import { ConfirmAdmissionPayloadSchema } from "@repo/schema";
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { HiAcademicCap } from "react-icons/hi2";
@@ -108,13 +108,13 @@ export const AdmissionDetailPage = () => {
 			<div className="mb-4 flex flex-wrap gap-2">
 				<Link
 					to="/admissions"
-					className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+					className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 				>
 					Back to for admission
 				</Link>
 			</div>
 
-			<div className="mb-6 grid gap-3 rounded-3xl border border-border bg-surface-muted p-4 text-sm text-ink-soft">
+			<div className="mb-6 grid gap-3 rounded-3xl border border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
 				<p>Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})</p>
 				<p>Demo mentor: {latestDemo?.mentorId ? userNameById.get(latestDemo.mentorId) ?? "-" : "-"}</p>
 				<p>Selected counsellor will handle form sending, details collection, and final admission confirmation.</p>
@@ -126,10 +126,10 @@ export const AdmissionDetailPage = () => {
 					name="counsellorId"
 					control={control}
 					render={({ field, fieldState }) => (
-						<label className="grid gap-2 text-sm font-medium text-ink-soft">
+						<label className="grid gap-2 text-sm font-medium text-gray-600">
 							<span>Counsellor</span>
 							<select
-								className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft"
+								className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 								value={field.value ?? defaultCounsellorId ?? ""}
 								onChange={(event) => field.onChange(event.target.value || undefined)}
 							>
@@ -141,7 +141,7 @@ export const AdmissionDetailPage = () => {
 								))}
 							</select>
 							{fieldState.error?.message ? (
-								<span className="text-xs text-danger">{fieldState.error.message}</span>
+								<span className="text-xs text-red-600">{fieldState.error.message}</span>
 							) : null}
 						</label>
 					)}
@@ -164,7 +164,7 @@ export const AdmissionDetailPage = () => {
 				<div className="flex flex-wrap gap-2">
 					<button
 						type="submit"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
 						disabled={confirmAdmissionMutation.isPending}
 					>
 						<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
@@ -175,3 +175,7 @@ export const AdmissionDetailPage = () => {
 		</Panel>
 	);
 };
+
+
+
+

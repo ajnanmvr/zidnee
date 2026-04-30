@@ -1,4 +1,4 @@
-import { formatActivityDateTime } from "@/lib/utils/date";
+﻿import { formatActivityDateTime } from "@/lib/utils/date";
 import { useSession } from "@/lib/session";
 import { useLeadActivitiesQuery } from "@/features/leads/leads.queries";
 import { format } from "date-fns";
@@ -13,7 +13,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 	const activitiesQuery = useLeadActivitiesQuery(token, leadId);
 
 	if (activitiesQuery.isLoading) {
-		return <div className="text-sm text-ink-soft">Loading activities...</div>;
+		return <div className="text-sm text-gray-600">Loading activities...</div>;
 	}
 
 	if (activitiesQuery.isError) {
@@ -27,7 +27,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 	if (activities.length === 0) {
 		return (
 			<div className="text-center py-6">
-				<div className="text-ink-soft">No activities yet.</div>
+				<div className="text-gray-600">No activities yet.</div>
 			</div>
 		);
 	}
@@ -63,7 +63,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 
 	return (
 		<div className="relative pl-6">
-			<div className="absolute left-2 top-0 bottom-0 w-px bg-surface-muted" />
+			<div className="absolute left-2 top-0 bottom-0 w-px bg-gray-50" />
 			<div className="space-y-6">
 				{activities.map((activity) => (
 					<div key={activity.id} className="relative">
@@ -78,19 +78,19 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 										<span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold text-white ${typeColor(activity.type)}`}>
 											{activity.type.replace(/_/g, " ")}
 										</span>
-										<p className="text-sm font-medium text-ink truncate">{getActivityDescription(activity)}</p>
+										<p className="text-sm font-medium text-gray-900 truncate">{getActivityDescription(activity)}</p>
 									</div>
 
-									<div className="mt-1 text-xs text-ink-soft">
-										By {activity.performedByName} · {formatActivityDateTime(activity.createdAt)}
+									<div className="mt-1 text-xs text-gray-600">
+										By {activity.performedByName} Â· {formatActivityDateTime(activity.createdAt)}
 									</div>
 
 									{activity.oldValue && activity.newValue && (
-										<div className="mt-3 bg-surface-muted rounded px-2 py-2 text-xs">
-											<div className="text-ink-soft">
+										<div className="mt-3 bg-gray-50 rounded px-2 py-2 text-xs">
+											<div className="text-gray-600">
 												<span className="font-semibold">Old:</span> {JSON.stringify(activity.oldValue)}
 											</div>
-											<div className="text-ink-soft mt-1">
+											<div className="text-gray-600 mt-1">
 												<span className="font-semibold">New:</span> {JSON.stringify(activity.newValue)}
 											</div>
 										</div>
@@ -98,8 +98,8 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 
 									{activity.note && (
 										<div className="mt-3 bg-yellow-50 rounded px-3 py-2 border-l-2 border-yellow-400">
-											<p className="text-xs font-semibold text-ink-soft mb-1">Note</p>
-											<p className="text-sm text-ink whitespace-pre-wrap">{activity.note}</p>
+											<p className="text-xs font-semibold text-gray-600 mb-1">Note</p>
+											<p className="text-sm text-gray-900 whitespace-pre-wrap">{activity.note}</p>
 										</div>
 									)}
 								</div>
@@ -113,3 +113,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 		</div>
 	);
 };
+
+
+
+

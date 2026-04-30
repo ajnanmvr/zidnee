@@ -6,6 +6,7 @@ import {
 	confirmAdmission,
 	createLead,
 	deleteLead,
+	generateFormLink,
 	markDemoCompleted,
 	postponeLeadFollowUp,
 	requestAdmission,
@@ -193,7 +194,7 @@ export const useRequestRedemoMutation = () => {
 			payload,
 		}: {
 			leadId: string;
-			payload: { mentorId: string; note?: string };
+			payload: { mentorId?: string; note?: string };
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
@@ -294,6 +295,20 @@ export const useAssignDemoMentorMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
+		},
+	});
+};
+
+export const useGenerateFormLinkMutation = () => {
+	const { token } = useSession();
+
+	return useMutation({
+		mutationFn: async (leadId: string) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return generateFormLink(token, leadId);
 		},
 	});
 };

@@ -1,4 +1,4 @@
-import { CreateCounsellorPayloadSchema } from "@repo/schema";
+﻿import { CreateCounsellorPayloadSchema } from "@repo/schema";
 import { Controller, useForm } from "react-hook-form";
 import { HiUserPlus } from "react-icons/hi2";
 import toast from "react-hot-toast";
@@ -60,7 +60,7 @@ export const CreateCounsellorPage = () => {
 				<div className="flex flex-wrap gap-2">
 					<button
 						type="submit"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
 						disabled={createCounsellorMutation.isPending}
 					>
 						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
@@ -68,7 +68,7 @@ export const CreateCounsellorPage = () => {
 					</button>
 					<Link
 						to="/counsellors"
-						className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Cancel
 					</Link>
@@ -77,3 +77,7 @@ export const CreateCounsellorPage = () => {
 		</Panel>
 	);
 };
+
+
+
+

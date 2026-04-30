@@ -72,13 +72,16 @@ export const ForDemoPage = () => {
 	const columns: ColumnDef<LeadResponse>[] = useMemo(
 		() => [
 			{
-				accessorKey: "name",
-				header: "Lead",
-				cell: (info) => (
-					<div className="font-semibold text-ink">
-						{(info.getValue() as string) ?? "Unnamed lead"}
-					</div>
-				),
+				id: "demoCount",
+				header: "Demo #",
+				cell: (info) => {
+					const demoCount = info.row.original.demos?.length ?? 0;
+					return (
+						<span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+							Demo {Math.max(demoCount, 1)}
+						</span>
+					);
+				},
 			},
 			{
 				accessorKey: "phone",
@@ -95,31 +98,40 @@ export const ForDemoPage = () => {
 			{
 				id: "mentor",
 				header: "Mentor",
-				cell: (info) => (
-					<select
-						className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-						value={selectedMentorByLeadId[info.row.original.id] ?? getLatestLeadDemo(info.row.original)?.mentorId ?? ""}
-						onChange={(event) =>
-							setSelectedMentorByLeadId((current) => ({
-								...current,
-								[info.row.original.id]: event.target.value,
-							}))
-						}
-					>
-						<option value="">Select mentor</option>
-						{mentors.map((mentor) => (
-							<option key={mentor.id} value={mentor.id}>
-								{formatUserName(mentor.name ?? mentor.username)}
-							</option>
-						))}
-					</select>
-				),
+				cell: (info) => {
+					const lead = info.row.original;
+					const previousMentorId = getLatestLeadDemo(lead)?.mentorId;
+					return (
+						<select
+							className="w-full rounded-2xl border border-emerald-300 bg-white px-3 py-2 text-sm text-gray-900"
+							value={selectedMentorByLeadId[lead.id] ?? previousMentorId ?? ""}
+							onChange={(event) =>
+								setSelectedMentorByLeadId((current) => ({
+									...current,
+									[lead.id]: event.target.value,
+								}))
+							}
+						>
+							<option value="">Select mentor</option>
+							{mentors.map((mentor) => (
+								<option key={mentor.id} value={mentor.id}>
+									{formatUserName(mentor.name ?? mentor.username)}{mentor.id === previousMentorId ? " (Previous)" : ""}
+								</option>
+							))}
+						</select>
+					);
+				},
 			},
 			{
 				id: "demoTime",
 				header: "Demo Time",
 				cell: (info) => {
-					const selectedTime = scheduledTimeByLeadId[info.row.original.id];
+					const lead = info.row.original;
+const selectedMentorId = selectedMentorByLeadId[lead.id];
+const latestDemo = getLatestLeadDemo(lead);
+const previousMentorId = latestDemo?.mentorId;
+const isPreviousMentor = selectedMentorId === previousMentorId && previousMentorId;
+const selectedTime = scheduledTimeByLeadId[lead.id];
 					const isPast = isPastDate(selectedTime);
 					return (
 						<div className="grid gap-2">
@@ -128,15 +140,18 @@ export const ForDemoPage = () => {
 								className={`w-full rounded-2xl border px-3 py-2 text-sm ${
 									isPast ? "border-amber-300 bg-amber-50 text-ink" : "border-border bg-surface text-ink"
 								}`}
-								value={scheduledTimeByLeadId[info.row.original.id] ?? getLatestLeadDemo(info.row.original)?.demoScheduledFor ?? ""}
+								value={scheduledTimeByLeadId[lead.id] ?? getLatestLeadDemo(lead)?.demoScheduledFor ?? ""}
 								onChange={(event) =>
 									setScheduledTimeByLeadId((current) => ({
 										...current,
-										[info.row.original.id]: event.target.value,
+										[lead.id]: event.target.value,
 									}))
 								}
 							/>
-							{isPast && (
+							{isPast && isPreviousMentor && (
+								<p className="text-xs text-amber-700 font-semibold">⚠️ Re-assigning previous mentor to a past date/time</p>
+							)}
+							{isPast && !isPreviousMentor && (
 								<p className="text-xs text-amber-700 font-semibold">⚠️ This is a past date/time</p>
 							)}
 						</div>
@@ -185,3 +200,7 @@ export const ForDemoPage = () => {
 		</div>
 	);
 };
+
+
+
+

@@ -39,7 +39,7 @@
 	}
 
 	body {
-		@apply m-0 bg-surface-muted text-ink;
+		@apply m-0 bg-gray-50 text-gray-900;
 	}
 
 	button,

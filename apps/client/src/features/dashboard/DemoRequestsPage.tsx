@@ -1,4 +1,4 @@
-import type { LeadResponse } from "@repo/schema";
+﻿import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -120,10 +120,22 @@ export const DemoRequestsPage = () => {
 				accessorKey: "name",
 				header: "Lead",
 				cell: (info) => (
-					<div className="font-semibold text-ink">
+					<div className="font-semibold text-gray-900">
 						{(info.getValue() as string) ?? "Unnamed lead"}
 					</div>
 				),
+			},
+			{
+				id: "demoCount",
+				header: "Demo #",
+				cell: (info) => {
+					const demoCount = info.row.original.demos?.length ?? 0;
+					return (
+						<span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+							Demo {Math.max(demoCount, 1)}
+						</span>
+					);
+				},
 			},
 			{
 				accessorKey: "phone",
@@ -138,16 +150,30 @@ export const DemoRequestsPage = () => {
 				},
 			},
 			{
+				id: "assignedMentor",
+				header: "Assigned Mentor",
+				cell: (info) => {
+					const lead = info.row.original;
+					const latestDemo = getLatestLeadDemo(lead);
+					if (!latestDemo?.mentorId || !latestDemo?.assignedAt) {
+						return <span className="text-gray-400">-</span>;
+					}
+					const assignedMentor = allUsers.find((user) => user.id === latestDemo.mentorId);
+					return <span className="font-semibold text-gray-900">{formatUserName(assignedMentor?.name ?? assignedMentor?.username)}</span>;
+				},
+			},
+			{
 				accessorKey: "followUpCount",
 				header: "Follow-ups",
 				cell: (info) => {
 					const lead = info.row.original;
 					const latestDemo = getLatestLeadDemo(lead);
+					const previousMentorId = latestDemo?.mentorId;
 					if (editingLeadId === lead.id) {
 						return (
 							<select
-								className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink"
-								value={selectedMentorByLeadId[lead.id] ?? latestDemo?.mentorId ?? ""}
+								className="w-full rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+								value={selectedMentorByLeadId[lead.id] ?? previousMentorId ?? ""}
 								onChange={(event) =>
 									setSelectedMentorByLeadId((current) => ({
 										...current,
@@ -158,13 +184,13 @@ export const DemoRequestsPage = () => {
 								<option value="">Select mentor</option>
 								{mentors.map((mentor) => (
 									<option key={mentor.id} value={mentor.id}>
-										{formatUserName(mentor.name ?? mentor.username)}
+										{formatUserName(mentor.name ?? mentor.username)}{mentor.id === previousMentorId ? " (Previous)" : ""}
 									</option>
 								))}
 							</select>
 						);
 					}
-					return <span className="font-semibold text-ink">{lead.followUpCount}</span>;
+					return <span className="font-semibold text-gray-900">{lead.followUpCount}</span>;
 				},
 			},
 			{
@@ -181,7 +207,7 @@ export const DemoRequestsPage = () => {
 								<input
 									type="datetime-local"
 									className={`w-full rounded-2xl border px-3 py-2 text-sm ${
-										isPast ? "border-amber-300 bg-amber-50 text-ink" : "border-border bg-surface text-ink"
+										isPast ? "border-amber-300 bg-amber-50 text-gray-900" : "border-gray-300 bg-white text-gray-900"
 									}`}
 									value={scheduledTimeByLeadId[lead.id] ?? toInputDateTimeLocal(latestDemo?.demoScheduledFor ?? null)}
 									onChange={(event) =>
@@ -192,7 +218,7 @@ export const DemoRequestsPage = () => {
 									}
 								/>
 								{isPast && (
-									<p className="text-xs text-amber-700 font-semibold">⚠️ This is a past date/time</p>
+									<p className="text-xs text-amber-700 font-semibold">âš ï¸ This is a past date/time</p>
 								)}
 							</div>
 						);
@@ -200,7 +226,7 @@ export const DemoRequestsPage = () => {
 					return (
 						<div className="grid gap-1">
 							<span>{latestDemo?.demoScheduledFor ? new Date(latestDemo.demoScheduledFor).toLocaleString() : "-"}</span>
-							<span className="text-xs text-ink-soft">
+							<span className="text-xs text-gray-600">
 								Assigned: {latestDemo?.assignedAt ? new Date(latestDemo.assignedAt).toLocaleString() : "-"}
 							</span>
 						</div>
@@ -221,7 +247,7 @@ export const DemoRequestsPage = () => {
 								<>
 									<button
 										type="button"
-										className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+										className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 										disabled={assignDemoMentorMutation.isPending}
 										onClick={() => void handleAssign(lead.id)}
 									>
@@ -230,7 +256,7 @@ export const DemoRequestsPage = () => {
 									</button>
 									<button
 										type="button"
-										className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+										className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 										onClick={() => setEditingLeadId(null)}
 									>
 										<HiXMark className="h-4 w-4" aria-hidden="true" />
@@ -241,7 +267,7 @@ export const DemoRequestsPage = () => {
 								<>
 									<button
 										type="button"
-										className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+										className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 										onClick={() => {
 											setEditingLeadId(lead.id);
 											const latestDemo = getLatestLeadDemo(lead);
@@ -295,9 +321,9 @@ export const DemoRequestsPage = () => {
 				description="Leads already assigned with scheduled demo time"
 			>
 				{requestsQuery.isLoading ? (
-					<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+					<div className="py-8 text-center text-sm text-gray-600">Loading...</div>
 				) : requestsQuery.isError ? (
-					<div className="py-8 text-center text-sm text-ink-soft">Unable to load assigned demos.</div>
+					<div className="py-8 text-center text-sm text-gray-600">Unable to load assigned demos.</div>
 				) : (
 					<DataTable
 						columns={columns}
@@ -313,7 +339,7 @@ export const DemoRequestsPage = () => {
 				title="Mark demo completed"
 				description={
 					completingLead
-						? `${completingLead.name ?? "Lead"} • ${completingLead.phone}`
+						? `${completingLead.name ?? "Lead"} â€¢ ${completingLead.phone}`
 						: "Confirm demo completion"
 				}
 				onClose={() => {
@@ -324,7 +350,7 @@ export const DemoRequestsPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
 								setCompleteLeadId(null);
 								reset({ note: "" });
@@ -371,3 +397,7 @@ export const DemoRequestsPage = () => {
 		</div>
 	);
 };
+
+
+
+

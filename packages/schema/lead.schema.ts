@@ -98,7 +98,7 @@ export type PostponeLeadFollowUpPayload = z.infer<
 >;
 
 export const RedemoLeadPayloadSchema = z.object({
-	mentorId: ObjectIdStringSchema,
+	mentorId: ObjectIdStringSchema.optional(),
 	note: z.string().max(500).optional(),
 });
 
@@ -110,3 +110,18 @@ export const AssignDemoPayloadSchema = z.object({
 });
 
 export type AssignDemoPayload = z.infer<typeof AssignDemoPayloadSchema>;
+
+export const GenerateFormLinkResponseSchema = z.object({
+	formLink: z.string().url(),
+	expiresAt: z.string(),
+});
+
+export type GenerateFormLinkResponse = z.infer<typeof GenerateFormLinkResponseSchema>;
+
+export const SubmitLeadFormPayloadSchema = z.object({
+	name: z.string().min(1).max(255),
+	phone: PhoneNumberSchema,
+	token: z.string().min(1),
+});
+
+export type SubmitLeadFormPayload = z.infer<typeof SubmitLeadFormPayloadSchema>;

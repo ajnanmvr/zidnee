@@ -1,4 +1,4 @@
-import { type LeadResponse, ConfirmAdmissionPayloadSchema, PostponeLeadFollowUpPayloadSchema, RedemoLeadPayloadSchema, UpdateLeadPayloadSchema } from "@repo/schema";
+﻿import { type LeadResponse, ConfirmAdmissionPayloadSchema, PostponeLeadFollowUpPayloadSchema, RedemoLeadPayloadSchema, UpdateLeadPayloadSchema } from "@repo/schema";
 import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -12,6 +12,7 @@ import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { useLeadDetailQuery } from "@/features/leads/leads.queries";
 import {
 	useDeleteLeadMutation,
+	useGenerateFormLinkMutation,
 	usePostponeLeadFollowUpMutation,
 	useRequestAdmissionMutation,
 	useRequestLeadDemoMutation,
@@ -78,24 +79,24 @@ const getStatusTone = (lead: LeadResponse | null | undefined) => {
 	}
 
 	if (latestDemo?.completedAt) {
-		return { className: "bg-brand-soft text-brand", label: "Demo completed" };
+		return { className: "bg-blue-100 text-blue-600", label: "Demo completed" };
 	}
 
 	if (latestDemo?.assignedAt) {
-		return { className: "bg-sky/10 text-sky", label: "Demo assigned" };
+		return { className: "bg-sky-600/10 text-sky-600", label: "Demo assigned" };
 	}
 
 	if (latestDemo?.requestedAt) {
 		return { className: "bg-amber-500/10 text-amber-700", label: "Demo requested" };
 	}
 
-	return { className: "bg-surface-muted text-ink-soft", label: "Lead follow-up" };
+	return { className: "bg-gray-50 text-gray-600", label: "Lead follow-up" };
 };
 
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
-	<div className="rounded-3xl border border-border bg-surface-muted/60 p-4">
-		<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-ink-soft">{label}</p>
-		<p className="mt-2 text-sm font-semibold text-ink">{value}</p>
+	<div className="rounded-3xl border border-gray-300 bg-gray-50/60 p-4">
+		<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-600">{label}</p>
+		<p className="mt-2 text-sm font-semibold text-gray-900">{value}</p>
 	</div>
 );
 
@@ -124,6 +125,7 @@ export const LeadDetailPage = () => {
 	const postponeLeadMutation = usePostponeLeadFollowUpMutation();
 	const deleteLeadMutation = useDeleteLeadMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
+	const generateFormLinkMutation = useGenerateFormLinkMutation();
 	const [editOpen, setEditOpen] = useState(false);
 	const [reassignOpen, setReassignOpen] = useState(false);
 	const [postponeOpen, setPostponeOpen] = useState(false);
@@ -131,6 +133,8 @@ export const LeadDetailPage = () => {
 	const [admissionOpen, setAdmissionOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [completeOpen, setCompleteOpen] = useState(false);
+	const [formLinkOpen, setFormLinkOpen] = useState(false);
+	const [formLinkData, setFormLinkData] = useState<{ formLink: string; expiresAt: string } | null>(null);
 
 	const {
 		control: editControl,
@@ -208,15 +212,10 @@ export const LeadDetailPage = () => {
 	const currentUserId = meQuery.data?.id ?? "";
 	const currentAssigneeId = lead?.assignedTo ?? "";
 	const currentAssignee = currentAssigneeId ? allUsers.find((user) => user.id === currentAssigneeId) ?? null : null;
-	const mentors = useMemo(
-		() => allUsers.filter((user) => user.roles.some((role) => role.name.toLowerCase() === "mentor")),
-		[allUsers],
-	);
 	const counsellors = useMemo(
 		() => allUsers.filter((user) => user.roles.some((role) => role.name.toLowerCase() === "counsellor")),
 		[allUsers],
 	);
-	const redemoMentors = mentors.filter((mentor) => mentor.id !== latestDemo?.mentorId);
 	const defaultCounsellorId = latestDemo?.mentorId
 		? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
 		: undefined;
@@ -275,8 +274,8 @@ export const LeadDetailPage = () => {
 			return;
 		}
 
-		resetRedemo({ mentorId: "", note: "" });
-	}, [redemoOpen, resetRedemo]);
+		resetRedemo({ mentorId: latestDemo?.mentorId ?? undefined, note: "" });
+	}, [latestDemo?.mentorId, redemoOpen, resetRedemo]);
 
 	useEffect(() => {
 		if (!admissionOpen) {
@@ -287,15 +286,15 @@ export const LeadDetailPage = () => {
 	}, [admissionOpen, defaultCounsellorId, resetAdmission]);
 
 	if (!leadId) {
-		return <Panel title="Lead"><div className="py-8 text-center text-ink-soft">Lead not found</div></Panel>;
+		return <Panel title="Lead"><div className="py-8 text-center text-gray-600">Lead not found</div></Panel>;
 	}
 
 	if (leadQuery.isLoading) {
-		return <Panel title="Lead"><div className="py-8 text-center text-ink-soft">Loading lead...</div></Panel>;
+		return <Panel title="Lead"><div className="py-8 text-center text-gray-600">Loading lead...</div></Panel>;
 	}
 
 	if (!lead && leadQuery.isError) {
-		return <Panel title="Lead"><div className="py-8 text-center text-ink-soft">Lead not found</div></Panel>;
+		return <Panel title="Lead"><div className="py-8 text-center text-gray-600">Lead not found</div></Panel>;
 	}
 
 	const onEditLead = async (payload: EditLeadFormState) => {
@@ -436,9 +435,6 @@ export const LeadDetailPage = () => {
 		const validation = RedemoLeadPayloadSchema.safeParse(payload);
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
-			if (errors.mentorId?.[0]) {
-				setRedemoError("mentorId", { type: "manual", message: errors.mentorId[0] });
-			}
 			if (errors.note?.[0]) {
 				setRedemoError("note", { type: "manual", message: errors.note[0] });
 			}
@@ -451,9 +447,9 @@ export const LeadDetailPage = () => {
 			setRedemoOpen(false);
 		} catch (error) {
 			if (error instanceof ApiError) {
-				const mentorError = error.payload.errors?.mentorId?.[0];
-				if (mentorError) {
-					setRedemoError("mentorId", { type: "server", message: mentorError });
+				const noteError = error.payload.errors?.note?.[0];
+				if (noteError) {
+					setRedemoError("note", { type: "server", message: noteError });
 				}
 				toast.error(error.payload.message ?? "Unable to request redemo");
 				return;
@@ -564,53 +560,73 @@ export const LeadDetailPage = () => {
 						<button
 							type="button"
 							onClick={() => navigate("/leads")}
-							className="inline-flex items-center gap-2 text-sm font-semibold text-brand transition-colors hover:text-brand/80"
+							className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-600/80"
 						>
 							<HiArrowLeft className="h-4 w-4" />
 							Back to leads
 						</button>
 						<div>
-							<h1 className="text-3xl font-bold tracking-tight text-ink">{lead?.name || lead?.phone || "Lead"}</h1>
-							<div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
+							<h1 className="text-3xl font-bold tracking-tight text-gray-900">{lead?.name || lead?.phone || "Lead"}</h1>
+							<div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">
 								<span className={`rounded-full px-3 py-1 ${statusTone.className}`}>{statusSummary}</span>
-								{lead?.assignedTo ? <span className="rounded-full bg-sky/10 px-3 py-1 text-sky">Assigned</span> : null}
+								{lead?.assignedTo ? <span className="rounded-full bg-sky-600/10 px-3 py-1 text-sky-600">Assigned</span> : null}
 								{lead?.formCompleted ? <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-700">Form completed</span> : lead?.formSent ? <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-700">Form sent</span> : null}
 							</div>
 						</div>
 					</div>
 
 					<div className="flex flex-wrap gap-2">
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-brand hover:text-brand" onClick={() => setEditOpen(true)}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:border-blue-600 hover:text-blue-600" onClick={() => setEditOpen(true)}>
 							<HiPencilSquare className="h-4 w-4" />
 							Edit lead
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-brand hover:text-brand" onClick={() => setReassignOpen(true)}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:border-blue-600 hover:text-blue-600" onClick={() => setReassignOpen(true)}>
 							<HiArrowsRightLeft className="h-4 w-4" />
 							Reassign lead
 						</button>
+						{!lead?.formCompleted ? (
+							<button 
+								type="button" 
+								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+								onClick={async () => {
+									if (leadId) {
+										try {
+											const result = await generateFormLinkMutation.mutateAsync(leadId);
+											setFormLinkData(result);
+											setFormLinkOpen(true);
+										} catch (error) {
+											toast.error(error instanceof Error ? error.message : "Unable to generate form link");
+										}
+									}
+								}}
+								disabled={generateFormLinkMutation.isPending}
+							>
+								Send form
+							</button>
+						) : null}
 						{!latestDemo ? (
-							<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky px-4 py-2 text-sm font-semibold text-surface" onClick={() => void onRequestDemo()} disabled={requestDemoMutation.isPending}>
+							<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void onRequestDemo()} disabled={requestDemoMutation.isPending}>
 								<HiCalendarDays className="h-4 w-4" />
 								Request demo
 							</button>
 						) : null}
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2 text-sm font-semibold text-surface hover:bg-amber-600" onClick={() => setPostponeOpen(true)}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600" onClick={() => setPostponeOpen(true)}>
 							<HiCalendarDays className="h-4 w-4" />
 							Postpone
 						</button>
 						{showDemoWorkflowActions ? (
 							<>
-								<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => setRedemoOpen(true)}>
+								<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setRedemoOpen(true)}>
 									<HiArrowPath className="h-4 w-4" />
 									Redemo
 								</button>
-								<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => setAdmissionOpen(true)}>
+								<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setAdmissionOpen(true)}>
 									<HiAcademicCap className="h-4 w-4" />
 									Admission
 								</button>
 							</>
 						) : null}
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => setDeleteOpen(true)}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setDeleteOpen(true)}>
 							<HiTrash className="h-4 w-4" />
 							Delete lead
 						</button>
@@ -655,10 +671,10 @@ export const LeadDetailPage = () => {
 				{lead?.demos?.length ? (
 					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 						{lead.demos.map((demo, index) => (
-							<div key={`${index}-${demo.requestedAt ?? index}`} className="rounded-3xl border border-border bg-surface-muted/60 p-4">
+							<div key={`${index}-${demo.requestedAt ?? index}`} className="rounded-3xl border border-gray-300 bg-gray-50/60 p-4">
 								<div className="flex items-center justify-between gap-3 mb-4">
-									<p className="text-sm font-semibold text-ink">Demo {index + 1}</p>
-									<span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+									<p className="text-sm font-semibold text-gray-900">Demo {index + 1}</p>
+									<span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600">
 										{demo.completedAt ? "Completed" : demo.admissionCompletedAt ? "Admission completed" : demo.admissionRequestedAt ? "Admission requested" : demo.assignedAt ? "Assigned" : demo.requestedAt ? "Requested" : "Pending"}
 									</span>
 								</div>
@@ -666,30 +682,30 @@ export const LeadDetailPage = () => {
 									{/* Request Section */}
 									{demo.requestedAt && (
 										<div className="space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Request</p>
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Request</p>
 											<div className="flex justify-between items-start">
-												<span className="font-semibold text-ink-soft">Requested</span>
-												<span className="text-ink text-right">{formatDateTime(demo.requestedAt)}</span>
+												<span className="font-semibold text-gray-600">Requested</span>
+												<span className="text-gray-900 text-right">{formatDateTime(demo.requestedAt)}</span>
 											</div>
 										</div>
 									)}
 
 									{/* Assignment Section */}
 									{demo.assignedAt && (
-										<div className="border-t border-border pt-3 space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Assignment</p>
+										<div className="border-t border-gray-300 pt-3 space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Assignment</p>
 											<div className="flex justify-between items-start">
-												<span className="font-semibold text-ink-soft">Mentor</span>
-												<span className="text-ink text-right">{demo.mentorId ? formatUserName(allUsers.find((user) => user.id === demo.mentorId)?.name ?? null) : "-"}</span>
+												<span className="font-semibold text-gray-600">Mentor</span>
+												<span className="text-gray-900 text-right">{demo.mentorId ? formatUserName(allUsers.find((user) => user.id === demo.mentorId)?.name ?? null) : "-"}</span>
 											</div>
 											<div className="flex justify-between items-start">
-												<span className="font-semibold text-ink-soft">Assigned</span>
-												<span className="text-ink text-right">{formatDateTime(demo.assignedAt)}</span>
+												<span className="font-semibold text-gray-600">Assigned</span>
+												<span className="text-gray-900 text-right">{formatDateTime(demo.assignedAt)}</span>
 											</div>
 											{demo.demoScheduledFor && (
 												<div className="flex justify-between items-start">
-													<span className="font-semibold text-ink-soft">Scheduled</span>
-													<span className="text-ink text-right">{formatDateTime(demo.demoScheduledFor)}</span>
+													<span className="font-semibold text-gray-600">Scheduled</span>
+													<span className="text-gray-900 text-right">{formatDateTime(demo.demoScheduledFor)}</span>
 												</div>
 											)}
 										</div>
@@ -697,29 +713,29 @@ export const LeadDetailPage = () => {
 
 									{/* Completion Section */}
 									{demo.completedAt && (
-										<div className="border-t border-border pt-3 space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Completion</p>
+										<div className="border-t border-gray-300 pt-3 space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Completion</p>
 											<div className="flex justify-between items-start">
-												<span className="font-semibold text-ink-soft">Completed</span>
-												<span className="text-ink text-right">{formatDateTime(demo.completedAt)}</span>
+												<span className="font-semibold text-gray-600">Completed</span>
+												<span className="text-gray-900 text-right">{formatDateTime(demo.completedAt)}</span>
 											</div>
 										</div>
 									)}
 
 									{/* Admission Section */}
 									{(demo.admissionRequestedAt || demo.admissionCompletedAt) && (
-										<div className="border-t border-border pt-3 space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Admission</p>
+										<div className="border-t border-gray-300 pt-3 space-y-1.5">
+											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Admission</p>
 											{demo.admissionRequestedAt && (
 												<div className="flex justify-between items-start">
-													<span className="font-semibold text-ink-soft">Requested</span>
-													<span className="text-ink text-right">{formatDateTime(demo.admissionRequestedAt)}</span>
+													<span className="font-semibold text-gray-600">Requested</span>
+													<span className="text-gray-900 text-right">{formatDateTime(demo.admissionRequestedAt)}</span>
 												</div>
 											)}
 											{demo.admissionCompletedAt && (
 												<div className="flex justify-between items-start">
-													<span className="font-semibold text-ink-soft">Completed</span>
-													<span className="text-ink text-right">{formatDateTime(demo.admissionCompletedAt)}</span>
+													<span className="font-semibold text-gray-600">Completed</span>
+													<span className="text-gray-900 text-right">{formatDateTime(demo.admissionCompletedAt)}</span>
 												</div>
 											)}
 										</div>
@@ -727,16 +743,16 @@ export const LeadDetailPage = () => {
 
 									{/* Note Section */}
 									{demo.note && (
-										<div className="border-t border-border pt-3">
-											<p className="text-xs font-semibold text-ink-soft mb-2">Note</p>
-											<p className="text-ink text-xs bg-surface-muted/40 rounded-lg p-2">{demo.note}</p>
+										<div className="border-t border-gray-300 pt-3">
+											<p className="text-xs font-semibold text-gray-600 mb-2">Note</p>
+											<p className="text-gray-900 text-xs bg-gray-50/40 rounded-lg p-2">{demo.note}</p>
 										</div>
 									)}
 								</div>
 								{demo.assignedAt && !demo.completedAt && index === lead.demos.length - 1 && (
 									<button
 										type="button"
-										className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-surface hover:bg-emerald-700"
+										className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
 										onClick={() => setCompleteOpen(true)}
 									>
 										<HiCheckCircle className="h-3 w-3" aria-hidden="true" />
@@ -747,7 +763,7 @@ export const LeadDetailPage = () => {
 						))}
 					</div>
 				) : (
-					<div className="py-6 text-sm text-ink-soft">No demo history yet.</div>
+					<div className="py-6 text-sm text-gray-600">No demo history yet.</div>
 				)}
 			</Panel>
 
@@ -762,10 +778,10 @@ export const LeadDetailPage = () => {
 				onClose={() => setEditOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setEditOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setEditOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handleEditSubmit(onEditLead)()} disabled={updateLeadMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handleEditSubmit(onEditLead)()} disabled={updateLeadMutation.isPending}>
 							<HiPencilSquare className="h-4 w-4" />
 							{updateLeadMutation.isPending ? "Saving..." : "Save changes"}
 						</button>
@@ -786,10 +802,10 @@ export const LeadDetailPage = () => {
 				onClose={() => setReassignOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setReassignOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setReassignOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handleReassignSubmit(onReassignLead)()} disabled={updateLeadMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handleReassignSubmit(onReassignLead)()} disabled={updateLeadMutation.isPending}>
 							<HiArrowsRightLeft className="h-4 w-4" />
 							{updateLeadMutation.isPending ? "Saving..." : "Reassign"}
 						</button>
@@ -801,9 +817,9 @@ export const LeadDetailPage = () => {
 						name="assignedTo"
 						control={reassignControl}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-ink-soft">
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Assigned to</span>
-								<select className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value)}>
+								<select className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value)}>
 									<option value="">Select user</option>
 									{assignmentOptions.map((user) => (
 										<option key={user.id} value={user.id}>{formatUserName(user.name ?? user.username)}{user.id === currentUserId ? " (You)" : ""}</option>
@@ -823,10 +839,10 @@ export const LeadDetailPage = () => {
 				onClose={() => setPostponeOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setPostponeOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setPostponeOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handlePostponeSubmit(onPostponeLead)()} disabled={postponeLeadMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handlePostponeSubmit(onPostponeLead)()} disabled={postponeLeadMutation.isPending}>
 							<HiCalendarDays className="h-4 w-4" />
 							{postponeLeadMutation.isPending ? "Saving..." : "Save postpone"}
 						</button>
@@ -842,14 +858,14 @@ export const LeadDetailPage = () => {
 			<Modal
 				open={redemoOpen}
 				title="Request redemo"
-				description={lead ? `Previous mentor: ${latestDemo?.mentorId ? formatUserName(allUsers.find((user) => user.id === latestDemo.mentorId)?.name ?? null) : "-"}` : "Select a different mentor"}
+				description={lead ? `Previous mentor: ${latestDemo?.mentorId ? formatUserName(allUsers.find((user) => user.id === latestDemo.mentorId)?.name ?? null) : "-"}` : "Request a new demo attempt"}
 				onClose={() => setRedemoOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setRedemoOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setRedemoOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handleRedemoSubmit(onRedemoLead)()} disabled={requestRedemoMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handleRedemoSubmit(onRedemoLead)()} disabled={requestRedemoMutation.isPending}>
 							<HiArrowPath className="h-4 w-4" />
 							{requestRedemoMutation.isPending ? "Saving..." : "Request redemo"}
 						</button>
@@ -857,16 +873,9 @@ export const LeadDetailPage = () => {
 				}
 			>
 				<form className="grid gap-4" onSubmit={handleRedemoSubmit(onRedemoLead)}>
-					<Controller name="mentorId" control={redemoControl} render={({ field, fieldState }) => (
-						<label className="grid gap-2 text-sm font-medium text-ink-soft">
-							<span>Mentor</span>
-							<select className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value)}>
-								<option value="">Select another mentor</option>
-								{redemoMentors.map((mentor) => <option key={mentor.id} value={mentor.id}>{formatUserName(mentor.name ?? mentor.username)}{mentor.id === latestDemo?.mentorId ? " (Current)" : ""}</option>)}
-							</select>
-							{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
-						</label>
-					)} />
+					<div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+						A new demo request will be created. Previous mentor will be preselected during assignment, and you can keep or change it.
+					</div>
 					<Controller name="note" control={redemoControl} render={({ field, fieldState }) => <TextAreaField label="Note (optional)" value={field.value ?? ""} onChange={field.onChange} placeholder="Add redemo note..." error={fieldState.error?.message} />} />
 				</form>
 			</Modal>
@@ -878,10 +887,10 @@ export const LeadDetailPage = () => {
 				onClose={() => setAdmissionOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setAdmissionOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setAdmissionOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handleAdmissionSubmit(onRequestAdmission)()} disabled={requestAdmissionMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handleAdmissionSubmit(onRequestAdmission)()} disabled={requestAdmissionMutation.isPending}>
 							<HiAcademicCap className="h-4 w-4" />
 							{requestAdmissionMutation.isPending ? "Saving..." : "Request admission"}
 						</button>
@@ -890,9 +899,9 @@ export const LeadDetailPage = () => {
 			>
 				<form className="grid gap-4" onSubmit={handleAdmissionSubmit(onRequestAdmission)}>
 					<Controller name="counsellorId" control={admissionControl} render={({ field, fieldState }) => (
-						<label className="grid gap-2 text-sm font-medium text-ink-soft">
+						<label className="grid gap-2 text-sm font-medium text-gray-600">
 							<span>Counsellor</span>
-							<select className="rounded-2xl border border-border bg-surface px-4 py-3 text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-soft" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value || undefined)}>
+							<select className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value || undefined)}>
 								<option value="">Use default counsellor</option>
 								{counsellors.map((counsellor) => <option key={counsellor.id} value={counsellor.id}>{formatUserName(counsellor.name ?? counsellor.username)}</option>)}
 							</select>
@@ -910,17 +919,17 @@ export const LeadDetailPage = () => {
 				onClose={() => setDeleteOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setDeleteOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setDeleteOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => void onDeleteLead()} disabled={deleteLeadMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void onDeleteLead()} disabled={deleteLeadMutation.isPending}>
 							<HiTrash className="h-4 w-4" />
 							{deleteLeadMutation.isPending ? "Deleting..." : "Delete lead"}
 						</button>
 					</>
 				}
 			>
-				<p className="text-sm text-ink-soft">This will permanently remove the lead record from the system.</p>
+				<p className="text-sm text-gray-600">This will permanently remove the lead record from the system.</p>
 			</Modal>
 
 			<Modal
@@ -930,10 +939,10 @@ export const LeadDetailPage = () => {
 				onClose={() => setCompleteOpen(false)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink" onClick={() => setCompleteOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setCompleteOpen(false)}>
 							Cancel
 						</button>
-						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-surface" onClick={() => void handleCompleteSubmit(onCompleteDemo)()} disabled={markDemoCompletedMutation.isPending}>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handleCompleteSubmit(onCompleteDemo)()} disabled={markDemoCompletedMutation.isPending}>
 							<HiCheckCircle className="h-4 w-4" />
 							{markDemoCompletedMutation.isPending ? "Completing..." : "Mark completed"}
 						</button>
@@ -952,6 +961,76 @@ export const LeadDetailPage = () => {
 					</form>
 				</div>
 			</Modal>
-		</div>
-	);
-};
+
+				<Modal
+					open={formLinkOpen}
+					title="Send form to lead"
+					description="Share the form link with the lead"
+					onClose={() => {
+						setFormLinkOpen(false);
+						setFormLinkData(null);
+					}}
+					footer={
+						<>
+							<button
+								type="button"
+								className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+								onClick={() => {
+									setFormLinkOpen(false);
+									setFormLinkData(null);
+								}}
+							>
+								Close
+							</button>
+						</>
+					}
+				>
+					{formLinkData ? (
+						<div className="grid gap-4">
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Form Link</p>
+								<div className="flex gap-2">
+									<input
+										type="text"
+										readOnly
+										value={formLinkData.formLink}
+										className="flex-1 rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-900 font-mono"
+									/>
+									<button
+										type="button"
+										className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+										onClick={() => {
+											navigator.clipboard.writeText(formLinkData.formLink);
+											toast.success("Link copied to clipboard");
+										}}
+									>
+										Copy
+									</button>
+								</div>
+							</div>
+
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Expires at</p>
+								<p className="text-sm text-gray-900">{new Date(formLinkData.expiresAt).toLocaleString()}</p>
+							</div>
+
+							<button
+								type="button"
+								className="inline-flex items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 w-full"
+								onClick={() => {
+									const message = `Check this form link: ${formLinkData.formLink}`;
+									const encodedMessage = encodeURIComponent(message);
+									const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+									window.open(whatsappUrl, "_blank");
+								}}
+							>
+								Share via WhatsApp
+							</button>
+						</div>
+					) : (
+						<div className="py-8 text-center text-gray-600">Loading form link...</div>
+					)}
+				</Modal>
+			</div>
+		);
+	};

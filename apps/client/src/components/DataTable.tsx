@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
 	flexRender,
 	getCoreRowModel,
@@ -91,7 +91,7 @@ export function DataTable<T>({
 					placeholder={searchPlaceholder}
 					value={globalFilter}
 					onChange={(e) => setGlobalFilter(e.target.value)}
-					className="rounded-2xl border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-brand"
+					className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
 				/>
 
 				<div className="relative">
@@ -100,9 +100,9 @@ export function DataTable<T>({
 			</div>
 
 			{/* Table */}
-			<div className="overflow-x-auto rounded-3xl border border-border">
-				<table className="min-w-full border-collapse bg-surface text-left text-sm">
-					<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
+			<div className="overflow-x-auto rounded-3xl border border-gray-300">
+				<table className="min-w-full border-collapse bg-white text-left text-sm">
+					<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
 						{table.getHeaderGroups().map((headerGroup) => (
 							<tr key={headerGroup.id}>
 								{headerGroup.headers.map((header) => (
@@ -117,11 +117,11 @@ export function DataTable<T>({
 											{header.column.getCanSort() && (
 												<span>
 													{header.column.getIsSorted() === "asc" ? (
-														<HiArrowUp className="h-4 w-4 text-brand" />
+														<HiArrowUp className="h-4 w-4 text-blue-600" />
 													) : header.column.getIsSorted() === "desc" ? (
-														<HiArrowDown className="h-4 w-4 text-brand" />
+														<HiArrowDown className="h-4 w-4 text-blue-600" />
 													) : (
-													<HiArrowsUpDown className="h-4 w-4 text-ink-soft opacity-50" />
+													<HiArrowsUpDown className="h-4 w-4 text-gray-600 opacity-50" />
 													)}
 												</span>
 											)}
@@ -133,9 +133,9 @@ export function DataTable<T>({
 					</thead>
 					<tbody>
 						{table.getRowModel().rows.map((row) => (
-							<tr key={row.id} className="border-t border-border align-top">
+							<tr key={row.id} className="border-t border-gray-300 align-top">
 								{row.getVisibleCells().map((cell) => (
-									<td key={cell.id} className="px-4 py-3 text-ink-soft">
+									<td key={cell.id} className="px-4 py-3 text-gray-600">
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}
 									</td>
 								))}
@@ -145,7 +145,7 @@ export function DataTable<T>({
 				</table>
 
 				{table.getRowModel().rows.length === 0 && (
-					<div className="px-4 py-5 text-center text-sm text-ink-soft">
+					<div className="px-4 py-5 text-center text-sm text-gray-600">
 						No records found.
 					</div>
 				)}
@@ -154,14 +154,14 @@ export function DataTable<T>({
 			{/* Pagination */}
 			<div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
 				<div className="flex items-center gap-2">
-					<span className="text-sm text-ink-soft">Rows per page:</span>
+					<span className="text-sm text-gray-600">Rows per page:</span>
 					<select
 						value={pageSize}
 						onChange={(e) => {
 							setPageSize(Number(e.target.value));
 							table.setPageSize(Number(e.target.value));
 						}}
-						className="rounded-2xl border border-border bg-surface px-2 py-1 text-sm outline-none focus:border-brand"
+						className="rounded-2xl border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-600"
 					>
 						{[5, 10, 20, 30, 40, 50].map((size) => (
 							<option key={size} value={size}>
@@ -171,7 +171,7 @@ export function DataTable<T>({
 					</select>
 				</div>
 
-				<div className="text-sm text-ink-soft">
+				<div className="text-sm text-gray-600">
 					Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
 				</div>
 
@@ -179,14 +179,14 @@ export function DataTable<T>({
 					<button
 						onClick={() => table.previousPage()}
 						disabled={!table.getCanPreviousPage()}
-						className="rounded-2xl border border-border bg-surface px-3 py-1 transition-colors hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+						className="rounded-2xl border border-gray-300 bg-white px-3 py-1 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						<HiChevronLeft className="h-4 w-4" />
 					</button>
 					<button
 						onClick={() => table.nextPage()}
 						disabled={!table.getCanNextPage()}
-						className="rounded-2xl border border-border bg-surface px-3 py-1 transition-colors hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+						className="rounded-2xl border border-gray-300 bg-white px-3 py-1 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						<HiChevronRight className="h-4 w-4" />
 					</button>
@@ -204,7 +204,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 			<button
 				type="button"
 				onClick={() => setOpen((s) => !s)}
-				className="rounded-full border border-border bg-surface p-2 text-ink transition-colors hover:bg-surface-muted"
+				className="rounded-full border border-gray-300 bg-white p-2 text-gray-900 transition-colors hover:bg-gray-50"
 				aria-haspopup="true"
 				aria-expanded={open}
 			>
@@ -212,9 +212,9 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 			</button>
 
 			{open && (
-				<div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-surface p-2 shadow-lg">
+				<div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-300 bg-white p-2 shadow-lg">
 					<button
-						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-surface-muted"
+						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-gray-50"
 						onClick={() => {
 							onExport("csv");
 							setOpen(false);
@@ -223,7 +223,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 						Export CSV
 					</button>
 					<button
-						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-surface-muted"
+						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-gray-50"
 						onClick={() => {
 							onExport("excel");
 							setOpen(false);
@@ -232,7 +232,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 						Export Excel
 					</button>
 					<button
-						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-surface-muted"
+						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-gray-50"
 						onClick={() => {
 							onExport("pdf");
 							setOpen(false);
@@ -245,3 +245,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 		</div>
 	);
 }
+
+
+
+

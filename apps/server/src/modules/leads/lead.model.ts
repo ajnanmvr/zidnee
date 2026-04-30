@@ -9,7 +9,11 @@ export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	demos?: LeadDemo[];
 };
 
-const leadSchema = new Schema<LeadDocument>(
+export interface LeadDocumentExt extends LeadDocument {
+	formToken?: string;
+	formTokenExpiresAt?: Date;
+}
+const leadSchema = new Schema<LeadDocumentExt>(
 	{
 		name: {
 			type: String,
@@ -49,6 +53,16 @@ const leadSchema = new Schema<LeadDocument>(
 			type: Boolean,
 			required: true,
 			default: false,
+		},
+		formToken: {
+			type: String,
+			required: false,
+			index: true,
+		},
+		formTokenExpiresAt: {
+			type: Date,
+			required: false,
+			index: true,
 		},
 		followUpCount: {
 			type: Number,

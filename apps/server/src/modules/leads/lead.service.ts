@@ -1,6 +1,10 @@
 import type { Lead } from "@repo/schema";
+import { randomBytes } from "crypto";
 import { LeadModel, type LeadDocument } from "./lead.model.js";
 import { ActivityService } from "./activity.service.js";
+import { ZidService } from "../zid/zid.service.js";
+import { StudentModel, type StudentDocument } from "../students/student.model.js";
+import type { LeadDocumentExt } from "./lead.model.js";
 
 type LeadDemo = NonNullable<Lead["demos"]>[number];
 
@@ -377,7 +381,7 @@ export const LeadService = {
 
 	redemo: async (
 		leadId: string,
-		mentorId: string,
+		mentorId: string | undefined,
 		performedBy?: string,
 		note?: string,
 	): Promise<Lead | null> => {
@@ -385,11 +389,12 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
+		const previousMentorId = getLatestDemo(existingLead)?.mentorId?.toString();
+		const effectiveMentorId = mentorId ?? previousMentorId;
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
-			mentorId,
+			mentorId: effectiveMentorId,
 			requestedAt: now,
-			assignedAt: now,
 			demoRequired: true,
 			nextFollowUpAt: now,
 		});
@@ -414,8 +419,8 @@ export const LeadService = {
 				"DEMO_REDONE",
 				performedBy,
 				`Requested redemo for ${existingLead.phone}`,
-				{ mentorId: getLatestDemo(existingLead)?.mentorId?.toString() },
-				{ mentorId, requestedAt: now.toISOString() },
+				{ mentorId: previousMentorId },
+				{ mentorId: effectiveMentorId, requestedAt: now.toISOString() },
 				note,
 			);
 		}
@@ -557,6 +562,110 @@ export const LeadService = {
 		}
 
 		return updatedLead ? mapLead(updatedLead) : null;
+	},
+
+	generateFormLink: async (leadId: string) => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) {
+			return null;
+		}
+
+		// Generate a secure random token
+		const token = randomBytes(32).toString("hex");
+		
+		// Set expiry to 30 days from now
+		const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+		// Get app URL from environment or use default
+		const appUrl = process.env.APP_URL || "https://app.example.com";
+		const formLink = `${appUrl}/form/${leadId}?token=${token}`;
+
+		// Save token to database
+		await LeadModel.findByIdAndUpdate(leadId, {
+			formToken: token,
+			formTokenExpiresAt: expiresAt,
+		});
+
+		return {
+			formLink,
+			expiresAt: expiresAt.toISOString(),
+		};
+	},
+
+	submitLeadForm: async (leadId: string, token: string, data: { name: string; phone: string }): Promise<{ studentId: string; zid: string } | null> => {
+		const existingLead = await LeadModel.findById(leadId);
+		if (!existingLead) {
+			return null;
+		}
+
+		// Validate token
+		const lead = existingLead as LeadDocumentExt;
+		if (lead.formToken !== token) {
+			return null;
+		}
+
+		// Validate token expiry
+		if (!lead.formTokenExpiresAt || lead.formTokenExpiresAt < new Date()) {
+			return null;
+		}
+
+		// Generate ZID
+		const zid = await ZidService.generateZid("ZID");
+
+		// Create student
+		const student = await StudentModel.create({
+			zid,
+			leadId: existingLead._id,
+			name: data.name,
+			phone: data.phone,
+			status: "ACTIVE",
+			admittedAt: new Date(),
+		});
+
+		// Update lead: mark form as completed, clear token
+
+		// Update lead in database
+		await LeadModel.findByIdAndUpdate(leadId, {
+			formCompleted: true,
+			formToken: undefined,
+			formTokenExpiresAt: undefined,
+		});
+
+		// Log activity
+		await ActivityService.logActivity(
+			leadId,
+			"STUDENT_CREATED",
+			existingLead.createdBy.toString(),
+			`Form submitted and student created: ${zid}`,
+			{},
+			{ formCompleted: true, studentId: student._id.toString(), zid },
+		);
+
+		return {
+			studentId: student._id.toString(),
+			zid,
+		};
+	},
+
+	validateFormLink: async (leadId: string, token: string): Promise<{ isValid: boolean; expiresAt?: string }> => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) {
+			return { isValid: false };
+		}
+
+		const lead = existingLead as LeadDocumentExt;
+		if (lead.formToken !== token) {
+			return { isValid: false };
+		}
+
+		if (!lead.formTokenExpiresAt || lead.formTokenExpiresAt < new Date()) {
+			return { isValid: false };
+		}
+
+		return {
+			isValid: true,
+			expiresAt: lead.formTokenExpiresAt.toISOString(),
+		};
 	},
 
 	delete: async (leadId: string, performedBy?: string, performedByName?: string): Promise<boolean> => {

@@ -1,4 +1,4 @@
-import { CreateRolePayloadSchema } from "@repo/schema";
+﻿import { CreateRolePayloadSchema } from "@repo/schema";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
@@ -146,15 +146,15 @@ export const CreateRolePage = () => {
 	};
 
 	return (
-		<section className="rounded-4xl border border-border bg-surface p-6 shadow-sm">
+		<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
 			<div className="flex items-center justify-between gap-4">
 				<div>
-					<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
 						Builder
 					</p>
-					<h3 className="mt-1 text-xl font-semibold text-ink">Create role</h3>
+					<h3 className="mt-1 text-xl font-semibold text-gray-900">Create role</h3>
 				</div>
-				<span className="rounded-full bg-accent-soft px-3 py-1.5 text-sm font-medium text-ink">
+				<span className="rounded-full bg-purple-600-soft px-3 py-1.5 text-sm font-medium text-gray-900">
 					{selectedPermissionIds.length} selected
 				</span>
 			</div>
@@ -190,13 +190,13 @@ export const CreateRolePage = () => {
 				</div>
 
 				<div className="grid gap-3">
-					<p className="text-sm font-semibold text-ink">Permissions</p>
+					<p className="text-sm font-semibold text-gray-900">Permissions</p>
 					{groupedPermissions.map((group) => (
 						<div
 							key={group.resource}
-							className="rounded-3xl border border-border bg-surface-muted p-4"
+							className="rounded-3xl border border-gray-300 bg-gray-50 p-4"
 						>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
+							<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-600">
 								{group.resource}
 							</p>
 							<div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -211,16 +211,16 @@ export const CreateRolePage = () => {
 											key={permission.id}
 											className={
 												selected
-													? "rounded-2xl border border-brand bg-brand-soft px-3 py-2 text-left transition"
-													: "rounded-2xl border border-border bg-surface px-3 py-2 text-left transition hover:border-brand/30"
+													? "rounded-2xl border border-blue-600 bg-blue-100 px-3 py-2 text-left transition"
+													: "rounded-2xl border border-gray-300 bg-white px-3 py-2 text-left transition hover:border-blue-600/30"
 											}
 											onClick={() => togglePermission(permission.id)}
 										>
-											<p className="text-xs font-semibold text-ink">
+											<p className="text-xs font-semibold text-gray-900">
 												{permission.name}
 											</p>
-											<p className="mt-0.5 text-[11px] text-ink-soft">
-												{permission.action} • {permission.key}
+											<p className="mt-0.5 text-[11px] text-gray-600">
+												{permission.action} â€¢ {permission.key}
 											</p>
 										</button>
 									);
@@ -231,14 +231,14 @@ export const CreateRolePage = () => {
 				</div>
 
 				{formState.errors.permissionIds?.message ? (
-					<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+					<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
 						{formState.errors.permissionIds.message}
 					</p>
 				) : null}
 
 				<div className="flex flex-wrap gap-2">
 					<button
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
 						type="submit"
 						disabled={createRoleMutation.isPending}
 					>
@@ -247,15 +247,15 @@ export const CreateRolePage = () => {
 					</button>
 					<Link
 						to="/roles"
-						className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
-						<HiXCircle className="h-4 w-4 text-danger" aria-hidden="true" />
+						<HiXCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
 						Cancel
 					</Link>
 				</div>
 
 				{banner ? (
-					<p className="rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
+					<p className="rounded-2xl border border-blue-600/15 bg-blue-100 px-4 py-3 text-sm text-blue-600">
 						{banner}
 					</p>
 				) : null}
@@ -263,3 +263,7 @@ export const CreateRolePage = () => {
 		</section>
 	);
 };
+
+
+
+

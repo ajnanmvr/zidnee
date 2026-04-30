@@ -1,4 +1,4 @@
-import type { LeadResponse } from "@repo/schema";
+﻿import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +34,7 @@ export const AdmissionsPage = () => {
 				accessorKey: "name",
 				header: "Lead",
 				cell: (info) => (
-					<div className="font-semibold text-ink">
+					<div className="font-semibold text-gray-900">
 						{(info.getValue() as string) ?? "Unnamed lead"}
 					</div>
 				),
@@ -66,7 +66,7 @@ export const AdmissionsPage = () => {
 					<button
 						type="button"
 						onClick={() => navigate(`/admissions/${info.row.original.id}`)}
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 					>
 						<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
 						Confirm admission
@@ -83,9 +83,9 @@ export const AdmissionsPage = () => {
 			description="Leads waiting for final admission confirmation"
 		>
 			{admissionsQuery.isLoading ? (
-				<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+				<div className="py-8 text-center text-sm text-gray-600">Loading...</div>
 			) : admissionsQuery.isError ? (
-				<div className="py-8 text-center text-sm text-ink-soft">Unable to load admissions.</div>
+				<div className="py-8 text-center text-sm text-gray-600">Unable to load admissions.</div>
 			) : (
 				<DataTable
 					columns={columns}
@@ -97,3 +97,7 @@ export const AdmissionsPage = () => {
 		</Panel>
 	);
 };
+
+
+
+

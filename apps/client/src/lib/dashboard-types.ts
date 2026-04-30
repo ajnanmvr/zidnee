@@ -28,6 +28,6 @@ export type UpdateLeadForm = UpdateLeadPayload;
 export type PostponeLeadFollowUpForm = PostponeLeadFollowUpPayload;
 export type ConfirmAdmissionForm = ConfirmAdmissionPayload;
 export type RedemoLeadForm = {
-	mentorId: string;
+	mentorId?: string;
 	note?: string;
 };

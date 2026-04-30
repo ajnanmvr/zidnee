@@ -2,6 +2,7 @@ import {
 	AssignDemoPayloadSchema,
 	ConfirmAdmissionPayloadSchema,
 	CreateLeadPayloadSchema,
+	GenerateFormLinkResponseSchema,
 	LeadActivitiesResponseSchema,
 	LeadResponseEnvelopeSchema,
 	LeadsResponseSchema,
@@ -192,6 +193,16 @@ export const deleteLead = async (token: string, leadId: string) => {
 		`/leads/${leadId}`,
 		MessageResponseSchema,
 		"DELETE",
+		undefined,
+		token,
+	);
+};
+
+export const generateFormLink = async (token: string, leadId: string) => {
+	return requestWithSchema(
+		`/leads/${leadId}/form-link`,
+		GenerateFormLinkResponseSchema,
+		"POST",
 		undefined,
 		token,
 	);

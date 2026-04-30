@@ -1,4 +1,4 @@
-import type { StudentResponse } from "@repo/schema";
+﻿import type { StudentResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { DataTable } from "@/components/DataTable";
@@ -29,7 +29,7 @@ export const StudentsPage = () => {
 			{
 				accessorKey: "zid",
 				header: "Student ID",
-				cell: (info) => <div className="font-semibold text-ink">{String(info.getValue())}</div>,
+				cell: (info) => <div className="font-semibold text-gray-900">{String(info.getValue())}</div>,
 			},
 			{ accessorKey: "name", header: "Name" },
 			{ accessorKey: "phone", header: "Phone" },
@@ -61,9 +61,9 @@ export const StudentsPage = () => {
 	return (
 		<Panel title="Students" description="Admissions converted to enrolled students">
 			{studentsQuery.isLoading ? (
-				<div className="py-8 text-center text-sm text-ink-soft">Loading...</div>
+				<div className="py-8 text-center text-sm text-gray-600">Loading...</div>
 			) : studentsQuery.isError ? (
-				<div className="py-8 text-center text-sm text-ink-soft">Unable to load students.</div>
+				<div className="py-8 text-center text-sm text-gray-600">Unable to load students.</div>
 			) : (
 				<DataTable
 					columns={columns}
@@ -75,3 +75,7 @@ export const StudentsPage = () => {
 		</Panel>
 	);
 };
+
+
+
+

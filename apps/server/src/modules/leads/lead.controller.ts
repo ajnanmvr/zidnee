@@ -7,6 +7,7 @@ import {
 	type Lead,
 	ConfirmAdmissionPayloadSchema,
 } from "@repo/schema";
+import { SubmitLeadFormPayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
 import { NotFoundError, ValidationError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
@@ -287,13 +288,6 @@ export const redemoLeadController = async (
 		throw new NotFoundError("Lead");
 	}
 
-	const latestDemo = getLatestDemo(lead);
-	if (latestDemo?.mentorId === result.data.mentorId) {
-		throw new ValidationError({
-			mentorId: ["Select a different mentor for redemo"],
-		});
-	}
-
 	const updatedLead = await LeadService.redemo(
 		leadId,
 		result.data.mentorId,
@@ -451,6 +445,48 @@ export const assignDemoMentorController = async (
 	});
 };
 
+export const generateFormLinkController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new Error("User not authenticated");
+	}
+
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+
+	const result = await LeadService.generateFormLink(leadId);
+
+	if (!result) {
+		throw new NotFoundError("Lead");
+	}
+
+	res.json(result);
+};
+
+export const submitLeadFormController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const payload = SubmitLeadFormPayloadSchema.parse(req.body);
+
+	const result = await LeadService.submitLeadForm(leadId, payload.token, {
+		name: payload.name,
+		phone: payload.phone,
+	});
+
+	if (!result) {
+		throw new ValidationError({ token: ["Invalid or expired form token"] });
+	}
+
+	res.json({
+		ok: true,
+		studentId: result.studentId,
+		zid: result.zid,
+	});
+};
+
 export const deleteLeadController = async (
 	req: Request,
 	res: Response,
@@ -475,4 +511,20 @@ export const deleteLeadController = async (
 		ok: true,
 		message: "Lead deleted successfully",
 	});
+};
+
+export const validateFormLinkController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const token = req.query.token as string;
+
+	if (!token) {
+		throw new ValidationError({ token: ["Token is required"] });
+	}
+
+	const result = await LeadService.validateFormLink(leadId, token);
+
+	res.json(result);
 };

@@ -1,4 +1,4 @@
-import { CreateUserPayloadSchema } from "@repo/schema";
+﻿import { CreateUserPayloadSchema } from "@repo/schema";
 import { Controller, useForm } from "react-hook-form";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
 import toast from "react-hot-toast";
@@ -163,7 +163,7 @@ export const CreateUserPage = () => {
 					/>
 				</div>
 
-				<div className="grid gap-2 text-sm font-medium text-ink-soft">
+				<div className="grid gap-2 text-sm font-medium text-gray-600">
 					<span>Roles</span>
 					<div className="flex flex-wrap gap-2">
 						{rolesQuery.data?.roles.map((role) => {
@@ -175,8 +175,8 @@ export const CreateUserPage = () => {
 									key={role.id}
 									className={
 										selected
-											? "rounded-full border border-brand bg-brand-soft px-3 py-2 text-xs font-semibold text-brand"
-											: "rounded-full border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-soft"
+											? "rounded-full border border-blue-600 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-600"
+											: "rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600"
 									}
 									onClick={() => {
 										const nextRoleIds = selected
@@ -194,7 +194,7 @@ export const CreateUserPage = () => {
 						})}
 					</div>
 					{formState.errors.roleIds?.message ? (
-						<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+						<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
 							{formState.errors.roleIds.message}
 						</p>
 					) : null}
@@ -203,7 +203,7 @@ export const CreateUserPage = () => {
 				<div className="flex flex-wrap gap-2">
 					<button
 						type="submit"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-70"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
 						disabled={createUserMutation.isPending}
 					>
 						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
@@ -211,9 +211,9 @@ export const CreateUserPage = () => {
 					</button>
 					<Link
 						to="/users"
-						className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
-						<HiXCircle className="h-4 w-4 text-danger" aria-hidden="true" />
+						<HiXCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
 						Cancel
 					</Link>
 				</div>
@@ -221,3 +221,7 @@ export const CreateUserPage = () => {
 		</Panel>
 	);
 };
+
+
+
+

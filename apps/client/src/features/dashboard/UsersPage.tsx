@@ -1,4 +1,4 @@
-import { AdminChangePasswordPayloadSchema } from "@repo/schema";
+﻿import { AdminChangePasswordPayloadSchema } from "@repo/schema";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -10,6 +10,7 @@ import {
 } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/request";
+import { ActionButton } from "@/components/ActionButton";
 import { ConfirmDialog, Field, Modal, Panel } from "@/components/dashboard-ui";
 import {
 	useChangeUserPasswordMutation,
@@ -135,16 +136,16 @@ export const UsersPage = () => {
 				action={
 					<Link
 						to="/users/create"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface transition hover:brightness-105"
+						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105"
 					>
 						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
 						Create user
 					</Link>
 				}
 			>
-				<div className="overflow-x-auto rounded-3xl border border-border">
-					<table className="min-w-full border-collapse bg-surface text-left text-sm">
-						<thead className="bg-surface-muted text-xs uppercase tracking-[0.14em] text-ink-soft">
+				<div className="overflow-x-auto rounded-3xl border border-gray-300">
+					<table className="min-w-full border-collapse bg-white text-left text-sm">
+						<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
 							<tr>
 								<th className="px-4 py-3 font-semibold">Name</th>
 								<th className="px-4 py-3 font-semibold">Username</th>
@@ -156,20 +157,20 @@ export const UsersPage = () => {
 						</thead>
 						<tbody>
 							{usersQuery.data?.users.map((user) => (
-								<tr key={user.id} className="border-t border-border align-top">
-									<td className="px-4 py-3 font-semibold text-ink">
+								<tr key={user.id} className="border-t border-gray-300 align-top">
+									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
 									</td>
-									<td className="px-4 py-3 text-ink-soft">
+									<td className="px-4 py-3 text-gray-600">
 										{user.username ?? "-"}
 									</td>
-									<td className="px-4 py-3 text-ink-soft">{user.email}</td>
+									<td className="px-4 py-3 text-gray-600">{user.email}</td>
 									<td className="px-4 py-3">
 										<div className="flex flex-wrap gap-2">
 											{user.roles.map((role) => (
 												<span
 													key={role.id}
-													className="rounded-full border border-brand/20 bg-brand-soft px-3 py-1 text-xs font-semibold text-brand"
+													className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
 												>
 													{role.name}
 												</span>
@@ -180,61 +181,47 @@ export const UsersPage = () => {
 										<span
 											className={
 												user.isActive
-													? "rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-ink"
-													: "rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-ink"
+													? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
+													: "rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700"
 											}
 										>
 											{user.isActive ? "Active" : "Inactive"}
 										</span>
 									</td>
 									<td className="px-4 py-3">
-										<div className="flex flex-wrap gap-2">
+										<div className="flex flex-wrap items-center gap-2">
 											<Link
 												to={`/users/${user.id}/edit`}
-												className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-semibold text-ink transition hover:border-brand/30"
+												className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+												title="Edit user"
+												aria-label="Edit user"
 											>
 												<HiPencilSquare
-													className="h-3.5 w-3.5"
+													className="h-4 w-4"
 													aria-hidden="true"
 												/>
-												Edit
 											</Link>
-											<button
-												type="button"
-												className="inline-flex items-center gap-1 rounded-full border border-sky/30 bg-sky-soft px-3 py-1 text-xs font-semibold text-ink transition hover:brightness-105"
+											<ActionButton
+												icon={<HiLockClosed className="h-4 w-4" aria-hidden="true" />}
+												tooltip="Change password"
+												color="purple"
 												onClick={() => {
 													setPasswordUserId(user.id);
 													reset({ newPassword: "" });
 												}}
-											>
-												<HiLockClosed
-													className="h-3.5 w-3.5"
-													aria-hidden="true"
-												/>
-												Password
-											</button>
-											<button
-												type="button"
-												className={
-													user.isActive
-														? "inline-flex items-center gap-1 rounded-full border border-warm/30 bg-warm-soft px-3 py-1 text-xs font-semibold text-ink transition hover:brightness-105"
-														: "inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-soft px-3 py-1 text-xs font-semibold text-ink transition hover:brightness-105"
-												}
-												onClick={() =>
-													handleToggleStatus(user.id, user.isActive)
-												}
-											>
-												<HiPower className="h-3.5 w-3.5" aria-hidden="true" />
-												{user.isActive ? "Deactivate" : "Activate"}
-											</button>
-											<button
-												type="button"
-												className="inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger-soft px-3 py-1 text-xs font-semibold text-ink transition hover:brightness-105"
+											/>
+											<ActionButton
+												icon={<HiPower className="h-4 w-4" aria-hidden="true" />}
+												tooltip={user.isActive ? "Deactivate user" : "Activate user"}
+												color={user.isActive ? "orange" : "green"}
+												onClick={() => handleToggleStatus(user.id, user.isActive)}
+											/>
+											<ActionButton
+												icon={<HiTrash className="h-4 w-4" aria-hidden="true" />}
+												tooltip="Delete user"
+												color="red"
 												onClick={() => setDeleteUserId(user.id)}
-											>
-												<HiTrash className="h-3.5 w-3.5" aria-hidden="true" />
-												Delete
-											</button>
+											/>
 										</div>
 									</td>
 								</tr>
@@ -253,14 +240,14 @@ export const UsersPage = () => {
 					<>
 						<button
 							type="button"
-							className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => setPasswordUserId(null)}
 						>
 							Cancel
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-sky px-4 py-2 text-sm font-semibold text-surface"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleSubmit(onSubmitPassword)()}
 							disabled={changeUserPasswordMutation.isPending}
 						>
@@ -301,10 +288,14 @@ export const UsersPage = () => {
 			/>
 
 			{banner ? (
-				<p className="rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
+				<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
 					{banner}
 				</p>
 			) : null}
 		</div>
 	);
 };
+
+
+
+

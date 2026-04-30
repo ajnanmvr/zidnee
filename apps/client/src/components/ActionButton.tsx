@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 interface ActionButtonProps {
 	icon: React.ReactNode;
@@ -7,7 +7,7 @@ interface ActionButtonProps {
 	onClick: () => void;
 	disabled?: boolean;
 	isLoading?: boolean;
-	color?: "sky" | "red" | "green" | "orange";
+	color?: "sky" | "red" | "green" | "orange" | "purple";
 	loadingLabel?: string;
 }
 
@@ -24,11 +24,13 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 	const [showTooltip, setShowTooltip] = useState(false);
 
 	const colorMap = {
-		sky: "text-sky border-sky/30 hover:bg-sky/10",
-		red: "text-red border-red/30 hover:bg-red/10",
-		green: "text-green border-green/30 hover:bg-green/10",
-		orange: "text-orange border-orange/30 hover:bg-orange/10",
+		sky: "text-cyan-700 border-cyan-300 hover:bg-cyan-50",
+		red: "text-rose-700 border-rose-300 hover:bg-rose-50",
+		green: "text-emerald-700 border-emerald-300 hover:bg-emerald-50",
+		orange: "text-amber-700 border-amber-300 hover:bg-amber-50",
+		purple: "text-violet-700 border-violet-300 hover:bg-violet-50",
 	};
+	const tooltipText = isLoading ? loadingLabel : tooltip ?? label ?? "Action";
 
 	return (
 		<div className="relative inline-flex">
@@ -39,15 +41,21 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 				disabled={disabled || isLoading}
 				onMouseEnter={() => setShowTooltip(true)}
 				onMouseLeave={() => setShowTooltip(false)}
+				title={tooltipText}
+				aria-label={tooltipText}
 			>
 				{icon}
 			</button>
 
 			{showTooltip && (
-				<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-ink text-surface text-xs font-semibold rounded whitespace-nowrap z-50">
-					{isLoading ? loadingLabel : tooltip ?? label}
+				<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs font-semibold rounded whitespace-nowrap z-50">
+					{tooltipText}
 				</div>
 			)}
 		</div>
 	);
 };
+
+
+
+
