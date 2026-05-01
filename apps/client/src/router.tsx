@@ -11,9 +11,6 @@ import { EditRolePage } from "@/features/dashboard/EditRolePage";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
 import { AdmissionDetailPage } from "@/features/dashboard/AdmissionDetailPage";
 import { AdmissionsPage } from "@/features/dashboard/AdmissionsPage";
-import { DemoRequestsPage } from "@/features/dashboard/DemoRequestsPage";
-import { DemoCompletedPage } from "@/features/dashboard/DemoCompletedPage";
-import { ForDemoPage } from "@/features/dashboard/ForDemoPage";
 import { LeadDetailPage } from "@/features/dashboard/LeadDetailPage";
 import { LeadsPage } from "@/features/dashboard/LeadsPage";
 import { MyLeadsPage } from "@/features/dashboard/MyLeadsPage";
@@ -51,18 +48,6 @@ export const router = createBrowserRouter([
 					{
 						path: "my-leads",
 						element: <MyLeadsPage />,
-					},
-					{
-						path: "for-demo",
-						element: <ForDemoPage />,
-					},
-					{
-						path: "demo-requests",
-						element: <DemoRequestsPage />,
-					},
-					{
-						path: "demo-completed",
-						element: <DemoCompletedPage />,
 					},
 					{
 						path: "admissions",

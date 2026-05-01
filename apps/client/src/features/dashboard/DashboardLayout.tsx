@@ -6,7 +6,6 @@ import {
 	HiBookmarkSquare,
 	HiCalendarDays,
 	HiClipboardDocumentList,
-	HiArrowPath,
 	HiFlag,
 	HiIdentification,
 	HiPhone,
@@ -30,9 +29,7 @@ import {
 } from "@/features/leads/lead-stage-filters";
 import {
 	useAdmissionLeadsQuery,
-	useDemoRequestsQuery,
 	useDueLeadFollowUpsQuery,
-	usePendingDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
@@ -48,9 +45,6 @@ const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
 	"/my-leads": "My Leads",
-	"/for-demo": "For Demo",
-	"/demo-requests": "Assigned Demos",
-	"/demo-completed": "Demo Completed",
 	"/admissions": "For Admission",
 	"/students": "Students",
 	"/counsellors": "Counsellors",
@@ -81,10 +75,6 @@ const resolveTitle = (pathname: string): string => {
 		return "Edit Role";
 	}
 
-	if (/^\/demo-completed$/.test(pathname)) {
-		return "Demo Completed";
-	}
-
 	if (/^\/admissions\/[^/]+$/.test(pathname)) {
 		return "Admission Details";
 	}
@@ -100,8 +90,6 @@ export const DashboardLayout = () => {
 	const { data: me, error } = useMeQuery(token);
 	const leadsQuery = useDueLeadFollowUpsQuery(token, { scope: "all", timeFilter: "all" });
 	const myLeadsQuery = useDueLeadFollowUpsQuery(token, { scope: "mine", timeFilter: "all" });
-	const pendingDemoQuery = usePendingDemoRequestsQuery(token);
-	const assignedDemoQuery = useDemoRequestsQuery(token);
 	const admissionsQuery = useAdmissionLeadsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
@@ -165,30 +153,6 @@ export const DashboardLayout = () => {
 			icon: <HiUser className="h-5 w-5" aria-hidden="true" />,
 			count: myLeadsQuery.data?.leads.length ?? 0,
 			accent: "lime",
-		},
-		{
-			to: "/for-demo",
-			label: "For Demo",
-			description: "Needs assigning",
-			icon: <HiPresentationChartLine className="h-5 w-5" aria-hidden="true" />,
-			count: pendingDemoQuery.data?.leads.length ?? 0,
-			accent: "amber",
-		},
-		{
-			to: "/demo-requests",
-			label: "Assigned Demos",
-			description: "Ready to complete",
-			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
-			count: assignedDemoQuery.data?.leads.length ?? 0,
-			accent: "orange",
-		},
-		{
-			to: "/demo-completed",
-			label: "Demo Completed",
-			description: "Need redemo or admission",
-			icon: <HiArrowPath className="h-5 w-5" aria-hidden="true" />,
-			count: leadStageCounts.demoCompleted,
-			accent: "violet",
 		},
 		{
 			to: "/admissions",

@@ -292,7 +292,7 @@ export const MyLeadsPage = () => {
 			toast.success("Lead moved for redemo.");
 			setRedemoLeadId(null);
 			resetRedemo({ mentorId: "", note: "" });
-			navigate("/demo-requests");
+			navigate("/my-leads");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const mentorError = error.payload.errors?.mentorId?.[0];
