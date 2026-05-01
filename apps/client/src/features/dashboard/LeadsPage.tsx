@@ -8,11 +8,13 @@ import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { buildLeadColumns, formatUserName } from "@/features/dashboard/lead-table";
+import { getLeadStagePredicate, leadStageDefinitions, type LeadStageId } from "@/features/leads/lead-stage-filters";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import { useCreateLeadMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import type { CreateLeadForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { Link, useSearchParams } from "react-router-dom";
 
 const toInputDateTimeLocal = (value: Date | string | null | undefined): string => {
 	if (!value) {
@@ -33,6 +35,7 @@ export const LeadsPage = () => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
 	const usersQuery = useUsersQuery(token);
+	const [searchParams] = useSearchParams();
 	const dueLeadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "all",
 		timeFilter: "all",
@@ -56,6 +59,15 @@ export const LeadsPage = () => {
 	const allUsers = usersQuery.data?.users ?? [];
 	const currentUserId = meQuery.data?.id;
 	const assigneeOptions = useMemo(() => allUsers, [allUsers]);
+	const leads = dueLeadsQuery.data?.leads ?? [];
+	const stageParam = searchParams.get("stage");
+	const activeStage: LeadStageId = leadStageDefinitions.some((stage) => stage.id === stageParam)
+		? (stageParam as LeadStageId)
+		: "all";
+	const filteredLeads = useMemo(
+		() => leads.filter(getLeadStagePredicate(activeStage, currentUserId)),
+		[activeStage, currentUserId, leads],
+	);
 
 	useEffect(() => {
 		if (!createOpen) {
@@ -98,16 +110,24 @@ export const LeadsPage = () => {
 		<div className="grid gap-6">
 			<Panel
 				title="Leads"
-				description="All leads ordered by date"
+				description={leadStageDefinitions.find((stage) => stage.id === activeStage)?.description ?? "Not moved to admission or dropped"}
 				action={
-					<button
-						type="button"
-						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-						onClick={() => setCreateOpen(true)}
-					>
-						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
-						Create lead
-					</button>
+					<div className="flex flex-wrap gap-2">
+						<Link
+							to="/my-leads"
+							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition hover:border-blue-600 hover:text-blue-600"
+						>
+							My leads
+						</Link>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => setCreateOpen(true)}
+						>
+							<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+							Create lead
+						</button>
+					</div>
 				}
 			>
 				{dueLeadsQuery.isLoading ? (
@@ -117,9 +137,9 @@ export const LeadsPage = () => {
 				) : (
 					<DataTable
 						columns={columns}
-						data={dueLeadsQuery.data?.leads ?? []}
-						exportFilename="leads"
-						searchPlaceholder="Search leads..."
+						data={filteredLeads}
+						exportFilename={`leads-${activeStage}`}
+						searchPlaceholder={`Search ${leadStageDefinitions.find((stage) => stage.id === activeStage)?.label.toLowerCase() ?? "leads"}...`}
 						initialSorting={[{ id: "nextFollowUpAt", desc: false }]}
 					/>
 				)}

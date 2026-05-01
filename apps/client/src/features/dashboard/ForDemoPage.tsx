@@ -170,7 +170,7 @@ const selectedTime = scheduledTimeByLeadId[lead.id];
 						onClick={() => void handleAssign(info.row.original.id)}
 					>
 						<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
-						Assign demo
+						Schedule demo
 					</button>
 				),
 			},

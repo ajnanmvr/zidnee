@@ -30,6 +30,27 @@ const OptionalTextSchema = z.preprocess(
 	z.string().trim().min(1).max(255).optional(),
 );
 
+export const LeadFormDataSchema = z.object({
+	studentName: z.string().min(1).max(255),
+	dateOfBirth: z.coerce.date(),
+	residingCountry: z.string().min(1).max(100),
+	standardApplyingFor: z.string().min(1).max(20),
+	gender: z.enum(["male", "female"]),
+	primaryWhatsappNumber: PhoneNumberSchema,
+	alternateWhatsappNumber: PhoneNumberSchema.optional(),
+	studentInfo: z.string().min(1).max(1000),
+	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
+	preferredSchedule: z.string().min(1).max(100),
+	preferredDays: z.array(z.string().min(1)).min(1),
+	preferredTimeslots: z.array(z.string().min(1)).min(1),
+	startClassWhen: z.string().min(1).max(100),
+	hearAboutUs: z.string().min(1).max(255),
+	demoAvailability: z.string().min(1).max(100),
+	preferredMentorGender: z.enum(["male", "female", "both"]),
+});
+
+export type LeadFormData = z.infer<typeof LeadFormDataSchema>;
+
 export const LeadDemoSchema = z.object({
 	mentorId: ObjectIdStringSchema.optional(),
 	requestedAt: z.date().optional(),
@@ -58,6 +79,22 @@ export const LeadSchema = z.object({
 	createdBy: ObjectIdStringSchema,
 	formSent: z.boolean().default(false),
 	formCompleted: z.boolean().default(false),
+	studentName: z.string().max(255).optional(),
+	dateOfBirth: z.date().optional(),
+	residingCountry: z.string().max(100).optional(),
+	standardApplyingFor: z.string().max(20).optional(),
+	gender: z.enum(["male", "female"]).optional(),
+	primaryWhatsappNumber: PhoneNumberSchema.optional(),
+	alternateWhatsappNumber: PhoneNumberSchema.optional(),
+	studentInfo: z.string().max(1000).optional(),
+	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]).optional(),
+	preferredSchedule: z.string().max(100).optional(),
+	preferredDays: z.array(z.string()).default([]),
+	preferredTimeslots: z.array(z.string()).default([]),
+	startClassWhen: z.string().max(100).optional(),
+	hearAboutUs: z.string().max(255).optional(),
+	demoAvailability: z.string().max(100).optional(),
+	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
 	followUpCount: z.number().int().min(0).default(0),
 	nextFollowUpAt: z.date(),
 	demos: z.array(LeadDemoSchema).default([]),
@@ -113,14 +150,27 @@ export type AssignDemoPayload = z.infer<typeof AssignDemoPayloadSchema>;
 
 export const GenerateFormLinkResponseSchema = z.object({
 	formLink: z.string().url(),
-	expiresAt: z.string(),
 });
 
 export type GenerateFormLinkResponse = z.infer<typeof GenerateFormLinkResponseSchema>;
 
 export const SubmitLeadFormPayloadSchema = z.object({
-	name: z.string().min(1).max(255),
-	phone: PhoneNumberSchema,
+	studentName: z.string().min(1).max(255),
+	dateOfBirth: z.coerce.date(),
+	residingCountry: z.string().min(1).max(100),
+	standardApplyingFor: z.string().min(1).max(20),
+	gender: z.enum(["male", "female"]),
+	primaryWhatsappNumber: PhoneNumberSchema,
+	alternateWhatsappNumber: PhoneNumberSchema.optional(),
+	studentInfo: z.string().min(1).max(1000),
+	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
+	preferredSchedule: z.string().min(1).max(100),
+	preferredDays: z.array(z.string().min(1)).min(1),
+	preferredTimeslots: z.array(z.string().min(1)).min(1),
+	startClassWhen: z.string().min(1).max(100),
+	hearAboutUs: z.string().min(1).max(255),
+	demoAvailability: z.string().min(1).max(100),
+	preferredMentorGender: z.enum(["male", "female", "both"]),
 	token: z.string().min(1),
 });
 

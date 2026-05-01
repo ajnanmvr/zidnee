@@ -20,21 +20,21 @@ import { useSession } from "@/lib/session";
 type RoleUsersPageProps = {
 	title: string;
 	description: string;
-	roleName: string;
+	roleType: "general" | "mentor" | "counsellor" | "sales";
 	createPath: string;
 };
 
 type RoleCreatePageProps = {
 	title: string;
 	description: string;
-	roleName: string;
+	roleType: "general" | "mentor" | "counsellor" | "sales";
 	backTo: string;
 };
 
-const matchesRole = (name: string, roleName: string) =>
-	name.toLowerCase() === roleName.toLowerCase();
+const matchesRoleType = (roleType: string, expectedType: string) =>
+	roleType === expectedType;
 
-export const RoleUsersPage = ({ title, description, roleName, createPath }: RoleUsersPageProps) => {
+export const RoleUsersPage = ({ title, description, roleType, createPath }: RoleUsersPageProps) => {
 	const { token } = useSession();
 	const usersQuery = useUsersQuery(token);
 	const deleteUserMutation = useDeleteUserMutation();
@@ -51,10 +51,10 @@ export const RoleUsersPage = ({ title, description, roleName, createPath }: Role
 
 	const users = useMemo(() => {
 		return allUsers.filter((user) =>
-			user.roles.some((role) => matchesRole(role.name, roleName)),
+			user.roles.some((role) => matchesRoleType(role.type ?? "general", roleType)),
 		);
-	}, [allUsers, roleName]);
-	const identityHeader = roleName.toLowerCase() === "mentor" ? "Mentor ID" : "Counsellor ID";
+	}, [allUsers, roleType]);
+	const identityHeader = roleType === "mentor" ? "Mentor ID" : "Counsellor ID";
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
 		setBanner("");
@@ -142,7 +142,7 @@ export const RoleUsersPage = ({ title, description, roleName, createPath }: Role
 						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105"
 					>
 						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-						Create {roleName}
+						Create {title.slice(0, -1)}
 					</Link>
 				}
 			>
@@ -166,7 +166,7 @@ export const RoleUsersPage = ({ title, description, roleName, createPath }: Role
 									<td className="px-4 py-3 text-gray-600">{user.username ?? "-"}</td>
 									<td className="px-4 py-3 text-gray-600">{user.email}</td>
 									<td className="px-4 py-3 text-gray-600">
-										{roleName.toLowerCase() === "mentor"
+									{roleType === "mentor"
 											? user.mentorId ?? "-"
 											: user.counsellorId ?? "-"}
 									</td>
@@ -275,7 +275,7 @@ export const RoleUsersPage = ({ title, description, roleName, createPath }: Role
 	);
 };
 
-export const RoleUserCreatePage = ({ title, description, roleName, backTo }: RoleCreatePageProps) => {
+export const RoleUserCreatePage = ({ title, description, roleType, backTo }: RoleCreatePageProps) => {
 	const { token } = useSession();
 	const rolesQuery = useRolesQuery(token);
 	const createUserMutation = useCreateUserMutation();
@@ -286,13 +286,13 @@ export const RoleUserCreatePage = ({ title, description, roleName, backTo }: Rol
 
 	const allRoles = rolesQuery.data?.roles ?? [];
 	const role = useMemo(
-		() => allRoles.find((item) => matchesRole(item.name, roleName)) ?? null,
-		[allRoles, roleName],
+		() => allRoles.find((item) => matchesRoleType(item.type ?? "general", roleType)) ?? null,
+		[allRoles, roleType],
 	);
 
 	const onSubmit = async (form: CreateUserForm) => {
 		if (!role) {
-			setBanner(`Role ${roleName} not found.`);
+			setBanner(`Role type ${roleType} not found.`);
 			return;
 		}
 
@@ -309,14 +309,14 @@ export const RoleUserCreatePage = ({ title, description, roleName, backTo }: Rol
 
 		try {
 			await createUserMutation.mutateAsync(validation.data);
-			setBanner(`${roleName} created successfully.`);
+			setBanner(`User created successfully.`);
 		} catch (error) {
 			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? `Unable to create ${roleName.toLowerCase()}`);
+				setBanner(error.payload.message ?? `Unable to create user`);
 				return;
 			}
 
-			setBanner(error instanceof Error ? error.message : `Unable to create ${roleName.toLowerCase()}`);
+			setBanner(error instanceof Error ? error.message : `Unable to create user`);
 		}
 	};
 
@@ -338,7 +338,7 @@ export const RoleUserCreatePage = ({ title, description, roleName, backTo }: Rol
 					<div className="flex flex-wrap gap-2">
 						<button type="submit" className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70" disabled={createUserMutation.isPending}>
 							<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-							{createUserMutation.isPending ? "Creating..." : `Create ${roleName}`}
+							{createUserMutation.isPending ? "Creating..." : `Create ${title.slice(0, -1)}`}
 						</button>
 						<Link to={backTo} className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">
 							<HiCheckCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
@@ -349,7 +349,7 @@ export const RoleUserCreatePage = ({ title, description, roleName, backTo }: Rol
 					{banner ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{banner}</p> : null}
 				</form>
 			) : (
-				<p className="text-sm text-gray-600">Role {roleName} not found. Create the role first.</p>
+				<p className="text-sm text-gray-600">Role type {roleType} not found. Create the role first.</p>
 			)}
 		</Panel>
 	);

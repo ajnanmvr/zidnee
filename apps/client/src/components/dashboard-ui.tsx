@@ -5,7 +5,7 @@ import {
 	HiExclamationTriangle,
 	HiXMark,
 } from "react-icons/hi2";
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export type NavigationItem = {
 	to: string;
@@ -70,6 +70,7 @@ type SidebarProps = {
 	open: boolean;
 	onToggle: () => void;
 	onLogout: () => void;
+	currentLocation: string;
 };
 
 type DashboardHeaderProps = {
@@ -111,6 +112,15 @@ type TextAreaProps = {
 	error?: string;
 };
 
+type SelectProps = {
+	label: string;
+	value: string;
+	onChange: (value: string) => void;
+	options: Array<{ value: string; label: string }>;
+	placeholder?: string;
+	error?: string;
+};
+
 type ModalProps = {
 	open: boolean;
 	title: string;
@@ -132,13 +142,15 @@ type ConfirmDialogProps = {
 	onCancel: () => void;
 };
 
-export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
+export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: SidebarProps) => {
+	const isActiveItem = (item: NavigationItem) => currentLocation === item.to;
+
 	return (
 		<aside
 			className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-300 bg-white transition-[width] duration-300 ease-out lg:flex lg:flex-col"
-			style={{ width: open ? "18rem" : "5.5rem" }}
+			style={{ width: open ? "16rem" : "4.75rem" }}
 		>
-			<div className="flex items-center justify-between gap-3 border-b border-gray-300 px-5 py-5">
+			<div className="flex items-center justify-between gap-3 border-b border-gray-300 px-4 py-4">
 				<div
 					className={
 						open
@@ -149,12 +161,12 @@ export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
 					<img
 						src="/logo.png"
 						alt="Zidnee logo"
-						className="h-11 w-11 shrink-0 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
+						className="h-10 w-10 shrink-0 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
 					/>
 					{open ? (
 						<div>
 						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-							Zidnee CRM
+							Zidnee ERP
 						</p>
 						<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
 						</div>
@@ -162,7 +174,7 @@ export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
 				</div>
 				<button
 					type="button"
-					className="grid h-10 w-10 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
+						className="grid h-9 w-9 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
 					onClick={onToggle}
 					aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
 				>
@@ -178,19 +190,19 @@ export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
 			</div>
 
 			<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
-				<div className="grid gap-1.5">
+				<div className="grid gap-1">
 					{items.map((item) => {
 						const accent = accentStyles[item.accent ?? "emerald"];
+						const isActive = isActiveItem(item);
 
 						return (
-							<NavLink
+							<Link
 								key={item.to}
 								to={item.to}
-								end={item.to === "/"}
-								className={({ isActive }) =>
+								className={
 									isActive
-										? `flex items-center gap-3 rounded-2xl border px-4 py-3 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center px-3"}`
-										: `flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center px-3"}`
+										? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center"}`
+										: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center"}`
 								}
 							>
 								<span className={accent.icon}>{item.icon}</span>
@@ -206,24 +218,17 @@ export const Sidebar = ({ items, open, onToggle, onLogout }: SidebarProps) => {
 												</span>
 											) : null}
 										</div>
-										<span className="text-xs text-gray-600">{item.description}</span>
 									</div>
 								) : null}
-							</NavLink>
+							</Link>
 						);
 					})}
 				</div>
 
-				<div className="mt-6 rounded-3xl border border-gray-300 bg-gray-50 p-4">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-gray-600">
-						Navigation
-					</p>
-					<p className="mt-2 text-sm leading-6 text-gray-600">
-						Use the route sections to work through dashboard views.
-					</p>
+				<div className="mt-4 px-1">
 					<button
 						type="button"
-						className="mt-4 w-full rounded-2xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-emerald-600"
+						className={`w-full rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700 ${open ? "justify-start" : "justify-center"}`}
 						onClick={onLogout}
 					>
 						Log out
@@ -397,6 +402,42 @@ export const TextAreaField = ({
 				onChange={(event) => onChange(event.target.value)}
 				placeholder={placeholder}
 			/>
+			{error ? (
+				<p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+					{error}
+				</p>
+			) : null}
+		</label>
+	);
+};
+
+export const SelectField = ({
+	label,
+	value,
+	onChange,
+	options,
+	placeholder,
+	error,
+}: SelectProps) => {
+	return (
+		<label className="grid gap-2 text-sm font-medium text-gray-600">
+			<span>{label}</span>
+			<select
+				className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+			>
+				{placeholder ? (
+					<option value="" disabled>
+						{placeholder}
+					</option>
+				) : null}
+				{options.map((option) => (
+					<option key={option.value} value={option.value}>
+						{option.label}
+					</option>
+				))}
+			</select>
 			{error ? (
 				<p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
 					{error}

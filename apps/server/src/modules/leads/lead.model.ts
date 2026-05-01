@@ -54,6 +54,95 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			required: true,
 			default: false,
 		},
+		studentName: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 255,
+		},
+		dateOfBirth: {
+			type: Date,
+			required: false,
+		},
+		residingCountry: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 100,
+		},
+		standardApplyingFor: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 20,
+		},
+		gender: {
+			type: String,
+			required: false,
+			enum: ["male", "female"],
+		},
+		primaryWhatsappNumber: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 20,
+		},
+		alternateWhatsappNumber: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 20,
+		},
+		studentInfo: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 1000,
+		},
+		preferredLanguage: {
+			type: String,
+			required: false,
+			enum: ["Malayalam Only", "English Only", "Malayalam - English Mixed"],
+		},
+		preferredSchedule: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 100,
+		},
+		preferredDays: {
+			type: [String],
+			required: false,
+			default: [],
+		},
+		preferredTimeslots: {
+			type: [String],
+			required: false,
+			default: [],
+		},
+		startClassWhen: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 100,
+		},
+		hearAboutUs: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 255,
+		},
+		demoAvailability: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 100,
+		},
+		preferredMentorGender: {
+			type: String,
+			required: false,
+			enum: ["male", "female", "both"],
+		},
 		formToken: {
 			type: String,
 			required: false,
@@ -73,6 +162,7 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			type: Date,
 			required: true,
 			index: true,
+			default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to now + 1 day
 		},
 		demos: {
 			type: [

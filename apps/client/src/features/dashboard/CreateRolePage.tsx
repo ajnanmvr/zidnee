@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { Field, TextAreaField } from "@/components/dashboard-ui";
+import { Field, TextAreaField, SelectField } from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useCreateRoleMutation } from "@/features/roles/use-create-role-mutation";
 import type { CreateRoleForm } from "@/lib/dashboard-types";
@@ -28,6 +28,7 @@ export const CreateRolePage = () => {
 		useForm<CreateRoleForm>({
 			defaultValues: {
 				name: "",
+				type: "general",
 				description: "",
 				permissionIds: [],
 			},
@@ -75,6 +76,7 @@ export const CreateRolePage = () => {
 
 		const validation = CreateRolePayloadSchema.safeParse({
 			name: form.name,
+			type: form.type,
 			description: form.description || undefined,
 			permissionIds: form.permissionIds,
 		});
@@ -109,7 +111,7 @@ export const CreateRolePage = () => {
 		try {
 			await createRoleMutation.mutateAsync(validation.data);
 			setBanner("Role created successfully.");
-			reset({ name: "", description: "", permissionIds: [] });
+			reset({ name: "", type: "general", description: "", permissionIds: [] });
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const serverErrors = error.payload.errors ?? {};
@@ -175,19 +177,38 @@ export const CreateRolePage = () => {
 						)}
 					/>
 					<Controller
-						name="description"
+						name="type"
 						control={control}
 						render={({ field, fieldState }) => (
-							<TextAreaField
-								label="Description"
-								value={field.value ?? ""}
+							<SelectField
+								label="Role Type"
+								value={field.value}
 								onChange={field.onChange}
-								placeholder="Short role summary"
+								options={[
+									{ value: "general", label: "General" },
+									{ value: "mentor", label: "Mentor" },
+									{ value: "counsellor", label: "Counsellor" },
+									{ value: "sales", label: "Sales" },
+								]}
 								error={fieldState.error?.message}
 							/>
 						)}
 					/>
 				</div>
+
+				<Controller
+					name="description"
+					control={control}
+					render={({ field, fieldState }) => (
+						<TextAreaField
+							label="Description"
+							value={field.value ?? ""}
+							onChange={field.onChange}
+							placeholder="Short role summary"
+							error={fieldState.error?.message}
+						/>
+					)}
+				/>
 
 				<div className="grid gap-3">
 					<p className="text-sm font-semibold text-gray-900">Permissions</p>

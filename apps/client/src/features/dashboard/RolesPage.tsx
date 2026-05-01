@@ -83,8 +83,7 @@ export const RolesPage = () => {
 					<table className="min-w-full border-collapse bg-white text-left text-sm">
 						<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
 							<tr>
-								<th className="px-4 py-3 font-semibold">Role</th>
-								<th className="px-4 py-3 font-semibold">Description</th>
+								<th className="px-4 py-3 font-semibold">Role</th>							<th className="px-4 py-3 font-semibold">Type</th>								<th className="px-4 py-3 font-semibold">Description</th>
 								<th className="px-4 py-3 font-semibold">Permissions</th>
 								<th className="px-4 py-3 font-semibold">Count</th>
 								<th className="px-4 py-3 font-semibold">Actions</th>
@@ -98,36 +97,41 @@ export const RolesPage = () => {
 									)
 									.filter((value): value is string => Boolean(value));
 
-								return (
-									<tr
-										key={role.id}
-										className="border-t border-gray-300 align-top"
-									>
-										<td className="px-4 py-3 font-semibold text-gray-900">
-											{role.name}
-										</td>
-										<td className="px-4 py-3 text-gray-600">
-											{role.description ?? "No description"}
-										</td>
-										<td className="px-4 py-3">
-											<div className="flex flex-wrap gap-2">
-												{readablePermissions.length > 0 ? (
-													readablePermissions.map((permissionName) => (
-														<span
-															key={`${role.id}-${permissionName}`}
-															className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
-														>
-															{permissionName}
-														</span>
-													))
-												) : (
-													<span className="text-gray-600">No permissions</span>
-												)}
-											</div>
-										</td>
-										<td className="px-4 py-3 font-semibold text-gray-900">
-											{readablePermissions.length}
-										</td>
+									return (
+										<tr
+											key={role.id}
+											className="border-t border-gray-300 align-top"
+										>
+											<td className="px-4 py-3 font-semibold text-gray-900">
+												{role.name}
+											</td>
+											<td className="px-4 py-3 text-sm text-gray-600">
+												<span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 capitalize">
+													{role.type ?? "general"}
+												</span>
+											</td>
+											<td className="px-4 py-3 text-gray-600">
+												{role.description ?? "No description"}
+											</td>
+											<td className="px-4 py-3">
+												<div className="flex flex-wrap gap-2">
+													{readablePermissions.length > 0 ? (
+														readablePermissions.map((permissionName) => (
+															<span
+																key={`${role.id}-${permissionName}`}
+																className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
+															>
+																{permissionName}
+															</span>
+														))
+													) : (
+														<span className="text-gray-600">No permissions</span>
+													)}
+												</div>
+											</td>
+											<td className="px-4 py-3 font-semibold text-gray-900">
+												{readablePermissions.length}
+											</td>
 										<td className="px-4 py-3">
 											<div className="flex gap-2">
 												<Link

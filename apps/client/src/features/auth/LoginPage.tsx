@@ -83,7 +83,7 @@ export const LoginPage = () => {
 							className="h-12 w-12 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
 						/>
 						<p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-blue-600">
-							Zidnee CRM
+							Zidnee Online Islamic School
 						</p>
 					</div>
 					<h2 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-gray-900 md:text-5xl">

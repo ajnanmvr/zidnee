@@ -12,6 +12,7 @@ import { EditUserPage } from "@/features/dashboard/EditUserPage";
 import { AdmissionDetailPage } from "@/features/dashboard/AdmissionDetailPage";
 import { AdmissionsPage } from "@/features/dashboard/AdmissionsPage";
 import { DemoRequestsPage } from "@/features/dashboard/DemoRequestsPage";
+import { DemoCompletedPage } from "@/features/dashboard/DemoCompletedPage";
 import { ForDemoPage } from "@/features/dashboard/ForDemoPage";
 import { LeadDetailPage } from "@/features/dashboard/LeadDetailPage";
 import { LeadsPage } from "@/features/dashboard/LeadsPage";
@@ -58,6 +59,10 @@ export const router = createBrowserRouter([
 					{
 						path: "demo-requests",
 						element: <DemoRequestsPage />,
+					},
+					{
+						path: "demo-completed",
+						element: <DemoCompletedPage />,
 					},
 					{
 						path: "admissions",

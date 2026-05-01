@@ -13,6 +13,13 @@ const roleSchema = new Schema<RoleDocument>(
 			unique: true,
 			index: true,
 		},
+		type: {
+			type: String,
+			enum: ["general", "mentor", "counsellor", "sales"],
+			required: true,
+			default: "general",
+			index: true,
+		},
 		description: {
 			type: String,
 			required: false,

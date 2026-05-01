@@ -24,6 +24,7 @@ export type Permission = z.infer<typeof PermissionSchema>;
 export const RoleSchema = z.object({
 	id: ObjectIdStringSchema,
 	name: z.string().min(1).max(100),
+	type: z.enum(["general", "mentor", "counsellor", "sales"]).default("general"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 	isSystem: z.boolean().default(false), // System roles cannot be deleted
@@ -149,6 +150,7 @@ export type PermissionCheck = z.infer<typeof PermissionCheckSchema>;
 // Role Management Payloads
 export const CreateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100),
+	type: z.enum(["general", "mentor", "counsellor", "sales"]).default("general"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 });
@@ -157,6 +159,7 @@ export type CreateRolePayload = z.infer<typeof CreateRolePayloadSchema>;
 
 export const UpdateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100).optional(),
+	type: z.enum(["general", "mentor", "counsellor", "sales"]).optional(),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema).optional(),
 });

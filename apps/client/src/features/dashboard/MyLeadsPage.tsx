@@ -7,7 +7,7 @@
 import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HiAcademicCap, HiArrowPath, HiCalendarDays, HiPlusCircle, HiTrash } from "react-icons/hi2";
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
@@ -15,6 +15,7 @@ import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { buildLeadColumns, formatUserName, getLeadUrgency } from "@/features/dashboard/lead-table";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import { getLeadStagePredicate, leadStageDefinitions, type LeadStageId } from "@/features/leads/lead-stage-filters";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
 	useCreateLeadMutation,
@@ -54,7 +55,12 @@ const isCounsellorRole = (roleName: string) => roleName.toLowerCase() === "couns
 export const MyLeadsPage = () => {
 	const { token } = useSession();
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
 	const meQuery = useMeQuery(token);
+	const allLeadsQuery = useDueLeadFollowUpsQuery(token, {
+		scope: "all",
+		timeFilter: "all",
+	});
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "mine",
 		timeFilter: "all",
@@ -84,8 +90,6 @@ export const MyLeadsPage = () => {
 			customNextFollowUpAt: undefined,
 		},
 	});
-
-	const currentUserId = meQuery.data?.id;
 
 	const {
 		control: postponeControl,
@@ -142,6 +146,31 @@ export const MyLeadsPage = () => {
 			),
 		[allUsers],
 	);
+	const currentUserId = meQuery.data?.id;
+	const stageParam = searchParams.get("stage");
+	const activeStage: LeadStageId = leadStageDefinitions.some((stage) => stage.id === stageParam)
+		? (stageParam as LeadStageId)
+		: "all";
+	const scopeParam = searchParams.get("scope");
+	const activeScope = scopeParam === "all" ? "all" : "mine";
+	const scopeLeads = activeScope === "all" ? (allLeadsQuery.data?.leads ?? []) : (leadsQuery.data?.leads ?? []);
+	const filteredLeads = useMemo(
+		() => scopeLeads.filter(getLeadStagePredicate(activeStage, currentUserId)),
+		[activeStage, currentUserId, scopeLeads],
+	);
+	const activeStageDefinition = leadStageDefinitions.find((stage) => stage.id === activeStage);
+
+	const buildSearch = (stage: LeadStageId, scope: "all" | "mine") => {
+		const params = new URLSearchParams();
+		if (stage !== "all") {
+			params.set("stage", stage);
+		}
+		if (scope === "all") {
+			params.set("scope", "all");
+		}
+		const query = params.toString();
+		return query ? `?${query}` : "";
+	};
 
 	const postponeNoteValue = useWatch({
 		control: postponeControl,
@@ -329,16 +358,30 @@ export const MyLeadsPage = () => {
 		<div className="grid gap-6">
 			<Panel
 				title="My Leads"
-				description="Your leads"
+				description={`${activeScope === "all" ? "All users" : "Your"} leads${activeStageDefinition ? ` · ${activeStageDefinition.description}` : ""}`}
 				action={
-					<button
-						type="button"
-						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-						onClick={() => setCreateOpen(true)}
-					>
-						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
-						Create lead
-					</button>
+					<div className="flex flex-wrap gap-2">
+						<Link
+							to={buildSearch(activeStage, "mine")}
+							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
+						>
+							My leads
+						</Link>
+						<Link
+							to={buildSearch(activeStage, "all")}
+							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "all" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
+						>
+							All users in stage
+						</Link>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => setCreateOpen(true)}
+						>
+							<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+							Create lead
+						</button>
+					</div>
 				}
 			>
 				<div className="mb-4 rounded-3xl border border-orange-600/30 bg-orange-600-soft px-4 py-3">
@@ -351,16 +394,31 @@ export const MyLeadsPage = () => {
 					</p>
 				</div>
 
+				<div className="flex flex-wrap gap-2 rounded-3xl border border-gray-300 bg-white p-3">
+					{leadStageDefinitions.map((stage) => {
+						const isActive = stage.id === activeStage;
+						return (
+							<Link
+								key={stage.id}
+								to={buildSearch(stage.id, activeScope)}
+								className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${isActive ? "bg-blue-600 text-white" : "border border-gray-300 bg-gray-50 text-gray-700 hover:border-blue-600 hover:text-blue-600"}`}
+							>
+								{stage.label}
+							</Link>
+						);
+					})}
+				</div>
+
 				{leadsQuery.isLoading ? (
 					<div className="py-8 text-center text-gray-600">Loading...</div>
-				) : leadsQuery.isError ? (
+				) : leadsQuery.isError || allLeadsQuery.isError ? (
 					<div className="py-8 text-center text-gray-600">Unable to load leads.</div>
 				) : (
 					<DataTable
 						columns={columns}
-						data={leads}
-						exportFilename="my-leads"
-						searchPlaceholder="Search my leads..."
+						data={filteredLeads}
+						exportFilename={`my-leads-${activeScope}-${activeStage}`}
+						searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
 						initialSorting={[{ id: "nextFollowUpAt", desc: false }]}
 					/>
 				)}

@@ -1,10 +1,13 @@
 ﻿import { useEffect, useState } from "react";
 import {
 	HiAcademicCap,
+	HiCheckCircle,
 	HiArchiveBox,
 	HiBookmarkSquare,
 	HiCalendarDays,
 	HiClipboardDocumentList,
+	HiArrowPath,
+	HiFlag,
 	HiIdentification,
 	HiPhone,
 	HiPresentationChartLine,
@@ -21,6 +24,10 @@ import {
 	Sidebar,
 } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import {
+	getLeadStageCounts,
+	leadStageDefinitions,
+} from "@/features/leads/lead-stage-filters";
 import {
 	useAdmissionLeadsQuery,
 	useDemoRequestsQuery,
@@ -43,6 +50,7 @@ const titles: Record<string, string> = {
 	"/my-leads": "My Leads",
 	"/for-demo": "For Demo",
 	"/demo-requests": "Assigned Demos",
+	"/demo-completed": "Demo Completed",
 	"/admissions": "For Admission",
 	"/students": "Students",
 	"/counsellors": "Counsellors",
@@ -73,6 +81,10 @@ const resolveTitle = (pathname: string): string => {
 		return "Edit Role";
 	}
 
+	if (/^\/demo-completed$/.test(pathname)) {
+		return "Demo Completed";
+	}
+
 	if (/^\/admissions\/[^/]+$/.test(pathname)) {
 		return "Admission Details";
 	}
@@ -95,8 +107,32 @@ export const DashboardLayout = () => {
 	const usersQuery = useUsersQuery(token);
 	const rolesQuery = useRolesQuery(token);
 	const meName = me?.name ?? "User";
+	const currentUserId = me?.id;
 
 	const allUsers = usersQuery.data?.users ?? [];
+	const allLeads = leadsQuery.data?.leads ?? [];
+	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
+	const currentLocation = `${location.pathname}${location.search}`;
+	const leadStageIcons = {
+		all: <HiPhone className="h-5 w-5" aria-hidden="true" />,
+		followUp: <HiPresentationChartLine className="h-5 w-5" aria-hidden="true" />,
+		formSent: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+		formFilled: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+		demoRequest: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
+		demoAssigned: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+		demoCompleted: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+		finalStage: <HiFlag className="h-5 w-5" aria-hidden="true" />,
+	} as const;
+	const leadStageAccents = {
+		all: "teal",
+		followUp: "lime",
+		formSent: "amber",
+		formFilled: "cyan",
+		demoRequest: "orange",
+		demoAssigned: "emerald",
+		demoCompleted: "violet",
+		finalStage: "teal",
+	} as const;
 	const navItems: NavigationItem[] = [
 		{
 			to: "/",
@@ -111,9 +147,17 @@ export const DashboardLayout = () => {
 			label: "Leads",
 			description: "All follow-ups",
 			icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
-			count: leadsQuery.data?.leads.length ?? 0,
+			count: leadStageCounts.all,
 			accent: "teal",
 		},
+		...leadStageDefinitions.map((stage) => ({
+			to: `/leads?stage=${stage.id}`,
+			label: stage.label,
+			description: stage.description,
+			icon: leadStageIcons[stage.id],
+			count: leadStageCounts[stage.id],
+			accent: leadStageAccents[stage.id],
+		})),
 		{
 			to: "/my-leads",
 			label: "My Leads",
@@ -137,6 +181,14 @@ export const DashboardLayout = () => {
 			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
 			count: assignedDemoQuery.data?.leads.length ?? 0,
 			accent: "orange",
+		},
+		{
+			to: "/demo-completed",
+			label: "Demo Completed",
+			description: "Need redemo or admission",
+			icon: <HiArrowPath className="h-5 w-5" aria-hidden="true" />,
+			count: leadStageCounts.demoCompleted,
+			accent: "violet",
 		},
 		{
 			to: "/admissions",
@@ -213,6 +265,7 @@ export const DashboardLayout = () => {
 					open={sidebarOpen}
 					onToggle={() => setSidebarOpen((current) => !current)}
 					onLogout={clearToken}
+					currentLocation={currentLocation}
 				/>
 
 				<section className="min-w-0 bg-gray-50 h-screen overflow-hidden flex flex-col">

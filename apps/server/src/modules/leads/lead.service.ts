@@ -1,4 +1,4 @@
-import type { Lead } from "@repo/schema";
+import type { Lead, LeadFormData } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { LeadModel, type LeadDocument } from "./lead.model.js";
 import { ActivityService } from "./activity.service.js";
@@ -149,6 +149,22 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	createdBy: doc.createdBy.toString(),
 	formSent: doc.formSent,
 	formCompleted: doc.formCompleted,
+	studentName: doc.studentName,
+	dateOfBirth: doc.dateOfBirth,
+	residingCountry: doc.residingCountry,
+	standardApplyingFor: doc.standardApplyingFor,
+	gender: doc.gender,
+	primaryWhatsappNumber: doc.primaryWhatsappNumber,
+	alternateWhatsappNumber: doc.alternateWhatsappNumber,
+	studentInfo: doc.studentInfo,
+	preferredLanguage: doc.preferredLanguage,
+	preferredSchedule: doc.preferredSchedule,
+	preferredDays: doc.preferredDays ?? [],
+	preferredTimeslots: doc.preferredTimeslots ?? [],
+	startClassWhen: doc.startClassWhen,
+	hearAboutUs: doc.hearAboutUs,
+	demoAvailability: doc.demoAvailability,
+	preferredMentorGender: doc.preferredMentorGender,
 	followUpCount: doc.followUpCount,
 	nextFollowUpAt: toDateOrFallback(doc.nextFollowUpAt, doc.createdAt ?? new Date()),
 	demos: (doc.demos ?? []).map(toDemo),
@@ -564,7 +580,7 @@ export const LeadService = {
 		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
-	generateFormLink: async (leadId: string) => {
+	generateFormLink: async (leadId: string, performedBy?: string) => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return null;
@@ -572,9 +588,6 @@ export const LeadService = {
 
 		// Generate a secure random token
 		const token = randomBytes(32).toString("hex");
-		
-		// Set expiry to 30 days from now
-		const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 		// Get app URL from environment or use default
 		const appUrl = process.env.APP_URL || "https://app.example.com";
@@ -583,16 +596,27 @@ export const LeadService = {
 		// Save token to database
 		await LeadModel.findByIdAndUpdate(leadId, {
 			formToken: token,
-			formTokenExpiresAt: expiresAt,
+			formSent: true,
+			formTokenExpiresAt: undefined,
 		});
+
+		if (performedBy) {
+			await ActivityService.logActivity(
+				leadId,
+				"FORM_SENT",
+				performedBy,
+				"Form link generated and sent",
+				{ formSent: existingLead.formSent ?? false },
+				{ formSent: true },
+			);
+		}
 
 		return {
 			formLink,
-			expiresAt: expiresAt.toISOString(),
 		};
 	},
 
-	submitLeadForm: async (leadId: string, token: string, data: { name: string; phone: string }): Promise<{ studentId: string; zid: string } | null> => {
+	submitLeadForm: async (leadId: string, token: string, data: LeadFormData): Promise<{ studentId: string; zid: string } | null> => {
 		const existingLead = await LeadModel.findById(leadId);
 		if (!existingLead) {
 			return null;
@@ -604,11 +628,6 @@ export const LeadService = {
 			return null;
 		}
 
-		// Validate token expiry
-		if (!lead.formTokenExpiresAt || lead.formTokenExpiresAt < new Date()) {
-			return null;
-		}
-
 		// Generate ZID
 		const zid = await ZidService.generateZid("ZID");
 
@@ -616,8 +635,8 @@ export const LeadService = {
 		const student = await StudentModel.create({
 			zid,
 			leadId: existingLead._id,
-			name: data.name,
-			phone: data.phone,
+			name: data.studentName,
+			phone: data.primaryWhatsappNumber,
 			status: "ACTIVE",
 			admittedAt: new Date(),
 		});
@@ -627,6 +646,23 @@ export const LeadService = {
 		// Update lead in database
 		await LeadModel.findByIdAndUpdate(leadId, {
 			formCompleted: true,
+			formSent: true,
+			studentName: data.studentName,
+			dateOfBirth: data.dateOfBirth,
+			residingCountry: data.residingCountry,
+			standardApplyingFor: data.standardApplyingFor,
+			gender: data.gender,
+			primaryWhatsappNumber: data.primaryWhatsappNumber,
+			alternateWhatsappNumber: data.alternateWhatsappNumber,
+			studentInfo: data.studentInfo,
+			preferredLanguage: data.preferredLanguage,
+			preferredSchedule: data.preferredSchedule,
+			preferredDays: data.preferredDays,
+			preferredTimeslots: data.preferredTimeslots,
+			startClassWhen: data.startClassWhen,
+			hearAboutUs: data.hearAboutUs,
+			demoAvailability: data.demoAvailability,
+			preferredMentorGender: data.preferredMentorGender,
 			formToken: undefined,
 			formTokenExpiresAt: undefined,
 		});
@@ -658,13 +694,8 @@ export const LeadService = {
 			return { isValid: false };
 		}
 
-		if (!lead.formTokenExpiresAt || lead.formTokenExpiresAt < new Date()) {
-			return { isValid: false };
-		}
-
 		return {
 			isValid: true,
-			expiresAt: lead.formTokenExpiresAt.toISOString(),
 		};
 	},
 

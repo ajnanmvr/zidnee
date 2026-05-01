@@ -13,7 +13,7 @@ import { useUsersQuery } from "@/features/users/users.queries";
 import type { ConfirmAdmissionForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
-const isCounsellorRole = (roleName: string) => roleName.toLowerCase() === "counsellor";
+const isCounsellorRole = (roleType: string) => roleType === "counsellor";
 const formatUserName = (userName?: string | null) => userName?.trim() || "-";
 
 export const AdmissionDetailPage = () => {
@@ -29,7 +29,7 @@ export const AdmissionDetailPage = () => {
 	const allUsers = usersQuery.data?.users ?? [];
 
 	const counsellors = useMemo(() => {
-		return allUsers.filter((user) => user.roles.some((role) => isCounsellorRole(role.name)));
+		return allUsers.filter((user) => user.roles.some((role) => isCounsellorRole(role.type ?? "general")));
 	}, [allUsers]);
 
 	const userNameById = useMemo(

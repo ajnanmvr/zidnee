@@ -294,7 +294,7 @@ export const DemoRequestsPage = () => {
 										}}
 									>
 										<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
-										Demo completed
+										Mark completed
 									</button>
 								</>
 							)}
@@ -372,7 +372,7 @@ export const DemoRequestsPage = () => {
 			>
 				<div className="grid gap-4">
 					<div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-						<HiExclamationTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+						<HiExclamationTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
 						<p className="text-sm text-amber-800">
 							<strong>Warning:</strong> Marking this demo as completed cannot be undone. This will finalize the demo status.
 						</p>

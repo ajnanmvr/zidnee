@@ -48,6 +48,10 @@ const findRoleByName = async (roleName: string) => {
 	return (await RoleService.findAll()).find((role) => role.name === roleName) ?? null;
 };
 
+const findRoleByType = async (roleType: "general" | "mentor" | "counsellor" | "sales") => {
+	return (await RoleService.findAll()).find((role) => role.type === roleType) ?? null;
+};
+
 const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
 	const users = await UserService.findAll();
 	const existingIds = users.map((user) =>
@@ -120,7 +124,7 @@ export const createMentorController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const mentorRole = await findRoleByName("Mentor");
+	const mentorRole = await findRoleByType("mentor");
 	if (!mentorRole) {
 		throw new NotFoundError("Mentor role");
 	}
@@ -131,7 +135,7 @@ export const createMentorController = async (
 			throw new NotFoundError("Counsellor");
 		}
 
-		const counsellorRole = await findRoleByName("Counsellor");
+		const counsellorRole = await findRoleByType("counsellor");
 
 		const isCounsellor = counsellorRole
 			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
@@ -177,7 +181,7 @@ export const createCounsellorController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const counsellorRole = await findRoleByName("Counsellor");
+	const counsellorRole = await findRoleByType("counsellor");
 	if (!counsellorRole) {
 		throw new NotFoundError("Counsellor role");
 	}

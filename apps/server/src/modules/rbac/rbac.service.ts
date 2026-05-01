@@ -75,6 +75,7 @@ const toRole = (doc: RoleDocument): Role => {
 	return {
 		id: doc._id.toString(),
 		name: doc.name,
+		type: doc.type ?? "general",
 		description: doc.description,
 		permissionIds: doc.permissionIds,
 		isSystem: doc.isSystem,
@@ -282,6 +283,7 @@ export const RoleService = {
 		await initializeDefaults();
 		const created = await RoleModel.create({
 			name: role.name,
+			type: role.type ?? "general",
 			description: role.description,
 			permissionIds: role.permissionIds,
 			isSystem: role.isSystem,

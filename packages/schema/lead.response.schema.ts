@@ -22,6 +22,7 @@ export const LeadResponseSchema = LeadSchema.omit({
 	updatedAt: true,
 }).extend({
 	nextFollowUpAt: z.string().datetime(),
+	dateOfBirth: z.string().datetime().nullable().optional(),
 	demos: z.array(LeadDemoResponseSchema),
 });
 

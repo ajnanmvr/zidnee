@@ -17,11 +17,11 @@ import { RoleService } from "../rbac/rbac.service.js";
 import { StudentService } from "../students/student.service.js";
 
 const getLatestDemo = (lead: Lead) => {
-	return lead.demos.length > 0 ? lead.demos[lead.demos.length - 1] : null;
+	return lead.demos && lead.demos.length > 0 ? lead.demos[lead.demos.length - 1] : null;
 };
 
 const toLeadResponse = (lead: Lead) => {
-	const demos = lead.demos.map((demo) => ({
+	const demos = lead.demos?.map((demo) => ({
 		mentorId: demo.mentorId ?? null,
 		requestedAt: demo.requestedAt?.toISOString() ?? null,
 		assignedAt: demo.assignedAt?.toISOString() ?? null,
@@ -36,7 +36,7 @@ const toLeadResponse = (lead: Lead) => {
 		admissionCompletedAt: demo.admissionCompletedAt?.toISOString() ?? null,
 		studentId: demo.studentId ?? null,
 		note: demo.note ?? null,
-	}));
+	})) ?? [];
 
 	return {
 		id: lead.id,
@@ -48,7 +48,23 @@ const toLeadResponse = (lead: Lead) => {
 		formSent: lead.formSent,
 		formCompleted: lead.formCompleted,
 		followUpCount: lead.followUpCount,
-		nextFollowUpAt: lead.nextFollowUpAt.toISOString(),
+		nextFollowUpAt: lead.nextFollowUpAt?.toISOString() ?? new Date().toISOString(),
+		studentName: lead.studentName,
+		dateOfBirth: lead.dateOfBirth?.toISOString(),
+		residingCountry: lead.residingCountry,
+		standardApplyingFor: lead.standardApplyingFor,
+		gender: lead.gender,
+		primaryWhatsappNumber: lead.primaryWhatsappNumber,
+		alternateWhatsappNumber: lead.alternateWhatsappNumber,
+		studentInfo: lead.studentInfo,
+		preferredLanguage: lead.preferredLanguage,
+		preferredSchedule: lead.preferredSchedule,
+		preferredDays: lead.preferredDays ?? [],
+		preferredTimeslots: lead.preferredTimeslots ?? [],
+		startClassWhen: lead.startClassWhen,
+		hearAboutUs: lead.hearAboutUs,
+		demoAvailability: lead.demoAvailability,
+		preferredMentorGender: lead.preferredMentorGender,
 		demos,
 	};
 };
@@ -455,7 +471,7 @@ export const generateFormLinkController = async (
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
 
-	const result = await LeadService.generateFormLink(leadId);
+	const result = await LeadService.generateFormLink(leadId, req.user.userId);
 
 	if (!result) {
 		throw new NotFoundError("Lead");
@@ -472,8 +488,22 @@ export const submitLeadFormController = async (
 	const payload = SubmitLeadFormPayloadSchema.parse(req.body);
 
 	const result = await LeadService.submitLeadForm(leadId, payload.token, {
-		name: payload.name,
-		phone: payload.phone,
+		studentName: payload.studentName,
+		dateOfBirth: payload.dateOfBirth,
+		residingCountry: payload.residingCountry,
+		standardApplyingFor: payload.standardApplyingFor,
+		gender: payload.gender,
+		primaryWhatsappNumber: payload.primaryWhatsappNumber,
+		alternateWhatsappNumber: payload.alternateWhatsappNumber,
+		studentInfo: payload.studentInfo,
+		preferredLanguage: payload.preferredLanguage,
+		preferredSchedule: payload.preferredSchedule,
+		preferredDays: payload.preferredDays,
+		preferredTimeslots: payload.preferredTimeslots,
+		startClassWhen: payload.startClassWhen,
+		hearAboutUs: payload.hearAboutUs,
+		demoAvailability: payload.demoAvailability,
+		preferredMentorGender: payload.preferredMentorGender,
 	});
 
 	if (!result) {

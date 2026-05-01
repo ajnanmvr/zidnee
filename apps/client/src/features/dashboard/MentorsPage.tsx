@@ -4,7 +4,7 @@ export const MentorsPage = () => (
 	<RoleUsersPage
 		title="Mentors"
 		description="Mentor team"
-		roleName="Mentor"
+		roleType="mentor"
 		createPath="/mentors/create"
 	/>
 );

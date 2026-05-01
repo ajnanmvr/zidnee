@@ -134,7 +134,7 @@ export const LeadDetailPage = () => {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [completeOpen, setCompleteOpen] = useState(false);
 	const [formLinkOpen, setFormLinkOpen] = useState(false);
-	const [formLinkData, setFormLinkData] = useState<{ formLink: string; expiresAt: string } | null>(null);
+	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(null);
 
 	const {
 		control: editControl,
@@ -951,7 +951,7 @@ export const LeadDetailPage = () => {
 			>
 				<div className="grid gap-4">
 					<div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-						<HiExclamationTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+						<HiExclamationTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
 						<p className="text-sm text-amber-800">
 							<strong>Warning:</strong> Marking this demo as completed cannot be undone. This will finalize the demo status for this lead.
 						</p>
@@ -1007,11 +1007,6 @@ export const LeadDetailPage = () => {
 										Copy
 									</button>
 								</div>
-							</div>
-
-							<div>
-								<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Expires at</p>
-								<p className="text-sm text-gray-900">{new Date(formLinkData.expiresAt).toLocaleString()}</p>
 							</div>
 
 							<button
