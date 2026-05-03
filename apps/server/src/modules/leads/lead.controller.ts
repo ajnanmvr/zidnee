@@ -6,6 +6,7 @@ import {
 	UpdateLeadPayloadSchema,
 	type Lead,
 	ConfirmAdmissionPayloadSchema,
+	DeleteLeadPayloadSchema,
 } from "@repo/schema";
 import { SubmitLeadFormPayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
@@ -347,15 +348,20 @@ export const confirmAdmissionController = async (
 		counsellorId = mentor?.counsellorId;
 	}
 
-	if (!counsellorId) {
+	if (!counsellorId && !result.data.mentorId) {
 		throw new ValidationError({
-			counsellorId: ["Select a counsellor for admission"],
+			counsellorId: ["Select a counsellor or mentor for admission"],
 		});
 	}
 
 	const student = await StudentService.confirmAdmission(
 		leadId,
 		counsellorId,
+		result.data.mentorId,
+		result.data.batchId,
+		result.data.courseId,
+		result.data.programType,
+		result.data.batchType,
 		req.user.userId,
 		result.data.note,
 	);
@@ -480,6 +486,48 @@ export const generateFormLinkController = async (
 	res.json(result);
 };
 
+export const revokeFormLinkController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new Error("User not authenticated");
+	}
+
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const updatedLead = await LeadService.revokeFormLink(leadId, req.user.userId);
+
+	if (!updatedLead) {
+		throw new NotFoundError("Lead");
+	}
+
+	res.json({
+		ok: true,
+		lead: toLeadResponse(updatedLead),
+	});
+};
+
+export const cancelLeadDemoController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new Error("User not authenticated");
+	}
+
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const updatedLead = await LeadService.cancelDemo(leadId, req.user.userId);
+
+	if (!updatedLead) {
+		throw new NotFoundError("Lead");
+	}
+
+	res.json({
+		ok: true,
+		lead: toLeadResponse(updatedLead),
+	});
+};
+
 export const submitLeadFormController = async (
 	req: Request,
 	res: Response,
@@ -526,12 +574,17 @@ export const deleteLeadController = async (
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const result = DeleteLeadPayloadSchema.safeParse(req.body);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
 
 	// Get user name for activity logging
 	const user = await UserModel.findById(req.user.userId).lean();
 	const userName = user?.name || "Unknown";
 
-	const deleted = await LeadService.delete(leadId, req.user.userId, userName);
+	const deleted = await LeadService.delete(leadId, req.user.userId, userName, result.data.note);
 
 	if (!deleted) {
 		throw new NotFoundError("Lead");

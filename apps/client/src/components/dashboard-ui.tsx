@@ -13,7 +13,8 @@ export type NavigationItem = {
 	description: string;
 	icon: ReactNode;
 	count?: number;
-	accent?: "emerald" | "teal" | "lime" | "amber" | "orange" | "cyan" | "violet";
+	accent?: "emerald" | "teal" | "lime" | "amber" | "orange" | "cyan" | "violet" | "rose";
+	section?: string;
 };
 
 export type Tone = "brand" | "accent" | "ink" | "sky" | "warm";
@@ -62,6 +63,11 @@ const accentStyles: Record<NonNullable<NavigationItem["accent"]>, { icon: string
 		icon: "text-violet-700",
 		badge: "bg-violet-100 text-violet-700 border border-violet-200",
 		active: "border-violet-300 bg-violet-50",
+	},
+	rose: {
+		icon: "text-rose-700",
+		badge: "bg-rose-100 text-rose-700 border border-rose-200",
+		active: "border-rose-300 bg-rose-50",
 	},
 };
 
@@ -144,6 +150,17 @@ type ConfirmDialogProps = {
 
 export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: SidebarProps) => {
 	const isActiveItem = (item: NavigationItem) => currentLocation === item.to;
+	const groupedItems = items.reduce<Array<{ section: string; items: NavigationItem[] }>>((groups, item) => {
+		const section = item.section ?? "General";
+		const existingGroup = groups.find((group) => group.section === section);
+		if (existingGroup) {
+			existingGroup.items.push(item);
+			return groups;
+		}
+
+		groups.push({ section, items: [item] });
+		return groups;
+	}, []);
 
 	return (
 		<aside
@@ -190,39 +207,48 @@ export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: Si
 			</div>
 
 			<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
-				<div className="grid gap-1">
-					{items.map((item) => {
-						const accent = accentStyles[item.accent ?? "emerald"];
-						const isActive = isActiveItem(item);
+				<div className="grid gap-4">
+					{groupedItems.map((group) => (
+						<div key={group.section} className="grid gap-1">
+							{open ? (
+								<p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+									{group.section}
+								</p>
+							) : null}
+							{group.items.map((item) => {
+								const accent = accentStyles[item.accent ?? "emerald"];
+								const isActive = isActiveItem(item);
 
-						return (
-							<Link
-								key={item.to}
-								to={item.to}
-								className={
-									isActive
-										? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center"}`
-										: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center"}`
-								}
-							>
-								<span className={accent.icon}>{item.icon}</span>
-								{open ? (
-									<div className="min-w-0 flex-1">
-										<div className="flex items-center justify-between gap-2">
-											<span className="block truncate text-sm font-semibold">
-												{item.label}
-											</span>
-											{typeof item.count === "number" ? (
-												<span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}>
-													{item.count}
-												</span>
-											) : null}
-										</div>
-									</div>
-								) : null}
-							</Link>
-						);
-					})}
+								return (
+									<Link
+										key={item.to}
+										to={item.to}
+										className={
+											isActive
+												? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center"}`
+												: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center"}`
+										}
+									>
+										<span className={accent.icon}>{item.icon}</span>
+										{open ? (
+											<div className="min-w-0 flex-1">
+												<div className="flex items-center justify-between gap-2">
+													<span className="block truncate text-sm font-semibold">
+														{item.label}
+													</span>
+													{typeof item.count === "number" ? (
+														<span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}>
+															{item.count}
+														</span>
+													) : null}
+												</div>
+											</div>
+										) : null}
+									</Link>
+								);
+							})}
+						</div>
+					))}
 				</div>
 
 				<div className="mt-4 px-1">

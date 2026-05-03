@@ -28,6 +28,11 @@ const userSchema = new Schema<UserDocument>(
 			type: String,
 			required: true,
 		},
+		gender: {
+			type: String,
+			enum: ["male", "female"],
+			required: false,
+		},
 		mentorId: {
 			type: String,
 			required: false,

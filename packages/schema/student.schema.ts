@@ -13,6 +13,10 @@ export const StudentSchema = z.object({
 	phone: z.string().min(8).max(20),
 	mentorId: ObjectIdStringSchema.optional(),
 	counsellorId: ObjectIdStringSchema.optional(),
+	batchId: ObjectIdStringSchema.optional(),
+	courseId: ObjectIdStringSchema.optional(),
+	programType: z.enum(["ONLINE_SCHOOL", "COURSES"]).optional(),
+	batchType: z.enum(["1_TO_1", "GROUP"]).optional(),
 	status: StudentStatusSchema,
 	admittedAt: z.date(),
 	createdAt: z.date().optional(),
@@ -23,6 +27,11 @@ export type Student = z.infer<typeof StudentSchema>;
 
 export const ConfirmAdmissionPayloadSchema = z.object({
 	counsellorId: ObjectIdStringSchema.optional(),
+	programType: z.enum(["ONLINE_SCHOOL", "COURSES"]).optional(), // ONLINE_SCHOOL or COURSES
+	batchType: z.enum(["1_TO_1", "GROUP"]).optional(), // Only for ONLINE_SCHOOL
+	mentorId: ObjectIdStringSchema.optional(), // For ONLINE_SCHOOL
+	batchId: ObjectIdStringSchema.optional(), // For ONLINE_SCHOOL GROUP
+	courseId: ObjectIdStringSchema.optional(), // For COURSES
 	note: z.string().max(500).optional(),
 });
 

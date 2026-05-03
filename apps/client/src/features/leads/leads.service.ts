@@ -114,6 +114,16 @@ export const requestLeadDemo = async (token: string, leadId: string) => {
 	);
 };
 
+export const cancelLeadDemo = async (token: string, leadId: string) => {
+	return requestWithSchema(
+		`/leads/${leadId}/demo/cancel`,
+		LeadResponseEnvelopeSchema,
+		"PATCH",
+		undefined,
+		token,
+	);
+};
+
 export const assignDemoMentor = async (
 	token: string,
 	leadId: string,
@@ -188,12 +198,12 @@ export const requestAdmission = async (
 	);
 };
 
-export const deleteLead = async (token: string, leadId: string) => {
+export const deleteLead = async (token: string, leadId: string, payload: { note: string }) => {
 	return requestWithSchema(
 		`/leads/${leadId}`,
 		MessageResponseSchema,
 		"DELETE",
-		undefined,
+		payload,
 		token,
 	);
 };
@@ -203,6 +213,16 @@ export const generateFormLink = async (token: string, leadId: string) => {
 		`/leads/${leadId}/form-link`,
 		GenerateFormLinkResponseSchema,
 		"POST",
+		undefined,
+		token,
+	);
+};
+
+export const revokeFormLink = async (token: string, leadId: string) => {
+	return requestWithSchema(
+		`/leads/${leadId}/form/revoke`,
+		LeadResponseEnvelopeSchema,
+		"PATCH",
 		undefined,
 		token,
 	);

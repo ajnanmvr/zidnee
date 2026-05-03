@@ -1,6 +1,7 @@
 ﻿import { AdminChangePasswordPayloadSchema } from "@repo/schema";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import {
 	HiLockClosed,
 	HiPencilSquare,
@@ -20,13 +21,19 @@ import {
 import { useUsersQuery } from "@/features/users/users.queries";
 import type { AdminChangePasswordForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { useLocation } from "react-router-dom";
+
+const matchesRoleType = (roleType: string, expectedType: string) =>
+	roleType === expectedType;
 
 export const UsersPage = () => {
 	const { token } = useSession();
+	const location = useLocation();
 	const usersQuery = useUsersQuery(token);
 	const deleteUserMutation = useDeleteUserMutation();
 	const setUserStatusMutation = useSetUserStatusMutation();
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
+	const pageRoleType = location.search.includes("role=sales") ? "sales" : "general";
 	const { control, handleSubmit, reset, setError } =
 		useForm<AdminChangePasswordForm>({
 			defaultValues: { newPassword: "" },
@@ -34,28 +41,25 @@ export const UsersPage = () => {
 
 	const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
 	const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-	const [banner, setBanner] = useState("");
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
-		setBanner("");
-
 		try {
 			await setUserStatusMutation.mutateAsync({
 				userId,
 				isActive: !isActive,
 			});
-			setBanner(
+			toast.success(
 				!isActive
 					? "User activated successfully."
 					: "User deactivated successfully.",
 			);
 		} catch (error) {
 			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? "Unable to update status");
+				toast.error(error.payload.message ?? "Unable to update status");
 				return;
 			}
 
-			setBanner(
+			toast.error(
 				error instanceof Error ? error.message : "Unable to update status",
 			);
 		}
@@ -66,30 +70,32 @@ export const UsersPage = () => {
 			return;
 		}
 
-		setBanner("");
-
 		try {
 			await deleteUserMutation.mutateAsync(deleteUserId);
-			setBanner("User deleted successfully.");
+			toast.success("User deleted successfully.");
 			setDeleteUserId(null);
 		} catch (error) {
 			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? "Unable to delete user");
+				toast.error(error.payload.message ?? "Unable to delete user");
 				return;
 			}
 
-			setBanner(
+			toast.error(
 				error instanceof Error ? error.message : "Unable to delete user",
 			);
 		}
 	};
 
+	const users = useMemo(() => {
+		return usersQuery.data?.users.filter((user) =>
+			user.roles.some((role) => matchesRoleType(role.type ?? "general", pageRoleType)),
+		) ?? [];
+	}, [pageRoleType, usersQuery.data?.users]);
+
 	const onSubmitPassword = async (passwordForm: AdminChangePasswordForm) => {
 		if (!passwordUserId) {
 			return;
 		}
-
-		setBanner("");
 
 		const validation = AdminChangePasswordPayloadSchema.safeParse(passwordForm);
 		if (!validation.success) {
@@ -106,7 +112,7 @@ export const UsersPage = () => {
 				userId: passwordUserId,
 				payload: validation.data,
 			});
-			setBanner("Password updated successfully.");
+			toast.success("Password updated successfully.");
 			setPasswordUserId(null);
 			reset({ newPassword: "" });
 		} catch (error) {
@@ -118,11 +124,11 @@ export const UsersPage = () => {
 						message: newPasswordError,
 					});
 				}
-				setBanner(error.payload.message ?? "Unable to update password");
+				toast.error(error.payload.message ?? "Unable to update password");
 				return;
 			}
 
-			setBanner(
+			toast.error(
 				error instanceof Error ? error.message : "Unable to update password",
 			);
 		}
@@ -131,15 +137,15 @@ export const UsersPage = () => {
 	return (
 		<div className="grid gap-6">
 			<Panel
-				title="Users"
+				title={pageRoleType === "sales" ? "Sales" : "Users"}
 				description="Team"
 				action={
 					<Link
-						to="/users/create"
+						to={`/users/create?role=${pageRoleType}`}
 						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105"
 					>
 						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-						Create user
+						{pageRoleType === "sales" ? "Create sales user" : "Create user"}
 					</Link>
 				}
 			>
@@ -156,7 +162,7 @@ export const UsersPage = () => {
 							</tr>
 						</thead>
 						<tbody>
-							{usersQuery.data?.users.map((user) => (
+							{users.map((user) => (
 								<tr key={user.id} className="border-t border-gray-300 align-top">
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
@@ -286,12 +292,6 @@ export const UsersPage = () => {
 				onConfirm={handleDeleteUser}
 				onCancel={() => setDeleteUserId(null)}
 			/>
-
-			{banner ? (
-				<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-					{banner}
-				</p>
-			) : null}
 		</div>
 	);
 };

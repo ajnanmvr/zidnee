@@ -40,35 +40,27 @@ export const getLeadUrgency = (lead: LeadResponse) => {
 const getLeadStatusTone = (lead: LeadResponse) => {
 	const latestDemo = getLatestLeadDemo(lead);
 
-	if (latestDemo?.studentId) {
-		return { className: "bg-emerald-500/10 text-emerald-700", label: "Student created" };
-	}
-
-	if (latestDemo?.admissionCompletedAt) {
-		return { className: "bg-teal-500/10 text-teal-700", label: "Admission completed" };
-	}
-
-	if (latestDemo?.admissionRequestedAt) {
-		return { className: "bg-amber-500/15 text-amber-800", label: "Admission requested" };
-	}
-
 	if (latestDemo?.completedAt) {
-		return { className: "bg-blue-100 text-blue-600", label: "Demo completed" };
+		return { className: "bg-blue-100 text-blue-600", label: "Demo Completed" };
 	}
 
 	if (latestDemo?.assignedAt && latestDemo?.demoScheduledFor) {
-		return { className: "bg-violet-500/10 text-violet-700", label: "Demo scheduled" };
-	}
-
-	if (latestDemo?.assignedAt) {
-		return { className: "bg-sky-600/10 text-sky-600", label: "Demo assigned" };
+		return { className: "bg-violet-500/10 text-violet-700", label: "Demo Scheduled" };
 	}
 
 	if (latestDemo?.requestedAt) {
-		return { className: "bg-amber-500/10 text-amber-700", label: "Demo requested" };
+		return { className: "bg-amber-500/10 text-amber-700", label: "Demo Request" };
 	}
 
-	return { className: "bg-gray-50 text-gray-600", label: "Lead follow-up" };
+	if (lead.formCompleted) {
+		return { className: "bg-emerald-500/10 text-emerald-700", label: "Form Filled" };
+	}
+
+	if (lead.formSent) {
+		return { className: "bg-sky-600/10 text-sky-700", label: "Form Sent" };
+	}
+
+	return { className: "bg-gray-50 text-gray-600", label: "Follow Up" };
 };
 
 const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
@@ -90,7 +82,19 @@ const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
 	);
 };
 
-export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
+export type LeadTableAction = {
+	key: string;
+	label: string;
+	onClick?: (lead: LeadResponse) => void;
+	to?: (lead: LeadResponse) => string;
+	className?: string;
+};
+
+export const buildLeadColumns = (
+	options?: {
+		getActions?: (lead: LeadResponse) => LeadTableAction[];
+	},
+): ColumnDef<LeadResponse>[] => [
 	{
 		id: "urgency",
 		header: "Status",
@@ -117,7 +121,7 @@ export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 	},
 	{
 		id: "demoStatus",
-		header: "Demo Status",
+		header: "Status",
 		cell: (info) => {
 			const lead = info.row.original;
 			const status = getLeadStatusTone(lead);
@@ -140,22 +144,49 @@ export const buildLeadColumns = (): ColumnDef<LeadResponse>[] => [
 		id: "viewAction",
 		header: "",
 		cell: (info) => {
-			const leadId = info.row.original.id;
+			const lead = info.row.original;
+			const defaultActions: LeadTableAction[] = [
+				{
+					key: "view",
+					label: "View",
+					to: (item) => `/leads/${item.id}`,
+					className: "inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100",
+				},
+				{
+					key: "postpone",
+					label: "Postpone",
+					to: (item) => `/leads/${item.id}?action=postpone`,
+					className: "inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
+				},
+			];
+			const actions = options?.getActions ? options.getActions(lead) : defaultActions;
 
 			return (
-				<div className="flex items-center gap-2">
-					<Link
-						className="inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
-						to={`/leads/${leadId}`}
-					>
-						View
-					</Link>
-					<Link
-						className="inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50"
-						to={`/leads/${leadId}?action=postpone`}
-					>
-						Postpone
-					</Link>
+				<div className="flex flex-wrap items-center gap-2">
+					{actions.map((action) => {
+						if (action.to) {
+							return (
+								<Link
+									key={action.key}
+									className={action.className ?? "inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"}
+									to={action.to(lead)}
+								>
+									{action.label}
+								</Link>
+							);
+						}
+
+						return (
+							<button
+								key={action.key}
+								type="button"
+								className={action.className ?? "inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"}
+								onClick={() => action.onClick?.(lead)}
+							>
+								{action.label}
+							</button>
+						);
+					})}
 				</div>
 			);
 		},

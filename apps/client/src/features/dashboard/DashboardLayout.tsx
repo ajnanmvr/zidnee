@@ -6,12 +6,10 @@ import {
 	HiBookmarkSquare,
 	HiCalendarDays,
 	HiClipboardDocumentList,
-	HiFlag,
 	HiIdentification,
 	HiPhone,
 	HiPresentationChartLine,
 	HiSquares2X2,
-	HiUser,
 	HiUserGroup,
 	HiUsers,
 } from "react-icons/hi2";
@@ -26,39 +24,49 @@ import { useMeQuery } from "@/features/auth/auth.queries";
 import {
 	getLeadStageCounts,
 	leadStageDefinitions,
+	type LeadStageId,
 } from "@/features/leads/lead-stage-filters";
 import {
 	useAdmissionLeadsQuery,
 	useDueLeadFollowUpsQuery,
+	usePendingDemoRequestsQuery,
+	useDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
+import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useRolesQuery } from "@/features/roles/roles.queries";
+import { useCoursesQuery } from "@/features/courses/courses.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
-const roleCount = (users: Array<{ roles: Array<{ name: string }> }>, role: "mentor" | "counsellor") =>
+const roleCount = (users: Array<{ roles: Array<{ type?: string }> }>, role: "mentor" | "counsellor" | "sales") =>
 	users.filter((user) =>
-		user.roles.some((item) => item.name.toLowerCase() === role),
+		user.roles.some((item) => item.type === role),
 	).length;
 
 const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
-	"/my-leads": "My Leads",
 	"/admissions": "For Admission",
 	"/students": "Students",
+	"/counsellor/mentors": "Counsellor Mentors",
+	"/counsellor/students": "Counsellor Students",
 	"/counsellors": "Counsellors",
 	"/counsellors/create": "Create Counsellor",
 	"/mentors": "Mentors",
 	"/mentors/create": "Create Mentor",
+	"/courses/create": "Create Course",
+	"/time-slots": "Time Slots",
 	"/users": "Users",
 	"/users/create": "Create User",
 	"/roles": "Role Permissions",
 	"/roles/create": "Create Role",
 	"/me": "Me",
+	"/demo-management/unassigned": "Unassigned Demos",
+	"/demo-management/scheduled": "Scheduled Demos",
 };
 
-const resolveTitle = (pathname: string): string => {
+const resolveTitle = (pathname: string, search: string): string => {
 	if (/^\/users\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit User";
 	}
@@ -71,12 +79,36 @@ const resolveTitle = (pathname: string): string => {
 		return "Create Mentor";
 	}
 
+	if (/^\/courses\/create$/.test(pathname)) {
+		return "Create Course";
+	}
+
+	if (/^\/time-slots$/.test(pathname)) {
+		return "Time Slots";
+	}
+
+	if (/^\/counsellor\/mentors$/.test(pathname)) {
+		return "Counsellor Mentors";
+	}
+
+	if (/^\/counsellor\/students$/.test(pathname)) {
+		return "Counsellor Students";
+	}
+
+	if (pathname === "/users/create" && search.includes("role=sales")) {
+		return "Create Sales";
+	}
+
 	if (/^\/roles\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit Role";
 	}
 
 	if (/^\/admissions\/[^/]+$/.test(pathname)) {
 		return "Admission Details";
+	}
+
+	if (pathname === "/users" && search.includes("role=sales")) {
+		return "Sales";
 	}
 
 	return titles[pathname] ?? "Overview";
@@ -89,17 +121,29 @@ export const DashboardLayout = () => {
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const { data: me, error } = useMeQuery(token);
 	const leadsQuery = useDueLeadFollowUpsQuery(token, { scope: "all", timeFilter: "all" });
-	const myLeadsQuery = useDueLeadFollowUpsQuery(token, { scope: "mine", timeFilter: "all" });
 	const admissionsQuery = useAdmissionLeadsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const rolesQuery = useRolesQuery(token);
+	const coursesQuery = useCoursesQuery(token);
+	const timeSlotsQuery = useTimeSlotsQuery(token);
+	const pendingDemosQuery = usePendingDemoRequestsQuery(token);
+	const scheduledDemosQuery = useDemoRequestsQuery(token);
 	const meName = me?.name ?? "User";
 	const currentUserId = me?.id;
 
 	const allUsers = usersQuery.data?.users ?? [];
+	const allStudents = studentsQuery.data?.students ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
+	const isCounsellor = me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ?? false;
+	const currentCounsellorMentors = allUsers.filter((user) =>
+		user.roles.some((role) => (role.type ?? "general") === "mentor") && user.counsellorId === currentUserId,
+	);
+	const currentCounsellorMentorIds = new Set(currentCounsellorMentors.map((mentor) => mentor.id));
+	const currentCounsellorStudents = allStudents.filter((student) =>
+		student.counsellorId === currentUserId || (student.mentorId ? currentCounsellorMentorIds.has(student.mentorId) : false),
+	);
 	const currentLocation = `${location.pathname}${location.search}`;
 	const leadStageIcons = {
 		all: <HiPhone className="h-5 w-5" aria-hidden="true" />,
@@ -109,9 +153,9 @@ export const DashboardLayout = () => {
 		demoRequest: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
 		demoAssigned: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 		demoCompleted: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-		finalStage: <HiFlag className="h-5 w-5" aria-hidden="true" />,
+		demoCancelled: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
 	} as const;
-	const leadStageAccents = {
+	const leadStageAccents: Record<LeadStageId, NonNullable<NavigationItem["accent"]>> = {
 		all: "teal",
 		followUp: "lime",
 		formSent: "amber",
@@ -119,9 +163,27 @@ export const DashboardLayout = () => {
 		demoRequest: "orange",
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
-		finalStage: "teal",
-	} as const;
-	const navItems: NavigationItem[] = [
+		demoCancelled: "orange",
+	};
+	
+	const getLeadStageItems = (): NavigationItem[] => {
+		return leadStageDefinitions
+			.filter(stage => stage.id !== 'all')
+			.map((stage) => {
+				const id = stage.id as Exclude<LeadStageId, "all">;
+				return {
+					to: `/leads?stage=${id}`,
+					label: stage.label,
+					description: stage.description,
+					icon: leadStageIcons[id] || <HiPhone className="h-5 w-5" aria-hidden="true" />,
+					count: leadStageCounts[id] ?? 0,
+					accent: leadStageAccents[id],
+					section: "Lead Pipeline",
+				};
+			});
+	};
+
+	const navItems = [
 		{
 			to: "/",
 			label: "Overview",
@@ -129,6 +191,7 @@ export const DashboardLayout = () => {
 			icon: <HiSquares2X2 className="h-5 w-5" aria-hidden="true" />,
 			count: (leadsQuery.data?.leads.length ?? 0) + (studentsQuery.data?.students.length ?? 0),
 			accent: "emerald",
+			section: "Overview",
 		},
 		{
 			to: "/leads",
@@ -137,23 +200,9 @@ export const DashboardLayout = () => {
 			icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
 			count: leadStageCounts.all,
 			accent: "teal",
+			section: "Lead Pipeline",
 		},
-		...leadStageDefinitions.map((stage) => ({
-			to: `/leads?stage=${stage.id}`,
-			label: stage.label,
-			description: stage.description,
-			icon: leadStageIcons[stage.id],
-			count: leadStageCounts[stage.id],
-			accent: leadStageAccents[stage.id],
-		})),
-		{
-			to: "/my-leads",
-			label: "My Leads",
-			description: "Assigned to me",
-			icon: <HiUser className="h-5 w-5" aria-hidden="true" />,
-			count: myLeadsQuery.data?.leads.length ?? 0,
-			accent: "lime",
-		},
+		...getLeadStageItems(),
 		{
 			to: "/admissions",
 			label: "For Admission",
@@ -161,6 +210,7 @@ export const DashboardLayout = () => {
 			icon: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
 			count: admissionsQuery.data?.leads.length ?? 0,
 			accent: "violet",
+			section: "Lead Pipeline",
 		},
 		{
 			to: "/students",
@@ -169,6 +219,47 @@ export const DashboardLayout = () => {
 			icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 			count: studentsQuery.data?.students.length ?? 0,
 			accent: "cyan",
+			section: "Learners",
+		},
+		...(isCounsellor
+			? [
+				{
+					to: "/counsellor/mentors",
+					label: "Mentor Follow-up",
+					description: "My mentors",
+					icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
+					count: currentCounsellorMentors.length,
+					accent: "teal",
+					section: "Counsellor Workspace",
+				},
+				{
+					to: "/counsellor/students",
+					label: "My Students",
+					description: "Under my mentors",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count: currentCounsellorStudents.length,
+					accent: "cyan",
+					section: "Counsellor Workspace",
+				},
+			]
+			: []),
+		{
+			to: "/courses/create",
+			label: "Courses",
+			description: "Catalog",
+			icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+			count: coursesQuery.data?.courses.length ?? 0,
+			accent: "rose",
+			section: "Learners",
+		},
+		{
+			to: "/time-slots",
+			label: "Time Slots",
+			description: "Class timing",
+			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+			count: timeSlotsQuery.data?.timeSlots.length ?? 0,
+			accent: "teal",
+			section: "Learners",
 		},
 		{
 			to: "/counsellors",
@@ -177,6 +268,7 @@ export const DashboardLayout = () => {
 			icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 			count: roleCount(allUsers, "counsellor"),
 			accent: "teal",
+			section: "Management",
 		},
 		{
 			to: "/mentors",
@@ -185,6 +277,16 @@ export const DashboardLayout = () => {
 			icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
 			count: roleCount(allUsers, "mentor"),
 			accent: "amber",
+			section: "Management",
+		},
+		{
+			to: "/users?role=sales",
+			label: "Sales",
+			description: "Team",
+			icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+			count: roleCount(allUsers, "sales"),
+			accent: "rose",
+			section: "Management",
 		},
 		{
 			to: "/users",
@@ -193,6 +295,7 @@ export const DashboardLayout = () => {
 			icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
 			count: usersQuery.data?.users.length ?? 0,
 			accent: "cyan",
+			section: "Management",
 		},
 		{
 			to: "/roles",
@@ -201,6 +304,25 @@ export const DashboardLayout = () => {
 			icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
 			count: rolesQuery.data?.roles.length ?? 0,
 			accent: "violet",
+			section: "Management",
+		},
+		{
+			to: "/demo-management/unassigned",
+			label: "Unassigned Demos",
+			description: "Pending assignment",
+			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+			count: pendingDemosQuery.data?.leads.length ?? 0,
+			accent: "amber",
+			section: "Demo Management",
+		},
+		{
+			to: "/demo-management/scheduled",
+			label: "Scheduled Demos",
+			description: "Assigned & due",
+			icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+			count: scheduledDemosQuery.data?.leads.length ?? 0,
+			accent: "emerald",
+			section: "Demo Management",
 		},
 		{
 			to: "/me",
@@ -208,8 +330,9 @@ export const DashboardLayout = () => {
 			description: "Account",
 			icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
 			accent: "emerald",
+			section: "Account",
 		},
-	];
+	] as NavigationItem[];
 
 	useEffect(() => {
 		if (error instanceof ApiError && error.status === 401) {
@@ -218,14 +341,19 @@ export const DashboardLayout = () => {
 		}
 	}, [clearToken, error, navigate]);
 
-	const title = resolveTitle(location.pathname);
+	const title = resolveTitle(location.pathname, location.search);
 	const roleLabel = me?.roles[0]?.name ?? "Workspace member";
+
+	// Filter out any undefined items and ensure all items have icons
+	const validNavItems = navItems.filter((item): item is NavigationItem => 
+		Boolean(item && item.icon && item.to && item.label)
+	);
 
 	return (
 		<main className="h-screen overflow-hidden bg-gray-50 text-gray-900">
 			<div className="grid h-full lg:grid-cols-[auto_minmax(0,1fr)]">
 				<Sidebar
-					items={navItems}
+					items={validNavItems}
 					open={sidebarOpen}
 					onToggle={() => setSidebarOpen((current) => !current)}
 					onLogout={clearToken}

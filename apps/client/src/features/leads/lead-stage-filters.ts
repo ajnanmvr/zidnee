@@ -9,7 +9,7 @@ export type LeadStageId =
 	| "demoRequest"
 	| "demoAssigned"
 	| "demoCompleted"
-	| "finalStage";
+	| "demoCancelled";
 
 export type LeadStageDefinition = {
 	id: LeadStageId;
@@ -38,7 +38,7 @@ export const leadStageDefinitions: LeadStageDefinition[] = [
 	{ id: "demoRequest", label: "Demo Request", description: "Requested but not completed" },
 	{ id: "demoAssigned", label: "Demo Scheduled", description: "Scheduled, mentor assigned, not completed" },
 	{ id: "demoCompleted", label: "Demo Completed", description: "Requested and completed" },
-	{ id: "finalStage", label: "Final Stage Leads", description: "Ready-stage leads assigned to me" },
+	{ id: "demoCancelled", label: "Demo Cancelled", description: "For redemo or direct admission" },
 ];
 
 export const getLeadStagePredicate = (
@@ -56,15 +56,17 @@ export const getLeadStagePredicate = (
 			case "formSent":
 				return isAssignedToCurrentUser(lead, currentUserId) && lead.formSent && !lead.formCompleted && !hasMovedToAdmission(lead);
 			case "formFilled":
-				return isAssignedToCurrentUser(lead, currentUserId) && lead.formSent && lead.formCompleted && !hasMovedToAdmission(lead);
+				return isAssignedToCurrentUser(lead, currentUserId) && lead.formSent && lead.formCompleted && !Boolean(latestDemo?.requestedAt) && !hasMovedToAdmission(lead);
 			case "demoRequest":
 				return isAssignedToCurrentUser(lead, currentUserId) && Boolean(latestDemo?.requestedAt) && !latestDemo?.completedAt && !hasMovedToAdmission(lead);
 			case "demoAssigned":
 				return isAssignedToCurrentUser(lead, currentUserId) && Boolean(latestDemo?.requestedAt) && Boolean(latestDemo?.mentorId) && Boolean(latestDemo?.assignedAt) && !latestDemo?.completedAt && !hasMovedToAdmission(lead);
 			case "demoCompleted":
 				return isAssignedToCurrentUser(lead, currentUserId) && Boolean(latestDemo?.requestedAt) && Boolean(latestDemo?.completedAt) && !hasMovedToAdmission(lead);
-			case "finalStage":
-				return isAssignedToCurrentUser(lead, currentUserId) && !hasMovedToAdmission(lead) && ((lead.formSent && lead.formCompleted) || Boolean(latestDemo?.completedAt));
+			case "demoCancelled":
+				// Demo cancelled means there are multiple demos and the latest one has requestedAt but the previous one didn't complete
+				// Or the demo was cancelled (no demos at all after form completed)
+				return isAssignedToCurrentUser(lead, currentUserId) && lead.formCompleted && !latestDemo?.requestedAt && !hasMovedToAdmission(lead);
 			default:
 				return false;
 		}
@@ -84,6 +86,6 @@ export const getLeadStageCounts = (leads: LeadResponse[], currentUserId?: string
 		demoRequest: 0,
 		demoAssigned: 0,
 		demoCompleted: 0,
-		finalStage: 0,
+		demoCancelled: 0,
 	});
 };

@@ -1,6 +1,6 @@
 # Zidnee Implementation Tracker
 
-Last updated: 2026-04-28
+Last updated: 2026-05-03
 Reference: [docs/ZIDNEE-MASTER-PLAN.md](docs/ZIDNEE-MASTER-PLAN.md)
 
 ## How To Use This File
@@ -19,7 +19,7 @@ Status legend:
 ## Progress Snapshot
 
 - Completed steps: 1 / 8
-- In-progress step: Step 2 - Lead Module
+- In-progress step: Step 5 - Counsellor Operations + Inactive Handling
 - Overall completion: 12.5%
 
 ## Step 1 - Foundations (Auth + RBAC + Users + Frontend Base)
@@ -46,9 +46,13 @@ Test coverage status:
 - Backend foundational tests exist for auth/rbac/middleware
 - Frontend tests still missing
 
+## Features Added (Active Work):
+ - **Public Form Timing**: Public admission form now reads admin-created time slots and removes the old freeform schedule selector
+ - **Timing Visibility**: Demo scheduling and admission confirmation screens now surface submitted start time, demo availability, and preferred time slots
 Notes:
 - This step is functionally present and ready for domain expansion.
 - User management now includes generated mentor/counsellor identity IDs and role-specific create flows.
+- Public form options now include an admin-managed time slot catalog.
 
 ## Step 2 - Lead Module (Priority Domain Start)
 
@@ -114,7 +118,7 @@ Definition of done:
 
 ## Step 4 - Form System + Student Conversion + ZID Engine
 
-Step status: Not Started
+Step status: In Progress
 
 Scope:
 - Lead form submission pipeline
@@ -147,12 +151,15 @@ Checklist:
 - [ ] Add inactiveFrom/inactiveUntil behavior in services
 - [ ] Ensure inactive entities are hidden in queues
 - [ ] Ensure reappearance when inactiveUntil <= now
-- [ ] Add counsellor dashboards and actions on frontend
+- [x] Add counsellor dashboards and actions on frontend
 - [ ] Add tests for inactive visibility transitions
 
 Definition of done:
 - Counsellor lifecycle ownership is fully operational
 - Inactive logic is deterministic and tested
+
+Notes:
+- Client-side counsellor workspace pages now list mentors assigned to the logged-in counsellor and the students under those mentors.
 
 ## Step 6 - Batch + Enrollment + Group/Individual Progress
 

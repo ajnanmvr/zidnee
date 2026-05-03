@@ -41,6 +41,7 @@ export const UserSchema = z.object({
 	email: z.email(),
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
+	gender: z.enum(["male", "female"]).optional(),
 	mentorId: z.string().min(1).max(100).optional(),
 	counsellorId: z.string().min(1).max(100).optional(),
 	roleIds: z.array(ObjectIdStringSchema),
@@ -69,6 +70,7 @@ export const RegisterPayloadSchema = z.object({
 export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
 
 export const CreateUserPayloadSchema = RegisterPayloadSchema.extend({
+	gender: z.enum(["male", "female"]),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
 });
 
@@ -76,6 +78,9 @@ export type CreateUserPayload = z.infer<typeof CreateUserPayloadSchema>;
 
 export const CreateMentorPayloadSchema = z.object({
 	name: z.string().min(1).max(255),
+	username: z.string().min(1).max(100),
+	gender: z.enum(["male", "female"]),
+	mentorCode: z.string().min(1).max(50).optional(),
 	counsellorId: ObjectIdStringSchema.optional(),
 });
 
@@ -83,6 +88,9 @@ export type CreateMentorPayload = z.infer<typeof CreateMentorPayloadSchema>;
 
 export const CreateCounsellorPayloadSchema = z.object({
 	name: z.string().min(1).max(255),
+	username: z.string().min(1).max(100),
+	gender: z.enum(["male", "female"]),
+	counsellorCode: z.string().min(1).max(50).optional(),
 });
 
 export type CreateCounsellorPayload = z.infer<
@@ -93,6 +101,7 @@ export const UpdateUserPayloadSchema = z.object({
 	username: z.string().min(1).max(100).optional(),
 	email: z.email().optional(),
 	name: z.string().min(1).max(255).optional(),
+	gender: z.enum(["male", "female"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
 });
 

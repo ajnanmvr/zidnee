@@ -1,9 +1,9 @@
 ﻿import { type LeadResponse, ConfirmAdmissionPayloadSchema, PostponeLeadFollowUpPayloadSchema, RedemoLeadPayloadSchema, UpdateLeadPayloadSchema } from "@repo/schema";
 import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { HiAcademicCap, HiArrowLeft, HiArrowPath, HiCalendarDays, HiPencilSquare, HiTrash, HiArrowsRightLeft, HiCheckCircle, HiExclamationTriangle } from "react-icons/hi2";
+import { HiAcademicCap, HiArrowLeft, HiArrowPath, HiCalendarDays, HiPencilSquare, HiTrash, HiArrowsRightLeft, HiCheckCircle, HiExclamationTriangle, HiXMark, HiPaperAirplane } from "react-icons/hi2";
 import { ApiError } from "@/api/request";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
@@ -19,6 +19,7 @@ import {
 	useRequestRedemoMutation,
 	useUpdateLeadMutation,
 	useMarkDemoCompletedMutation,
+	useRevokeFormLinkMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -28,6 +29,7 @@ import type {
 	RedemoLeadForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
 
 const toInputDateTimeLocal = (value: Date | string | null | undefined): string => {
 	if (!value) {
@@ -43,25 +45,14 @@ const toInputDateTimeLocal = (value: Date | string | null | undefined): string =
 	return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 };
 
-const formatDateTime = (value: string | Date | null | undefined) => {
-	if (!value) {
-		return "-";
-	}
-
-	const date = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(date.getTime())) {
-		return "-";
-	}
-
-	return date.toLocaleString();
-};
-
 type LeadIdentity = {
 	name?: string;
 	phone?: string;
 } | null | undefined;
 
 const leadDisplayName = (lead: LeadIdentity) => lead?.name || lead?.phone || "Lead";
+
+const getWhatsappNumber = (phone?: string | null) => phone?.replace(/\D/g, "") ?? "";
 
 const getStatusTone = (lead: LeadResponse | null | undefined) => {
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
@@ -93,13 +84,6 @@ const getStatusTone = (lead: LeadResponse | null | undefined) => {
 	return { className: "bg-gray-50 text-gray-600", label: "Lead follow-up" };
 };
 
-const DetailItem = ({ label, value }: { label: string; value: string }) => (
-	<div className="rounded-3xl border border-gray-300 bg-gray-50/60 p-4">
-		<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-600">{label}</p>
-		<p className="mt-2 text-sm font-semibold text-gray-900">{value}</p>
-	</div>
-);
-
 type EditLeadFormState = {
 	name: string;
 	phone: string;
@@ -126,15 +110,19 @@ export const LeadDetailPage = () => {
 	const deleteLeadMutation = useDeleteLeadMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
+	const revokeFormLinkMutation = useRevokeFormLinkMutation();
 	const [editOpen, setEditOpen] = useState(false);
 	const [reassignOpen, setReassignOpen] = useState(false);
 	const [postponeOpen, setPostponeOpen] = useState(false);
 	const [redemoOpen, setRedemoOpen] = useState(false);
 	const [admissionOpen, setAdmissionOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [deleteNote, setDeleteNote] = useState("");
 	const [completeOpen, setCompleteOpen] = useState(false);
 	const [formLinkOpen, setFormLinkOpen] = useState(false);
+	const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(null);
+	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
 
 	const {
 		control: editControl,
@@ -171,6 +159,12 @@ export const LeadDetailPage = () => {
 			note: "",
 		},
 	});
+
+	const postponeNoteValue = useWatch({
+		control: postponeControl,
+		name: "note",
+	});
+	const postponeSuggestions = postponeNoteValue ? formatSuggestionsForUI(postponeNoteValue) : [];
 
 	const {
 		control: redemoControl,
@@ -213,7 +207,7 @@ export const LeadDetailPage = () => {
 	const currentAssigneeId = lead?.assignedTo ?? "";
 	const currentAssignee = currentAssigneeId ? allUsers.find((user) => user.id === currentAssigneeId) ?? null : null;
 	const counsellors = useMemo(
-		() => allUsers.filter((user) => user.roles.some((role) => role.name.toLowerCase() === "counsellor")),
+		() => allUsers.filter((user) => user.roles.some((role) => (role.type ?? "general") === "counsellor")),
 		[allUsers],
 	);
 	const defaultCounsellorId = latestDemo?.mentorId
@@ -267,6 +261,7 @@ export const LeadDetailPage = () => {
 			customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
 			note: "",
 		});
+		setSelectedDuration(1);
 	}, [postponeOpen, resetPostpone]);
 
 	useEffect(() => {
@@ -375,6 +370,11 @@ export const LeadDetailPage = () => {
 
 	const onRequestDemo = async () => {
 		if (!lead) {
+			return;
+		}
+
+		if (!lead.formCompleted) {
+			toast.error("Form must be filled before requesting a demo");
 			return;
 		}
 
@@ -519,12 +519,13 @@ export const LeadDetailPage = () => {
 			return;
 		}
 
-		if (!confirm("Delete this lead?")) {
+		if (!deleteNote.trim()) {
+			toast.error("Please add a reason for dropping this lead.");
 			return;
 		}
 
 		try {
-			await deleteLeadMutation.mutateAsync(lead.id);
+			await deleteLeadMutation.mutateAsync({ leadId: lead.id, note: deleteNote.trim() });
 			toast.success("Lead deleted successfully.");
 			navigate("/leads");
 		} catch (error) {
@@ -566,7 +567,7 @@ export const LeadDetailPage = () => {
 							Back to leads
 						</button>
 						<div>
-							<h1 className="text-3xl font-bold tracking-tight text-gray-900">{lead?.name || lead?.phone || "Lead"}</h1>
+							<h1 className="text-3xl font-bold tracking-tight text-gray-900">{lead?.name || "Lead"}</h1>
 							<div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">
 								<span className={`rounded-full px-3 py-1 ${statusTone.className}`}>{statusSummary}</span>
 								{lead?.assignedTo ? <span className="rounded-full bg-sky-600/10 px-3 py-1 text-sky-600">Assigned</span> : null}
@@ -584,7 +585,7 @@ export const LeadDetailPage = () => {
 							<HiArrowsRightLeft className="h-4 w-4" />
 							Reassign lead
 						</button>
-						{!lead?.formCompleted ? (
+						{!lead?.formSent ? (
 							<button 
 								type="button" 
 								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
@@ -603,9 +604,44 @@ export const LeadDetailPage = () => {
 							>
 								Send form
 							</button>
+						) : lead?.formSent && !lead?.formCompleted ? (
+							<>
+								<button
+									type="button"
+									className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+									onClick={async () => {
+										if (leadId) {
+											try {
+												const result = await generateFormLinkMutation.mutateAsync(leadId);
+												setFormLinkData(result);
+												setFormLinkOpen(true);
+											} catch (error) {
+												toast.error(error instanceof Error ? error.message : "Unable to generate form link");
+											}
+										}
+									}}
+									disabled={generateFormLinkMutation.isPending}
+								>
+									<HiPaperAirplane className="h-4 w-4" />
+									Copy/Share form
+								</button>
+								<button
+									type="button"
+									className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+									onClick={() => setRevokeConfirmOpen(true)}
+								>
+									<HiXMark className="h-4 w-4" />
+									Revoke form
+								</button>
+							</>
 						) : null}
-						{!latestDemo ? (
-							<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void onRequestDemo()} disabled={requestDemoMutation.isPending}>
+						{lead?.formCompleted && !latestDemo ? (
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+								onClick={() => void onRequestDemo()}
+								disabled={requestDemoMutation.isPending}
+							>
 								<HiCalendarDays className="h-4 w-4" />
 								Request demo
 							</button>
@@ -634,136 +670,245 @@ export const LeadDetailPage = () => {
 				</div>
 			</Panel>
 
-			<div className="grid gap-6 xl:grid-cols-3">
-				<Panel title="Lead Overview" description="Core identity and assignment information">
-					<div className="grid gap-3">
-						<DetailItem label="Phone" value={lead?.phone ?? "-"} />
-						<DetailItem label="Name" value={lead?.name ?? "-"} />
-						<DetailItem label="Level" value={lead?.level ?? "-"} />
-						<DetailItem label="Assigned to" value={currentAssignee ? formatUserName(currentAssignee.name ?? currentAssignee.username) : "Unassigned"} />
-						<DetailItem label="Created by" value={lead?.createdBy ? formatUserName(allUsers.find((user) => user.id === lead.createdBy)?.name ?? null) : "-"} />
-						<DetailItem label="Next follow-up" value={formatDateTime(lead?.nextFollowUpAt)} />
-					</div>
-				</Panel>
+			<Panel title="Status Overview" description="Compact view of lead information and workflow state">
+				<div className="grid gap-6">
+					{/* Identity & Assignment Section */}
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<div className="rounded-2xl border border-gray-200 bg-linear-to-br from-blue-50 to-blue-100/50 p-4">
+							<p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-600 mb-3">Lead Identity</p>
+							<div className="space-y-2">
+								<div>
+									<p className="text-xs text-gray-600 font-semibold">Phone</p>
+									<p className="text-sm font-mono text-gray-900">{lead?.phone ?? "-"}</p>
+								</div>
+								<div>
+									<p className="text-xs text-gray-600 font-semibold">Level</p>
+									<p className="text-sm text-gray-900">{lead?.level ?? "-"}</p>
+								</div>
+								<div>
+									<p className="text-xs text-gray-600 font-semibold">Created by</p>
+									<p className="text-xs text-gray-600">{lead?.createdBy ? formatUserName(allUsers.find((user) => user.id === lead.createdBy)?.name ?? null) : "-"}</p>
+								</div>
+							</div>
+						</div>
 
-				<Panel title="Workflow" description="Current lifecycle and demo state">
-					<div className="grid gap-3">
-						<DetailItem label="Form sent" value={lead?.formSent ? "Yes" : "No"} />
-						<DetailItem label="Form completed" value={lead?.formCompleted ? "Yes" : "No"} />
-						<DetailItem label="Follow-up state" value={statusSummary} />
-						<DetailItem label="Latest demo" value={latestDemo ? "Available" : "Not requested"} />
-						<DetailItem label="Latest demo mentor" value={latestDemo?.mentorId ? formatUserName(allUsers.find((user) => user.id === latestDemo.mentorId)?.name ?? null) : "-"} />
-						<DetailItem label="Demo scheduled for" value={formatDateTime(latestDemo?.demoScheduledFor)} />
-					</div>
-				</Panel>
+						<div className="rounded-2xl border border-gray-200 bg-linear-to-br from-amber-50 to-amber-100/50 p-4">
+							<p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-600 mb-3">Assignment & Follow-up</p>
+							<div className="space-y-2">
+								<div>
+									<p className="text-xs text-gray-600 font-semibold">Assigned to</p>
+									<p className="text-sm font-semibold text-gray-900">{currentAssignee ? formatUserName(currentAssignee.name ?? currentAssignee.username) : "Unassigned"}</p>
+								</div>
+								<div>
+									<p className="text-xs text-gray-600 font-semibold">Next follow-up</p>
+									<p className="text-sm font-semibold text-gray-900">{lead?.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toLocaleDateString() : "-"}</p>
+								</div>
+								<div>
+									<p className="text-xs text-gray-600 font-semibold">Time</p>
+									<p className="text-xs text-gray-600">{lead?.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-"}</p>
+								</div>
+							</div>
+						</div>
 
-				<Panel title="Timeline Snapshot" description="Lead and demo timestamps">
-					<div className="grid gap-3">
-						<DetailItem label="Demo requested" value={formatDateTime(latestDemo?.requestedAt)} />
-						<DetailItem label="Demo assigned" value={formatDateTime(latestDemo?.assignedAt)} />
-						<DetailItem label="Admission requested" value={formatDateTime(latestDemo?.admissionRequestedAt)} />
-						<DetailItem label="Admission completed" value={formatDateTime(latestDemo?.admissionCompletedAt)} />
-					</div>
-				</Panel>
-			</div>
-
-			<Panel title="Demo History" description="All demo entries for this lead">
-				{lead?.demos?.length ? (
-					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-						{lead.demos.map((demo, index) => (
-							<div key={`${index}-${demo.requestedAt ?? index}`} className="rounded-3xl border border-gray-300 bg-gray-50/60 p-4">
-								<div className="flex items-center justify-between gap-3 mb-4">
-									<p className="text-sm font-semibold text-gray-900">Demo {index + 1}</p>
-									<span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600">
-										{demo.completedAt ? "Completed" : demo.admissionCompletedAt ? "Admission completed" : demo.admissionRequestedAt ? "Admission requested" : demo.assignedAt ? "Assigned" : demo.requestedAt ? "Requested" : "Pending"}
+						<div className="rounded-2xl border border-gray-200 bg-linear-to-br from-emerald-50 to-emerald-100/50 p-4">
+							<p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-600 mb-3">Workflow Status</p>
+							<div className="space-y-3">
+								<div className="flex items-center justify-between">
+									<span className="text-xs text-gray-600 font-semibold">Form sent</span>
+									<span className={`rounded-full px-2 py-1 text-xs font-semibold ${lead?.formSent ? "bg-emerald-200 text-emerald-700" : "bg-gray-200 text-gray-600"}`}>
+										{lead?.formSent ? "Yes" : "No"}
 									</span>
 								</div>
-								<div className="grid gap-3 text-xs">
-									{/* Request Section */}
-									{demo.requestedAt && (
-										<div className="space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Request</p>
-											<div className="flex justify-between items-start">
-												<span className="font-semibold text-gray-600">Requested</span>
-												<span className="text-gray-900 text-right">{formatDateTime(demo.requestedAt)}</span>
-											</div>
-										</div>
-									)}
+								<div className="flex items-center justify-between">
+									<span className="text-xs text-gray-600 font-semibold">Form completed</span>
+									<span className={`rounded-full px-2 py-1 text-xs font-semibold ${lead?.formCompleted ? "bg-emerald-200 text-emerald-700" : "bg-gray-200 text-gray-600"}`}>
+										{lead?.formCompleted ? "Yes" : "No"}
+									</span>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-xs text-gray-600 font-semibold">Demo status</span>
+									<span className={`rounded-full px-2 py-1 text-xs font-semibold ${latestDemo ? "bg-blue-200 text-blue-700" : "bg-gray-200 text-gray-600"}`}>
+										{latestDemo ? "Requested" : "None"}
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
 
-									{/* Assignment Section */}
-									{demo.assignedAt && (
-										<div className="border-t border-gray-300 pt-3 space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Assignment</p>
-											<div className="flex justify-between items-start">
-												<span className="font-semibold text-gray-600">Mentor</span>
-												<span className="text-gray-900 text-right">{demo.mentorId ? formatUserName(allUsers.find((user) => user.id === demo.mentorId)?.name ?? null) : "-"}</span>
-											</div>
-											<div className="flex justify-between items-start">
-												<span className="font-semibold text-gray-600">Assigned</span>
-												<span className="text-gray-900 text-right">{formatDateTime(demo.assignedAt)}</span>
-											</div>
-											{demo.demoScheduledFor && (
-												<div className="flex justify-between items-start">
-													<span className="font-semibold text-gray-600">Scheduled</span>
-													<span className="text-gray-900 text-right">{formatDateTime(demo.demoScheduledFor)}</span>
+					{/* Demo Timeline Section */}
+					{latestDemo && (
+						<div className="rounded-2xl border border-gray-200 bg-linear-to-br from-sky-50 to-sky-100/50 p-4">
+							<p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-600 mb-3">Latest Demo Timeline</p>
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+								<div>
+									<p className="text-gray-600 font-semibold mb-1">Requested</p>
+									<p className="text-gray-900">{latestDemo.requestedAt ? new Date(latestDemo.requestedAt).toLocaleDateString() : "-"}</p>
+								</div>
+								<div>
+									<p className="text-gray-600 font-semibold mb-1">Assigned</p>
+									<p className="text-gray-900">{latestDemo.assignedAt ? new Date(latestDemo.assignedAt).toLocaleDateString() : "-"}</p>
+								</div>
+								<div>
+									<p className="text-gray-600 font-semibold mb-1">Mentor</p>
+									<p className="text-gray-900">{latestDemo.mentorId ? formatUserName(allUsers.find((user) => user.id === latestDemo.mentorId)?.name ?? null) : "-"}</p>
+								</div>
+								<div>
+									<p className="text-gray-600 font-semibold mb-1">Scheduled</p>
+									<p className="text-gray-900">{latestDemo.demoScheduledFor ? new Date(latestDemo.demoScheduledFor).toLocaleDateString() : "-"}</p>
+								</div>
+							</div>
+						</div>
+					)}
+				</div>
+			</Panel>
+
+			<Panel title="Demo History" description="Timeline of all demo attempts">
+				{lead?.demos?.length ? (
+					<div className="grid gap-4 md:grid-cols-2">
+						{lead.demos.map((demo, index) => {
+							const demoStatus = demo.completedAt
+								? "Completed"
+								: demo.admissionCompletedAt
+									? "Admission completed"
+									: demo.admissionRequestedAt
+										? "Admission requested"
+										: demo.assignedAt
+											? "Assigned"
+											: demo.requestedAt
+												? "Requested"
+												: "Pending";
+
+							const statusColor = demo.completedAt
+								? "from-emerald-50 to-emerald-100/50 border-emerald-200"
+								: demo.admissionCompletedAt
+									? "from-teal-50 to-teal-100/50 border-teal-200"
+									: demo.assignedAt
+										? "from-blue-50 to-blue-100/50 border-blue-200"
+										: "from-gray-50 to-gray-100/50 border-gray-200";
+
+							const statusBgColor = demo.completedAt
+								? "bg-emerald-100"
+								: demo.admissionCompletedAt
+									? "bg-teal-100"
+									: demo.assignedAt
+										? "bg-blue-100"
+										: "bg-gray-100";
+
+							const statusTextColor = demo.completedAt
+								? "text-emerald-700"
+								: demo.admissionCompletedAt
+									? "text-teal-700"
+									: demo.assignedAt
+										? "text-blue-700"
+										: "text-gray-700";
+
+							return (
+								<div key={`${index}-${demo.requestedAt ?? index}`} className={`rounded-2xl border bg-linear-to-br ${statusColor} p-5`}>
+									<div className="flex items-start justify-between gap-3 mb-4">
+										<div>
+											<p className="text-sm font-bold text-gray-900">Demo Attempt {index + 1}</p>
+											<p className="text-xs text-gray-600 mt-1">{demo.requestedAt ? new Date(demo.requestedAt).toLocaleDateString() : "-"}</p>
+										</div>
+										<span className={`rounded-full ${statusBgColor} ${statusTextColor} px-3 py-1 text-xs font-bold`}>
+											{demoStatus}
+										</span>
+									</div>
+
+									{/* Timeline View */}
+									<div className="space-y-3">
+										{demo.requestedAt && (
+											<div className="flex gap-3">
+												<div className="flex flex-col items-center">
+													<div className="h-2 w-2 rounded-full bg-blue-500 mt-1.5" />
+													{(demo.assignedAt || demo.completedAt || demo.admissionRequestedAt) && <div className="h-6 w-0.5 bg-blue-200" />}
 												</div>
-											)}
-										</div>
-									)}
-
-									{/* Completion Section */}
-									{demo.completedAt && (
-										<div className="border-t border-gray-300 pt-3 space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Completion</p>
-											<div className="flex justify-between items-start">
-												<span className="font-semibold text-gray-600">Completed</span>
-												<span className="text-gray-900 text-right">{formatDateTime(demo.completedAt)}</span>
+												<div>
+													<p className="text-xs font-semibold text-gray-600">Requested</p>
+													<p className="text-sm text-gray-900 font-medium">{new Date(demo.requestedAt).toLocaleString()}</p>
+												</div>
 											</div>
-										</div>
-									)}
+										)}
 
-									{/* Admission Section */}
-									{(demo.admissionRequestedAt || demo.admissionCompletedAt) && (
-										<div className="border-t border-gray-300 pt-3 space-y-1.5">
-											<p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">Admission</p>
-											{demo.admissionRequestedAt && (
-												<div className="flex justify-between items-start">
-													<span className="font-semibold text-gray-600">Requested</span>
-													<span className="text-gray-900 text-right">{formatDateTime(demo.admissionRequestedAt)}</span>
+										{demo.assignedAt && (
+											<div className="flex gap-3">
+												<div className="flex flex-col items-center">
+													<div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5" />
+													{(demo.completedAt || demo.admissionRequestedAt) && <div className="h-6 w-0.5 bg-blue-200" />}
 												</div>
-											)}
-											{demo.admissionCompletedAt && (
-												<div className="flex justify-between items-start">
-													<span className="font-semibold text-gray-600">Completed</span>
-													<span className="text-gray-900 text-right">{formatDateTime(demo.admissionCompletedAt)}</span>
+												<div>
+													<p className="text-xs font-semibold text-gray-600">Assigned to {demo.mentorId ? formatUserName(allUsers.find((user) => user.id === demo.mentorId)?.name ?? null) : "Mentor"}</p>
+													<p className="text-sm text-gray-900 font-medium">{new Date(demo.assignedAt).toLocaleString()}</p>
+													{demo.demoScheduledFor && <p className="text-xs text-gray-600 mt-1">Scheduled: {new Date(demo.demoScheduledFor).toLocaleString()}</p>}
 												</div>
-											)}
-										</div>
-									)}
+											</div>
+										)}
 
-									{/* Note Section */}
+										{demo.completedAt && (
+											<div className="flex gap-3">
+												<div className="flex flex-col items-center">
+													<div className="h-2 w-2 rounded-full bg-emerald-600 mt-1.5" />
+													{demo.admissionRequestedAt && <div className="h-6 w-0.5 bg-emerald-200" />}
+												</div>
+												<div>
+													<p className="text-xs font-semibold text-gray-600">Completed</p>
+													<p className="text-sm text-gray-900 font-medium">{new Date(demo.completedAt).toLocaleString()}</p>
+												</div>
+											</div>
+										)}
+
+										{demo.admissionRequestedAt && (
+											<div className="flex gap-3">
+												<div className="flex flex-col items-center">
+													<div className="h-2 w-2 rounded-full bg-teal-600 mt-1.5" />
+													{demo.admissionCompletedAt && <div className="h-6 w-0.5 bg-teal-200" />}
+												</div>
+												<div>
+													<p className="text-xs font-semibold text-gray-600">Admission Requested</p>
+													<p className="text-sm text-gray-900 font-medium">{new Date(demo.admissionRequestedAt).toLocaleString()}</p>
+												</div>
+											</div>
+										)}
+
+										{demo.admissionCompletedAt && (
+											<div className="flex gap-3">
+												<div className="flex flex-col items-center">
+													<div className="h-2 w-2 rounded-full bg-teal-600 mt-1.5" />
+												</div>
+												<div>
+													<p className="text-xs font-semibold text-gray-600">Admission Completed</p>
+													<p className="text-sm text-gray-900 font-medium">{new Date(demo.admissionCompletedAt).toLocaleString()}</p>
+												</div>
+											</div>
+										)}
+									</div>
+
+									{/* Note */}
 									{demo.note && (
-										<div className="border-t border-gray-300 pt-3">
+										<div className="mt-4 pt-4 border-t border-gray-300">
 											<p className="text-xs font-semibold text-gray-600 mb-2">Note</p>
-											<p className="text-gray-900 text-xs bg-gray-50/40 rounded-lg p-2">{demo.note}</p>
+											<p className="text-sm text-gray-700 bg-white/50 rounded-lg p-2">{demo.note}</p>
 										</div>
+									)}
+
+									{/* Action Button */}
+									{demo.assignedAt && !demo.completedAt && index === lead.demos.length - 1 && (
+										<button
+											type="button"
+											className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
+											onClick={() => setCompleteOpen(true)}
+										>
+											<HiCheckCircle className="h-4 w-4" />
+											Mark as completed
+										</button>
 									)}
 								</div>
-								{demo.assignedAt && !demo.completedAt && index === lead.demos.length - 1 && (
-									<button
-										type="button"
-										className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-										onClick={() => setCompleteOpen(true)}
-									>
-										<HiCheckCircle className="h-3 w-3" aria-hidden="true" />
-										Mark as completed
-									</button>
-								)}
-							</div>
-						))}
+							);
+						})}
 					</div>
 				) : (
-					<div className="py-6 text-sm text-gray-600">No demo history yet.</div>
+					<div className="py-12 text-center">
+						<p className="text-sm text-gray-600">No demo attempts yet. Once a demo is requested, it will appear here.</p>
+					</div>
 				)}
 			</Panel>
 
@@ -836,10 +981,16 @@ export const LeadDetailPage = () => {
 				open={postponeOpen}
 				title="Postpone follow-up"
 				description={lead ? `Lead ${lead.phone}` : "Lead"}
-				onClose={() => setPostponeOpen(false)}
+				onClose={() => {
+					setPostponeOpen(false);
+					setSelectedDuration(1);
+				}}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setPostponeOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => {
+							setPostponeOpen(false);
+							setSelectedDuration(1);
+						}}>
 							Cancel
 						</button>
 						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void handlePostponeSubmit(onPostponeLead)()} disabled={postponeLeadMutation.isPending}>
@@ -849,10 +1000,96 @@ export const LeadDetailPage = () => {
 					</>
 				}
 			>
-				<form className="grid gap-4" onSubmit={handlePostponeSubmit(onPostponeLead)}>
-					<Controller name="customNextFollowUpAt" control={postponeControl} render={({ field, fieldState }) => <Field label="Next follow-up date" type="datetime-local" value={toInputDateTimeLocal(field.value)} onChange={(value) => { if (!value) { field.onChange(undefined); return; } field.onChange(new Date(value)); }} error={fieldState.error?.message} />} />
-					<Controller name="note" control={postponeControl} render={({ field, fieldState }) => <TextAreaField label="Note (optional)" value={field.value ?? ""} onChange={field.onChange} placeholder="Add notes about the follow-up..." error={fieldState.error?.message} />} />
-				</form>
+					<div className="grid gap-4">
+						<div className="grid grid-cols-2 gap-2">
+							{[
+								{ label: "1 Day", days: 1 },
+								{ label: "3 Days", days: 3 },
+								{ label: "5 Days", days: 5 },
+								{ label: "1 Week", days: 7 },
+								{ label: "1 Month", days: 30 },
+							].map((option) => (
+								<button
+									key={option.days}
+									type="button"
+									className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${
+										selectedDuration === option.days
+											? "border-blue-600 bg-blue-600 text-white"
+											: "border-gray-300 bg-gray-50 text-gray-900 hover:border-blue-600 hover:bg-blue-600 hover:text-white"
+									}`}
+									onClick={() => {
+										const futureDate = new Date(Date.now() + option.days * 24 * 60 * 60 * 1000);
+										resetPostpone({
+											customNextFollowUpAt: futureDate,
+											note: postponeNoteValue ?? "",
+										});
+										setSelectedDuration(option.days);
+									}}
+								>
+									{option.label}
+								</button>
+							))}
+						</div>
+
+						<form className="grid gap-4" onSubmit={handlePostponeSubmit(onPostponeLead)}>
+							<Controller
+								name="customNextFollowUpAt"
+								control={postponeControl}
+								render={({ field, fieldState }) => (
+									<Field
+										label="Next follow-up date"
+										type="datetime-local"
+										value={toInputDateTimeLocal(field.value ? field.value.toISOString() : null)}
+										onChange={(value) => {
+											field.onChange(new Date(value));
+											setSelectedDuration(null);
+										}}
+										error={fieldState.error?.message}
+									/>
+								)}
+							/>
+							<Controller
+								name="note"
+								control={postponeControl}
+								render={({ field, fieldState }) => (
+									<div className="grid gap-2">
+										<TextAreaField
+											label="Note (optional)"
+											value={field.value ?? ""}
+											onChange={field.onChange}
+											placeholder="Add notes about the follow-up..."
+											error={fieldState.error?.message}
+										/>
+										{postponeSuggestions.length > 0 ? (
+											<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3">
+												<p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-600">
+													Suggested follow-up times
+												</p>
+												<div className="flex flex-wrap gap-2">
+													{postponeSuggestions.map((suggestion) => (
+														<button
+															key={`${suggestion.label}-${suggestion.date.toISOString()}`}
+															type="button"
+															className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
+															onClick={() => {
+																resetPostpone({
+																	customNextFollowUpAt: suggestion.date,
+																	note: field.value ?? "",
+																});
+																setSelectedDuration(null);
+															}}
+														>
+															{suggestion.label}
+														</button>
+													))}
+												</div>
+											</div>
+										) : null}
+									</div>
+								)}
+							/>
+						</form>
+					</div>
 			</Modal>
 
 			<Modal
@@ -916,10 +1153,16 @@ export const LeadDetailPage = () => {
 				open={deleteOpen}
 				title="Delete lead"
 				description="This action cannot be undone."
-				onClose={() => setDeleteOpen(false)}
+				onClose={() => {
+					setDeleteOpen(false);
+					setDeleteNote("");
+				}}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setDeleteOpen(false)}>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => {
+							setDeleteOpen(false);
+							setDeleteNote("");
+						}}>
 							Cancel
 						</button>
 						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => void onDeleteLead()} disabled={deleteLeadMutation.isPending}>
@@ -929,7 +1172,10 @@ export const LeadDetailPage = () => {
 					</>
 				}
 			>
-				<p className="text-sm text-gray-600">This will permanently remove the lead record from the system.</p>
+				<div className="grid gap-4">
+					<p className="text-sm text-gray-600">This will permanently remove the lead record from the system.</p>
+					<TextAreaField label="Reason for dropping" value={deleteNote} onChange={setDeleteNote} placeholder="Why are we dropping this lead?" />
+				</div>
 			</Modal>
 
 			<Modal
@@ -963,14 +1209,56 @@ export const LeadDetailPage = () => {
 			</Modal>
 
 				<Modal
-					open={formLinkOpen}
-					title="Send form to lead"
-					description="Share the form link with the lead"
-					onClose={() => {
-						setFormLinkOpen(false);
-						setFormLinkData(null);
-					}}
-					footer={
+				open={revokeConfirmOpen}
+				title="Revoke form"
+				description="This action cannot be undone"
+				onClose={() => setRevokeConfirmOpen(false)}
+				footer={
+					<>
+						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setRevokeConfirmOpen(false)}>
+							Cancel
+						</button>
+						<button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white" onClick={async () => {
+							if (!lead) {
+								return;
+							}
+
+							try {
+								await revokeFormLinkMutation.mutateAsync(lead.id);
+								toast.success("Form revoked successfully. Lead cannot access the form now.");
+								setRevokeConfirmOpen(false);
+							} catch (error) {
+								if (error instanceof ApiError) {
+									toast.error(error.payload.message ?? "Unable to revoke form");
+									return;
+								}
+
+								toast.error(error instanceof Error ? error.message : "Unable to revoke form");
+							}
+						}} disabled={revokeFormLinkMutation.isPending}>
+							<HiXMark className="h-4 w-4" />
+							{revokeFormLinkMutation.isPending ? "Revoking..." : "Revoke form"}
+						</button>
+					</>
+				}
+			>
+				<div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-3">
+					<HiExclamationTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+					<p className="text-sm text-red-800">
+						<strong>Warning:</strong> Revoking this form will prevent the lead from accessing it. They will need a new form link to continue. This action cannot be undone.
+					</p>
+				</div>
+			</Modal>
+
+			<Modal
+				open={formLinkOpen}
+				title="Send form to lead"
+				description="Share the form link with the lead"
+				onClose={() => {
+					setFormLinkOpen(false);
+					setFormLinkData(null);
+				}}
+				footer={
 						<>
 							<button
 								type="button"
@@ -1015,8 +1303,8 @@ export const LeadDetailPage = () => {
 								onClick={() => {
 									const message = `Check this form link: ${formLinkData.formLink}`;
 									const encodedMessage = encodeURIComponent(message);
-									const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-									window.open(whatsappUrl, "_blank");
+									const whatsappNumber = getWhatsappNumber(lead?.phone);
+									window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, "_blank");
 								}}
 							>
 								Share via WhatsApp

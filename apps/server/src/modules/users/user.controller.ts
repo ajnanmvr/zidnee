@@ -37,12 +37,6 @@ const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 	}
 };
 
-const sanitizeSlug = (value: string): string =>
-	value
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "")
-		.slice(0, 32) || "mentor";
 
 const findRoleByName = async (roleName: string) => {
 	return (await RoleService.findAll()).find((role) => role.name === roleName) ?? null;
@@ -104,6 +98,7 @@ export const createUserController = async (
 		email: result.data.email,
 		password,
 		name: result.data.name,
+		gender: result.data.gender,
 		roleIds,
 		isActive: true,
 	});
@@ -122,6 +117,11 @@ export const createMentorController = async (
 
 	if (!result.success) {
 		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const existingByUsername = await UserService.findByUsername(result.data.username);
+	if (existingByUsername) {
+		throw new ConflictError("Username already in use");
 	}
 
 	const mentorRole = await findRoleByType("mentor");
@@ -147,9 +147,8 @@ export const createMentorController = async (
 		}
 	}
 
-	const slug = sanitizeSlug(result.data.name);
 	const mentorId = await nextIdentity("mentor");
-	const username = `${mentorId}-${slug}`;
+	const username = result.data.username || mentorId;
 	const email = `${username}@zidnee.local`;
 	const password = randomUUID();
 
@@ -159,6 +158,7 @@ export const createMentorController = async (
 		email,
 		password: hashedPassword,
 		name: result.data.name,
+		gender: result.data.gender,
 		mentorId,
 		counsellorId: result.data.counsellorId,
 		roleIds: [mentorRole.id],
@@ -181,14 +181,18 @@ export const createCounsellorController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
+	const existingByUsername = await UserService.findByUsername(result.data.username);
+	if (existingByUsername) {
+		throw new ConflictError("Username already in use");
+	}
+
 	const counsellorRole = await findRoleByType("counsellor");
 	if (!counsellorRole) {
 		throw new NotFoundError("Counsellor role");
 	}
 
-	const slug = sanitizeSlug(result.data.name);
 	const counsellorId = await nextIdentity("counsellor");
-	const username = `${counsellorId}-${slug}`;
+	const username = result.data.username || counsellorId;
 	const email = `${username}@zidnee.local`;
 	const password = randomUUID();
 
@@ -198,6 +202,7 @@ export const createCounsellorController = async (
 		email,
 		password: hashedPassword,
 		name: result.data.name,
+		gender: result.data.gender,
 		counsellorId,
 		roleIds: [counsellorRole.id],
 		isActive: true,

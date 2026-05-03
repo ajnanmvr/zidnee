@@ -1,11 +1,13 @@
 import type { Student } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type StudentDocument = Omit<Student, "id" | "leadId" | "mentorId" | "counsellorId"> & {
+export type StudentDocument = Omit<Student, "id" | "leadId" | "mentorId" | "counsellorId" | "batchId" | "courseId"> & {
 	_id: Types.ObjectId;
 	leadId: Types.ObjectId;
 	mentorId?: Types.ObjectId;
 	counsellorId?: Types.ObjectId;
+	batchId?: Types.ObjectId;
+	courseId?: Types.ObjectId;
 	admittedAt: Date;
 };
 
@@ -41,6 +43,26 @@ const studentSchema = new Schema<StudentDocument>(
 		counsellorId: {
 			type: Schema.Types.ObjectId,
 			ref: "User",
+			required: false,
+		},
+		batchId: {
+			type: Schema.Types.ObjectId,
+			ref: "Batch",
+			required: false,
+		},
+		courseId: {
+			type: Schema.Types.ObjectId,
+			ref: "Course",
+			required: false,
+		},
+		programType: {
+			type: String,
+			enum: ["ONLINE_SCHOOL", "COURSES"],
+			required: false,
+		},
+		batchType: {
+			type: String,
+			enum: ["1_TO_1", "GROUP"],
 			required: false,
 		},
 		status: {

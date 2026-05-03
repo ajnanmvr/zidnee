@@ -333,6 +333,7 @@ export const RoleService = {
 			{
 				$set: {
 					name: data.name,
+					type: data.type,
 					description: data.description,
 					permissionIds: data.permissionIds,
 				},

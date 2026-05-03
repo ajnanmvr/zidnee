@@ -37,6 +37,10 @@ const toStudent = (doc: StudentDocument): Student => {
 		phone: doc.phone,
 		mentorId: doc.mentorId?.toString(),
 		counsellorId: doc.counsellorId?.toString(),
+		batchId: doc.batchId?.toString(),
+		courseId: doc.courseId?.toString(),
+		programType: doc.programType,
+		batchType: doc.batchType,
 		status: doc.status,
 		admittedAt: doc.admittedAt,
 		createdAt: doc.createdAt,
@@ -60,7 +64,17 @@ export const StudentService = {
 		return student ? toStudent(student) : null;
 	},
 
-	confirmAdmission: async (leadId: string, counsellorId?: string, performedBy?: string, note?: string): Promise<Student | null> => {
+	confirmAdmission: async (
+		leadId: string,
+		counsellorId?: string,
+		mentorId?: string,
+		batchId?: string,
+		courseId?: string,
+		programType?: "ONLINE_SCHOOL" | "COURSES",
+		batchType?: "1_TO_1" | "GROUP",
+		performedBy?: string,
+		note?: string,
+	): Promise<Student | null> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return null;
@@ -73,9 +87,15 @@ export const StudentService = {
 
 		const latestDemo = getLatestLeadDemo(existingLead);
 		let resolvedCounsellorId = counsellorId;
-		if (!resolvedCounsellorId && latestDemo?.mentorId) {
-			const mentor = await UserModel.findById(latestDemo.mentorId).lean();
+		let resolvedMentorId = mentorId ?? latestDemo?.mentorId?.toString();
+		
+		if (!resolvedCounsellorId && resolvedMentorId) {
+			const mentor = await UserModel.findById(resolvedMentorId).lean();
 			resolvedCounsellorId = mentor?.counsellorId?.toString();
+		}
+
+		if (!resolvedCounsellorId) {
+			throw new Error("Counsellor ID is required for admission");
 		}
 
 		const zid = await nextStudentZid();
@@ -85,8 +105,12 @@ export const StudentService = {
 			leadId: existingLead._id,
 			name: existingLead.name ?? existingLead.phone,
 			phone: existingLead.phone,
-			mentorId: latestDemo?.mentorId,
+			mentorId: resolvedMentorId,
 			counsellorId: resolvedCounsellorId,
+			batchId,
+			courseId,
+			programType,
+			batchType,
 			status: "ACTIVE",
 			admittedAt,
 		});
@@ -116,6 +140,9 @@ export const StudentService = {
 				{
 					studentId: createdStudent._id.toString(),
 					counsellorId: resolvedCounsellorId,
+					mentorId: resolvedMentorId,
+					batchId,
+					courseId,
 				},
 				note,
 			);

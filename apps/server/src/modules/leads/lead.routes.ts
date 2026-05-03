@@ -7,6 +7,7 @@ import {
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	assignDemoMentorController,
+	cancelLeadDemoController,
 	confirmAdmissionController,
 	createLeadController,
 	deleteLeadController,
@@ -19,6 +20,7 @@ import {
 	markDemoCompletedController,
 	requestAdmissionController,
 	requestLeadDemoController,
+	revokeFormLinkController,
 	redemoLeadController,
 	postponeLeadFollowUpController,
 	updateLeadController,
@@ -86,6 +88,12 @@ router.patch(
 );
 
 router.patch(
+	"/:leadId/demo/cancel",
+	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	asyncHandler(cancelLeadDemoController),
+);
+
+router.patch(
 	"/:leadId/demo/complete",
 	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
 	asyncHandler(markDemoCompletedController),
@@ -119,6 +127,12 @@ router.post(
 	"/:leadId/form-link",
 	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
 	asyncHandler(generateFormLinkController),
+);
+
+router.patch(
+	"/:leadId/form/revoke",
+	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	asyncHandler(revokeFormLinkController),
 );
 
 router.delete(

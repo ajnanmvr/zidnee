@@ -40,7 +40,7 @@ export const LeadFormDataSchema = z.object({
 	alternateWhatsappNumber: PhoneNumberSchema.optional(),
 	studentInfo: z.string().min(1).max(1000),
 	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
-	preferredSchedule: z.string().min(1).max(100),
+	preferredSchedule: z.string().max(100).optional(),
 	preferredDays: z.array(z.string().min(1)).min(1),
 	preferredTimeslots: z.array(z.string().min(1)).min(1),
 	startClassWhen: z.string().min(1).max(100),
@@ -152,6 +152,12 @@ export const GenerateFormLinkResponseSchema = z.object({
 	formLink: z.string().url(),
 });
 
+export const DeleteLeadPayloadSchema = z.object({
+	note: z.string().min(1).max(500),
+});
+
+export type DeleteLeadPayload = z.infer<typeof DeleteLeadPayloadSchema>;
+
 export type GenerateFormLinkResponse = z.infer<typeof GenerateFormLinkResponseSchema>;
 
 export const SubmitLeadFormPayloadSchema = z.object({
@@ -164,7 +170,7 @@ export const SubmitLeadFormPayloadSchema = z.object({
 	alternateWhatsappNumber: PhoneNumberSchema.optional(),
 	studentInfo: z.string().min(1).max(1000),
 	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
-	preferredSchedule: z.string().min(1).max(100),
+	preferredSchedule: z.string().max(100).optional(),
 	preferredDays: z.array(z.string().min(1)).min(1),
 	preferredTimeslots: z.array(z.string().min(1)).min(1),
 	startClassWhen: z.string().min(1).max(100),

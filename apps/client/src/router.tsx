@@ -4,23 +4,28 @@ import { RequireAuth } from "@/features/auth/RequireAuth";
 import PublicFormPage from "@/features/public/PublicFormPage";
 import { CreateRolePage } from "@/features/dashboard/CreateRolePage";
 import { CreateCounsellorPage } from "@/features/dashboard/CreateCounsellorPage";
+import { CreateCoursePage } from "@/features/dashboard/CreateCoursePage";
+import { CreateTimeSlotsPage } from "@/features/dashboard/CreateTimeSlotsPage";
 import { CreateMentorPage } from "@/features/dashboard/CreateMentorPage";
 import { CreateUserPage } from "@/features/dashboard/CreateUserPage";
 import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
 import { EditRolePage } from "@/features/dashboard/EditRolePage";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
-import { AdmissionDetailPage } from "@/features/dashboard/AdmissionDetailPage";
+import { AdmissionDetailPageEnhanced } from "@/features/dashboard/AdmissionDetailPageEnhanced";
 import { AdmissionsPage } from "@/features/dashboard/AdmissionsPage";
 import { LeadDetailPage } from "@/features/dashboard/LeadDetailPage";
 import { LeadsPage } from "@/features/dashboard/LeadsPage";
-import { MyLeadsPage } from "@/features/dashboard/MyLeadsPage";
 import { MentorsPage } from "@/features/dashboard/MentorsPage";
 import { MePage } from "@/features/dashboard/MePage";
 import { OverviewPage } from "@/features/dashboard/OverviewPage";
 import { RolesPage } from "@/features/dashboard/RolesPage";
 import { StudentsPage } from "@/features/dashboard/StudentsPage";
 import { CounsellorsPage } from "@/features/dashboard/CounsellorsPage";
+import { CounsellorMentorsPage } from "@/features/dashboard/CounsellorMentorsPage";
+import { CounsellorStudentsPage } from "@/features/dashboard/CounsellorStudentsPage";
 import { UsersPage } from "@/features/dashboard/UsersPage";
+import { UnassignedDemosPage } from "@/features/demo-management/UnassignedDemosPage";
+import { ScheduledDemosPage } from "@/features/demo-management/ScheduledDemosPage";
 
 export const router = createBrowserRouter([
 	{
@@ -46,20 +51,24 @@ export const router = createBrowserRouter([
 						element: <LeadsPage />,
 					},
 					{
-						path: "my-leads",
-						element: <MyLeadsPage />,
-					},
-					{
 						path: "admissions",
 						element: <AdmissionsPage />,
 					},
 					{
 						path: "admissions/:leadId",
-						element: <AdmissionDetailPage />,
+						element: <AdmissionDetailPageEnhanced />,
 					},
 					{
 						path: "students",
 						element: <StudentsPage />,
+					},
+					{
+						path: "counsellor/mentors",
+						element: <CounsellorMentorsPage />,
+					},
+					{
+						path: "counsellor/students",
+						element: <CounsellorStudentsPage />,
 					},
 					{
 						path: "counsellors",
@@ -76,6 +85,14 @@ export const router = createBrowserRouter([
 					{
 						path: "mentors/create",
 						element: <CreateMentorPage />,
+					},
+					{
+						path: "courses/create",
+						element: <CreateCoursePage />,
+					},
+					{
+						path: "time-slots",
+						element: <CreateTimeSlotsPage />,
 					},
 					{
 						path: "leads/:leadId",
@@ -108,6 +125,14 @@ export const router = createBrowserRouter([
 					{
 						path: "me",
 						element: <MePage />,
+					},
+					{
+						path: "demo-management/unassigned",
+						element: <UnassignedDemosPage />,
+					},
+					{
+						path: "demo-management/scheduled",
+						element: <ScheduledDemosPage />,
 					},
 				],
 			},

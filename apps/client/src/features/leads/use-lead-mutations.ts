@@ -3,6 +3,7 @@ import { leadsQueryKeys } from "@/features/leads/leads.queries";
 import { studentsQueryKeys } from "@/features/students/students.queries";
 import {
 	assignDemoMentor,
+	cancelLeadDemo,
 	confirmAdmission,
 	createLead,
 	deleteLead,
@@ -12,6 +13,7 @@ import {
 	requestAdmission,
 	requestRedemo,
 	requestLeadDemo,
+	revokeFormLink,
 	updateLead,
 } from "@/features/leads/leads.service";
 import type {
@@ -122,19 +124,19 @@ export const useDeleteLeadMutation = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (leadId: string) => {
+		mutationFn: async ({ leadId, note }: { leadId: string; note: string }) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
 
-			return deleteLead(token, leadId);
+			return deleteLead(token, leadId, { note });
 		},
-		onSuccess: async (_data, leadId) => {
+		onSuccess: async (_data, variables) => {
 			if (!token) {
 				return;
 			}
 
-			await invalidateLeadQueries(queryClient, token, leadId);
+			await invalidateLeadQueries(queryClient, token, variables.leadId);
 		},
 	});
 };
@@ -301,6 +303,7 @@ export const useAssignDemoMentorMutation = () => {
 
 export const useGenerateFormLinkMutation = () => {
 	const { token } = useSession();
+	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: async (leadId: string) => {
@@ -309,6 +312,57 @@ export const useGenerateFormLinkMutation = () => {
 			}
 
 			return generateFormLink(token, leadId);
+		},
+		onSuccess: async (_data, leadId) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, leadId);
+		},
+	});
+};
+
+export const useRevokeFormLinkMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (leadId: string) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return revokeFormLink(token, leadId);
+		},
+		onSuccess: async (_data, leadId) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, leadId);
+		},
+	});
+};
+
+export const useCancelLeadDemoMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (leadId: string) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return cancelLeadDemo(token, leadId);
+		},
+		onSuccess: async (_data, leadId) => {
+			if (!token) {
+				return;
+			}
+
+			await invalidateLeadQueries(queryClient, token, leadId);
 		},
 	});
 };

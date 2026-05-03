@@ -178,23 +178,23 @@ export const EditRolePage = () => {
 						)}
 					/>
 					<Controller
-					name="type"
-					control={control}
-					render={({ field, fieldState }) => (
-						<SelectField
-							label="Role Type"
-							value={field.value ?? "general"}
-							onChange={field.onChange}
-							options={[
-								{ value: "general", label: "General" },
-								{ value: "mentor", label: "Mentor" },
-								{ value: "counsellor", label: "Counsellor" },
-								{ value: "sales", label: "Sales" },
-							]}
-							error={fieldState.error?.message}
-						/>
-					)}
-				/>
+						name="type"
+						control={control}
+						render={({ field, fieldState }) => (
+							<SelectField
+								label="Role Type"
+								value={field.value ?? "general"}
+								onChange={field.onChange}
+								options={[
+									{ value: "general", label: "General" },
+									{ value: "mentor", label: "Mentor" },
+									{ value: "counsellor", label: "Counsellor" },
+									{ value: "sales", label: "Sales" },
+								]}
+								error={fieldState.error?.message}
+							/>
+						)}
+					/>
 			</div>
 
 			<Controller

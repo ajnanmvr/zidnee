@@ -23,7 +23,7 @@ export const MePage = () => {
 	const [banner, setBanner] = useState("");
 
 	const roleNames =
-		me?.roles.map((role) => role.name).join(", ") ?? "Workspace member";
+		me?.roles.map((role) => role.type ?? role.name ?? "general").join(", ") ?? "Workspace member";
 
 	const onSubmit = async (passwordForm: ChangePasswordForm) => {
 		setBanner("");

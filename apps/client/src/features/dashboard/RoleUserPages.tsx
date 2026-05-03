@@ -55,6 +55,11 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 		);
 	}, [allUsers, roleType]);
 	const identityHeader = roleType === "mentor" ? "Mentor ID" : "Counsellor ID";
+	const userNameById = new Map(allUsers.map(u => [u.id, u.name]));
+	const getCounsellorName = (counsellorId?: string) => {
+		if (!counsellorId) return "-";
+		return userNameById.get(counsellorId) ?? "-";
+	};
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
 		setBanner("");
@@ -154,6 +159,7 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 								<th className="px-4 py-3 font-semibold">Username</th>
 								<th className="px-4 py-3 font-semibold">Email</th>
 								<th className="px-4 py-3 font-semibold">{identityHeader}</th>
+								{roleType === "mentor" && <th className="px-4 py-3 font-semibold">Counsellor</th>}
 								<th className="px-4 py-3 font-semibold">Roles</th>
 								<th className="px-4 py-3 font-semibold">Status</th>
 								<th className="px-4 py-3 font-semibold">Actions</th>
@@ -166,10 +172,15 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 									<td className="px-4 py-3 text-gray-600">{user.username ?? "-"}</td>
 									<td className="px-4 py-3 text-gray-600">{user.email}</td>
 									<td className="px-4 py-3 text-gray-600">
-									{roleType === "mentor"
+										{roleType === "mentor"
 											? user.mentorId ?? "-"
 											: user.counsellorId ?? "-"}
 									</td>
+									{roleType === "mentor" && (
+										<td className="px-4 py-3 text-gray-600">
+											{getCounsellorName(user.counsellorId)}
+										</td>
+									)}
 									<td className="px-4 py-3">
 										<div className="flex flex-wrap gap-2">
 											{user.roles.map((role) => (

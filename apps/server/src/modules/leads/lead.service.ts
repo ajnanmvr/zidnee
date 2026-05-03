@@ -5,6 +5,7 @@ import { ActivityService } from "./activity.service.js";
 import { ZidService } from "../zid/zid.service.js";
 import { StudentModel, type StudentDocument } from "../students/student.model.js";
 import type { LeadDocumentExt } from "./lead.model.js";
+import { ConflictError } from "../../utils/errors.util.js";
 
 type LeadDemo = NonNullable<Lead["demos"]>[number];
 
@@ -24,7 +25,7 @@ const toDateOrFallback = (value: unknown, fallback: Date): Date => {
 };
 
 const toObjectIdString = (value: unknown): string | undefined => {
-	if (!value) {
+	if (value === null || value === undefined) {
 		return undefined;
 	}
 
@@ -326,6 +327,14 @@ export const LeadService = {
 	requestDemo: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		if (!existingLead) return null;
+		if (!existingLead.formCompleted) {
+			throw new ConflictError("Form must be filled before requesting a demo");
+		}
+
+		const latestDemo = getLatestDemo(existingLead);
+		if (latestDemo?.requestedAt && !latestDemo?.completedAt) {
+			throw new ConflictError("Cannot request a new demo while a demo is already pending");
+		}
 
 		const now = new Date();
 		const demos = [...(existingLead.demos ?? [])];
@@ -586,17 +595,25 @@ export const LeadService = {
 			return null;
 		}
 
+		const appUrl = process.env.APP_URL || "https://app.example.com";
+		if (existingLead.formSent && existingLead.formToken) {
+			return {
+				formLink: `${appUrl}/form/${leadId}?token=${existingLead.formToken}`,
+			};
+		}
+
 		// Generate a secure random token
 		const token = randomBytes(32).toString("hex");
 
 		// Get app URL from environment or use default
-		const appUrl = process.env.APP_URL || "https://app.example.com";
 		const formLink = `${appUrl}/form/${leadId}?token=${token}`;
+		const nextFollowUpAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
 		// Save token to database
 		await LeadModel.findByIdAndUpdate(leadId, {
 			formToken: token,
 			formSent: true,
+			nextFollowUpAt,
 			formTokenExpiresAt: undefined,
 		});
 
@@ -606,14 +623,91 @@ export const LeadService = {
 				"FORM_SENT",
 				performedBy,
 				"Form link generated and sent",
-				{ formSent: existingLead.formSent ?? false },
-				{ formSent: true },
+				{
+					formSent: existingLead.formSent ?? false,
+					nextFollowUpAt: existingLead.nextFollowUpAt?.toISOString(),
+				},
+				{ formSent: true, nextFollowUpAt: nextFollowUpAt.toISOString() },
 			);
 		}
 
 		return {
 			formLink,
 		};
+	},
+
+	revokeFormLink: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) {
+			return null;
+		}
+
+		const updatedLead = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{
+				$set: {
+					formSent: false,
+					formToken: undefined,
+					formTokenExpiresAt: undefined,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<LeadDocument | null>();
+
+		if (performedBy && updatedLead) {
+			await ActivityService.logActivity(
+				leadId,
+				"FORM_REVOKED",
+				performedBy,
+				"Form access revoked",
+				{ formSent: existingLead.formSent ?? false },
+				{ formSent: false },
+			);
+		}
+
+		return updatedLead ? mapLead(updatedLead) : null;
+	},
+
+	cancelDemo: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) {
+			return null;
+		}
+
+		const demos = [...(existingLead.demos ?? [])];
+		if (demos.length === 0) {
+			return mapLead(existingLead);
+		}
+
+		const latestDemo = demos[demos.length - 1];
+		if (latestDemo?.completedAt || latestDemo?.admissionRequestedAt || latestDemo?.admissionCompletedAt || latestDemo?.studentId) {
+			return mapLead(existingLead);
+		}
+
+		demos.pop();
+
+		const updatedLead = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{
+				$set: {
+					demos,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<LeadDocument | null>();
+
+		if (performedBy && updatedLead) {
+			await ActivityService.logActivity(
+				leadId,
+				"DEMO_CANCELLED",
+				performedBy,
+				`Cancelled demo workflow for ${existingLead.phone}`,
+				{ requestedAt: latestDemo?.requestedAt?.toISOString() },
+				undefined,
+			);
+		}
+
+		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
 	submitLeadForm: async (leadId: string, token: string, data: LeadFormData): Promise<{ studentId: string; zid: string } | null> => {
@@ -624,7 +718,7 @@ export const LeadService = {
 
 		// Validate token
 		const lead = existingLead as LeadDocumentExt;
-		if (lead.formToken !== token) {
+		if (!lead.formSent || !lead.formToken || lead.formToken !== token) {
 			return null;
 		}
 
@@ -683,23 +777,67 @@ export const LeadService = {
 		};
 	},
 
-	validateFormLink: async (leadId: string, token: string): Promise<{ isValid: boolean; expiresAt?: string }> => {
+	validateFormLink: async (
+		leadId: string,
+		token: string,
+	): Promise<{
+		isValid: boolean;
+		expiresAt?: string;
+		prefill?: {
+			studentName?: string;
+			dateOfBirth?: string;
+			residingCountry?: string;
+			standardApplyingFor?: string;
+			gender?: "male" | "female";
+			primaryWhatsappNumber?: string;
+			alternateWhatsappNumber?: string;
+			studentInfo?: string;
+			preferredLanguage?: "Malayalam Only" | "English Only" | "Malayalam - English Mixed";
+			preferredSchedule?: string;
+			preferredDays?: string[];
+			preferredTimeslots?: string[];
+			startClassWhen?: string;
+			hearAboutUs?: string;
+			demoAvailability?: string;
+			preferredMentorGender?: "male" | "female" | "both";
+		};
+	}> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return { isValid: false };
 		}
 
 		const lead = existingLead as LeadDocumentExt;
-		if (lead.formToken !== token) {
+		if (!lead.formSent || !lead.formToken || lead.formToken !== token) {
 			return { isValid: false };
 		}
 
+		const prefill = {
+			studentName: existingLead.studentName ?? existingLead.name,
+			dateOfBirth: existingLead.dateOfBirth?.toISOString(),
+			residingCountry: existingLead.residingCountry,
+			standardApplyingFor: existingLead.standardApplyingFor,
+			gender: existingLead.gender,
+			primaryWhatsappNumber: existingLead.primaryWhatsappNumber ?? existingLead.phone,
+			alternateWhatsappNumber: existingLead.alternateWhatsappNumber,
+			studentInfo: existingLead.studentInfo,
+			preferredLanguage: existingLead.preferredLanguage,
+			preferredSchedule: existingLead.preferredSchedule,
+			preferredDays: existingLead.preferredDays,
+			preferredTimeslots: existingLead.preferredTimeslots,
+			startClassWhen: existingLead.startClassWhen,
+			hearAboutUs: existingLead.hearAboutUs,
+			demoAvailability: existingLead.demoAvailability,
+			preferredMentorGender: existingLead.preferredMentorGender,
+		};
+
 		return {
 			isValid: true,
+			prefill,
 		};
 	},
 
-	delete: async (leadId: string, performedBy?: string, performedByName?: string): Promise<boolean> => {
+	delete: async (leadId: string, performedBy?: string, performedByName?: string, note?: string): Promise<boolean> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		const result = await LeadModel.findByIdAndDelete(leadId);
 
@@ -708,8 +846,10 @@ export const LeadService = {
 				leadId,
 				"DELETED",
 				performedBy,
-				`Lead deleted: ${existingLead.phone}`,
+				note ? `Lead deleted: ${existingLead.phone}` : `Lead deleted: ${existingLead.phone}`,
 				{ phone: existingLead.phone, name: existingLead.name },
+				note ? { reason: note } : undefined,
+				note,
 			);
 		}
 
