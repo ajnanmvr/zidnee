@@ -18,6 +18,14 @@ export const EditUserPage = () => {
 	const usersQuery = useUsersQuery(token);
 	const rolesQuery = useRolesQuery(token);
 	const updateUserMutation = useUpdateUserMutation();
+	const counsellors = useMemo(
+		() => (usersQuery.data?.users ?? []).filter((row) => row.roles.some((role) => role.type === "counsellor")),
+		[usersQuery.data?.users],
+	);
+	const mentorRoleId = useMemo(
+		() => rolesQuery.data?.roles.find((role) => role.type === "mentor")?.id ?? null,
+		[rolesQuery.data?.roles],
+	);
 	const { control, formState, handleSubmit, reset, setError, setValue, watch } =
 		useForm<UpdateUserForm>({
 			defaultValues: {
@@ -25,9 +33,11 @@ export const EditUserPage = () => {
 				username: "",
 				email: "",
 				roleIds: [],
+				counsellorId: undefined,
 			},
 		});
 	const selectedRoleIds = watch("roleIds") ?? [];
+	const showCounsellorSelector = mentorRoleId ? selectedRoleIds.includes(mentorRoleId) : false;
 
 	const user = useMemo(
 		() => usersQuery.data?.users.find((row) => row.id === userId) ?? null,
@@ -46,6 +56,7 @@ export const EditUserPage = () => {
 			username: user.username ?? "",
 			email: user.email,
 			roleIds: user.roles.map((role) => role.id),
+			counsellorId: user.counsellorId ?? undefined,
 		});
 	}, [reset, user]);
 
@@ -63,6 +74,7 @@ export const EditUserPage = () => {
 			const usernameError = errors.username?.[0];
 			const emailError = errors.email?.[0];
 			const roleIdsError = errors.roleIds?.[0];
+			const counsellorIdError = errors.counsellorId?.[0];
 
 			if (nameError) {
 				setError("name", { type: "manual", message: nameError });
@@ -78,6 +90,10 @@ export const EditUserPage = () => {
 
 			if (roleIdsError) {
 				setError("roleIds", { type: "manual", message: roleIdsError });
+			}
+
+			if (counsellorIdError) {
+				setError("counsellorId", { type: "manual", message: counsellorIdError });
 			}
 
 			return;
@@ -96,6 +112,7 @@ export const EditUserPage = () => {
 				const usernameError = serverErrors.username?.[0];
 				const emailError = serverErrors.email?.[0];
 				const roleIdsError = serverErrors.roleIds?.[0];
+				const counsellorIdError = serverErrors.counsellorId?.[0];
 
 				if (nameError) {
 					setError("name", { type: "server", message: nameError });
@@ -111,6 +128,10 @@ export const EditUserPage = () => {
 
 				if (roleIdsError) {
 					setError("roleIds", { type: "server", message: roleIdsError });
+				}
+
+				if (counsellorIdError) {
+					setError("counsellorId", { type: "server", message: counsellorIdError });
 				}
 
 				setBanner(error.payload.message ?? "Unable to update user");
@@ -232,6 +253,35 @@ export const EditUserPage = () => {
 						</p>
 					) : null}
 				</div>
+
+				{showCounsellorSelector ? (
+					<div className="grid gap-2 text-sm font-medium text-gray-600">
+						<Controller
+							name="counsellorId"
+							control={control}
+							render={({ field, fieldState }) => (
+								<label className="grid gap-2">
+									<span>Counsellor</span>
+									<select
+										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+										value={field.value ?? ""}
+										onChange={(event) => field.onChange(event.target.value || undefined)}
+									>
+										<option value="">No counsellor</option>
+										{counsellors.map((counsellor) => (
+											<option key={counsellor.id} value={counsellor.id}>
+												{counsellor.name}
+											</option>
+										))}
+									</select>
+									{fieldState.error?.message ? (
+										<p className="text-xs text-red-600">{fieldState.error.message}</p>
+									) : null}
+								</label>
+							)}
+						/>
+					</div>
+				) : null}
 
 				<div className="mt-5 flex gap-2">
 					<button

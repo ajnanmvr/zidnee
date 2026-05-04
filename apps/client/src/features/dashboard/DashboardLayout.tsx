@@ -55,7 +55,7 @@ const titles: Record<string, string> = {
 	"/counsellors/create": "Create Counsellor",
 	"/mentors": "Mentors",
 	"/mentors/create": "Create Mentor",
-	"/courses/create": "Create Course",
+	"/courses": "Courses",
 	"/time-slots": "Time Slots",
 	"/users": "Users",
 	"/users/create": "Create User",
@@ -79,8 +79,8 @@ const resolveTitle = (pathname: string, search: string): string => {
 		return "Create Mentor";
 	}
 
-	if (/^\/courses\/create$/.test(pathname)) {
-		return "Create Course";
+	if (/^\/courses$/.test(pathname)) {
+		return "Courses";
 	}
 
 	if (/^\/time-slots$/.test(pathname)) {
@@ -244,7 +244,7 @@ export const DashboardLayout = () => {
 			]
 			: []),
 		{
-			to: "/courses/create",
+			to: "/courses",
 			label: "Courses",
 			description: "Catalog",
 			icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,

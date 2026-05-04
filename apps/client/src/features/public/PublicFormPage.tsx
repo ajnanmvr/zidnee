@@ -107,6 +107,8 @@ const PublicFormPage = () => {
 		register,
 		handleSubmit,
 		reset,
+		setValue,
+		watch,
 		formState: { errors },
 	} = useForm<PublicFormValues>({
 		defaultValues: {
@@ -358,22 +360,28 @@ const PublicFormPage = () => {
 
 						<div className="md:col-span-2">
 							<label className="mb-2 block text-sm font-semibold text-slate-700">Preferred day schedule</label>
-							<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-								{formOptions.days.map((day) => (
-									<label key={day} className="flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
-										<input type="checkbox" value={day} {...register("preferredDays", { required: true })} />
-										{day}
-									</label>
-								))}
-							</div>
+								<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+									{formOptions.days.map((day) => (
+										<label key={day} className="flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+											<input type="checkbox" value={day} {...register("preferredDays", { required: true })} />
+											{day}
+										</label>
+									))}
+								</div>
 						</div>
 
 						<div className="md:col-span-2">
 							<label className="mb-2 block text-sm font-semibold text-slate-700">Preferred timeslots (IST) for classes from admin</label>
-							<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 								{formOptions.timeslots.map((timeslot) => (
 									<label key={timeslot} className="flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
-										<input type="checkbox" value={timeslot} {...register("preferredTimeslots", { required: true })} />
+										<input
+											type="radio"
+											name="preferredTimeslot"
+											value={timeslot}
+											checked={watch("preferredTimeslots")?.[0] === timeslot}
+											onChange={() => setValue("preferredTimeslots", [timeslot])}
+										/>
 										{timeslot}
 									</label>
 								))}

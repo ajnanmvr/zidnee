@@ -5,6 +5,8 @@ import PublicFormPage from "@/features/public/PublicFormPage";
 import { CreateRolePage } from "@/features/dashboard/CreateRolePage";
 import { CreateCounsellorPage } from "@/features/dashboard/CreateCounsellorPage";
 import { CreateCoursePage } from "@/features/dashboard/CreateCoursePage";
+import CoursesPage from "@/features/dashboard/CoursesPage";
+import GroupsPage from "@/features/dashboard/GroupsPage";
 import { CreateTimeSlotsPage } from "@/features/dashboard/CreateTimeSlotsPage";
 import { CreateMentorPage } from "@/features/dashboard/CreateMentorPage";
 import { CreateUserPage } from "@/features/dashboard/CreateUserPage";
@@ -87,8 +89,12 @@ export const router = createBrowserRouter([
 						element: <CreateMentorPage />,
 					},
 					{
-						path: "courses/create",
-						element: <CreateCoursePage />,
+						path: "courses",
+						element: <CoursesPage />,
+					},
+					{
+						path: "groups",
+						element: <GroupsPage />,
 					},
 					{
 						path: "time-slots",

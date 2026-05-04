@@ -14,6 +14,18 @@ const timeSlotSchema = new Schema<TimeSlotDocument>(
 			maxlength: 120,
 			unique: true,
 		},
+		durationMinutes: {
+			type: Number,
+			required: true,
+			min: 1,
+			max: 300,
+		},
+		timesPerWeek: {
+			type: Number,
+			required: true,
+			min: 1,
+			max: 7,
+		},
 		isActive: {
 			type: Boolean,
 			required: true,

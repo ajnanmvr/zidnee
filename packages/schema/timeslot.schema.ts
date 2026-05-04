@@ -4,6 +4,8 @@ import { ObjectIdStringSchema } from "./rbac.schema.js";
 export const TimeSlotSchema = z.object({
 	id: ObjectIdStringSchema,
 	label: z.string().min(1).max(120),
+	durationMinutes: z.number().int().positive(),
+	timesPerWeek: z.number().int().positive(),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
@@ -12,13 +14,15 @@ export const TimeSlotSchema = z.object({
 export type TimeSlot = z.infer<typeof TimeSlotSchema>;
 
 export const CreateTimeSlotPayloadSchema = z.object({
-	label: z.string().min(1).max(120),
+	durationMinutes: z.number().int().positive().min(1).max(300),
+	timesPerWeek: z.number().int().positive().min(1).max(7),
 });
 
 export type CreateTimeSlotPayload = z.infer<typeof CreateTimeSlotPayloadSchema>;
 
 export const UpdateTimeSlotPayloadSchema = z.object({
-	label: z.string().min(1).max(120).optional(),
+	durationMinutes: z.number().int().positive().min(1).max(300).optional(),
+	timesPerWeek: z.number().int().positive().min(1).max(7).optional(),
 	isActive: z.boolean().optional(),
 });
 

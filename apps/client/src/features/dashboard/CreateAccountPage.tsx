@@ -15,6 +15,7 @@ import { useCreateCounsellorMutation } from "@/features/users/use-create-counsel
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
 import { useCreateUserMutation } from "@/features/users/use-create-user-mutation";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { updateUser } from "@/features/users/users.service";
 import type { CreateCounsellorForm, CreateMentorForm, CreateUserForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
@@ -36,6 +37,7 @@ type CreateAccountForm = {
 	mentorCode?: string;
 	counsellorCode?: string;
 	counsellorId?: string;
+	roleIds?: string[];
 };
 
 const roleLabels: Record<CreateAccountRoleType, string> = {
@@ -106,33 +108,33 @@ export const CreateAccountPage = ({
 		() => users.filter((user) => user.roles.some((role) => role.type === "counsellor")),
 		[users],
 	);
-	const selectedRole = useMemo(
-		() => rolesQuery.data?.roles.find((role) => role.type === roleType) ?? null,
-		[roleType, rolesQuery.data?.roles],
-	);
 	const generatedUsername = useMemo(
 		() => buildSequentialIdentity(rolePrefixes[roleType], users.map((user) => user.username)),
 		[roleType, users],
 	);
+	const shouldAutoGenerateUsername = roleType === "mentor" || roleType === "counsellor";
 
 	const { control, handleSubmit, setError, reset, setValue, watch } = useForm<CreateAccountForm>({
 		defaultValues: {
 			name: "",
-			username: generatedUsername,
+			username: shouldAutoGenerateUsername ? "" : generatedUsername,
 			email: "",
 			password: "",
 			gender: undefined,
 			mentorCode: undefined,
 			counsellorCode: undefined,
 			counsellorId: undefined,
+			roleIds: [],
 		},
 	});
 
 	const usernameValue = watch("username");
 
 	useEffect(() => {
-		setValue("username", generatedUsername, { shouldDirty: false, shouldValidate: true });
-	}, [generatedUsername, roleType, setValue]);
+		if (!shouldAutoGenerateUsername) {
+			setValue("username", generatedUsername, { shouldDirty: false, shouldValidate: true });
+		}
+	}, [generatedUsername, roleType, setValue, shouldAutoGenerateUsername]);
 
 	const roleTitle = roleLabels[roleType];
 	const resolvedTitle = title ?? `Create ${roleTitle.toLowerCase()}`;
@@ -144,7 +146,7 @@ export const CreateAccountPage = ({
 		setRoleType(nextRole);
 		reset({
 			name: "",
-			username: buildSequentialIdentity(rolePrefixes[nextRole], users.map((user) => user.username)),
+			username: nextRole === "mentor" || nextRole === "counsellor" ? "" : buildSequentialIdentity(rolePrefixes[nextRole], users.map((user) => user.username)),
 			email: "",
 			password: "",
 			gender: undefined,
@@ -158,7 +160,7 @@ export const CreateAccountPage = ({
 		if (roleType === "mentor") {
 			const validation = CreateMentorPayloadSchema.safeParse({
 				name: form.name,
-				username: form.username,
+				username: form.username || undefined,
 				gender: form.gender,
 				mentorCode: form.mentorCode,
 				counsellorId: form.counsellorId,
@@ -173,7 +175,7 @@ export const CreateAccountPage = ({
 		if (roleType === "counsellor") {
 			const validation = CreateCounsellorPayloadSchema.safeParse({
 				name: form.name,
-				username: form.username,
+				username: form.username || undefined,
 				gender: form.gender,
 				counsellorCode: form.counsellorCode,
 			});
@@ -184,9 +186,7 @@ export const CreateAccountPage = ({
 			return { kind: "counsellor", payload: validation.data };
 		}
 
-		if (!selectedRole) {
-			throw new Error(`Role type ${roleType} not found.`);
-		}
+		const chosenRoleIds = form.roleIds && form.roleIds.length > 0 ? form.roleIds : [];
 
 		const validation = CreateUserPayloadSchema.safeParse({
 			name: form.name,
@@ -194,7 +194,7 @@ export const CreateAccountPage = ({
 			email: form.email,
 			password: form.password,
 			gender: form.gender,
-			roleIds: [selectedRole.id],
+			roleIds: chosenRoleIds.length > 0 ? chosenRoleIds : undefined,
 		});
 
 		if (!validation.success) {
@@ -209,11 +209,18 @@ export const CreateAccountPage = ({
 			const target = await submitTarget(form);
 
 			if (target.kind === "mentor") {
-				await createMentorMutation.mutateAsync(target.payload);
+				const res = await createMentorMutation.mutateAsync(target.payload as any);
+				// apply selected roleIds if any
+				if (token && form.roleIds && form.roleIds.length > 0) {
+					await updateUser(token, res.id, { roleIds: form.roleIds });
+				}
 			} else if (target.kind === "counsellor") {
-				await createCounsellorMutation.mutateAsync(target.payload);
+				const res = await createCounsellorMutation.mutateAsync(target.payload as any);
+				if (token && form.roleIds && form.roleIds.length > 0) {
+					await updateUser(token, res.id, { roleIds: form.roleIds });
+				}
 			} else {
-				await createUserMutation.mutateAsync(target.payload);
+				await createUserMutation.mutateAsync(target.payload as any);
 			}
 
 			toast.success(`${roleTitle} created successfully.`);
@@ -252,8 +259,8 @@ export const CreateAccountPage = ({
 
 	return (
 		<Panel title={resolvedTitle} description={resolvedDescription}>
-			<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
-				<div className="grid gap-2 text-sm font-medium text-gray-600">
+			<form className="grid gap-6 md:grid-cols-3" onSubmit={handleSubmit(onSubmit)}>
+				<div className="md:col-span-1 grid gap-2 text-sm font-medium text-gray-600">
 					<span>Account type</span>
 					<div className="flex flex-wrap gap-2">
 						{roleOptions.map((option) => {
@@ -269,10 +276,45 @@ export const CreateAccountPage = ({
 								</button>
 							);
 						})}
+								{rolesQuery.data?.roles ? (
+									<Controller
+										name="roleIds"
+										control={control}
+										render={({ field, fieldState }) => (
+											<label className="grid gap-2">
+												<span className="text-sm font-medium text-gray-600">Roles</span>
+												<div className="flex flex-wrap gap-2">
+													{rolesQuery.data.roles.map((role) => {
+															const checked = field.value?.includes(role.id) ?? false;
+															return (
+																<label key={role.id} className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600">
+																	<input
+																		type="checkbox"
+																		checked={checked}
+																		onChange={(e) => {
+																			const next = new Set(field.value ?? []);
+																			if (e.target.checked) {
+																				next.add(role.id);
+																			} else {
+																				next.delete(role.id);
+																			}
+																			field.onChange(Array.from(next));
+																		}}
+																/>
+																<span>{role.name}</span>
+															</label>
+															);
+													})}
+												</div>
+												{fieldState.error?.message ? <span className="text-xs text-red-600">{fieldState.error.message}</span> : null}
+											</label>
+										)}
+									/>
+								) : null}
 					</div>
 				</div>
 
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="md:col-span-2 grid gap-4 md:grid-cols-2">
 					<Controller
 						name="name"
 						control={control}
@@ -284,7 +326,13 @@ export const CreateAccountPage = ({
 						name="username"
 						control={control}
 						render={({ field, fieldState }) => (
-							<Field label={`${roleTitle} ID`} value={field.value} onChange={field.onChange} placeholder={generatedUsername} error={fieldState.error?.message} />
+							<Field
+								label={`${roleTitle} ID`}
+								value={field.value}
+								onChange={field.onChange}
+								placeholder={shouldAutoGenerateUsername ? "Auto-generated on save" : generatedUsername}
+								error={fieldState.error?.message}
+							/>
 						)}
 					/>
 					<Controller
@@ -360,7 +408,7 @@ export const CreateAccountPage = ({
 					) : null}
 				</div>
 
-				<div className="flex flex-wrap gap-2">
+				<div className="md:col-span-2 flex flex-wrap gap-2">
 					<button type="submit" className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70" disabled={createUserMutation.isPending || createMentorMutation.isPending || createCounsellorMutation.isPending}>
 						<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
 						{createUserMutation.isPending || createMentorMutation.isPending || createCounsellorMutation.isPending ? "Creating..." : `Create ${roleTitle.toLowerCase()}`}

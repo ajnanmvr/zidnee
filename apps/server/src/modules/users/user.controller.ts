@@ -282,11 +282,39 @@ export const updateUserController = async (
 		await ensureRoleIdsExist(result.data.roleIds);
 	}
 
+	if (result.data.counsellorId) {
+		const counsellor = await UserService.findById(result.data.counsellorId);
+		if (!counsellor) {
+			throw new NotFoundError("Counsellor");
+		}
+
+		const counsellorRole = await findRoleByType("counsellor");
+		const isCounsellor = counsellorRole
+			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
+			: false;
+		if (!isCounsellor) {
+			throw new ValidationError({
+				counsellorId: ["Selected user is not a counsellor"],
+			});
+		}
+
+		const mentorRole = await findRoleByType("mentor");
+		const isMentor = mentorRole
+			? (result.data.roleIds ?? existingUser.roleIds).some((roleId) => roleId === mentorRole.id)
+			: false;
+		if (!isMentor) {
+			throw new ValidationError({
+				counsellorId: ["Counsellor can only be assigned to mentor accounts"],
+			});
+		}
+	}
+
 	const updatedUser = await UserService.update(userId, {
 		username: result.data.username,
 		email: result.data.email,
 		name: result.data.name,
 		roleIds: result.data.roleIds,
+		counsellorId: result.data.counsellorId,
 	});
 
 	if (!updatedUser) {
