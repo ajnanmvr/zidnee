@@ -120,6 +120,8 @@ export const LeadDetailPage = () => {
 	const [deleteNote, setDeleteNote] = useState("");
 	const [completeOpen, setCompleteOpen] = useState(false);
 	const [formLinkOpen, setFormLinkOpen] = useState(false);
+	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
+	const [selectedRequestCounsellor, setSelectedRequestCounsellor] = useState<string | undefined>(undefined);
 	const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(null);
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
@@ -173,7 +175,6 @@ export const LeadDetailPage = () => {
 		setError: setRedemoError,
 	} = useForm<RedemoLeadForm>({
 		defaultValues: {
-			mentorId: "",
 			note: "",
 		},
 	});
@@ -269,8 +270,8 @@ export const LeadDetailPage = () => {
 			return;
 		}
 
-		resetRedemo({ mentorId: latestDemo?.mentorId ?? undefined, note: "" });
-	}, [latestDemo?.mentorId, redemoOpen, resetRedemo]);
+		resetRedemo({ note: "" });
+	}, [redemoOpen, resetRedemo]);
 
 	useEffect(() => {
 		if (!admissionOpen) {
@@ -378,21 +379,32 @@ export const LeadDetailPage = () => {
 			return;
 		}
 
-		if (!confirm("Request demo for this lead?")) {
+			setRequestDemoOpen(true);
 			return;
-		}
+		};
 
-		try {
-			await requestDemoMutation.mutateAsync(lead.id);
-			toast.success("Demo requested.");
-		} catch (error) {
-			if (error instanceof ApiError) {
-				toast.error(error.payload.message ?? "Unable to request demo");
+		const confirmRequestDemo = async () => {
+			if (!lead) return;
+
+			if (!selectedRequestCounsellor) {
+				toast.error("Please select a counsellor before requesting a demo.");
 				return;
 			}
 
-			toast.error(error instanceof Error ? error.message : "Unable to request demo");
-		}
+			try {
+				await updateLeadMutation.mutateAsync({ leadId: lead.id, payload: { demoRequestAssignedTo: selectedRequestCounsellor } });
+				await requestDemoMutation.mutateAsync(lead.id);
+				toast.success("Demo requested.");
+				setRequestDemoOpen(false);
+				setSelectedRequestCounsellor(undefined);
+			} catch (error) {
+				if (error instanceof ApiError) {
+					toast.error(error.payload.message ?? "Unable to request demo");
+					return;
+				}
+
+				toast.error(error instanceof Error ? error.message : "Unable to request demo");
+			}
 	};
 
 	const onPostponeLead = async (payload: PostponeLeadFollowUpForm) => {
@@ -555,6 +567,24 @@ export const LeadDetailPage = () => {
 
 	return (
 		<div className="grid gap-6">
+			{/* Request demo modal */}
+			<Modal open={requestDemoOpen} onClose={() => setRequestDemoOpen(false)} title="Request Demo and assign counsellor">
+				<div className="space-y-4">
+					<p className="text-sm text-slate-600">Select a counsellor who will coordinate and schedule the demo.</p>
+					<select
+						value={selectedRequestCounsellor ?? ""}
+						onChange={(e) => setSelectedRequestCounsellor(e.target.value)}
+						className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2"
+					>
+						<option value="" disabled>Select counsellor</option>
+						{counsellors.map((c) => <option key={c.id} value={c.id}>{c.name || c.username}</option>)}
+					</select>
+					<div className="flex justify-end gap-2">
+						<button onClick={() => setRequestDemoOpen(false)} className="rounded-2xl border px-4 py-2">Cancel</button>
+						<button onClick={confirmRequestDemo} disabled={!selectedRequestCounsellor} className="rounded-2xl bg-brand px-4 py-2 text-white disabled:opacity-50">Confirm</button>
+					</div>
+				</div>
+			</Modal>
 			<Panel title={leadDisplayName(lead)} description="Lead details and workflow">
 				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 					<div className="space-y-4">
@@ -1095,7 +1125,7 @@ export const LeadDetailPage = () => {
 			<Modal
 				open={redemoOpen}
 				title="Request redemo"
-				description={lead ? `Previous mentor: ${latestDemo?.mentorId ? formatUserName(allUsers.find((user) => user.id === latestDemo.mentorId)?.name ?? null) : "-"}` : "Request a new demo attempt"}
+				description="Request another demo attempt. Add a note if needed."
 				onClose={() => setRedemoOpen(false)}
 				footer={
 					<>

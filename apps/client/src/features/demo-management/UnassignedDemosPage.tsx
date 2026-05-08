@@ -80,6 +80,9 @@ export const UnassignedDemosPage = () => {
 	}
 
 	const unassignedDemos = demosQuery.data?.leads ?? [];
+	const userNameById = new Map(
+		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
+	);
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -141,7 +144,7 @@ export const UnassignedDemosPage = () => {
 											</div>
 											<div>
 												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Assigned To</p>
-												<p className="text-sm font-medium text-gray-900">{demo.assignedTo ? demo.assignedTo : "Unassigned"}</p>
+												<p className="text-sm font-medium text-gray-900">{demo.demoRequestAssignedTo ? (userNameById.get(demo.demoRequestAssignedTo) ?? demo.demoRequestAssignedTo) : "Unassigned"}</p>
 											</div>
 											<div>
 												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Preference</p>

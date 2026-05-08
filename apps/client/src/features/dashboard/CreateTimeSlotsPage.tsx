@@ -26,7 +26,7 @@ export const CreateTimeSlotsPage = () => {
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 	const [deletingSlotId, setDeletingSlotId] = useState<string | null>(null);
 	const { control, handleSubmit, setError, reset } = useForm<TimeSlotForm>({
-		defaultValues: { durationMinutes: 45, timesPerWeek: 3 },
+		defaultValues: { durationMinutes: undefined as any, timesPerWeek: undefined as any },
 	});
 	const durationMinutes = useWatch({ control, name: "durationMinutes" });
 	const timesPerWeek = useWatch({ control, name: "timesPerWeek" });
@@ -47,7 +47,7 @@ export const CreateTimeSlotsPage = () => {
 		try {
 			await createTimeSlotMutation.mutateAsync(validation.data);
 			toast.success("Time slot created successfully.");
-			reset({ durationMinutes: 45, timesPerWeek: 3 });
+			reset({ durationMinutes: undefined as any, timesPerWeek: undefined as any });
 			setAddOpen(false);
 		} catch (error) {
 			if (error instanceof ApiError) {
@@ -180,7 +180,7 @@ export const CreateTimeSlotsPage = () => {
 				description="Create a structured class slot for the public form"
 				onClose={() => {
 					setAddOpen(false);
-					reset({ durationMinutes: 45, timesPerWeek: 3 });
+					reset({ durationMinutes: undefined as any, timesPerWeek: undefined as any });
 				}}
 				footer={
 					<>
@@ -189,7 +189,7 @@ export const CreateTimeSlotsPage = () => {
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
 								setAddOpen(false);
-								reset({ durationMinutes: 45, timesPerWeek: 3 });
+								reset({ durationMinutes: undefined as any, timesPerWeek: undefined as any });
 							}}
 						>
 							Cancel
@@ -251,7 +251,7 @@ export const CreateTimeSlotsPage = () => {
 				onClose={() => {
 					setEditOpen(false);
 					setEditingSlot(null);
-					reset({ durationMinutes: 45, timesPerWeek: 3 });
+					reset({ durationMinutes: undefined as any, timesPerWeek: undefined as any });
 				}}
 				footer={
 					<>
@@ -261,7 +261,7 @@ export const CreateTimeSlotsPage = () => {
 							onClick={() => {
 							setEditOpen(false);
 							setEditingSlot(null);
-							reset({ durationMinutes: 45, timesPerWeek: 3 });
+							reset({ durationMinutes: undefined as any, timesPerWeek: undefined as any });
 							}}
 						>
 							Cancel

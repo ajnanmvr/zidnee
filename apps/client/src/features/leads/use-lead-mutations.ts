@@ -73,7 +73,7 @@ export const useUpdateLeadMutation = () => {
 			payload,
 		}: {
 			leadId: string;
-			payload: { phone?: string; name?: string; level?: string; assignedTo?: string };
+			payload: { phone?: string; name?: string; level?: string; assignedTo?: string; demoRequestAssignedTo?: string };
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
@@ -196,7 +196,7 @@ export const useRequestRedemoMutation = () => {
 			payload,
 		}: {
 			leadId: string;
-			payload: { mentorId?: string; note?: string };
+			payload: { note?: string };
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");

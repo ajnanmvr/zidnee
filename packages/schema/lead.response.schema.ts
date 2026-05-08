@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LeadSchema, LeadDemoSchema } from "./lead.schema.js";
+import { LeadSchema, LeadDemoSchema, LeadStatusSchema } from "./lead.schema.js";
 
 const LeadDemoResponseSchema = LeadDemoSchema.extend({
 	mentorId: z.string().nullable().optional(),
@@ -21,6 +21,7 @@ export const LeadResponseSchema = LeadSchema.omit({
 	createdAt: true,
 	updatedAt: true,
 }).extend({
+	status: LeadStatusSchema,
 	nextFollowUpAt: z.string().datetime(),
 	dateOfBirth: z.string().datetime().nullable().optional(),
 	demos: z.array(LeadDemoResponseSchema),

@@ -27,6 +27,7 @@ import {
 	useRequestAdmissionMutation,
 	useRequestLeadDemoMutation,
 	useRequestRedemoMutation,
+	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import type {
@@ -55,6 +56,7 @@ const toInputDateTimeLocal = (value: string | null): string => {
 
 const isMentorRole = (roleType: string) => roleType === "mentor";
 const isCounsellorRole = (roleType: string) => roleType === "counsellor";
+const isSalesRole = (roleType: string) => roleType === "sales";
 
 const getWhatsappNumber = (phone?: string | null) => phone?.replace(/\D/g, "") ?? "";
 
@@ -76,6 +78,7 @@ export const LeadsPage = () => {
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
+	const updateLeadMutation = useUpdateLeadMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
 	const cancelLeadDemoMutation = useCancelLeadDemoMutation();
@@ -92,7 +95,34 @@ export const LeadsPage = () => {
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
 	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
+	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
+	const [requestDemoLeadId, setRequestDemoLeadId] = useState<string | null>(null);
+	const [selectedRequestCounsellor, setSelectedRequestCounsellor] = useState<string | undefined>(undefined);
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
+
+	const confirmRequestDemo = async () => {
+		if (!requestDemoLeadId) return;
+
+		if (!selectedRequestCounsellor) {
+			toast.error("Please select a counsellor before requesting a demo.");
+			return;
+		}
+
+		try {
+			await updateLeadMutation.mutateAsync({ leadId: requestDemoLeadId, payload: { demoRequestAssignedTo: selectedRequestCounsellor } });
+			await requestDemoMutation.mutateAsync(requestDemoLeadId);
+			toast.success("Demo requested.");
+			setRequestDemoOpen(false);
+			setRequestDemoLeadId(null);
+			setSelectedRequestCounsellor(undefined);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to request demo");
+				return;
+			}
+			toast.error(error instanceof Error ? error.message : "Unable to request demo");
+		}
+	};
 
 	const {
 		control: createControl,
@@ -126,7 +156,6 @@ export const LeadsPage = () => {
 		setError: setRedemoError,
 	} = useForm<RedemoLeadForm>({
 		defaultValues: {
-			mentorId: "",
 			note: "",
 		},
 	});
@@ -165,6 +194,13 @@ export const LeadsPage = () => {
 			),
 		[allUsers],
 	);
+	const salesUsers = useMemo(
+		() =>
+			allUsers.filter((user) =>
+				user.roles.some((role) => isSalesRole(role.type ?? "general")),
+			),
+		[allUsers],
+	);
 	const userNameById = useMemo(
 		() =>
 			new Map(
@@ -181,8 +217,8 @@ export const LeadsPage = () => {
 	const activeScope = scopeParam === "all" ? "all" : "mine";
 	const scopeLeads = activeScope === "all" ? (allLeadsQuery.data?.leads ?? []) : (leadsQuery.data?.leads ?? []);
 	const filteredLeads = useMemo(
-		() => scopeLeads.filter(getLeadStagePredicate(activeStage, currentUserId)),
-		[activeStage, currentUserId, scopeLeads],
+		() => scopeLeads.filter(getLeadStagePredicate(activeStage, activeScope === "mine" ? currentUserId : undefined)),
+		[activeStage, currentUserId, scopeLeads, activeScope],
 	);
 	const activeStageDefinition = leadStageDefinitions.find((stage) => stage.id === activeStage);
 
@@ -211,13 +247,17 @@ export const LeadsPage = () => {
 			return;
 		}
 
+		const defaultAssignedTo = salesUsers.some((user) => user.id === currentUserId)
+			? (currentUserId ?? "")
+			: "";
+
 		resetCreate({
 			phone: "",
 			name: "",
-			assignedTo: currentUserId ?? "",
+			assignedTo: defaultAssignedTo,
 			customNextFollowUpAt: undefined,
 		});
-	}, [createOpen, currentUserId, resetCreate]);
+	}, [createOpen, currentUserId, resetCreate, salesUsers]);
 
 	const onCreateLead = async (payload: CreateLeadForm) => {
 		const validation = CreateLeadPayloadSchema.safeParse(payload);
@@ -327,7 +367,6 @@ export const LeadsPage = () => {
 		const validation = RedemoLeadPayloadSchema.safeParse(payload);
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
-			if (errors.mentorId?.[0]) setRedemoError("mentorId", { type: "manual", message: errors.mentorId[0] });
 			if (errors.note?.[0]) setRedemoError("note", { type: "manual", message: errors.note[0] });
 			return;
 		}
@@ -338,12 +377,10 @@ export const LeadsPage = () => {
 			});
 			toast.success("Lead moved for redemo.");
 			setRedemoLeadId(null);
-			resetRedemo({ mentorId: "", note: "" });
+			resetRedemo({ note: "" });
 			navigate("/leads");
 		} catch (error) {
 			if (error instanceof ApiError) {
-				const mentorError = error.payload.errors?.mentorId?.[0];
-				if (mentorError) setRedemoError("mentorId", { type: "server", message: mentorError });
 				toast.error(error.payload.message ?? "Unable to request redemo");
 				return;
 			}
@@ -390,14 +427,14 @@ export const LeadsPage = () => {
 	const redemoLead = leads.find((lead) => lead.id === redemoLeadId) ?? null;
 	const admissionLead = leads.find((lead) => lead.id === admissionLeadId) ?? null;
 	const admissionLeadLatestDemo = admissionLead ? getLatestLeadDemo(admissionLead) : null;
-	const redemoLeadLatestDemo = redemoLead ? getLatestLeadDemo(redemoLead) : null;
 	const defaultCounsellorId = admissionLeadLatestDemo?.mentorId
 		? allUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId)?.counsellorId
 		: undefined;
-	const redemoMentors = mentors.filter((mentor) => mentor.id !== redemoLeadLatestDemo?.mentorId);
 
 	const columns = useMemo(
 		() => buildLeadColumns({
+			activeStage,
+			userNameById,
 			getActions: (lead) => {
 				const baseView: LeadTableAction = {
 					key: "view",
@@ -461,20 +498,9 @@ export const LeadsPage = () => {
 							{
 								key: "requestDemo",
 								label: "Request Demo",
-								onClick: async (item) => {
-									if (!confirm("Request demo for this lead?")) {
-										return;
-									}
-									try {
-										await requestDemoMutation.mutateAsync(item.id);
-										toast.success("Demo requested.");
-									} catch (error) {
-										if (error instanceof ApiError) {
-											toast.error(error.payload.message ?? "Unable to request demo");
-											return;
-										}
-										toast.error(error instanceof Error ? error.message : "Unable to request demo");
-									}
+								onClick: (item) => {
+									setRequestDemoLeadId(item.id);
+									setRequestDemoOpen(true);
 								},
 								className: "inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
 							},
@@ -690,7 +716,7 @@ export const LeadsPage = () => {
 									onChange={(event) => field.onChange(event.target.value)}
 								>
 									<option value="">Select user</option>
-									{allUsers.map((user) => (
+									{salesUsers.map((user) => (
 										<option key={user.id} value={user.id}>
 											{formatUserName(user.name ?? user.username)}
 											{user.id === currentUserId ? " (You)" : ""}
@@ -748,6 +774,26 @@ export const LeadsPage = () => {
 						)}
 					/>
 				</form>
+			</Modal>
+
+			<Modal open={requestDemoOpen} onClose={() => setRequestDemoOpen(false)} title="Request demo and assign counsellor">
+				<div className="space-y-4">
+					<p className="text-sm text-slate-600">Select a counsellor who will coordinate and schedule the demo.</p>
+					<select
+						value={selectedRequestCounsellor ?? ""}
+						onChange={(e) => setSelectedRequestCounsellor(e.target.value)}
+						className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2"
+					>
+						<option value="" disabled>Select counsellor</option>
+						{allUsers.filter(u => u.roles.some(r => (r.type ?? 'general') === 'counsellor')).map((c) => (
+							<option key={c.id} value={c.id}>{c.name || c.username}</option>
+						))}
+					</select>
+					<div className="flex justify-end gap-2">
+						<button onClick={() => setRequestDemoOpen(false)} className="rounded-2xl border px-4 py-2">Cancel</button>
+						<button onClick={confirmRequestDemo} disabled={!selectedRequestCounsellor} className="rounded-2xl bg-brand px-4 py-2 text-white disabled:opacity-50">Confirm</button>
+					</div>
+				</div>
 			</Modal>
 
 			<Modal
@@ -997,14 +1043,10 @@ export const LeadsPage = () => {
 			<Modal
 				open={Boolean(redemoLeadId)}
 				title="Request redemo"
-				description={
-					redemoLead
-						? `Previous mentor: ${redemoLeadLatestDemo?.mentorId ? userNameById.get(redemoLeadLatestDemo.mentorId) ?? "-" : "-"}`
-						: "Select a different mentor"
-				}
+				description="Request another demo attempt. Add a note if needed."
 				onClose={() => {
 					setRedemoLeadId(null);
-					resetRedemo({ mentorId: "", note: "" });
+					resetRedemo({ note: "" });
 				}}
 				footer={
 					<>
@@ -1013,7 +1055,7 @@ export const LeadsPage = () => {
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
 								setRedemoLeadId(null);
-								resetRedemo({ mentorId: "", note: "" });
+								resetRedemo({ note: "" });
 							}}
 						>
 							Cancel
@@ -1031,30 +1073,6 @@ export const LeadsPage = () => {
 				}
 			>
 				<form className="grid gap-4" onSubmit={handleRedemoSubmit(onRedemoLead)}>
-					<Controller
-						name="mentorId"
-						control={redemoControl}
-						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
-								<span>Mentor</span>
-								<select
-									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-									value={field.value ?? ""}
-									onChange={(event) => field.onChange(event.target.value)}
-								>
-									<option value="">Select another mentor</option>
-									{redemoMentors.map((mentor) => (
-										<option key={mentor.id} value={mentor.id}>
-											{formatUserName(mentor.name ?? mentor.username)}
-										</option>
-									))}
-								</select>
-								{fieldState.error?.message ? (
-									<span className="text-xs text-red-600">{fieldState.error.message}</span>
-								) : null}
-							</label>
-						)}
-					/>
 					<Controller
 						name="note"
 						control={redemoControl}

@@ -1,4 +1,4 @@
-import type { LeadActivity, ActivityType } from "@repo/schema";
+import type { ActivityType } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 export interface LeadActivityDocument {
@@ -21,11 +21,11 @@ const leadActivitySchema = new Schema<LeadActivityDocument>(
 			ref: "Lead",
 			index: true,
 		},
-		type: {
-			type: String,
-			required: true,
-			enum: ["CREATED", "UPDATED", "FOLLOW_UP_POSTPONED", "STATUS_CHANGED", "ASSIGNED", "DELETED", "FORM_SENT", "FORM_REVOKED", "DEMO_REQUESTED", "DEMO_SCHEDULED", "DEMO_COMPLETED", "DEMO_REDONE", "ADMISSION_REQUESTED", "ADMISSION_CONFIRMED", "STUDENT_CREATED"],
-		},
+			type: {
+				type: String,
+				required: true,
+				enum: ["CREATED", "UPDATED", "FOLLOW_UP_POSTPONED", "STATUS_CHANGED", "ASSIGNED", "DELETED", "FORM_SENT", "FORM_REVOKED", "DEMO_REQUESTED", "DEMO_SCHEDULED", "DEMO_COMPLETED", "DEMO_COUNSELLOR_ASSIGNED", "DEMO_CANCELLED", "DEMO_REDONE", "ADMISSION_REQUESTED", "ADMISSION_CONFIRMED", "STUDENT_CREATED"],
+			},
 		performedBy: {
 			type: Schema.Types.ObjectId,
 			required: true,

@@ -6,6 +6,7 @@ export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	_id: Types.ObjectId;
 	createdBy: Types.ObjectId;
 	assignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
+	demoRequestAssignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
 	demos?: LeadDemo[];
 };
 
@@ -34,6 +35,11 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			maxlength: 100,
 		},
 		assignedTo: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
+		demoRequestAssignedTo: {
 			type: Schema.Types.ObjectId,
 			ref: "User",
 			required: false,
@@ -167,6 +173,11 @@ const leadSchema = new Schema<LeadDocumentExt>(
 		demos: {
 			type: [
 				{
+					counsellorId: {
+						type: Schema.Types.ObjectId,
+						ref: "User",
+						required: false,
+					},
 					mentorId: {
 						type: Schema.Types.ObjectId,
 						ref: "User",

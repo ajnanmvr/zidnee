@@ -1,6 +1,7 @@
 ﻿import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Link } from "react-router-dom";
+import { type LeadStageId } from "@/features/leads/lead-stage-filters";
 import { DateCell } from "@/components/DateCell";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 
@@ -93,6 +94,8 @@ export type LeadTableAction = {
 export const buildLeadColumns = (
 	options?: {
 		getActions?: (lead: LeadResponse) => LeadTableAction[];
+		activeStage?: LeadStageId;
+		userNameById?: Map<string, string>;
 	},
 ): ColumnDef<LeadResponse>[] => [
 	{
@@ -118,6 +121,27 @@ export const buildLeadColumns = (
 			</Link>
 		),
 		enableSorting: true,
+	},
+	{
+		id: "handler",
+		header: "Handler",
+		cell: (info) => {
+			const lead = info.row.original as LeadResponse;
+			const latestDemo = getLatestLeadDemo(lead);
+			const stage = options?.activeStage;
+			const nameMap = options?.userNameById;
+			if (stage === "demoRequest") {
+				const controllerId = lead.demoRequestAssignedTo ?? null;
+				if (!controllerId) return <span className="text-sm text-slate-500">-</span>;
+				return <span className="text-sm">{nameMap?.get(controllerId) ?? "-"}</span>;
+			}
+			if (stage === "demoAssigned" || stage === "demoCompleted") {
+				const mentorId = latestDemo?.mentorId ?? null;
+				if (!mentorId) return <span className="text-sm text-slate-500">-</span>;
+				return <span className="text-sm">{nameMap?.get(mentorId) ?? "-"}</span>;
+			}
+			return <span className="text-sm text-slate-500">-</span>;
+		},
 	},
 	{
 		id: "demoStatus",

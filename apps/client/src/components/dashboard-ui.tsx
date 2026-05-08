@@ -236,7 +236,7 @@ export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: Si
 													<span className="block truncate text-sm font-semibold">
 														{item.label}
 													</span>
-													{typeof item.count === "number" ? (
+													{typeof item.count === "number" && item.count > 0 ? (
 														<span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}>
 															{item.count}
 														</span>

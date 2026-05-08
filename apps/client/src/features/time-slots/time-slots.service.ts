@@ -1,5 +1,5 @@
 import { requestWithSchema } from "@/api/request";
-import { CreateTimeSlotPayloadSchema, TimeSlotResponseEnvelopeSchema, TimeSlotsResponseSchema } from "@repo/schema";
+import { CreateTimeSlotPayloadSchema, TimeSlotResponseEnvelopeSchema, TimeSlotsResponseSchema, MessageResponseSchema } from "@repo/schema";
 
 export const fetchTimeSlots = async (token?: string) => {
 	return requestWithSchema("/time-slots", TimeSlotsResponseSchema, "GET", undefined, token);
@@ -19,5 +19,5 @@ export const updateTimeSlot = async (token: string, id: string, payload: { durat
 };
 
 export const deleteTimeSlot = async (token: string, id: string) => {
-	return requestWithSchema(`/time-slots/${id}`, { ok: true } as any, "DELETE", undefined, token);
+	return requestWithSchema(`/time-slots/${id}`, MessageResponseSchema, "DELETE", undefined, token);
 };

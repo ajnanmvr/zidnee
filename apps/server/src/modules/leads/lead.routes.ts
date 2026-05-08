@@ -7,6 +7,7 @@ import {
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	assignDemoMentorController,
+	assignDemoCounsellorController,
 	cancelLeadDemoController,
 	confirmAdmissionController,
 	createLeadController,
@@ -121,6 +122,12 @@ router.patch(
 	"/:leadId/demo/assign",
 	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
 	asyncHandler(assignDemoMentorController),
+);
+
+router.patch(
+	"/:leadId/demo/counsellor",
+	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	asyncHandler(assignDemoCounsellorController),
 );
 
 router.post(

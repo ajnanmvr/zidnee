@@ -22,8 +22,9 @@ app.get("/health", (_req, res) => {
 
 // Public form routes (no authentication required)
 app.use("/form", publicLeadRoutes);
-app.use("/form/options", timeSlotRoutes);
 
+// API routes (including public options)
+app.use("/api/form/options", timeSlotRoutes);
 app.use("/api", routes);
 
 // Error middleware must be last

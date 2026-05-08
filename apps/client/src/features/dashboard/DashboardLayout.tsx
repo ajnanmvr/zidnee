@@ -33,16 +33,10 @@ import {
 	useDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
 import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
-import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useCoursesQuery } from "@/features/courses/courses.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
-
-const roleCount = (users: Array<{ roles: Array<{ type?: string }> }>, role: "mentor" | "counsellor" | "sales") =>
-	users.filter((user) =>
-		user.roles.some((item) => item.type === role),
-	).length;
 
 const titles: Record<string, string> = {
 	"/": "Overview",
@@ -124,7 +118,6 @@ export const DashboardLayout = () => {
 	const admissionsQuery = useAdmissionLeadsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const rolesQuery = useRolesQuery(token);
 	const coursesQuery = useCoursesQuery(token);
 	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token);
@@ -165,7 +158,7 @@ export const DashboardLayout = () => {
 		demoCompleted: "violet",
 		demoCancelled: "orange",
 	};
-	
+
 	const getLeadStageItems = (): NavigationItem[] => {
 		return leadStageDefinitions
 			.filter(stage => stage.id !== 'all')
@@ -189,7 +182,6 @@ export const DashboardLayout = () => {
 			label: "Overview",
 			description: "Snapshot",
 			icon: <HiSquares2X2 className="h-5 w-5" aria-hidden="true" />,
-			count: (leadsQuery.data?.leads.length ?? 0) + (studentsQuery.data?.students.length ?? 0),
 			accent: "emerald",
 			section: "Overview",
 		},
@@ -198,7 +190,6 @@ export const DashboardLayout = () => {
 			label: "Leads",
 			description: "All follow-ups",
 			icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
-			count: leadStageCounts.all,
 			accent: "teal",
 			section: "Lead Pipeline",
 		},
@@ -266,7 +257,6 @@ export const DashboardLayout = () => {
 			label: "Counsellors",
 			description: "Team",
 			icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
-			count: roleCount(allUsers, "counsellor"),
 			accent: "teal",
 			section: "Management",
 		},
@@ -275,7 +265,6 @@ export const DashboardLayout = () => {
 			label: "Mentors",
 			description: "Team",
 			icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
-			count: roleCount(allUsers, "mentor"),
 			accent: "amber",
 			section: "Management",
 		},
@@ -284,7 +273,6 @@ export const DashboardLayout = () => {
 			label: "Sales",
 			description: "Team",
 			icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
-			count: roleCount(allUsers, "sales"),
 			accent: "rose",
 			section: "Management",
 		},
@@ -293,7 +281,6 @@ export const DashboardLayout = () => {
 			label: "Users",
 			description: "All accounts",
 			icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
-			count: usersQuery.data?.users.length ?? 0,
 			accent: "cyan",
 			section: "Management",
 		},
@@ -302,7 +289,6 @@ export const DashboardLayout = () => {
 			label: "Role Permissions",
 			description: "Access",
 			icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
-			count: rolesQuery.data?.roles.length ?? 0,
 			accent: "violet",
 			section: "Management",
 		},
@@ -345,7 +331,7 @@ export const DashboardLayout = () => {
 	const roleLabel = me?.roles[0]?.name ?? "Workspace member";
 
 	// Filter out any undefined items and ensure all items have icons
-	const validNavItems = navItems.filter((item): item is NavigationItem => 
+	const validNavItems = navItems.filter((item): item is NavigationItem =>
 		Boolean(item && item.icon && item.to && item.label)
 	);
 

@@ -5,7 +5,11 @@ import { createTimeSlotController, listTimeSlotsController, updateTimeSlotContro
 
 const router: ReturnType<typeof Router> = Router();
 
-router.get("/", asyncHandler(listTimeSlotsController));
+// Public endpoint for form options
+router.get("/time-slots", asyncHandler(listTimeSlotsController));
+
+// Authenticated endpoint used by dashboard pages
+router.get("/", authMiddleware, asyncHandler(listTimeSlotsController));
 
 router.use(authMiddleware);
 

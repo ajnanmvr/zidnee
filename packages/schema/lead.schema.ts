@@ -2,10 +2,13 @@ import { z } from "zod";
 import { ObjectIdStringSchema } from "./rbac.schema.js";
 
 export const LeadStatusSchema = z.enum([
-	"NEW",
 	"FOLLOW_UP",
 	"FORM_SENT",
-	"FORM_COMPLETED",
+	"FORM_FILLED",
+	"DEMO_REQUEST",
+	"DEMO_ASSIGNED",
+	"DEMO_COMPLETED",
+	"DEMO_CANCELLED",
 	"CONVERTED",
 	"CLOSED",
 ]);
@@ -52,6 +55,7 @@ export const LeadFormDataSchema = z.object({
 export type LeadFormData = z.infer<typeof LeadFormDataSchema>;
 
 export const LeadDemoSchema = z.object({
+	counsellorId: ObjectIdStringSchema.optional(), // Counsellor managing this demo attempt
 	mentorId: ObjectIdStringSchema.optional(),
 	requestedAt: z.date().optional(),
 	assignedAt: z.date().optional(),
@@ -76,6 +80,7 @@ export const LeadSchema = z.object({
 	phone: PhoneNumberSchema,
 	level: z.string().max(100).optional(),
 	assignedTo: ObjectIdStringSchema.optional(),
+	demoRequestAssignedTo: ObjectIdStringSchema.optional(),
 	createdBy: ObjectIdStringSchema,
 	formSent: z.boolean().default(false),
 	formCompleted: z.boolean().default(false),
@@ -118,8 +123,9 @@ export const UpdateLeadPayloadSchema = z.object({
 	name: OptionalTextSchema,
 	level: OptionalTextSchema,
 	assignedTo: ObjectIdStringSchema.optional(),
+	demoRequestAssignedTo: ObjectIdStringSchema.optional(),
 }).refine(
-	(value) => value.phone !== undefined || value.name !== undefined || value.level !== undefined || value.assignedTo !== undefined,
+	(value) => value.phone !== undefined || value.name !== undefined || value.level !== undefined || value.assignedTo !== undefined || value.demoRequestAssignedTo !== undefined,
 	{ message: "At least one field must be provided" },
 );
 
@@ -136,6 +142,7 @@ export type PostponeLeadFollowUpPayload = z.infer<
 
 export const RedemoLeadPayloadSchema = z.object({
 	mentorId: ObjectIdStringSchema.optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
 	note: z.string().max(500).optional(),
 });
 
@@ -147,6 +154,12 @@ export const AssignDemoPayloadSchema = z.object({
 });
 
 export type AssignDemoPayload = z.infer<typeof AssignDemoPayloadSchema>;
+
+export const AssignDemoCounsellorPayloadSchema = z.object({
+	counsellorId: ObjectIdStringSchema,
+});
+
+export type AssignDemoCounsellorPayload = z.infer<typeof AssignDemoCounsellorPayloadSchema>;
 
 export const GenerateFormLinkResponseSchema = z.object({
 	formLink: z.string().url(),
@@ -168,7 +181,7 @@ export const SubmitLeadFormPayloadSchema = z.object({
 	gender: z.enum(["male", "female"]),
 	primaryWhatsappNumber: PhoneNumberSchema,
 	alternateWhatsappNumber: PhoneNumberSchema.optional(),
-	studentInfo: z.string().min(1).max(1000),
+	studentInfo: z.string().max(1000).optional(),
 	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
 	preferredSchedule: z.string().max(100).optional(),
 	preferredDays: z.array(z.string().min(1)).min(1),

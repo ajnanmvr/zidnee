@@ -127,6 +127,9 @@ export const ScheduledDemosPage = () => {
 	}
 
 	const scheduledDemos = demosQuery.data?.leads ?? [];
+	const userNameById = new Map(
+		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
+	);
 	const overdueDemos = scheduledDemos.filter(
 		(demo) => demo.demos[demo.demos.length - 1]?.demoScheduledFor && isPast(new Date(demo.demos[demo.demos.length - 1].demoScheduledFor))
 	);
@@ -206,7 +209,7 @@ export const ScheduledDemosPage = () => {
 														</div>
 														<div>
 															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Assigned To</p>
-															<p className="text-sm font-medium text-gray-900">{demo.assignedTo}</p>
+															<p className="text-sm font-medium text-gray-900">{demo.demoRequestAssignedTo ? (userNameById.get(demo.demoRequestAssignedTo) ?? demo.demoRequestAssignedTo) : "-"}</p>
 														</div>
 													</div>
 												</div>
@@ -277,7 +280,7 @@ export const ScheduledDemosPage = () => {
 														</div>
 														<div>
 															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Assigned To</p>
-															<p className="text-sm font-medium text-gray-900">{demo.assignedTo}</p>
+															<p className="text-sm font-medium text-gray-900">{demo.demoRequestAssignedTo ? (userNameById.get(demo.demoRequestAssignedTo) ?? demo.demoRequestAssignedTo) : "-"}</p>
 														</div>
 													</div>
 												</div>

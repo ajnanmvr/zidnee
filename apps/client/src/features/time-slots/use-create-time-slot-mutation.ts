@@ -2,26 +2,47 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/session";
 import { createTimeSlot } from "@/features/time-slots/time-slots.service";
 import { timeSlotsQueryKeys } from "@/features/time-slots/time-slots.queries";
+import type { TimeSlotsResponse } from "@repo/schema";
 
 export const useCreateTimeSlotMutation = () => {
 	const { token } = useSession();
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (payload: { label: string }) => {
+		mutationFn: async (payload: { durationMinutes: number; timesPerWeek: number }) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
 
 			return createTimeSlot(token, payload);
 		},
-		onSuccess: async () => {
+		onSuccess: async (result) => {
 			if (!token) {
 				return;
 			}
 
+			// Update the active authenticated cache immediately so UI reflects creation without waiting.
+			queryClient.setQueryData<TimeSlotsResponse>(
+				timeSlotsQueryKeys.timeSlots(token),
+				(previous) => {
+					if (!previous) {
+						return previous;
+					}
+
+					const alreadyPresent = previous.timeSlots.some((slot) => slot.id === result.timeSlot.id);
+					if (alreadyPresent) {
+						return previous;
+					}
+
+					return {
+						...previous,
+						timeSlots: [result.timeSlot, ...previous.timeSlots],
+					};
+				},
+			);
+
 			await queryClient.invalidateQueries({
-				queryKey: timeSlotsQueryKeys.timeSlots(token),
+				queryKey: ["time-slots"],
 			});
 		},
 	});

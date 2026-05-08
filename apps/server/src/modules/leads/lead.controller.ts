@@ -1,10 +1,12 @@
 import {
 	AssignDemoPayloadSchema,
+	AssignDemoCounsellorPayloadSchema,
 	CreateLeadPayloadSchema,
 	RedemoLeadPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
 	UpdateLeadPayloadSchema,
 	type Lead,
+	type LeadStatus,
 	ConfirmAdmissionPayloadSchema,
 	DeleteLeadPayloadSchema,
 } from "@repo/schema";
@@ -21,7 +23,54 @@ const getLatestDemo = (lead: Lead) => {
 	return lead.demos && lead.demos.length > 0 ? lead.demos[lead.demos.length - 1] : null;
 };
 
-const toLeadResponse = (lead: Lead) => {
+const computeLeadStatus = (lead: Lead): LeadStatus => {
+	const latestDemo = getLatestDemo(lead);
+	const hasPreviousDemo = (lead.demos?.length ?? 0) > 1;
+
+	// Check if moved to admission/converted
+	if (latestDemo?.studentId) {
+		return "CONVERTED";
+	}
+
+	if (latestDemo?.admissionCompletedAt) {
+		return "CONVERTED";
+	}
+
+	// Demo completed
+	if (latestDemo?.completedAt && latestDemo?.requestedAt && !latestDemo?.studentId) {
+		return "DEMO_COMPLETED";
+	}
+
+	// Demo assigned (has mentor and assignedAt, but not completed)
+	if (latestDemo?.mentorId && latestDemo?.assignedAt && latestDemo?.requestedAt && !latestDemo?.completedAt) {
+		return "DEMO_ASSIGNED";
+	}
+
+	// Demo requested (has requestedAt but not assigned yet)
+	if (latestDemo?.requestedAt && !latestDemo?.assignedAt && !latestDemo?.completedAt) {
+		return "DEMO_REQUEST";
+	}
+
+	// Demo cancelled (form completed, latest demo has no requestedAt, but there was a previous demo)
+	if (lead.formCompleted && !latestDemo?.requestedAt && hasPreviousDemo) {
+		return "DEMO_CANCELLED";
+	}
+
+	// Form filled (form completed but no demo requested)
+	if (lead.formCompleted && !latestDemo?.requestedAt) {
+		return "FORM_FILLED";
+	}
+
+	// Form sent (form sent but not completed)
+	if (lead.formSent && !lead.formCompleted) {
+		return "FORM_SENT";
+	}
+
+	// Follow up (no form sent)
+	return "FOLLOW_UP";
+};
+
+const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 	const demos = lead.demos?.map((demo) => ({
 		mentorId: demo.mentorId ?? null,
 		requestedAt: demo.requestedAt?.toISOString() ?? null,
@@ -45,6 +94,7 @@ const toLeadResponse = (lead: Lead) => {
 		phone: lead.phone,
 		level: lead.level,
 		assignedTo: lead.assignedTo,
+		demoRequestAssignedTo: lead.demoRequestAssignedTo,
 		createdBy: lead.createdBy,
 		formSent: lead.formSent,
 		formCompleted: lead.formCompleted,
@@ -66,6 +116,7 @@ const toLeadResponse = (lead: Lead) => {
 		hearAboutUs: lead.hearAboutUs,
 		demoAvailability: lead.demoAvailability,
 		preferredMentorGender: lead.preferredMentorGender,
+		status: computeLeadStatus(lead) as LeadStatus,
 		demos,
 	};
 };
@@ -310,6 +361,7 @@ export const redemoLeadController = async (
 		result.data.mentorId,
 		req.user.userId,
 		result.data.note,
+		result.data.counsellorId,
 	);
 
 	if (!updatedLead) {
@@ -559,9 +611,7 @@ export const submitLeadFormController = async (
 	}
 
 	res.json({
-		ok: true,
-		studentId: result.studentId,
-		zid: result.zid,
+		ok: result.ok,
 	});
 };
 
@@ -610,4 +660,34 @@ export const validateFormLinkController = async (
 	const result = await LeadService.validateFormLink(leadId, token);
 
 	res.json(result);
+};
+
+export const assignDemoCounsellorController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new Error("User not authenticated");
+	}
+
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const result = AssignDemoCounsellorPayloadSchema.safeParse(req.body);
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const updatedLead = await LeadService.assignDemoCounsellor(
+		leadId,
+		result.data.counsellorId,
+		req.user.userId,
+	);
+
+	if (!updatedLead) {
+		throw new NotFoundError("Lead");
+	}
+
+	res.json({
+		ok: true,
+		lead: toLeadResponse(updatedLead),
+	});
 };

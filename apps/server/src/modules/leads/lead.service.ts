@@ -49,6 +49,7 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: {
 	phone?: string;
 	level?: string;
 	assignedTo?: string;
+	demoRequestAssignedTo?: string;
 }) => {
 	const patch: Record<string, string> = {};
 	const oldValue: Record<string, unknown> = {};
@@ -77,6 +78,13 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: {
 		patch.assignedTo = updates.assignedTo;
 		oldValue.assignedTo = currentAssignedTo ?? null;
 		newValue.assignedTo = updates.assignedTo;
+	}
+
+	const currentDemoRequestAssignedTo = toObjectIdString(existingLead.demoRequestAssignedTo);
+	if (updates.demoRequestAssignedTo !== undefined && updates.demoRequestAssignedTo !== currentDemoRequestAssignedTo) {
+		patch.demoRequestAssignedTo = updates.demoRequestAssignedTo;
+		oldValue.demoRequestAssignedTo = currentDemoRequestAssignedTo ?? null;
+		newValue.demoRequestAssignedTo = updates.demoRequestAssignedTo;
 	}
 
 	return { patch, oldValue, newValue };
@@ -147,6 +155,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	phone: doc.phone,
 	level: doc.level,
 	assignedTo: toObjectIdString(doc.assignedTo),
+	demoRequestAssignedTo: toObjectIdString(doc.demoRequestAssignedTo),
 	createdBy: doc.createdBy.toString(),
 	formSent: doc.formSent,
 	formCompleted: doc.formCompleted,
@@ -220,6 +229,7 @@ export const LeadService = {
 			phone?: string;
 			level?: string;
 			assignedTo?: string;
+			demoRequestAssignedTo?: string;
 		},
 		performedBy?: string,
 	): Promise<Lead | null> => {
@@ -409,6 +419,7 @@ export const LeadService = {
 		mentorId: string | undefined,
 		performedBy?: string,
 		note?: string,
+		counsellorId?: string,
 	): Promise<Lead | null> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
 		if (!existingLead) return null;
@@ -419,6 +430,7 @@ export const LeadService = {
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
 			mentorId: effectiveMentorId,
+			counsellorId,
 			requestedAt: now,
 			demoRequired: true,
 			nextFollowUpAt: now,
@@ -445,8 +457,44 @@ export const LeadService = {
 				performedBy,
 				`Requested redemo for ${existingLead.phone}`,
 				{ mentorId: previousMentorId },
-				{ mentorId: effectiveMentorId, requestedAt: now.toISOString() },
+				{ mentorId: effectiveMentorId, requestedAt: now.toISOString(), counsellorId },
 				note,
+			);
+		}
+
+		return updatedLead ? mapLead(updatedLead) : null;
+	},
+
+	assignDemoCounsellor: async (
+		leadId: string,
+		counsellorId: string,
+		performedBy?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) return null;
+
+		const demos = setLatestDemo(existingLead, {
+			counsellorId,
+		});
+
+		const updatedLead = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{
+				$set: {
+					demos,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<LeadDocument | null>();
+
+		if (performedBy && updatedLead) {
+			await ActivityService.logActivity(
+				leadId,
+				"DEMO_COUNSELLOR_ASSIGNED",
+				performedBy,
+				`Assigned counsellor to demo for ${existingLead.phone}`,
+				undefined,
+				{ counsellorId },
 			);
 		}
 
@@ -710,7 +758,7 @@ export const LeadService = {
 		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
-	submitLeadForm: async (leadId: string, token: string, data: LeadFormData): Promise<{ studentId: string; zid: string } | null> => {
+	submitLeadForm: async (leadId: string, token: string, data: LeadFormData): Promise<{ ok: boolean } | null> => {
 		const existingLead = await LeadModel.findById(leadId);
 		if (!existingLead) {
 			return null;
@@ -722,24 +770,11 @@ export const LeadService = {
 			return null;
 		}
 
-		// Generate ZID
-		const zid = await ZidService.generateZid("ZID");
-
-		// Create student
-		const student = await StudentModel.create({
-			zid,
-			leadId: existingLead._id,
-			name: data.studentName,
-			phone: data.primaryWhatsappNumber,
-			status: "ACTIVE",
-			admittedAt: new Date(),
-		});
-
-		// Update lead: mark form as completed, clear token
-
-		// Update lead in database
-		await LeadModel.findByIdAndUpdate(leadId, {
+		// Update lead: mark form as completed, fill in form data, clear token
+		// ZID will be generated later during admission confirmation
+		const updatedLead = await LeadModel.findByIdAndUpdate(leadId, {
 			formCompleted: true,
+			// keep `formSent` as true to indicate a form was sent historically
 			formSent: true,
 			studentName: data.studentName,
 			dateOfBirth: data.dateOfBirth,
@@ -758,22 +793,25 @@ export const LeadService = {
 			demoAvailability: data.demoAvailability,
 			preferredMentorGender: data.preferredMentorGender,
 			formToken: undefined,
-			formTokenExpiresAt: undefined,
-		});
+			formTokenExpiresAt: new Date(),
+		}, { returnDocument: "after" });
+
+		if (!updatedLead) {
+			return null;
+		}
 
 		// Log activity
 		await ActivityService.logActivity(
 			leadId,
-			"STUDENT_CREATED",
+			"FORM_SUBMITTED",
 			existingLead.createdBy.toString(),
-			`Form submitted and student created: ${zid}`,
+			`Form submitted for ${existingLead.phone}`,
 			{},
-			{ formCompleted: true, studentId: student._id.toString(), zid },
+			{ formCompleted: true, studentName: data.studentName },
 		);
 
 		return {
-			studentId: student._id.toString(),
-			zid,
+			ok: true,
 		};
 	},
 
@@ -808,6 +846,11 @@ export const LeadService = {
 		}
 
 		const lead = existingLead as LeadDocumentExt;
+		// If form already completed, token should be considered expired
+		if (lead.formCompleted) {
+			return { isValid: false };
+		}
+
 		if (!lead.formSent || !lead.formToken || lead.formToken !== token) {
 			return { isValid: false };
 		}
