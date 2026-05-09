@@ -629,10 +629,12 @@ export const LeadsPage = () => {
 
 	return (
 		<div className="grid gap-6">
-			<Panel
-				title="Leads"
-				description={`${activeScope === "all" ? "All users" : "Your"} leads${activeStageDefinition ? ` · ${activeStageDefinition.description}` : ""}`}
-				action={
+			<div className="sticky top-4 z-30">
+				<div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm border border-gray-200">
+					<div>
+						<h2 className="text-lg font-semibold">Leads</h2>
+						<p className="text-sm text-gray-600">{`${activeScope === "all" ? "All users" : "Your"} leads${activeStageDefinition ? ` · ${activeStageDefinition.description}` : ""}`}</p>
+					</div>
 					<div className="flex flex-wrap gap-2">
 						<Link
 							to={buildSearch(activeStage, "mine")}
@@ -655,8 +657,10 @@ export const LeadsPage = () => {
 							Create lead
 						</button>
 					</div>
-				}
-			>
+				</div>
+			</div>
+
+			<Panel>
 				<div className="flex flex-wrap gap-2 rounded-3xl border border-gray-300 bg-white p-3">
 					{leadStageDefinitions.map((stage) => {
 						const isActive = stage.id === activeStage;

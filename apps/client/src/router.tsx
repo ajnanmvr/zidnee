@@ -1,33 +1,32 @@
-﻿import { createBrowserRouter, Navigate } from "react-router-dom";
-import { LoginPage } from "@/features/auth/LoginPage";
+﻿import { LoginPage } from "@/features/auth/LoginPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
-import PublicFormPage from "@/features/public/PublicFormPage";
-import { CreateRolePage } from "@/features/dashboard/CreateRolePage";
-import { CreateCounsellorPage } from "@/features/dashboard/CreateCounsellorPage";
-import { CreateCoursePage } from "@/features/dashboard/CreateCoursePage";
+import { AdmissionDetailPageEnhanced } from "@/features/dashboard/AdmissionDetailPageEnhanced";
+import { AdmissionsPage } from "@/features/dashboard/AdmissionsPage";
+import { CounsellorMentorsPage } from "@/features/dashboard/CounsellorMentorsPage";
+import { CounsellorsPage } from "@/features/dashboard/CounsellorsPage";
+import { CounsellorStudentsPage } from "@/features/dashboard/CounsellorStudentsPage";
 import CoursesPage from "@/features/dashboard/CoursesPage";
-import GroupsPage from "@/features/dashboard/GroupsPage";
-import { CreateTimeSlotsPage } from "@/features/dashboard/CreateTimeSlotsPage";
+import { CreateCounsellorPage } from "@/features/dashboard/CreateCounsellorPage";
 import { CreateMentorPage } from "@/features/dashboard/CreateMentorPage";
+import { CreateRolePage } from "@/features/dashboard/CreateRolePage";
+import { CreateTimeSlotsPage } from "@/features/dashboard/CreateTimeSlotsPage";
 import { CreateUserPage } from "@/features/dashboard/CreateUserPage";
 import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
 import { EditRolePage } from "@/features/dashboard/EditRolePage";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
-import { AdmissionDetailPageEnhanced } from "@/features/dashboard/AdmissionDetailPageEnhanced";
-import { AdmissionsPage } from "@/features/dashboard/AdmissionsPage";
-import { LeadDetailPage } from "@/features/dashboard/LeadDetailPage";
+import GroupsPage from "@/features/dashboard/GroupsPage";
+import { LeadDetailPageNew } from "@/features/dashboard/LeadDetailPageNew";
 import { LeadsPage } from "@/features/dashboard/LeadsPage";
 import { MentorsPage } from "@/features/dashboard/MentorsPage";
 import { MePage } from "@/features/dashboard/MePage";
 import { OverviewPage } from "@/features/dashboard/OverviewPage";
 import { RolesPage } from "@/features/dashboard/RolesPage";
 import { StudentsPage } from "@/features/dashboard/StudentsPage";
-import { CounsellorsPage } from "@/features/dashboard/CounsellorsPage";
-import { CounsellorMentorsPage } from "@/features/dashboard/CounsellorMentorsPage";
-import { CounsellorStudentsPage } from "@/features/dashboard/CounsellorStudentsPage";
 import { UsersPage } from "@/features/dashboard/UsersPage";
-import { UnassignedDemosPage } from "@/features/demo-management/UnassignedDemosPage";
 import { ScheduledDemosPage } from "@/features/demo-management/ScheduledDemosPage";
+import { UnassignedDemosPage } from "@/features/demo-management/UnassignedDemosPage";
+import PublicFormPage from "@/features/public/PublicFormPage";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 export const router = createBrowserRouter([
 	{
@@ -102,7 +101,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "leads/:leadId",
-						element: <LeadDetailPage />,
+						element: <LeadDetailPageNew />,
 					},
 					{
 						path: "users",
