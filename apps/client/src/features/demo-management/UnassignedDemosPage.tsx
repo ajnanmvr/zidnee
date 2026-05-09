@@ -1,25 +1,32 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "@/lib/session";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
 import { Modal } from "@/components/dashboard-ui";
+import { DataTable } from "@/components/DataTable";
 import { HiArrowLeft, HiArrowPath, HiCalendarDays } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
 import { format } from "date-fns";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { LeadResponse } from "@repo/schema";
+import { RequirementsModal } from "./RequirementsModal";
 
 export const UnassignedDemosPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
 	const demosQuery = usePendingDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
+	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const assignDemoMutation = useAssignDemoMentorMutation();
 
 	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
 	const [assignOpen, setAssignOpen] = useState(false);
+	const [requirementsOpen, setRequirementsOpen] = useState(false);
+	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
 
 	const {
 		control: assignControl,
@@ -65,8 +72,20 @@ export const UnassignedDemosPage = () => {
 
 	const handleOpenAssign = (demo: LeadResponse) => {
 		setSelectedDemo(demo);
-		resetAssign();
+		// Pre-populate with user's preferred demo availability time
+		const scheduledDate = demo.demoAvailability 
+			? new Date(demo.demoAvailability) 
+			: new Date(Date.now() + 24 * 60 * 60 * 1000);
+		resetAssign({
+			mentorId: "",
+			demoScheduledFor: scheduledDate,
+		});
 		setAssignOpen(true);
+	};
+
+	const handleOpenRequirements = (demo: LeadResponse) => {
+		setSelectedRequirements(demo);
+		setRequirementsOpen(true);
 	};
 
 	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
@@ -83,6 +102,86 @@ export const UnassignedDemosPage = () => {
 	const userNameById = new Map(
 		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
 	);
+
+	const formatDemoAttemptLabel = (attemptNumber: number) => {
+		const suffix = attemptNumber === 1 ? "st" : attemptNumber === 2 ? "nd" : attemptNumber === 3 ? "rd" : "th";
+		return `${attemptNumber}${suffix} demo`;
+	};
+
+	const columns = useMemo<ColumnDef<LeadResponse>[]>(() => [
+		{
+			accessorKey: "name",
+			header: "Name",
+			cell: ({ row }) => (
+				<div>
+					<p className="font-semibold text-gray-900">{row.original.name}</p>
+					<p className="text-xs text-gray-500 font-mono">{row.original.phone}</p>
+				</div>
+			),
+		},
+		{
+			accessorKey: "level",
+			header: "Level",
+			cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.level || "-"}</span>,
+		},
+		{
+			header: "Attempt",
+			cell: ({ row }) => <span className="font-medium text-gray-900">{formatDemoAttemptLabel(Math.max(1, row.original.demos.length || 1))}</span>,
+			accessorFn: (row) => row.demos.length,
+		},
+		{
+			id: "requestedAt",
+			header: "Requested",
+			accessorFn: (row) => row.demos[row.demos.length - 1]?.requestedAt ?? "",
+			cell: ({ row }) => (
+				<span className="font-medium text-gray-900">
+					{row.original.demos[row.original.demos.length - 1]?.requestedAt
+						? format(new Date(row.original.demos[row.original.demos.length - 1].requestedAt), "MMM dd, h:mm a")
+						: "-"}
+				</span>
+			),
+		},
+		{
+			header: "Assigned To",
+			accessorFn: (row) => userNameById.get(row.demoRequestAssignedTo ?? "") ?? "Unassigned",
+			cell: ({ row }) => (
+				<span className="font-medium text-gray-900">
+					{row.original.demoRequestAssignedTo ? (userNameById.get(row.original.demoRequestAssignedTo) ?? row.original.demoRequestAssignedTo) : "Unassigned"}
+				</span>
+			),
+		},
+		{
+			header: "Re-demo Reason",
+			accessorFn: (row) => row.demos[row.demos.length - 1]?.note ?? "",
+			cell: ({ row }) => (
+				<span className="text-gray-700">{row.original.demos[row.original.demos.length - 1]?.note || "-"}</span>
+			),
+		},
+		{
+			header: "Actions",
+			enableSorting: false,
+			cell: ({ row }) => (
+				<div className="flex flex-wrap gap-2">
+					<button
+						type="button"
+						onClick={() => handleOpenRequirements(row.original)}
+						className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-slate-200 transition-colors"
+						title="View requirements and copy for WhatsApp"
+					>
+						Requirements
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenAssign(row.original)}
+						className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+					>
+						<HiCalendarDays className="h-4 w-4" />
+						Assign Mentor
+					</button>
+				</div>
+			),
+		},
+	], [userNameById]);
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -114,80 +213,13 @@ export const UnassignedDemosPage = () => {
 						<p className="mt-1 text-sm text-gray-600">All demo requests have mentors assigned</p>
 					</div>
 				) : (
-					<div className="grid gap-4">
-						{unassignedDemos.map((demo) => (
-							<div
-								key={demo.id}
-								className="rounded-2xl border border-gray-200 bg-white p-5 hover:shadow-md transition-shadow"
-							>
-								<div className="flex items-start justify-between gap-4">
-									<div className="flex-1 min-w-0">
-										{/* Lead Info */}
-										<div className="flex items-baseline gap-2 mb-3">
-											<h3 className="text-lg font-semibold text-gray-900">{demo.name}</h3>
-											<span className="text-sm text-gray-600 font-mono">{demo.phone}</span>
-										</div>
-
-										{/* Details Grid */}
-										<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Level</p>
-												<p className="text-sm font-medium text-gray-900">{demo.level}</p>
-											</div>
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Requested</p>
-												<p className="text-sm font-medium text-gray-900">
-													{demo.demos[demo.demos.length - 1]?.requestedAt
-														? format(new Date(demo.demos[demo.demos.length - 1].requestedAt), "MMM dd, h:mm a")
-														: "-"}
-												</p>
-											</div>
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Assigned To</p>
-												<p className="text-sm font-medium text-gray-900">{demo.demoRequestAssignedTo ? (userNameById.get(demo.demoRequestAssignedTo) ?? demo.demoRequestAssignedTo) : "Unassigned"}</p>
-											</div>
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Preference</p>
-												<p className="text-sm font-medium text-gray-900">{demo.preferredMentorGender || "-"}</p>
-											</div>
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Start Class</p>
-												<p className="text-sm font-medium text-gray-900">{demo.startClassWhen || "-"}</p>
-											</div>
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Demo Availability</p>
-												<p className="text-sm font-medium text-gray-900">{demo.demoAvailability || "-"}</p>
-											</div>
-											<div className="md:col-span-2">
-												<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Preferred Time Slots</p>
-												<p className="text-sm font-medium text-gray-900">
-													{demo.preferredTimeslots?.length ? demo.preferredTimeslots.join(", ") : "-"}
-												</p>
-											</div>
-										</div>
-
-										{/* Notes */}
-										{demo.demos[demo.demos.length - 1]?.note && (
-											<div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mb-3">
-												<p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-1">Note</p>
-												<p className="text-sm text-blue-900">{demo.demos[demo.demos.length - 1].note}</p>
-											</div>
-										)}
-									</div>
-
-									{/* Action Button */}
-									<button
-										type="button"
-										onClick={() => handleOpenAssign(demo)}
-										className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
-									>
-										<HiCalendarDays className="h-4 w-4" />
-										Assign Mentor
-									</button>
-								</div>
-							</div>
-						))}
-					</div>
+					<DataTable
+						columns={columns}
+						data={unassignedDemos}
+						exportFilename="unassigned-demo-requests"
+						searchPlaceholder="Search unassigned demo requests..."
+						initialSorting={[{ id: "requestedAt", desc: false }]}
+					/>
 				)}
 			</div>
 
@@ -289,6 +321,16 @@ export const UnassignedDemosPage = () => {
 					/>
 				</form>
 			</Modal>
+
+			<RequirementsModal
+				open={requirementsOpen}
+				lead={selectedRequirements}
+				timeSlots={timeSlotsQuery.data?.timeSlots}
+				onClose={() => {
+					setRequirementsOpen(false);
+					setSelectedRequirements(null);
+				}}
+			/>
 		</div>
 	);
 };

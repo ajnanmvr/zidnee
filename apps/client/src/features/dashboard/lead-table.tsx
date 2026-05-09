@@ -39,25 +39,23 @@ export const getLeadUrgency = (lead: LeadResponse) => {
 };
 
 const getLeadStatusTone = (lead: LeadResponse) => {
-	const latestDemo = getLatestLeadDemo(lead);
-
-	if (latestDemo?.completedAt) {
+	if (lead.status === "DEMO_COMPLETED") {
 		return { className: "bg-blue-100 text-blue-600", label: "Demo Completed" };
 	}
 
-	if (latestDemo?.assignedAt && latestDemo?.demoScheduledFor) {
+	if (lead.status === "DEMO_ASSIGNED") {
 		return { className: "bg-violet-500/10 text-violet-700", label: "Demo Scheduled" };
 	}
 
-	if (latestDemo?.requestedAt) {
+	if (lead.status === "DEMO_REQUEST") {
 		return { className: "bg-amber-500/10 text-amber-700", label: "Demo Request" };
 	}
 
-	if (lead.formCompleted) {
+	if (lead.status === "FORM_FILLED") {
 		return { className: "bg-emerald-500/10 text-emerald-700", label: "Form Filled" };
 	}
 
-	if (lead.formSent) {
+	if (lead.status === "FORM_SENT") {
 		return { className: "bg-sky-600/10 text-sky-700", label: "Form Sent" };
 	}
 

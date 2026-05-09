@@ -9,6 +9,7 @@ export const ActivityTypeSchema = z.enum([
 	"ASSIGNED",
 	"DELETED",
 	"FORM_SENT",
+	"FORM_SUBMITTED",
 	"FORM_REVOKED",
 	"DEMO_REQUESTED",
 	"DEMO_SCHEDULED",

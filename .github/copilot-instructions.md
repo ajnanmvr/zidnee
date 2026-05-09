@@ -85,7 +85,6 @@ Lead Created
 - demoRequired
 - formSent
 - formCompleted
-- followUpCount
 - lastContactedAt
 - nextFollowUpAt
 - customNextFollowUpAt
@@ -129,7 +128,6 @@ Lead Created
 8. FollowUp
 - entityId
 - type (SALES | COUNSELLOR)
-- followUpCount
 - lastContactedAt
 - nextFollowUpAt
 - customNextFollowUpAt
@@ -158,7 +156,6 @@ Lead Created
 ### Follow-up Engine Rules
 
 Fields:
-- followUpCount
 - lastContactedAt
 - nextFollowUpAt
 - customNextFollowUpAt

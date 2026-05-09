@@ -98,12 +98,9 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		createdBy: lead.createdBy,
 		formSent: lead.formSent,
 		formCompleted: lead.formCompleted,
-		followUpCount: lead.followUpCount,
 		nextFollowUpAt: lead.nextFollowUpAt?.toISOString() ?? new Date().toISOString(),
-		studentName: lead.studentName,
 		dateOfBirth: lead.dateOfBirth?.toISOString(),
 		residingCountry: lead.residingCountry,
-		standardApplyingFor: lead.standardApplyingFor,
 		gender: lead.gender,
 		primaryWhatsappNumber: lead.primaryWhatsappNumber,
 		alternateWhatsappNumber: lead.alternateWhatsappNumber,
@@ -116,7 +113,7 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		hearAboutUs: lead.hearAboutUs,
 		demoAvailability: lead.demoAvailability,
 		preferredMentorGender: lead.preferredMentorGender,
-		status: computeLeadStatus(lead) as LeadStatus,
+		status: lead.status ?? computeLeadStatus(lead),
 		demos,
 	};
 };
@@ -189,16 +186,28 @@ export const listLeadsController = async (
 
 	const scope = req.query.scope === "mine" ? "mine" : "all";
 	const timeFilter = req.query.timeFilter === "today" ? "today" : "all";
+	const status = typeof req.query.status === "string" ? req.query.status : undefined;
+	const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 25;
+	const offset = typeof req.query.offset === "string" ? parseInt(req.query.offset, 10) : 0;
 
-	const leads = await LeadService.listLeads({
+	const { leads, total, page, pageSize } = await LeadService.listLeads({
 		createdBy: req.user.userId,
 		scope,
 		timeFilter,
+		status,
+		limit,
+		offset,
 	});
 
 	res.json({
 		ok: true,
 		leads: leads.map(toLeadResponse),
+		pagination: {
+			total,
+			page,
+			pageSize,
+			totalPages: Math.ceil(total / pageSize),
+		},
 	});
 };
 
@@ -588,10 +597,10 @@ export const submitLeadFormController = async (
 	const payload = SubmitLeadFormPayloadSchema.parse(req.body);
 
 	const result = await LeadService.submitLeadForm(leadId, payload.token, {
-		studentName: payload.studentName,
+		name: payload.name,
 		dateOfBirth: payload.dateOfBirth,
 		residingCountry: payload.residingCountry,
-		standardApplyingFor: payload.standardApplyingFor,
+		level: payload.level,
 		gender: payload.gender,
 		primaryWhatsappNumber: payload.primaryWhatsappNumber,
 		alternateWhatsappNumber: payload.alternateWhatsappNumber,

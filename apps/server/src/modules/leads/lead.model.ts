@@ -1,4 +1,4 @@
-import type { Lead } from "@repo/schema";
+import type { Lead, LeadStatus } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 import type { LeadDemo } from "@repo/schema";
 
@@ -8,6 +8,7 @@ export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	assignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
 	demoRequestAssignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
 	demos?: LeadDemo[];
+	status?: LeadStatus;
 };
 
 export interface LeadDocumentExt extends LeadDocument {
@@ -60,11 +61,12 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			required: true,
 			default: false,
 		},
-		studentName: {
+		status: {
 			type: String,
-			required: false,
-			trim: true,
-			maxlength: 255,
+			enum: ["FOLLOW_UP", "FORM_SENT", "FORM_FILLED", "DEMO_REQUEST", "DEMO_ASSIGNED", "DEMO_COMPLETED", "DEMO_CANCELLED", "CONVERTED", "CLOSED"],
+			required: true,
+			default: "FOLLOW_UP",
+			index: true,
 		},
 		dateOfBirth: {
 			type: Date,
@@ -75,12 +77,6 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			required: false,
 			trim: true,
 			maxlength: 100,
-		},
-		standardApplyingFor: {
-			type: String,
-			required: false,
-			trim: true,
-			maxlength: 20,
 		},
 		gender: {
 			type: String,
@@ -114,7 +110,7 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			type: String,
 			required: false,
 			trim: true,
-			maxlength: 100,
+			maxlength: 150,
 		},
 		preferredDays: {
 			type: [String],
@@ -122,7 +118,16 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			default: [],
 		},
 		preferredTimeslots: {
-			type: [String],
+			type: [
+				new Schema(
+					{
+						label: { type: String, required: true, trim: true, maxlength: 120 },
+						timesPerWeek: { type: Number, required: true },
+						durationMinutes: { type: Number, required: true },
+					},
+					{ _id: false },
+				),
+			],
 			required: false,
 			default: [],
 		},
@@ -158,11 +163,6 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			type: Date,
 			required: false,
 			index: true,
-		},
-		followUpCount: {
-			type: Number,
-			required: true,
-			default: 0,
 		},
 		nextFollowUpAt: {
 			type: Date,

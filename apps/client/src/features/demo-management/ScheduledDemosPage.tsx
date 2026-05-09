@@ -1,27 +1,38 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "@/lib/session";
 import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useMarkDemoCompletedMutation, useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
+import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
+import { useMarkDemoCompletedMutation, useAssignDemoMentorMutation, useRequestRedemoMutation } from "@/features/leads/use-lead-mutations";
 import { Modal } from "@/components/dashboard-ui";
+import { DataTable } from "@/components/DataTable";
 import { HiArrowLeft, HiCheckCircle, HiCalendarDays, HiExclamationTriangle } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
 import { format, isPast } from "date-fns";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { LeadResponse } from "@repo/schema";
+import { RequirementsModal } from "./RequirementsModal";
+import { DemoOutcomeModal } from "./DemoOutcomeModal";
 
 export const ScheduledDemosPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
 	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
+	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const reassignDemoMutation = useAssignDemoMentorMutation();
+	const redemoMutation = useRequestRedemoMutation();
 
 	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
 	const [completeOpen, setCompleteOpen] = useState(false);
 	const [rescheduleOpen, setRescheduleOpen] = useState(false);
+	const [requirementsOpen, setRequirementsOpen] = useState(false);
+	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
+	const [outcomeOpen, setOutcomeOpen] = useState(false);
+	const [outcomeDemoForAction, setOutcomeDemoForAction] = useState<LeadResponse | null>(null);
 
 	const {
 		control: completeControl,
@@ -49,6 +60,44 @@ export const ScheduledDemosPage = () => {
 		},
 	});
 
+	const handleOutcomeProceed = async () => {
+		if (!outcomeDemoForAction) {
+			toast.error("Demo not selected");
+			return;
+		}
+
+		try {
+			await markDemoCompletedMutation.mutateAsync({
+				leadId: outcomeDemoForAction.id,
+				note: "",
+			});
+		} catch (error) {
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error("Failed to mark demo as completed");
+		}
+	};
+
+	const handleOutcomeRedemo = async (payload: { note?: string }) => {
+		if (!outcomeDemoForAction) {
+			toast.error("Demo not selected");
+			return;
+		}
+
+		try {
+			await redemoMutation.mutateAsync({
+				leadId: outcomeDemoForAction.id,
+				payload,
+			});
+		} catch (error) {
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error("Failed to schedule re-demo");
+		}
+	};
+
 	const onMarkCompleted = handleCompleteSubmit(async (data) => {
 		if (!selectedDemo) {
 			toast.error("Demo not selected");
@@ -58,7 +107,7 @@ export const ScheduledDemosPage = () => {
 		try {
 			await markDemoCompletedMutation.mutateAsync({
 				leadId: selectedDemo.id,
-				payload: { note: data.note },
+				note: data.note,
 			});
 			toast.success("Demo marked as completed");
 			setCompleteOpen(false);
@@ -101,9 +150,8 @@ export const ScheduledDemosPage = () => {
 	});
 
 	const handleOpenComplete = (demo: LeadResponse) => {
-		setSelectedDemo(demo);
-		resetComplete();
-		setCompleteOpen(true);
+		setOutcomeDemoForAction(demo);
+		setOutcomeOpen(true);
 	};
 
 	const handleOpenReschedule = (demo: LeadResponse) => {
@@ -116,7 +164,14 @@ export const ScheduledDemosPage = () => {
 		setRescheduleOpen(true);
 	};
 
+	const handleOpenRequirements = (demo: LeadResponse) => {
+		setSelectedRequirements(demo);
+		setRequirementsOpen(true);
+	};
+
 	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
+
+	const getLatestDemo = (demo: LeadResponse) => demo.demos[demo.demos.length - 1] ?? null;
 
 	if (demosQuery.isLoading) {
 		return (
@@ -131,11 +186,111 @@ export const ScheduledDemosPage = () => {
 		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
 	);
 	const overdueDemos = scheduledDemos.filter(
-		(demo) => demo.demos[demo.demos.length - 1]?.demoScheduledFor && isPast(new Date(demo.demos[demo.demos.length - 1].demoScheduledFor))
+		(demo) => getLatestDemo(demo)?.demoScheduledFor && isPast(new Date(getLatestDemo(demo)?.demoScheduledFor ?? ""))
 	);
 	const upcomingDemos = scheduledDemos.filter(
-		(demo) => !demo.demos[demo.demos.length - 1]?.demoScheduledFor || !isPast(new Date(demo.demos[demo.demos.length - 1].demoScheduledFor))
+		(demo) => !getLatestDemo(demo)?.demoScheduledFor || !isPast(new Date(getLatestDemo(demo)?.demoScheduledFor ?? ""))
 	);
+
+	const columns = useMemo<ColumnDef<LeadResponse>[]>(() => [
+		{
+			accessorKey: "name",
+			header: "Name",
+			cell: ({ row }) => (
+				<div>
+					<p className="font-semibold text-gray-900">{row.original.name}</p>
+					<p className="text-xs text-gray-500 font-mono">{row.original.phone}</p>
+				</div>
+			),
+		},
+		{
+			accessorKey: "level",
+			header: "Level",
+			cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.level || "-"}</span>,
+		},
+		{
+			id: "attempt",
+			header: "Attempt",
+			accessorFn: (row) => row.demos.length,
+			cell: ({ row }) => <span className="font-medium text-gray-900">{Math.max(1, row.original.demos.length || 1)}{Math.max(1, row.original.demos.length || 1) === 1 ? "st" : Math.max(1, row.original.demos.length || 1) === 2 ? "nd" : Math.max(1, row.original.demos.length || 1) === 3 ? "rd" : "th"} demo</span>,
+		},
+		{
+			id: "scheduledFor",
+			header: "Scheduled For",
+			accessorFn: (row) => getLatestDemo(row)?.demoScheduledFor ?? "",
+			cell: ({ row }) => {
+				const scheduledFor = getLatestDemo(row.original)?.demoScheduledFor;
+				return (
+					<span className={`font-semibold ${scheduledFor && isPast(new Date(scheduledFor)) ? "text-red-700" : "text-emerald-700"}`}>
+						{scheduledFor ? format(new Date(scheduledFor), "MMM dd, h:mm a") : "-"}
+					</span>
+				);
+			},
+		},
+		{
+			id: "mentor",
+			header: "Mentor",
+			accessorFn: (row) => {
+				const latestDemo = getLatestDemo(row);
+				return latestDemo?.mentorId ? (userNameById.get(latestDemo.mentorId) ?? latestDemo.mentorId) : "-";
+			},
+			cell: ({ row }) => {
+				const latestDemo = getLatestDemo(row.original);
+				return <span className="font-medium text-gray-900">{latestDemo?.mentorId ? (userNameById.get(latestDemo.mentorId) ?? latestDemo.mentorId) : "-"}</span>;
+			},
+		},
+		{
+			id: "status",
+			header: "Status",
+			accessorFn: (row) => {
+				const scheduledFor = getLatestDemo(row)?.demoScheduledFor;
+				if (!scheduledFor) {
+					return "Unscheduled";
+				}
+				return isPast(new Date(scheduledFor)) ? "Overdue" : "Upcoming";
+			},
+			cell: ({ row }) => {
+				const scheduledFor = getLatestDemo(row.original)?.demoScheduledFor;
+				const isOverdue = Boolean(scheduledFor && isPast(new Date(scheduledFor)));
+				return (
+					<span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${isOverdue ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+						{scheduledFor ? (isOverdue ? "Overdue" : "Upcoming") : "Unscheduled"}
+					</span>
+				);
+			},
+		},
+		{
+			header: "Actions",
+			enableSorting: false,
+			cell: ({ row }) => (
+				<div className="flex flex-wrap gap-2">
+					<button
+						type="button"
+						onClick={() => handleOpenRequirements(row.original)}
+						className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-slate-200 transition-colors"
+					>
+						Requirements
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenReschedule(row.original)}
+						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+					>
+						<HiCalendarDays className="h-4 w-4" />
+						Reschedule
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenComplete(row.original)}
+						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+					>
+						<HiCheckCircle className="h-4 w-4" />
+						Complete
+					</button>
+				</div>
+			),
+		},
+	], [userNameById]);
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -167,9 +322,21 @@ export const ScheduledDemosPage = () => {
 						<p className="mt-1 text-sm text-gray-600">There are no demos assigned yet</p>
 					</div>
 				) : (
-					<div className="grid gap-8">
+					<div className="space-y-4">
+						<div className="flex flex-wrap gap-2 text-sm">
+							<span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-700">Overdue: {overdueDemos.length}</span>
+							<span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">Upcoming: {upcomingDemos.length}</span>
+						</div>
+						<DataTable
+							columns={columns}
+							data={scheduledDemos}
+							exportFilename="scheduled-demos"
+							searchPlaceholder="Search scheduled demos..."
+							initialSorting={[{ id: "scheduledFor", desc: false }]}
+						/>
+
 						{/* Overdue Section */}
-						{overdueDemos.length > 0 && (
+					{false && (
 							<section>
 								<div className="mb-4 flex items-center gap-2">
 									<HiExclamationTriangle className="h-5 w-5 text-red-600" />
@@ -218,6 +385,13 @@ export const ScheduledDemosPage = () => {
 												<div className="flex gap-2 whitespace-nowrap">
 													<button
 														type="button"
+														onClick={() => handleOpenRequirements(demo)}
+														className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-slate-200 transition-colors"
+													>
+														📋 Requirements
+													</button>
+													<button
+														type="button"
 														onClick={() => handleOpenReschedule(demo)}
 														className="inline-flex items-center gap-2 rounded-2xl border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
 													>
@@ -241,7 +415,7 @@ export const ScheduledDemosPage = () => {
 						)}
 
 						{/* Upcoming Section */}
-						{upcomingDemos.length > 0 && (
+					{false && (
 							<section>
 								<div className="mb-4">
 									<h2 className="text-lg font-semibold text-gray-900">Upcoming Demos ({upcomingDemos.length})</h2>
@@ -287,6 +461,13 @@ export const ScheduledDemosPage = () => {
 
 												{/* Action Buttons */}
 												<div className="flex gap-2 whitespace-nowrap">
+													<button
+														type="button"
+														onClick={() => handleOpenRequirements(demo)}
+														className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-slate-200 transition-colors"
+													>
+														📋 Requirements
+													</button>
 													<button
 														type="button"
 														onClick={() => handleOpenReschedule(demo)}
@@ -473,6 +654,27 @@ export const ScheduledDemosPage = () => {
 					/>
 				</form>
 			</Modal>
+
+			<RequirementsModal
+				open={requirementsOpen}
+				lead={selectedRequirements}
+				timeSlots={timeSlotsQuery.data?.timeSlots}
+				onClose={() => {
+					setRequirementsOpen(false);
+					setSelectedRequirements(null);
+				}}
+			/>
+
+			<DemoOutcomeModal
+				open={outcomeOpen}
+				demo={outcomeDemoForAction}
+				onClose={() => {
+					setOutcomeOpen(false);
+					setOutcomeDemoForAction(null);
+				}}
+				onProceed={handleOutcomeProceed}
+				onRedemo={handleOutcomeRedemo}
+			/>
 		</div>
 	);
 };

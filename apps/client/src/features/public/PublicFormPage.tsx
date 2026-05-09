@@ -8,10 +8,10 @@ import { TimeSlotsResponseSchema } from "@repo/schema";
 type StepId = 1 | 2 | 3;
 
 type PublicFormValues = {
-	studentName: string;
+	name: string;
 	dateOfBirth: string;
 	residingCountry: string;
-	standardApplyingFor: string;
+	level: string;
 	gender: "" | "male" | "female";
 	primaryCountryCode: string;
 	primaryWhatsappNumber: string;
@@ -20,7 +20,12 @@ type PublicFormValues = {
 	studentInfo: string;
 	preferredLanguage: "" | "Malayalam Only" | "English Only" | "Malayalam - English Mixed";
 	preferredDays: string[];
-	preferredTimeslots: string[];
+	preferredSchedule: string;
+	preferredTimeslots: Array<{
+		label: string;
+		timesPerWeek: number;
+		durationMinutes: number;
+	}>;
 	preferredStartTime: string; // hh:mm
 	startClassWhen: string;
 	hearAboutUs: string;
@@ -233,16 +238,17 @@ const PublicFormPage = () => {
 		formState: { errors },
 	} = useForm<PublicFormValues>({
 		defaultValues: {
-			studentName: "",
+			name: "",
 			dateOfBirth: "",
 			residingCountry: "",
-			standardApplyingFor: "",
+			level: "",
 			gender: "",
 			primaryCountryCode: "+91",
 			primaryWhatsappNumber: "",
 			alternateCountryCode: undefined,
 			alternateWhatsappNumber: undefined,
 			studentInfo: "",
+			preferredSchedule: "",
 			preferredStartTime: "",
 			preferredLanguage: "",
 			preferredDays: [],
@@ -254,12 +260,43 @@ const PublicFormPage = () => {
 		},
 	});
 
-	const selectedTimeslotId = watch("preferredTimeslots")?.[0];
+	const selectedTimeslotSnapshot = watch("preferredTimeslots")?.[0];
 	const selectedTimeslot = useMemo(
-		() => formOptions.timeslots.find((timeslot) => timeslot.id === selectedTimeslotId),
-		[formOptions.timeslots, selectedTimeslotId],
+		() => {
+			if (!selectedTimeslotSnapshot) {
+				return undefined;
+			}
+
+			return formOptions.timeslots.find(
+				(timeslot) =>
+					timeslot.label === selectedTimeslotSnapshot.label &&
+					timeslot.timesPerWeek === selectedTimeslotSnapshot.timesPerWeek &&
+					timeslot.durationMinutes === selectedTimeslotSnapshot.durationMinutes,
+			);
+		},
+		[formOptions.timeslots, selectedTimeslotSnapshot],
 	);
 	const selectedStartTime = watch("preferredStartTime");
+	const preferredScheduleText = useMemo(() => {
+		if (!selectedStartTime || !selectedTimeslot) {
+			return "";
+		}
+
+		const start = to12HourFormat(selectedStartTime);
+		const [hoursText, minutesText] = selectedStartTime.split(":");
+		const hours = Number(hoursText);
+		const minutes = Number(minutesText);
+		if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+			return "";
+		}
+
+		const startDate = new Date();
+		startDate.setHours(hours, minutes, 0, 0);
+		const endDate = new Date(startDate.getTime() + selectedTimeslot.durationMinutes * 60000);
+		const end = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
+
+		return `${start} - ${to12HourFormat(end)} IST`;
+	}, [selectedStartTime, selectedTimeslot]);
 	const calculatedEndTime = useMemo(() => {
 		if (!selectedTimeslot || !selectedStartTime) {
 			return "";
@@ -301,7 +338,7 @@ const PublicFormPage = () => {
 
 	const validateCurrentStep = async () => {
 		if (currentStep === 1) {
-			return trigger(["studentName", "dateOfBirth", "residingCountry", "standardApplyingFor", "gender", "primaryWhatsappNumber"]);
+			return trigger(["name", "dateOfBirth", "residingCountry", "level", "gender", "primaryWhatsappNumber"]);
 		}
 
 		if (currentStep === 2) {
@@ -329,6 +366,12 @@ const PublicFormPage = () => {
 	};
 
 	// Preload form options on mount
+	useEffect(() => {
+		if (preferredScheduleText) {
+			setValue("preferredSchedule", preferredScheduleText, { shouldDirty: true, shouldValidate: false });
+		}
+	}, [preferredScheduleText, setValue]);
+
 	useEffect(() => {
 		const loadFormOptions = async () => {
 			try {
@@ -418,8 +461,9 @@ const PublicFormPage = () => {
 						dateOfBirth: toInputDate(prefill.dateOfBirth),
 						preferredDays: prefill.preferredDays ?? currentValues.preferredDays,
 						preferredTimeslots: prefill.preferredTimeslots ?? currentValues.preferredTimeslots,
+						preferredSchedule: prefill.preferredSchedule ?? currentValues.preferredSchedule,
 						residingCountry: prefill.residingCountry ?? currentValues.residingCountry,
-						standardApplyingFor: prefill.standardApplyingFor ?? currentValues.standardApplyingFor,
+						level: prefill.level ?? currentValues.level,
 						gender: prefill.gender ?? currentValues.gender,
 						preferredLanguage: prefill.preferredLanguage ?? currentValues.preferredLanguage,
 						startClassWhen: prefill.startClassWhen ?? currentValues.startClassWhen,
@@ -455,19 +499,27 @@ const PublicFormPage = () => {
 			const baseUrl = getApiBaseUrl();
 			const primaryFull = `${data.primaryCountryCode ?? ""}${data.primaryWhatsappNumber}`;
 			const alternateFull = data.alternateWhatsappNumber ? `${data.alternateCountryCode ?? ""}${data.alternateWhatsappNumber}` : undefined;
+				const selectedTimeslot = formOptions.timeslots.find(
+					(timeslot) => timeslot.label === selectedTimeslotSnapshot?.label && timeslot.timesPerWeek === selectedTimeslotSnapshot?.timesPerWeek && timeslot.durationMinutes === selectedTimeslotSnapshot?.durationMinutes,
+				);
 				const payload = {
-				studentName: data.studentName,
+				name: data.name,
 				dateOfBirth: data.dateOfBirth,
 				residingCountry: data.residingCountry,
-				standardApplyingFor: data.standardApplyingFor,
+				level: data.level,
 				gender: data.gender,
 					primaryWhatsappNumber: primaryFull,
 					alternateWhatsappNumber: alternateFull,
 					studentInfo: data.studentInfo ?? "",
 				preferredLanguage: data.preferredLanguage,
 				preferredDays: data.preferredDays,
-				preferredTimeslots: data.preferredTimeslots,
-				preferredStartTime: data.preferredStartTime,
+					preferredSchedule: data.preferredSchedule,
+					preferredTimeslots: selectedTimeslot ? [{
+						label: selectedTimeslot.label,
+						timesPerWeek: selectedTimeslot.timesPerWeek,
+						durationMinutes: selectedTimeslot.durationMinutes,
+					}] : [],
+					preferredStartTime: data.preferredStartTime,
 				startClassWhen: data.startClassWhen,
 				hearAboutUs: data.hearAboutUs,
 				demoAvailability: data.demoAvailability,
@@ -600,8 +652,8 @@ const PublicFormPage = () => {
 							<div className="grid gap-4 sm:grid-cols-2">
 								<div className="sm:col-span-2">
 									<label className="mb-2 block text-sm font-semibold text-slate-700">Name of student</label>
-									<input {...register("studentName", { required: "Student name is required" })} placeholder="Enter student name" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10" />
-									{errors.studentName?.message ? <p className="mt-1 text-xs text-red-600">{errors.studentName.message}</p> : null}
+									<input {...register("name", { required: "Student name is required" })} placeholder="Enter student name" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10" />
+									{errors.name?.message ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
 								</div>
 
 								<div>
@@ -622,11 +674,11 @@ const PublicFormPage = () => {
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">Standard applying for</label>
-									<select {...register("standardApplyingFor", { required: "Standard is required" })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10">
+									<select {...register("level", { required: "Standard is required" })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10">
 										<option value="">Select standard</option>
 										{formOptions.standards.map((standard) => <option key={standard} value={standard}>{standard}</option>)}
 									</select>
-									{errors.standardApplyingFor?.message ? <p className="mt-1 text-xs text-red-600">{errors.standardApplyingFor.message}</p> : null}
+									{errors.level?.message ? <p className="mt-1 text-xs text-red-600">{errors.level.message}</p> : null}
 								</div>
 
 								<div>
@@ -705,11 +757,11 @@ const PublicFormPage = () => {
 									) : (
 										<div className="grid grid-cols-1 gap-3">
 											{formOptions.timeslots.map((timeslot) => {
-												const isSelected = selectedTimeslotId === timeslot.id;
+												const isSelected = selectedTimeslot?.id === timeslot.id;
 												return (
 													<label key={timeslot.id} className={`rounded-3xl border p-4 transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white"}`}>
 														<div className="flex items-start gap-3">
-															<input type="radio" name="preferredTimeslot" value={timeslot.id} checked={isSelected} onChange={() => setValue("preferredTimeslots", [timeslot.id])} className="mt-1 h-4 w-4 border-slate-300 text-brand focus:ring-brand" />
+															<input type="radio" name="preferredTimeslot" value={timeslot.id} checked={isSelected} onChange={() => setValue("preferredTimeslots", [{ label: timeslot.label, timesPerWeek: timeslot.timesPerWeek, durationMinutes: timeslot.durationMinutes }])} className="mt-1 h-4 w-4 border-slate-300 text-brand focus:ring-brand" />
 															<div className="min-w-0">
 																<div className="flex items-center gap-2">
 																	<span className="text-sm font-semibold text-slate-950">{timeslot.label}</span>
@@ -825,8 +877,8 @@ const PublicFormPage = () => {
 								<div className="grid gap-3 sm:grid-cols-2">
 									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
 										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Student</p>
-										<p className="mt-2 text-sm font-medium text-slate-900">{watch("studentName") || "Not filled"}</p>
-										<p className="mt-1 text-sm text-slate-600">{watch("standardApplyingFor") ? `Standard ${watch("standardApplyingFor")}` : "Standard not selected"}</p>
+										<p className="mt-2 text-sm font-medium text-slate-900">{watch("name") || "Not filled"}</p>
+										<p className="mt-1 text-sm text-slate-600">{watch("level") ? `Standard ${watch("level")}` : "Standard not selected"}</p>
 									</div>
 									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
 										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Phone</p>

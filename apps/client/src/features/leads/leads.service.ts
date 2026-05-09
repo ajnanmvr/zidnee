@@ -19,11 +19,22 @@ export const fetchDueLeadFollowUps = async (
 	options?: {
 		scope?: "all" | "mine";
 		timeFilter?: "all" | "today";
+		status?: string;
+		page?: number;
 	},
 ) => {
 	const scope = options?.scope ?? "all";
 	const timeFilter = options?.timeFilter ?? "all";
-	const query = `?scope=${scope}&timeFilter=${timeFilter}`;
+	const status = options?.status ?? "";
+	const page = options?.page ?? 1;
+	const limit = 25;
+	const offset = (page - 1) * limit;
+	
+	let query = `?scope=${scope}&timeFilter=${timeFilter}&limit=${limit}&offset=${offset}`;
+	if (status) {
+		query += `&status=${status}`;
+	}
+	
 	return requestWithSchema(
 		`/leads${query}`,
 		LeadsResponseSchema,

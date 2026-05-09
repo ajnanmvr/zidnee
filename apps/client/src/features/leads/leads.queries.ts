@@ -13,7 +13,9 @@ export const leadsQueryKeys = {
 		token: string,
 		scope: "all" | "mine" = "all",
 		timeFilter: "all" | "today" = "all",
-	) => ["leads", "list", token, scope, timeFilter] as const,
+		status?: string,
+		page: number = 1,
+	) => ["leads", "list", token, scope, timeFilter, status, page] as const,
 	demoRequests: (token: string) => ["leads", "demo-requests", token] as const,
 	pendingDemoRequests: (token: string) => ["leads", "for-demo", token] as const,
 	admissions: (token: string) => ["leads", "admissions", token] as const,
@@ -52,14 +54,18 @@ export const useDueLeadFollowUpsQuery = (
 	options?: {
 		scope?: "all" | "mine";
 		timeFilter?: "all" | "today";
+		status?: string;
+		page?: number;
 	},
 ) => {
 	const scope = options?.scope ?? "all";
 	const timeFilter = options?.timeFilter ?? "all";
+	const status = options?.status;
+	const page = options?.page ?? 1;
 
 	return useQuery({
-		queryKey: leadsQueryKeys.list(token, scope, timeFilter),
-		queryFn: () => fetchDueLeadFollowUps(token, { scope, timeFilter }),
+		queryKey: leadsQueryKeys.list(token, scope, timeFilter, status, page),
+		queryFn: () => fetchDueLeadFollowUps(token, { scope, timeFilter, status, page }),
 		enabled: Boolean(token),
 	});
 };

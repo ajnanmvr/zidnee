@@ -39,6 +39,12 @@ export type LeadResponseEnvelope = z.infer<typeof LeadResponseEnvelopeSchema>;
 export const LeadsResponseSchema = z.object({
 	ok: z.boolean(),
 	leads: z.array(LeadResponseSchema),
+	pagination: z.object({
+		total: z.number(),
+		page: z.number(),
+		pageSize: z.number(),
+		totalPages: z.number(),
+	}).optional(),
 });
 
 export type LeadsResponse = z.infer<typeof LeadsResponseSchema>;

@@ -180,8 +180,9 @@ export const AdmissionDetailPageEnhanced = () => {
 					<p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Form preferences</p>
 					<div className="grid gap-2 md:grid-cols-3">
 						<p><span className="font-medium text-gray-900">Start class:</span> {lead.startClassWhen || "-"}</p>
+						<p><span className="font-medium text-gray-900">Schedule:</span> {lead.preferredSchedule || "-"}</p>
 						<p><span className="font-medium text-gray-900">Demo availability:</span> {lead.demoAvailability || "-"}</p>
-						<p><span className="font-medium text-gray-900">Time slots:</span> {lead.preferredTimeslots?.length ? lead.preferredTimeslots.join(", ") : "-"}</p>
+						<p><span className="font-medium text-gray-900">Time slots:</span> {lead.preferredTimeslots?.length ? lead.preferredTimeslots.map((timeslot) => typeof timeslot === "string" ? timeslot : `${timeslot.label} • ${timeslot.timesPerWeek}/week • ${timeslot.durationMinutes} min`).join(", ") : "-"}</p>
 					</div>
 				</div>
 				<p>

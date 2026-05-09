@@ -15,7 +15,7 @@ import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { buildLeadColumns, formatUserName, type LeadTableAction } from "@/features/dashboard/lead-table";
 import { useMeQuery } from "@/features/auth/auth.queries";
-import { getLeadStagePredicate, leadStageDefinitions, type LeadStageId } from "@/features/leads/lead-stage-filters";
+import { leadStageDefinitions, type LeadStageId } from "@/features/leads/lead-stage-filters";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
 	useCancelLeadDemoMutation,
@@ -54,7 +54,6 @@ const toInputDateTimeLocal = (value: string | null): string => {
 	return localDate.toISOString().slice(0, 16);
 };
 
-const isMentorRole = (roleType: string) => roleType === "mentor";
 const isCounsellorRole = (roleType: string) => roleType === "counsellor";
 const isSalesRole = (roleType: string) => roleType === "sales";
 
@@ -65,13 +64,40 @@ export const LeadsPage = () => {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const meQuery = useMeQuery(token);
+	const [currentPage, setCurrentPage] = useState(1);
+
+	const stageParam = searchParams.get("stage");
+	const activeStage: LeadStageId = leadStageDefinitions.some((stage) => stage.id === stageParam)
+		? (stageParam as LeadStageId)
+		: "all";
+	const scopeParam = searchParams.get("scope");
+	const activeScope = scopeParam === "all" ? "all" : "mine";
+
+	// Map stage to status for backend filtering
+	const stageToStatus = (stage: LeadStageId): string | undefined => {
+		switch (stage) {
+			case "followUp": return "FOLLOW_UP";
+			case "formSent": return "FORM_SENT";
+			case "formFilled": return "FORM_FILLED";
+			case "demoRequest": return "DEMO_REQUEST";
+			case "demoAssigned": return "DEMO_ASSIGNED";
+			case "demoCompleted": return "DEMO_COMPLETED";
+			case "demoCancelled": return "DEMO_CANCELLED";
+			default: return undefined;
+		}
+	};
+
 	const allLeadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "all",
 		timeFilter: "all",
+		status: stageToStatus(activeStage),
+		page: currentPage,
 	});
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "mine",
 		timeFilter: "all",
+		status: stageToStatus(activeStage),
+		page: currentPage,
 	});
 	const usersQuery = useUsersQuery(token);
 	const createLeadMutation = useCreateLeadMutation();
@@ -91,10 +117,9 @@ export const LeadsPage = () => {
 	const [postponeLeadId, setPostponeLeadId] = useState<string | null>(null);
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [deleteNote, setDeleteNote] = useState("");
-	const [completeOpen, setCompleteOpen] = useState(false);
+	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
-	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
 	const [requestDemoLeadId, setRequestDemoLeadId] = useState<string | null>(null);
 	const [selectedRequestCounsellor, setSelectedRequestCounsellor] = useState<string | undefined>(undefined);
@@ -183,10 +208,6 @@ export const LeadsPage = () => {
 	});
 
 	const allUsers = usersQuery.data?.users ?? [];
-	const mentors = useMemo(
-		() => allUsers.filter((user) => user.roles.some((role) => isMentorRole(role.type ?? "general"))),
-		[allUsers],
-	);
 	const counsellors = useMemo(
 		() =>
 			allUsers.filter((user) =>
@@ -209,17 +230,8 @@ export const LeadsPage = () => {
 		[allUsers],
 	);
 	const currentUserId = meQuery.data?.id;
-	const stageParam = searchParams.get("stage");
-	const activeStage: LeadStageId = leadStageDefinitions.some((stage) => stage.id === stageParam)
-		? (stageParam as LeadStageId)
-		: "all";
-	const scopeParam = searchParams.get("scope");
-	const activeScope = scopeParam === "all" ? "all" : "mine";
 	const scopeLeads = activeScope === "all" ? (allLeadsQuery.data?.leads ?? []) : (leadsQuery.data?.leads ?? []);
-	const filteredLeads = useMemo(
-		() => scopeLeads.filter(getLeadStagePredicate(activeStage, activeScope === "mine" ? currentUserId : undefined)),
-		[activeStage, currentUserId, scopeLeads, activeScope],
-	);
+	const pagination = activeScope === "all" ? allLeadsQuery.data?.pagination : leadsQuery.data?.pagination;
 	const activeStageDefinition = leadStageDefinitions.find((stage) => stage.id === activeStage);
 
 	const buildSearch = (stage: LeadStageId, scope: "all" | "mine") => {
@@ -424,7 +436,6 @@ export const LeadsPage = () => {
 	};
 
 	const selectedLead = leads.find((lead) => lead.id === postponeLeadId) ?? null;
-	const redemoLead = leads.find((lead) => lead.id === redemoLeadId) ?? null;
 	const admissionLead = leads.find((lead) => lead.id === admissionLeadId) ?? null;
 	const admissionLeadLatestDemo = admissionLead ? getLatestLeadDemo(admissionLead) : null;
 	const defaultCounsellorId = admissionLeadLatestDemo?.mentorId
@@ -435,7 +446,7 @@ export const LeadsPage = () => {
 		() => buildLeadColumns({
 			activeStage,
 			userNameById,
-			getActions: (lead) => {
+			getActions: () => {
 				const baseView: LeadTableAction = {
 					key: "view",
 					label: "View",
@@ -544,7 +555,6 @@ export const LeadsPage = () => {
 								onClick: (item) => {
 									setCompleteLeadId(item.id);
 									resetComplete({ note: "" });
-									setCompleteOpen(true);
 								},
 								className: "inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
 							},
@@ -667,13 +677,50 @@ export const LeadsPage = () => {
 				) : leadsQuery.isError || allLeadsQuery.isError ? (
 					<div className="py-8 text-center text-gray-600">Unable to load leads.</div>
 				) : (
-					<DataTable
-						columns={columns}
-						data={filteredLeads}
-						exportFilename={`leads-${activeScope}-${activeStage}`}
-						searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
-						initialSorting={[{ id: "nextFollowUpAt", desc: false }]}
-					/>
+					<>
+						<DataTable
+							columns={columns}
+							data={scopeLeads}
+							exportFilename={`leads-${activeScope}-${activeStage}`}
+							searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
+							initialSorting={[{ id: "nextFollowUpAt", desc: false }]}
+						/>
+						{pagination && (
+							<div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 mt-4">
+								<div className="text-sm text-gray-600">
+									Showing {((currentPage - 1) * 25) + 1}–{Math.min(currentPage * 25, pagination.total)} of {pagination.total} items
+								</div>
+								<div className="flex gap-2">
+									<button
+										onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+										disabled={currentPage === 1}
+										className="rounded px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-gray-200"
+									>
+										← Prev
+									</button>
+									{Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+										<button
+											key={page}
+											onClick={() => setCurrentPage(page)}
+											className={`rounded px-3 py-2 text-sm font-medium ${page === currentPage
+													? "bg-blue-500 text-white"
+													: "bg-white text-gray-700 hover:bg-gray-100"
+												}`}
+										>
+											{page}
+										</button>
+									))}
+									<button
+										onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+										disabled={currentPage === pagination.totalPages}
+										className="rounded px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-gray-200"
+									>
+										Next →
+									</button>
+								</div>
+							</div>
+						)}
+					</>
 				)}
 			</Panel>
 
@@ -803,16 +850,16 @@ export const LeadsPage = () => {
 				onClose={() => {
 					setFormLinkOpen(false);
 					setFormLinkData(null);
-						setFormLinkPhone(null);
+					setFormLinkPhone(null);
 				}}
 				footer={
 					<button
 						type="button"
 						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 						onClick={() => {
-						setFormLinkOpen(false);
-						setFormLinkData(null);
-					}}
+							setFormLinkOpen(false);
+							setFormLinkData(null);
+						}}
 					>
 						Close
 					</button>
@@ -833,8 +880,8 @@ export const LeadsPage = () => {
 									type="button"
 									className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
 									onClick={() => {
-									navigator.clipboard.writeText(formLinkData.formLink);
-									toast.success("Link copied to clipboard");
+										navigator.clipboard.writeText(formLinkData.formLink);
+										toast.success("Link copied to clipboard");
 									}}
 								>
 									Copy
@@ -904,11 +951,10 @@ export const LeadsPage = () => {
 							<button
 								key={option.days}
 								type="button"
-								className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${
-									selectedDuration === option.days
+								className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${selectedDuration === option.days
 										? "border-blue-600 bg-blue-600 text-white"
 										: "border-gray-300 bg-gray-50 text-gray-900 hover:border-blue-600 hover:bg-blue-600 hover:text-white"
-								}`}
+									}`}
 								onClick={() => {
 									const futureDate = new Date(Date.now() + option.days * 24 * 60 * 60 * 1000);
 									resetPostpone({
@@ -998,8 +1044,8 @@ export const LeadsPage = () => {
 							type="button"
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 							onClick={() => {
-							setCompleteLeadId(null);
-							resetComplete({ note: "" });
+								setCompleteLeadId(null);
+								resetComplete({ note: "" });
 							}}
 						>
 							Cancel
@@ -1062,7 +1108,7 @@ export const LeadsPage = () => {
 						</button>
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-orange px-4 py-2 text-sm font-semibold text-white"
+							className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white"
 							onClick={() => void handleRedemoSubmit(onRedemoLead)()}
 							disabled={requestRedemoMutation.isPending}
 						>

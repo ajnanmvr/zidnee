@@ -1,4 +1,4 @@
-import type { Lead, LeadFormData } from "@repo/schema";
+import type { Lead, LeadFormData, LeadStatus } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { LeadModel, type LeadDocument } from "./lead.model.js";
 import { ActivityService } from "./activity.service.js";
@@ -129,6 +129,53 @@ const getLatestDemo = (lead: LeadDocument): NonNullable<LeadDocument["demos"]>[n
 	return demos.length > 0 ? demos[demos.length - 1] ?? null : null;
 };
 
+const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
+	const latestDemo = getLatestDemo(lead);
+	const hasPreviousDemo = (lead.demos?.length ?? 0) > 1;
+
+	// Check if moved to admission/converted
+	if (latestDemo?.studentId) {
+		return "CONVERTED";
+	}
+
+	if (latestDemo?.admissionCompletedAt) {
+		return "CONVERTED";
+	}
+
+	// Demo completed
+	if (latestDemo?.completedAt && latestDemo?.requestedAt && !latestDemo?.studentId) {
+		return "DEMO_COMPLETED";
+	}
+
+	// Demo assigned (has mentor and assignedAt, but not completed)
+	if (latestDemo?.mentorId && latestDemo?.assignedAt && latestDemo?.requestedAt && !latestDemo?.completedAt) {
+		return "DEMO_ASSIGNED";
+	}
+
+	// Demo requested (has requestedAt but not assigned yet)
+	if (latestDemo?.requestedAt && !latestDemo?.assignedAt && !latestDemo?.completedAt) {
+		return "DEMO_REQUEST";
+	}
+
+	// Demo cancelled (form completed, latest demo has no requestedAt, but there was a previous demo)
+	if (lead.formCompleted && !latestDemo?.requestedAt && hasPreviousDemo) {
+		return "DEMO_CANCELLED";
+	}
+
+	// Form filled (form completed but no demo requested)
+	if (lead.formCompleted && !latestDemo?.requestedAt) {
+		return "FORM_FILLED";
+	}
+
+	// Form sent (form sent but not completed)
+	if (lead.formSent && !lead.formCompleted) {
+		return "FORM_SENT";
+	}
+
+	// Follow up (no form sent)
+	return "FOLLOW_UP";
+};
+
 const setLatestDemo = (
 	lead: LeadDocument,
 	patch: Partial<NonNullable<LeadDocument["demos"]>[number]>,
@@ -159,10 +206,8 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	createdBy: doc.createdBy.toString(),
 	formSent: doc.formSent,
 	formCompleted: doc.formCompleted,
-	studentName: doc.studentName,
 	dateOfBirth: doc.dateOfBirth,
 	residingCountry: doc.residingCountry,
-	standardApplyingFor: doc.standardApplyingFor,
 	gender: doc.gender,
 	primaryWhatsappNumber: doc.primaryWhatsappNumber,
 	alternateWhatsappNumber: doc.alternateWhatsappNumber,
@@ -175,8 +220,8 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
 	preferredMentorGender: doc.preferredMentorGender,
-	followUpCount: doc.followUpCount,
 	nextFollowUpAt: toDateOrFallback(doc.nextFollowUpAt, doc.createdAt ?? new Date()),
+	status: doc.status ?? computeLeadStatus(doc),
 	demos: (doc.demos ?? []).map(toDemo),
 	createdAt: doc.createdAt,
 	updatedAt: doc.updatedAt,
@@ -199,7 +244,6 @@ export const LeadService = {
 			name: lead.name,
 			assignedTo: lead.assignedTo ?? lead.createdBy,
 			createdBy: lead.createdBy,
-			followUpCount: 0,
 			nextFollowUpAt: effectiveNextFollowUpAt,
 			demos: [],
 			formSent: false,
@@ -275,7 +319,14 @@ export const LeadService = {
 		createdBy: string;
 		scope: "all" | "mine";
 		timeFilter: "all" | "today";
-	}): Promise<Lead[]> => {
+		status?: string;
+		limit?: number;
+		offset?: number;
+	}): Promise<{ leads: Lead[]; total: number; page: number; pageSize: number }> => {
+		const limit = filters.limit ?? 25;
+		const offset = filters.offset ?? 0;
+		const page = Math.floor(offset / limit) + 1;
+
 		const leads = await LeadModel.find()
 			.sort({ createdAt: -1 })
 			.lean<LeadDocument[]>();
@@ -296,31 +347,42 @@ export const LeadService = {
 			});
 		}
 
-		return filtered
+		if (filters.status) {
+			filtered = filtered.filter((lead) => lead.status === filters.status);
+		}
+
+		const total = filtered.filter((lead) => {
+			const latestDemo = getLatestDemo(lead);
+			return !latestDemo?.studentId;
+		}).length;
+
+		const paginatedLeads = filtered
 			.filter((lead) => {
 				const latestDemo = getLatestDemo(lead);
 				return !latestDemo?.studentId;
 			})
+			.slice(offset, offset + limit)
 			.map(mapLead);
+
+		return {
+			leads: paginatedLeads,
+			total,
+			page,
+			pageSize: limit,
+		};
 	},
 
 	listPendingDemoRequests: async (): Promise<Lead[]> => {
 		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
 		return leads
-			.filter((lead) => {
-				const latestDemo = getLatestDemo(lead);
-				return Boolean(latestDemo?.requestedAt && !latestDemo?.assignedAt && !latestDemo?.completedAt);
-			})
+			.filter((lead) => lead.status === "DEMO_REQUEST")
 			.map(mapLead);
 	},
 
 	listDemoRequests: async (): Promise<Lead[]> => {
 		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
 		return leads
-			.filter((lead) => {
-				const latestDemo = getLatestDemo(lead);
-				return Boolean(latestDemo?.assignedAt && !latestDemo?.completedAt);
-			})
+			.filter((lead) => lead.status === "DEMO_ASSIGNED")
 			.map(mapLead);
 	},
 
@@ -360,6 +422,7 @@ export const LeadService = {
 				$set: {
 					demos,
 					nextFollowUpAt: now,
+					status: "DEMO_REQUEST",
 				},
 			},
 			{ returnDocument: "after" },
@@ -394,6 +457,7 @@ export const LeadService = {
 			{
 				$set: {
 					demos,
+					status: "DEMO_COMPLETED",
 				},
 			},
 			{ returnDocument: "after" },
@@ -442,6 +506,7 @@ export const LeadService = {
 				$set: {
 					demos,
 					nextFollowUpAt: now,
+					status: "DEMO_REQUEST",
 				},
 				$unset: {
 					studentId: 1,
@@ -525,6 +590,7 @@ export const LeadService = {
 			{
 				$set: {
 					demos,
+					status: "DEMO_ASSIGNED",
 					nextFollowUpAt,
 				},
 			},
@@ -638,7 +704,7 @@ export const LeadService = {
 	},
 
 	generateFormLink: async (leadId: string, performedBy?: string) => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocumentExt | null>();
 		if (!existingLead) {
 			return null;
 		}
@@ -661,6 +727,7 @@ export const LeadService = {
 		await LeadModel.findByIdAndUpdate(leadId, {
 			formToken: token,
 			formSent: true,
+			status: "FORM_SENT",
 			nextFollowUpAt,
 			formTokenExpiresAt: undefined,
 		});
@@ -739,6 +806,7 @@ export const LeadService = {
 			{
 				$set: {
 					demos,
+					status: computeLeadStatus({ ...existingLead, demos }),
 				},
 			},
 			{ returnDocument: "after" },
@@ -774,12 +842,13 @@ export const LeadService = {
 		// ZID will be generated later during admission confirmation
 		const updatedLead = await LeadModel.findByIdAndUpdate(leadId, {
 			formCompleted: true,
+			status: "FORM_FILLED",
 			// keep `formSent` as true to indicate a form was sent historically
 			formSent: true,
-			studentName: data.studentName,
+			name: data.name,
 			dateOfBirth: data.dateOfBirth,
 			residingCountry: data.residingCountry,
-			standardApplyingFor: data.standardApplyingFor,
+			level: data.level,
 			gender: data.gender,
 			primaryWhatsappNumber: data.primaryWhatsappNumber,
 			alternateWhatsappNumber: data.alternateWhatsappNumber,
@@ -807,7 +876,7 @@ export const LeadService = {
 			existingLead.createdBy.toString(),
 			`Form submitted for ${existingLead.phone}`,
 			{},
-			{ formCompleted: true, studentName: data.studentName },
+			{ formCompleted: true, name: data.name },
 		);
 
 		return {
@@ -822,10 +891,10 @@ export const LeadService = {
 		isValid: boolean;
 		expiresAt?: string;
 		prefill?: {
-			studentName?: string;
+			name?: string;
 			dateOfBirth?: string;
 			residingCountry?: string;
-			standardApplyingFor?: string;
+			level?: string;
 			gender?: "male" | "female";
 			primaryWhatsappNumber?: string;
 			alternateWhatsappNumber?: string;
@@ -833,7 +902,7 @@ export const LeadService = {
 			preferredLanguage?: "Malayalam Only" | "English Only" | "Malayalam - English Mixed";
 			preferredSchedule?: string;
 			preferredDays?: string[];
-			preferredTimeslots?: string[];
+			preferredTimeslots?: { label: string; timesPerWeek: number; durationMinutes: number }[];
 			startClassWhen?: string;
 			hearAboutUs?: string;
 			demoAvailability?: string;
@@ -856,10 +925,10 @@ export const LeadService = {
 		}
 
 		const prefill = {
-			studentName: existingLead.studentName ?? existingLead.name,
+			name: existingLead.name,
 			dateOfBirth: existingLead.dateOfBirth?.toISOString(),
 			residingCountry: existingLead.residingCountry,
-			standardApplyingFor: existingLead.standardApplyingFor,
+			level: existingLead.level,
 			gender: existingLead.gender,
 			primaryWhatsappNumber: existingLead.primaryWhatsappNumber ?? existingLead.phone,
 			alternateWhatsappNumber: existingLead.alternateWhatsappNumber,
