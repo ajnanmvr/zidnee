@@ -1,7 +1,6 @@
-﻿import { formatActivityDateTime } from "@/lib/utils/date";
+﻿import { formatActivityDateTime, getDateLabel } from "@/lib/utils/date";
 import { useSession } from "@/lib/session";
 import { useLeadActivitiesQuery } from "@/features/leads/leads.queries";
-import { format } from "date-fns";
 import { HiCheckCircle, HiCalendarDays, HiClock, HiGlobeAlt, HiEye, HiPencil, HiTrash, HiXMark } from "react-icons/hi2";
 
 interface ActivityFeedProps {
@@ -97,7 +96,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 	const getActivityDescription = (activity: any): string => {
 		if (activity.type === "DEMO_SCHEDULED" && activity.newValue?.demoScheduledFor) {
 			const scheduledDate = new Date(activity.newValue.demoScheduledFor);
-			return `Demo scheduled for ${format(scheduledDate, "MMM dd, hh:mm a")}`;
+			return `Demo scheduled for ${formatActivityDateTime(scheduledDate)}`;
 		}
 		return activity.description;
 	};
@@ -137,7 +136,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 										<div className="mt-2 flex items-center gap-1 text-xs text-gray-600">
 											<span className="font-medium">{activity.performedByName}</span>
 											<span>·</span>
-											<span>{formatActivityDateTime(activity.createdAt)}</span>
+											<span title={getDateLabel(activity.createdAt)}>{formatActivityDateTime(activity.createdAt)}</span>
 										</div>
 
 										{/* Old/New values - more compact */}

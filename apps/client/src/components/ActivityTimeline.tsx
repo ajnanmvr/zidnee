@@ -1,6 +1,6 @@
 import type { LeadActivityResponse } from "@repo/schema";
-import { format } from "date-fns";
 import { HiCalendarDays, HiCheckCircle, HiClock, HiEye, HiGlobeAlt, HiPencil, HiTrash, HiXMark } from "react-icons/hi2";
+import { formatActivityDateTime, getDateLabel } from "@/lib/utils/date";
 
 type ActivityTimelineProps = {
 	activities: LeadActivityResponse[];
@@ -72,7 +72,7 @@ const getActivityDescription = (activity: LeadActivityResponse): string => {
 	if (activity.type === "DEMO_SCHEDULED" && activity.newValue?.demoScheduledFor) {
 		const scheduledDate = new Date(String(activity.newValue.demoScheduledFor));
 		if (!Number.isNaN(scheduledDate.getTime())) {
-			return `Demo scheduled for ${format(scheduledDate, "MMM dd, hh:mm a")}`;
+			return `Demo scheduled for ${formatActivityDateTime(scheduledDate)}`;
 		}
 	}
 
@@ -113,7 +113,7 @@ export const ActivityTimeline = ({ activities, emptyMessage = "No activities yet
 										<div className="mt-2 flex items-center gap-1 text-xs text-gray-600">
 											<span className="font-medium">{activity.performedByName}</span>
 											<span>·</span>
-											<span>{format(new Date(activity.createdAt), "PP p")}</span>
+											<span title={getDateLabel(activity.createdAt)}>{formatActivityDateTime(activity.createdAt)}</span>
 										</div>
 
 										{activity.oldValue && activity.newValue ? (

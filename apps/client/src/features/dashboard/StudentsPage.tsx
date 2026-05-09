@@ -2,6 +2,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { DataTable } from "@/components/DataTable";
+import { DateCell } from "@/components/DateCell";
 import { Panel } from "@/components/dashboard-ui";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -52,7 +53,7 @@ export const StudentsPage = () => {
 			{
 				accessorKey: "admittedAt",
 				header: "Admitted",
-				cell: (info) => new Date(String(info.getValue())).toLocaleDateString(),
+				cell: (info) => <DateCell date={String(info.getValue())} className="font-medium text-gray-900" />,
 			},
 		],
 		[userNameById],

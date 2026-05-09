@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Modal } from "@/components/dashboard-ui";
 import { HiCheck, HiClipboard } from "react-icons/hi2";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
 import type { LeadResponse, TimeSlotResponse } from "@repo/schema";
 import { Controller, useForm } from "react-hook-form";
+import { formatRelativeDateTime, getDateLabel } from "@/lib/utils/date";
 
 interface RequirementsModalProps {
 	open: boolean;
@@ -41,12 +41,7 @@ export const RequirementsModal = ({
 			return "N/A";
 		}
 
-		const parsed = new Date(value);
-		if (Number.isNaN(parsed.getTime())) {
-			return value;
-		}
-
-		return format(parsed, "MMM d, yyyy h:mm a");
+		return formatRelativeDateTime(value);
 	};
 
 	const formatReadableGender = (value?: string | null) => {
@@ -423,7 +418,7 @@ export const RequirementsModal = ({
 							<div className="grid gap-3 md:grid-cols-2 text-sm">
 								<div className="flex items-start justify-between gap-3">
 									<span className="text-slate-600">Demo Availability</span>
-									<span className="font-semibold text-slate-900 text-right">{lead.demoAvailability || "N/A"}</span>
+									<span className="font-semibold text-slate-900 text-right">{formatReadableDateTime(lead.demoAvailability)}</span>
 								</div>
 								<div className="flex items-start justify-between gap-3">
 									<span className="text-slate-600">Preferred Schedule</span>
@@ -432,7 +427,7 @@ export const RequirementsModal = ({
 								{latestDemo?.demoScheduledFor && (
 									<div className="md:col-span-2 flex items-start justify-between gap-3">
 										<span className="text-slate-600">Demo Scheduled For</span>
-										<span className="font-semibold text-slate-900 text-right">{format(new Date(latestDemo.demoScheduledFor), "MMM dd, yyyy h:mm a")}</span>
+										<span className="font-semibold text-slate-900 text-right" title={getDateLabel(latestDemo.demoScheduledFor)}>{formatRelativeDateTime(latestDemo.demoScheduledFor)}</span>
 									</div>
 								)}
 							</div>

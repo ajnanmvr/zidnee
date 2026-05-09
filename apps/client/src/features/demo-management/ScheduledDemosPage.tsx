@@ -7,10 +7,11 @@ import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useMarkDemoCompletedMutation, useAssignDemoMentorMutation, useRequestRedemoMutation } from "@/features/leads/use-lead-mutations";
 import { Modal } from "@/components/dashboard-ui";
 import { DataTable } from "@/components/DataTable";
+import { DateCell } from "@/components/DateCell";
 import { HiArrowLeft, HiCheckCircle, HiCalendarDays, HiExclamationTriangle } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
-import { format, isPast } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { LeadResponse } from "@repo/schema";
 import { RequirementsModal } from "./RequirementsModal";
@@ -169,9 +170,27 @@ export const ScheduledDemosPage = () => {
 		setRequirementsOpen(true);
 	};
 
-	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
-
 	const getLatestDemo = (demo: LeadResponse) => demo.demos[demo.demos.length - 1] ?? null;
+
+	const getDemoScheduleStatus = (demo: LeadResponse) => {
+		const scheduledFor = getLatestDemo(demo)?.demoScheduledFor;
+		if (!scheduledFor) {
+			return "unscheduled" as const;
+		}
+
+		const scheduledDate = new Date(scheduledFor);
+		if (Number.isNaN(scheduledDate.getTime())) {
+			return "unscheduled" as const;
+		}
+
+		if (isToday(scheduledDate)) {
+			return "today" as const;
+		}
+
+		return isPast(scheduledDate) ? ("overdue" as const) : ("upcoming" as const);
+	};
+
+	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
 
 	if (demosQuery.isLoading) {
 		return (
@@ -185,12 +204,9 @@ export const ScheduledDemosPage = () => {
 	const userNameById = new Map(
 		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
 	);
-	const overdueDemos = scheduledDemos.filter(
-		(demo) => getLatestDemo(demo)?.demoScheduledFor && isPast(new Date(getLatestDemo(demo)?.demoScheduledFor ?? ""))
-	);
-	const upcomingDemos = scheduledDemos.filter(
-		(demo) => !getLatestDemo(demo)?.demoScheduledFor || !isPast(new Date(getLatestDemo(demo)?.demoScheduledFor ?? ""))
-	);
+	const overdueDemos = scheduledDemos.filter((demo) => getDemoScheduleStatus(demo) === "overdue");
+	const todayDemos = scheduledDemos.filter((demo) => getDemoScheduleStatus(demo) === "today");
+	const upcomingDemos = scheduledDemos.filter((demo) => getDemoScheduleStatus(demo) === "upcoming");
 
 	const columns = useMemo<ColumnDef<LeadResponse>[]>(() => [
 		{
@@ -220,10 +236,10 @@ export const ScheduledDemosPage = () => {
 			accessorFn: (row) => getLatestDemo(row)?.demoScheduledFor ?? "",
 			cell: ({ row }) => {
 				const scheduledFor = getLatestDemo(row.original)?.demoScheduledFor;
+				const scheduleStatus = getDemoScheduleStatus(row.original);
+				const scheduleTone = scheduleStatus === "overdue" ? "text-red-700" : scheduleStatus === "today" ? "text-amber-700" : "text-emerald-700";
 				return (
-					<span className={`font-semibold ${scheduledFor && isPast(new Date(scheduledFor)) ? "text-red-700" : "text-emerald-700"}`}>
-						{scheduledFor ? format(new Date(scheduledFor), "MMM dd, h:mm a") : "-"}
-					</span>
+					<DateCell date={scheduledFor ?? ""} className={`font-semibold ${scheduleTone}`} />
 				);
 			},
 		},
@@ -243,18 +259,32 @@ export const ScheduledDemosPage = () => {
 			id: "status",
 			header: "Status",
 			accessorFn: (row) => {
-				const scheduledFor = getLatestDemo(row)?.demoScheduledFor;
-				if (!scheduledFor) {
+				const scheduleStatus = getDemoScheduleStatus(row);
+				if (scheduleStatus === "unscheduled") {
 					return "Unscheduled";
 				}
-				return isPast(new Date(scheduledFor)) ? "Overdue" : "Upcoming";
+				if (scheduleStatus === "today") {
+					return "Today";
+				}
+				return scheduleStatus === "overdue" ? "Overdue" : "Upcoming";
 			},
 			cell: ({ row }) => {
-				const scheduledFor = getLatestDemo(row.original)?.demoScheduledFor;
-				const isOverdue = Boolean(scheduledFor && isPast(new Date(scheduledFor)));
+				const scheduleStatus = getDemoScheduleStatus(row.original);
+				const badgeClass = scheduleStatus === "overdue"
+					? "bg-red-100 text-red-700"
+					: scheduleStatus === "today"
+						? "bg-amber-100 text-amber-700"
+						: "bg-emerald-100 text-emerald-700";
+				const label = scheduleStatus === "unscheduled"
+					? "Unscheduled"
+					: scheduleStatus === "today"
+						? "Today"
+						: scheduleStatus === "overdue"
+							? "Overdue"
+							: "Upcoming";
 				return (
-					<span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${isOverdue ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
-						{scheduledFor ? (isOverdue ? "Overdue" : "Upcoming") : "Unscheduled"}
+					<span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
+						{label}
 					</span>
 				);
 			},
@@ -325,6 +355,7 @@ export const ScheduledDemosPage = () => {
 					<div className="space-y-4">
 						<div className="flex flex-wrap gap-2 text-sm">
 							<span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-700">Overdue: {overdueDemos.length}</span>
+							<span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">Today: {todayDemos.length}</span>
 							<span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">Upcoming: {upcomingDemos.length}</span>
 						</div>
 						<DataTable
@@ -370,7 +401,7 @@ export const ScheduledDemosPage = () => {
 															<p className="text-xs font-semibold uppercase tracking-wider text-red-600 mb-1">Scheduled For</p>
 															<p className="text-sm font-bold text-red-700">
 																{demo.demos[demo.demos.length - 1]?.demoScheduledFor
-																	? format(new Date(demo.demos[demo.demos.length - 1].demoScheduledFor), "MMM dd, h:mm a")
+																	? <DateCell date={demo.demos[demo.demos.length - 1].demoScheduledFor} className="font-bold text-red-700" />
 																	: "-"}
 															</p>
 														</div>
@@ -448,7 +479,7 @@ export const ScheduledDemosPage = () => {
 															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Scheduled For</p>
 															<p className="text-sm font-medium text-emerald-700">
 																{demo.demos[demo.demos.length - 1]?.demoScheduledFor
-																	? format(new Date(demo.demos[demo.demos.length - 1].demoScheduledFor), "MMM dd, h:mm a")
+																	? <DateCell date={demo.demos[demo.demos.length - 1].demoScheduledFor} className="font-medium text-emerald-700" />
 																	: "-"}
 															</p>
 														</div>

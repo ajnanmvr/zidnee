@@ -7,6 +7,7 @@ import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
 import { Modal } from "@/components/dashboard-ui";
 import { DataTable } from "@/components/DataTable";
+import { DateCell } from "@/components/DateCell";
 import { HiArrowLeft, HiArrowPath, HiCalendarDays } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
@@ -134,11 +135,10 @@ export const UnassignedDemosPage = () => {
 			header: "Requested",
 			accessorFn: (row) => row.demos[row.demos.length - 1]?.requestedAt ?? "",
 			cell: ({ row }) => (
-				<span className="font-medium text-gray-900">
-					{row.original.demos[row.original.demos.length - 1]?.requestedAt
-						? format(new Date(row.original.demos[row.original.demos.length - 1].requestedAt), "MMM dd, h:mm a")
-						: "-"}
-				</span>
+				<DateCell
+					date={row.original.demos[row.original.demos.length - 1]?.requestedAt ?? ""}
+					className="font-medium text-gray-900"
+				/>
 			),
 		},
 		{

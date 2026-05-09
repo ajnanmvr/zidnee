@@ -37,6 +37,7 @@ import { useCoursesQuery } from "@/features/courses/courses.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
+import { isPast, isToday } from "date-fns";
 
 const titles: Record<string, string> = {
 	"/": "Overview",
@@ -137,6 +138,19 @@ export const DashboardLayout = () => {
 	const currentCounsellorStudents = allStudents.filter((student) =>
 		student.counsellorId === currentUserId || (student.mentorId ? currentCounsellorMentorIds.has(student.mentorId) : false),
 	);
+	const urgentScheduledDemoCount = (scheduledDemosQuery.data?.leads ?? []).filter((lead) => {
+		const latestDemo = lead.demos[lead.demos.length - 1];
+		if (!latestDemo?.demoScheduledFor) {
+			return false;
+		}
+
+		const scheduledDate = new Date(latestDemo.demoScheduledFor);
+		if (Number.isNaN(scheduledDate.getTime())) {
+			return false;
+		}
+
+		return isToday(scheduledDate) || isPast(scheduledDate);
+	}).length;
 	const currentLocation = `${location.pathname}${location.search}`;
 	const leadStageIcons = {
 		all: <HiPhone className="h-5 w-5" aria-hidden="true" />,
@@ -306,7 +320,7 @@ export const DashboardLayout = () => {
 			label: "Scheduled Demos",
 			description: "Assigned & due",
 			icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
-			count: scheduledDemosQuery.data?.leads.length ?? 0,
+			count: urgentScheduledDemoCount,
 			accent: "emerald",
 			section: "Demo Management",
 		},
