@@ -138,18 +138,18 @@ export const DashboardLayout = () => {
 	const currentCounsellorStudents = allStudents.filter((student) =>
 		student.counsellorId === currentUserId || (student.mentorId ? currentCounsellorMentorIds.has(student.mentorId) : false),
 	);
-	const urgentScheduledDemoCount = (scheduledDemosQuery.data?.leads ?? []).filter((lead) => {
+	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter((lead) => lead.demoRequestAssignedTo === currentUserId).length;
+	const myScheduledDemoCount = (scheduledDemosQuery.data?.leads ?? []).filter((lead) => {
 		const latestDemo = lead.demos[lead.demos.length - 1];
 		if (!latestDemo?.demoScheduledFor) {
 			return false;
 		}
 
-		const scheduledDate = new Date(latestDemo.demoScheduledFor);
-		if (Number.isNaN(scheduledDate.getTime())) {
+		if (latestDemo.mentorId !== currentUserId) {
 			return false;
 		}
 
-		return isToday(scheduledDate) || isPast(scheduledDate);
+		return Boolean(latestDemo.mentorId) && !latestDemo.completedAt;
 	}).length;
 	const currentLocation = `${location.pathname}${location.search}`;
 	const leadStageIcons = {
@@ -311,7 +311,7 @@ export const DashboardLayout = () => {
 			label: "Unassigned Demos",
 			description: "Pending assignment",
 			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
-			count: pendingDemosQuery.data?.leads.length ?? 0,
+			count: myPendingDemoCount,
 			accent: "amber",
 			section: "Demo Management",
 		},
@@ -320,7 +320,7 @@ export const DashboardLayout = () => {
 			label: "Scheduled Demos",
 			description: "Assigned & due",
 			icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
-			count: urgentScheduledDemoCount,
+			count: myScheduledDemoCount,
 			accent: "emerald",
 			section: "Demo Management",
 		},

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "@/lib/session";
+import { useMeQuery } from "@/features/auth/auth.queries";
 import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
@@ -20,12 +21,14 @@ import { DemoOutcomeModal } from "./DemoOutcomeModal";
 export const ScheduledDemosPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
+	const meQuery = useMeQuery(token);
 	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const reassignDemoMutation = useAssignDemoMentorMutation();
 	const redemoMutation = useRequestRedemoMutation();
+	const currentUserId = meQuery.data?.id ?? "";
 
 	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
 	const [completeOpen, setCompleteOpen] = useState(false);
@@ -34,6 +37,7 @@ export const ScheduledDemosPage = () => {
 	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
 	const [outcomeOpen, setOutcomeOpen] = useState(false);
 	const [outcomeDemoForAction, setOutcomeDemoForAction] = useState<LeadResponse | null>(null);
+	const [viewScope, setViewScope] = useState<"mine" | "all">("mine");
 
 	const {
 		control: completeControl,
@@ -192,21 +196,16 @@ export const ScheduledDemosPage = () => {
 
 	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
 
-	if (demosQuery.isLoading) {
-		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<p className="text-gray-600">Loading scheduled demos...</p>
-			</div>
-		);
-	}
-
 	const scheduledDemos = demosQuery.data?.leads ?? [];
+	const visibleDemos = viewScope === "mine"
+		? scheduledDemos.filter((demo) => getLatestDemo(demo)?.mentorId === currentUserId)
+		: scheduledDemos;
 	const userNameById = new Map(
 		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
 	);
-	const overdueDemos = scheduledDemos.filter((demo) => getDemoScheduleStatus(demo) === "overdue");
-	const todayDemos = scheduledDemos.filter((demo) => getDemoScheduleStatus(demo) === "today");
-	const upcomingDemos = scheduledDemos.filter((demo) => getDemoScheduleStatus(demo) === "upcoming");
+	const overdueDemos = visibleDemos.filter((demo) => getDemoScheduleStatus(demo) === "overdue");
+	const todayDemos = visibleDemos.filter((demo) => getDemoScheduleStatus(demo) === "today");
+	const upcomingDemos = visibleDemos.filter((demo) => getDemoScheduleStatus(demo) === "upcoming");
 
 	const columns = useMemo<ColumnDef<LeadResponse>[]>(() => [
 		{
@@ -322,11 +321,19 @@ export const ScheduledDemosPage = () => {
 		},
 	], [userNameById]);
 
+	if (demosQuery.isLoading || meQuery.isLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<p className="text-gray-600">Loading scheduled demos...</p>
+			</div>
+		);
+	}
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			{/* Header */}
 			<div className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-				<div className="flex items-center justify-between px-6 py-4">
+				<div className="flex flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:justify-between">
 					<div className="flex items-center gap-4">
 						<button
 							type="button"
@@ -337,19 +344,35 @@ export const ScheduledDemosPage = () => {
 						</button>
 						<div>
 							<h1 className="text-2xl font-bold text-gray-900">Scheduled Demos</h1>
-							<p className="mt-1 text-sm text-gray-600">{scheduledDemos.length} demo(s) assigned</p>
+							<p className="mt-1 text-sm text-gray-600">{visibleDemos.length} demo(s) in the current view</p>
 						</div>
+					</div>
+					<div className="inline-flex rounded-2xl border border-gray-200 bg-gray-50 p-1">
+						<button
+							type="button"
+							onClick={() => setViewScope("mine")}
+							className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "mine" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+						>
+							Assigned to me
+						</button>
+						<button
+							type="button"
+							onClick={() => setViewScope("all")}
+							className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+						>
+							All assignments
+						</button>
 					</div>
 				</div>
 			</div>
 
 			{/* Content */}
 			<div className="mx-auto max-w-7xl px-6 py-8">
-				{scheduledDemos.length === 0 ? (
+				{visibleDemos.length === 0 ? (
 					<div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 px-8 py-12 text-center">
 						<HiCalendarDays className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-						<p className="text-lg font-medium text-gray-700">No scheduled demos</p>
-						<p className="mt-1 text-sm text-gray-600">There are no demos assigned yet</p>
+						<p className="text-lg font-medium text-gray-700">No scheduled demos in this view</p>
+						<p className="mt-1 text-sm text-gray-600">Switch to All assignments to see every scheduled demo</p>
 					</div>
 				) : (
 					<div className="space-y-4">
@@ -360,7 +383,7 @@ export const ScheduledDemosPage = () => {
 						</div>
 						<DataTable
 							columns={columns}
-							data={scheduledDemos}
+							data={visibleDemos}
 							exportFilename="scheduled-demos"
 							searchPlaceholder="Search scheduled demos..."
 							initialSorting={[{ id: "scheduledFor", desc: false }]}
