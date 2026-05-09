@@ -290,6 +290,48 @@ export const LeadDetailPageNew = () => {
 				</div>
 			</div>
 
+			<div className="sticky top-22 z-20 bg-white border-b border-gray-200">
+				<div className="mx-auto max-w-7xl px-6 py-4 sm:px-8">
+					<div className="flex flex-wrap gap-2">
+						<button onClick={() => setEditOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+							<HiPencilSquare className="h-4 w-4" />
+							Edit
+						</button>
+						<button onClick={() => setPostponeOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600">
+							<HiClock className="h-4 w-4" />
+							Postpone
+						</button>
+						{!lead.formSent ? (
+							<button onClick={onGenerateFormLink} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700">
+								<HiPaperAirplane className="h-4 w-4" />
+								Send Form
+							</button>
+						) : (
+							<>
+								<button onClick={onGenerateFormLink} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+									<HiLink className="h-4 w-4" />
+									Form Link
+								</button>
+								<button onClick={onRevokeFormLink} className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700">
+									<HiXMark className="h-4 w-4" />
+									Revoke
+								</button>
+							</>
+						)}
+						{lead.formCompleted && !latestDemo ? (
+							<button onClick={() => setRequestDemoOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700">
+								<HiCalendarDays className="h-4 w-4" />
+								Request Demo
+							</button>
+						) : null}
+						<button onClick={() => setDeleteOpen(true)} className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100">
+							<HiTrash className="h-4 w-4" />
+							Delete
+						</button>
+					</div>
+				</div>
+			</div>
+
 			<div className="mx-auto max-w-7xl px-6 py-8 sm:px-8">
 				<div className="mb-6 flex flex-wrap gap-2 rounded-3xl border border-gray-200 bg-white p-2 shadow-sm">
 					{tabs.map((tab) => (
@@ -311,44 +353,6 @@ export const LeadDetailPageNew = () => {
 							<StatCard icon={HiCheckCircle} label="Form Status" value={lead.formCompleted ? "Completed" : lead.formSent ? "Sent" : "Pending"} accent="cyan" />
 							<StatCard icon={HiUser} label="Assigned To" value={assignedToUser?.name ?? "Unassigned"} accent="blue" />
 							<StatCard icon={HiAcademicCap} label="Level" value={lead.level ?? "Not specified"} accent="amber" />
-						</div>
-
-						<div className="flex flex-wrap gap-2">
-							<button onClick={() => setEditOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-								<HiPencilSquare className="h-4 w-4" />
-								Edit
-							</button>
-							<button onClick={() => setPostponeOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600">
-								<HiClock className="h-4 w-4" />
-								Postpone
-							</button>
-							{!lead.formSent ? (
-								<button onClick={onGenerateFormLink} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700">
-									<HiPaperAirplane className="h-4 w-4" />
-									Send Form
-								</button>
-							) : (
-								<>
-									<button onClick={onGenerateFormLink} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-										<HiLink className="h-4 w-4" />
-										Form Link
-									</button>
-									<button onClick={onRevokeFormLink} className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700">
-										<HiXMark className="h-4 w-4" />
-										Revoke
-									</button>
-								</>
-							)}
-							{lead.formCompleted && !latestDemo ? (
-								<button onClick={() => setRequestDemoOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700">
-									<HiCalendarDays className="h-4 w-4" />
-									Request Demo
-								</button>
-							) : null}
-							<button onClick={() => setDeleteOpen(true)} className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100">
-								<HiTrash className="h-4 w-4" />
-								Delete
-							</button>
 						</div>
 
 						<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">

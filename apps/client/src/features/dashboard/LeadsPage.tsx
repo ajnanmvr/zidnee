@@ -660,7 +660,7 @@ export const LeadsPage = () => {
 				</div>
 			</div>
 
-			<Panel>
+			<Panel title="Lead Details">
 				<div className="flex flex-wrap gap-2 rounded-3xl border border-gray-300 bg-white p-3">
 					{leadStageDefinitions.map((stage) => {
 						const isActive = stage.id === activeStage;
