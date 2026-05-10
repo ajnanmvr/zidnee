@@ -15,6 +15,7 @@ import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
 import { EditRolePage } from "@/features/dashboard/EditRolePage";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
 import GroupsPage from "@/features/dashboard/GroupsPage";
+import { LeadEditPage } from "@/features/dashboard/LeadEditPage";
 import { LeadDetailPageNew } from "@/features/dashboard/LeadDetailPageNew";
 import { LeadsPage } from "@/features/dashboard/LeadsPage";
 import { MentorsPage } from "@/features/dashboard/MentorsPage";
@@ -102,6 +103,10 @@ export const router = createBrowserRouter([
 					{
 						path: "leads/:leadId",
 						element: <LeadDetailPageNew />,
+					},
+					{
+						path: "leads/:leadId/edit",
+						element: <LeadEditPage />,
 					},
 					{
 						path: "users",

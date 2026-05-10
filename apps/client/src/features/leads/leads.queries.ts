@@ -15,7 +15,9 @@ export const leadsQueryKeys = {
 		timeFilter: "all" | "today" = "all",
 		status?: string,
 		page: number = 1,
-	) => ["leads", "list", token, scope, timeFilter, status, page] as const,
+		sortBy: string = "nextFollowUpAt",
+		sortOrder: "asc" | "desc" = "desc",
+	) => ["leads", "list", token, scope, timeFilter, status, page, sortBy, sortOrder] as const,
 	demoRequests: (token: string) => ["leads", "demo-requests", token] as const,
 	pendingDemoRequests: (token: string) => ["leads", "for-demo", token] as const,
 	admissions: (token: string) => ["leads", "admissions", token] as const,
@@ -56,16 +58,20 @@ export const useDueLeadFollowUpsQuery = (
 		timeFilter?: "all" | "today";
 		status?: string;
 		page?: number;
+		sortBy?: string;
+		sortOrder?: "asc" | "desc";
 	},
 ) => {
 	const scope = options?.scope ?? "all";
 	const timeFilter = options?.timeFilter ?? "all";
 	const status = options?.status;
 	const page = options?.page ?? 1;
+	const sortBy = options?.sortBy ?? "nextFollowUpAt";
+	const sortOrder = options?.sortOrder ?? "desc";
 
 	return useQuery({
-		queryKey: leadsQueryKeys.list(token, scope, timeFilter, status, page),
-		queryFn: () => fetchDueLeadFollowUps(token, { scope, timeFilter, status, page }),
+		queryKey: leadsQueryKeys.list(token, scope, timeFilter, status, page, sortBy, sortOrder),
+		queryFn: () => fetchDueLeadFollowUps(token, { scope, timeFilter, status, page, sortBy, sortOrder }),
 		enabled: Boolean(token),
 	});
 };

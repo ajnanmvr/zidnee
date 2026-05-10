@@ -122,6 +122,8 @@ export const LeadDetailPageNew = () => {
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
 	const [formLinkOpen, setFormLinkOpen] = useState(false);
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(null);
+	const [priceEditOpen, setPriceEditOpen] = useState(false);
+	const [priceInput, setPriceInput] = useState<string>("");
 
 	const { control: editControl, handleSubmit: handleEditSubmit, reset: resetEdit } = useForm<EditLeadFormState>({
 		defaultValues: { name: "", phone: "", level: "" },
@@ -150,6 +152,14 @@ export const LeadDetailPageNew = () => {
 			resetPostpone({ customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000), note: "" });
 		}
 	}, [postponeOpen, resetPostpone]);
+
+	useEffect(() => {
+		if (priceEditOpen && lead?.price) {
+			setPriceInput(lead.price.toString());
+		} else {
+			setPriceInput("");
+		}
+	}, [priceEditOpen, lead?.price]);
 
 	const onEditSubmit = handleEditSubmit(async (payload) => {
 		if (!lead) return;
@@ -242,6 +252,33 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
+	const onSavePrice = async () => {
+		if (!lead || !priceInput.trim()) {
+			toast.error("Please enter a valid price");
+			return;
+		}
+
+		const price = parseInt(priceInput, 10);
+		if (Number.isNaN(price) || price < 0) {
+			toast.error("Price must be a valid positive number");
+			return;
+		}
+
+		try {
+			await updateMutation.mutateAsync({ leadId: lead.id, payload: { price } });
+			toast.success("Price updated successfully.");
+			setPriceEditOpen(false);
+			setPriceInput("");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to update price");
+				return;
+			}
+
+			toast.error(error instanceof Error ? error.message : "Unable to update price");
+		}
+	};
+
 	if (!leadId) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
@@ -293,7 +330,7 @@ export const LeadDetailPageNew = () => {
 			<div className="sticky top-22 z-20 bg-white border-b border-gray-200">
 				<div className="mx-auto max-w-7xl px-6 py-4 sm:px-8">
 					<div className="flex flex-wrap gap-2">
-						<button onClick={() => setEditOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+						<button onClick={() => navigate(`/leads/${lead.id}/edit`)} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
 							<HiPencilSquare className="h-4 w-4" />
 							Edit
 						</button>
@@ -348,29 +385,54 @@ export const LeadDetailPageNew = () => {
 
 				{activeTab === "overview" && (
 					<div className="space-y-6">
-						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 							<StatCard icon={HiCalendarDays} label="Demo Attempts" value={demoCount} accent="violet" />
 							<StatCard icon={HiCheckCircle} label="Form Status" value={lead.formCompleted ? "Completed" : lead.formSent ? "Sent" : "Pending"} accent="cyan" />
 							<StatCard icon={HiUser} label="Assigned To" value={assignedToUser?.name ?? "Unassigned"} accent="blue" />
 							<StatCard icon={HiAcademicCap} label="Level" value={lead.level ?? "Not specified"} accent="amber" />
-						</div>
+						<StatCard 
+							icon={HiUser}
+							label="Price" 
+							value={
+								lead.price ? (
+									<button
+										type="button"
+										onClick={() => setPriceEditOpen(true)}
+										className="font-semibold text-gray-900 hover:text-blue-600 transition-colors inline-flex items-center gap-2"
+									>
+										₹{lead.price}
+										<HiPencilSquare className="h-3 w-3" />
+									</button>
+								) : (
+									<button
+										type="button"
+										onClick={() => setPriceEditOpen(true)}
+										className="font-semibold text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-2"
+									>
+										Add price
+										<HiPencilSquare className="h-3 w-3" />
+									</button>
+								)
+							}
+							accent="violet"
+						/>
+					</div>
 
-						<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-								<div>
-									<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Snapshot</p>
-									<h2 className="mt-2 text-xl font-bold text-gray-900">Key lead summary</h2>
-									<p className="mt-1 text-sm text-gray-600">Quick view of assignment and current workflow state.</p>
-								</div>
-								<div className="grid gap-3 sm:grid-cols-2 lg:w-3/4 lg:grid-cols-4">
-									<StatCard icon={HiUser} label="Owner" value={assignedToUser?.name ?? "Unassigned"} accent="blue" />
-									<StatCard icon={HiUsers} label="Demo Owner" value={demoRequestAssignedToUser?.name ?? "Not assigned"} accent="amber" />
-									<StatCard icon={HiClock} label="Next Follow-up" value={lead.nextFollowUpAt ? formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true }) : "-"} accent="cyan" />
-									<StatCard icon={HiAcademicCap} label="Latest Demo" value={latestDemo ? `Attempt ${demoCount}` : "None"} accent="violet" />
-								</div>
-							</div>
-						</div>
-						
+					<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+					<div>
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Snapshot</p>
+						<h2 className="mt-2 text-xl font-bold text-gray-900">Key lead summary</h2>
+						<p className="mt-1 text-sm text-gray-600">Quick view of assignment and current workflow state.</p>
+					</div>
+					<div className="grid gap-3 sm:grid-cols-2 lg:w-3/4 lg:grid-cols-4">
+						<StatCard icon={HiUser} label="Owner" value={assignedToUser?.name ?? "Unassigned"} accent="blue" />
+						<StatCard icon={HiUsers} label="Demo Owner" value={demoRequestAssignedToUser?.name ?? "Not assigned"} accent="amber" />
+						<StatCard icon={HiClock} label="Next Follow-up" value={lead.nextFollowUpAt ? formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true }) : "-"} accent="cyan" />
+						<StatCard icon={HiAcademicCap} label="Latest Demo" value={latestDemo ? `Attempt ${demoCount}` : "None"} accent="violet" />
+					</div>
+				</div>
+			</div>
 					</div>
 				)}
 
@@ -392,7 +454,20 @@ export const LeadDetailPageNew = () => {
 									<DetailRow label="Primary WhatsApp" value={lead.primaryWhatsappNumber ?? "-"} icon={HiPhone} />
 									<DetailRow label="Alternate WhatsApp" value={lead.alternateWhatsappNumber || "-"} icon={HiPhone} />
 									<DetailRow label="Residing Country" value={lead.residingCountry || "-"} icon={HiUser} />
-									<DetailRow label="Gender" value={lead.gender ? lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1) : "-"} icon={HiUser} />
+									<DetailRow 
+										label="Gender" 
+										value={
+											lead.gender ? (
+												<div className="flex items-center gap-2">
+													<HiUser className={`h-4 w-4 ${lead.gender.toLowerCase() === "male" ? "text-blue-500" : "text-rose-500"}`} />
+													<span className={lead.gender.toLowerCase() === "male" ? "text-blue-600 font-semibold" : "text-rose-600 font-semibold"}>
+														{lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)}
+													</span>
+												</div>
+											) : "-"
+										} 
+										icon={HiUser} 
+									/>
 									<DetailRow label="Date of Birth" value={lead.dateOfBirth ? format(new Date(lead.dateOfBirth), "MMM dd, yyyy") : "-"} icon={HiCalendarDays} />
 								</div>
 							</SectionCard>
@@ -601,7 +676,24 @@ export const LeadDetailPageNew = () => {
 					)} />
 				</div>
 			</Modal>
-
+		<Modal open={priceEditOpen} onClose={() => { setPriceEditOpen(false); setPriceInput(""); }} title={lead?.price ? "Edit Price" : "Add Price"} footer={<>
+			<button type="button" onClick={() => { setPriceEditOpen(false); setPriceInput(""); }} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">Cancel</button>
+			<button type="button" onClick={onSavePrice} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save Price</button>
+		</>}>
+			<div className="space-y-4">
+				<label className="grid gap-2">
+					<span className="text-sm font-semibold text-gray-700">Price (₹)</span>
+					<input 
+						type="number" 
+						value={priceInput} 
+						onChange={(e) => setPriceInput(e.target.value)} 
+						className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+						placeholder="Enter price" 
+						min="0"
+					/>
+				</label>
+			</div>
+		</Modal>
 			<Modal open={deleteOpen} onClose={() => { setDeleteOpen(false); setDeleteNote(""); setDeleteReason(null); }} title="Delete Lead" footer={<>
 				<button type="button" onClick={() => { setDeleteOpen(false); setDeleteNote(""); setDeleteReason(null); }} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">Cancel</button>
 				<button type="button" onClick={onDeleteLead} className={`rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 ${!deleteReason ? "opacity-50 pointer-events-none" : ""}`}>Delete</button>

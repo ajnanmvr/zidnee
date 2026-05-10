@@ -125,6 +125,8 @@ export const LeadDetailPage = () => {
 	const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(null);
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
+	const [priceEditOpen, setPriceEditOpen] = useState(false);
+	const [priceInput, setPriceInput] = useState<string>("");
 
 	const {
 		control: editControl,
@@ -280,6 +282,14 @@ export const LeadDetailPage = () => {
 
 		resetAdmission({ counsellorId: defaultCounsellorId, note: "" });
 	}, [admissionOpen, defaultCounsellorId, resetAdmission]);
+
+	useEffect(() => {
+		if (priceEditOpen && lead?.price) {
+			setPriceInput(lead.price.toString());
+		} else {
+			setPriceInput("");
+		}
+	}, [priceEditOpen, lead?.price]);
 
 	if (!leadId) {
 		return <Panel title="Lead"><div className="py-8 text-center text-gray-600">Lead not found</div></Panel>;
@@ -526,6 +536,33 @@ export const LeadDetailPage = () => {
 		}
 	};
 
+	const onSavePrice = async () => {
+		if (!lead || !priceInput.trim()) {
+			toast.error("Please enter a valid price");
+			return;
+		}
+
+		const price = parseInt(priceInput, 10);
+		if (Number.isNaN(price) || price < 0) {
+			toast.error("Price must be a valid positive number");
+			return;
+		}
+
+		try {
+			await updateLeadMutation.mutateAsync({ leadId: lead.id, payload: { price } });
+			toast.success("Price updated successfully.");
+			setPriceEditOpen(false);
+			setPriceInput("");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to update price");
+				return;
+			}
+
+			toast.error(error instanceof Error ? error.message : "Unable to update price");
+		}
+	};
+
 	const onDeleteLead = async () => {
 		if (!lead) {
 			return;
@@ -567,6 +604,25 @@ export const LeadDetailPage = () => {
 
 	return (
 		<div className="grid gap-6">
+			{/* Price Edit Modal */}
+			<Modal open={priceEditOpen} onClose={() => setPriceEditOpen(false)} title={lead?.price ? "Edit Price" : "Add Price"}>
+				<div className="space-y-4">
+					<p className="text-sm text-slate-600">Enter the course price (in INR).</p>
+					<input
+						type="number"
+						min="0"
+						value={priceInput}
+						onChange={(e) => setPriceInput(e.target.value)}
+						placeholder="Enter price"
+						className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+					/>
+					<div className="flex justify-end gap-2">
+						<button onClick={() => setPriceEditOpen(false)} className="rounded-2xl border px-4 py-2 text-sm font-semibold">Cancel</button>
+						<button onClick={onSavePrice} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save</button>
+					</div>
+				</div>
+			</Modal>
+
 			{/* Request demo modal */}
 			<Modal open={requestDemoOpen} onClose={() => setRequestDemoOpen(false)} title="Request Demo and assign counsellor">
 				<div className="space-y-4">
@@ -703,7 +759,7 @@ export const LeadDetailPage = () => {
 			<Panel title="Status Overview" description="Compact view of lead information and workflow state">
 				<div className="grid gap-6">
 					{/* Identity & Assignment Section */}
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 						<div className="rounded-2xl border border-gray-200 bg-linear-to-br from-blue-50 to-blue-100/50 p-4">
 							<p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-600 mb-3">Lead Identity</p>
 							<div className="space-y-2">
@@ -761,6 +817,40 @@ export const LeadDetailPage = () => {
 										{latestDemo ? "Requested" : "None"}
 									</span>
 								</div>
+							</div>
+						</div>
+
+						<div className="rounded-2xl border border-gray-200 bg-linear-to-br from-purple-50 to-purple-100/50 p-4">
+							<p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-600 mb-3">Pricing</p>
+							<div className="space-y-3 flex flex-col h-full">
+								{lead?.price ? (
+									<>
+										<div>
+											<p className="text-xs text-gray-600 font-semibold mb-1">Course Price</p>
+											<p className="text-2xl font-bold text-gray-900">₹{lead.price}</p>
+										</div>
+										<button
+											type="button"
+											onClick={() => setPriceEditOpen(true)}
+											className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100 hover:border-purple-400"
+										>
+											<HiPencilSquare className="h-3 w-3" />
+											Edit price
+										</button>
+									</>
+								) : (
+									<>
+										<p className="text-xs text-gray-600 font-semibold">No price set</p>
+										<button
+											type="button"
+											onClick={() => setPriceEditOpen(true)}
+											className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100 hover:border-purple-400"
+										>
+											<HiPencilSquare className="h-3 w-3" />
+											Add price
+										</button>
+									</>
+								)}
 							</div>
 						</div>
 					</div>

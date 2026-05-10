@@ -20,6 +20,7 @@ import type {
 	CreateLeadForm,
 	PostponeLeadFollowUpForm,
 } from "@/lib/dashboard-types";
+import type { UpdateLeadPayload } from "@repo/schema";
 import { useSession } from "@/lib/session";
 
 const invalidateLeadQueries = async (
@@ -73,7 +74,7 @@ export const useUpdateLeadMutation = () => {
 			payload,
 		}: {
 			leadId: string;
-			payload: { phone?: string; name?: string; level?: string; assignedTo?: string; demoRequestAssignedTo?: string };
+			payload: UpdateLeadPayload;
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");

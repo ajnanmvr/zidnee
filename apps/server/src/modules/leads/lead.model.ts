@@ -131,6 +131,11 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			required: false,
 			default: [],
 		},
+		price: {
+			type: Number,
+			required: false,
+			min: 0,
+		},
 		startClassWhen: {
 			type: String,
 			required: false,

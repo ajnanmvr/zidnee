@@ -65,6 +65,8 @@ export const LeadsPage = () => {
 	const [searchParams] = useSearchParams();
 	const meQuery = useMeQuery(token);
 	const [currentPage, setCurrentPage] = useState(1);
+	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
+	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
 	const stageParam = searchParams.get("stage");
 	const activeStage: LeadStageId = leadStageDefinitions.some((stage) => stage.id === stageParam)
@@ -92,12 +94,16 @@ export const LeadsPage = () => {
 		timeFilter: "all",
 		status: stageToStatus(activeStage),
 		page: currentPage,
+		sortBy,
+		sortOrder,
 	});
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "mine",
 		timeFilter: "all",
 		status: stageToStatus(activeStage),
 		page: currentPage,
+		sortBy,
+		sortOrder,
 	});
 	const usersQuery = useUsersQuery(token);
 	const createLeadMutation = useCreateLeadMutation();
@@ -676,6 +682,31 @@ export const LeadsPage = () => {
 					})}
 				</div>
 
+				<div className="flex flex-col gap-3 rounded-3xl border border-gray-300 bg-white p-3 sm:flex-row sm:items-center">
+					<span className="text-xs font-semibold uppercase tracking-wide text-gray-600">Sort by:</span>
+					<select
+						value={sortBy}
+						onChange={(e) => {
+							setSortBy(e.target.value);
+							setCurrentPage(1);
+						}}
+						className="rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-blue-600"
+					>
+						<option value="nextFollowUpAt">Next Follow-up</option>
+						<option value="createdAt">Created Date</option>
+						<option value="updatedAt">Updated Date</option>
+						<option value="name">Lead Name</option>
+						<option value="phone">Phone</option>
+					</select>
+					<button
+						type="button"
+						onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+						className="inline-flex items-center gap-1 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:border-blue-600 hover:text-blue-600"
+					>
+						{sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
+					</button>
+				</div>
+
 				{leadsQuery.isLoading && allLeadsQuery.isLoading ? (
 					<div className="py-8 text-center text-gray-600">Loading...</div>
 				) : leadsQuery.isError || allLeadsQuery.isError ? (
@@ -687,7 +718,6 @@ export const LeadsPage = () => {
 							data={scopeLeads}
 							exportFilename={`leads-${activeScope}-${activeStage}`}
 							searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
-							initialSorting={[{ id: "nextFollowUpAt", desc: false }]}
 						/>
 						{pagination && (
 							<div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 mt-4">

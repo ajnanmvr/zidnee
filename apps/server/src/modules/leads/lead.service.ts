@@ -1,6 +1,7 @@
-import type { Lead, LeadFormData, LeadStatus } from "@repo/schema";
+import type { Lead, LeadFormData, LeadStatus, UpdateLeadPayload } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { LeadModel, type LeadDocument } from "./lead.model.js";
+import { TimeSlotModel } from "../timeslots/timeslot.model.js";
 import { ActivityService } from "./activity.service.js";
 import { ZidService } from "../zid/zid.service.js";
 import { StudentModel, type StudentDocument } from "../students/student.model.js";
@@ -44,14 +45,8 @@ const toObjectIdString = (value: unknown): string | undefined => {
 	return undefined;
 };
 
-const leadFieldPatch = (existingLead: LeadDocument, updates: {
-	name?: string;
-	phone?: string;
-	level?: string;
-	assignedTo?: string;
-	demoRequestAssignedTo?: string;
-}) => {
-	const patch: Record<string, string> = {};
+const leadFieldPatch = (existingLead: LeadDocument, updates: UpdateLeadPayload) => {
+	const patch: Record<string, unknown> = {};
 	const oldValue: Record<string, unknown> = {};
 	const newValue: Record<string, unknown> = {};
 
@@ -85,6 +80,96 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: {
 		patch.demoRequestAssignedTo = updates.demoRequestAssignedTo;
 		oldValue.demoRequestAssignedTo = currentDemoRequestAssignedTo ?? null;
 		newValue.demoRequestAssignedTo = updates.demoRequestAssignedTo;
+	}
+
+	if (updates.gender !== undefined && updates.gender !== existingLead.gender) {
+		patch.gender = updates.gender;
+		oldValue.gender = existingLead.gender ?? null;
+		newValue.gender = updates.gender;
+	}
+
+	if (updates.dateOfBirth !== undefined && updates.dateOfBirth?.getTime() !== existingLead.dateOfBirth?.getTime()) {
+		patch.dateOfBirth = updates.dateOfBirth;
+		oldValue.dateOfBirth = existingLead.dateOfBirth ?? null;
+		newValue.dateOfBirth = updates.dateOfBirth;
+	}
+
+	if (updates.residingCountry !== undefined && updates.residingCountry !== existingLead.residingCountry) {
+		patch.residingCountry = updates.residingCountry;
+		oldValue.residingCountry = existingLead.residingCountry ?? null;
+		newValue.residingCountry = updates.residingCountry;
+	}
+
+	if (updates.primaryWhatsappNumber !== undefined && updates.primaryWhatsappNumber !== existingLead.primaryWhatsappNumber) {
+		patch.primaryWhatsappNumber = updates.primaryWhatsappNumber;
+		oldValue.primaryWhatsappNumber = existingLead.primaryWhatsappNumber ?? null;
+		newValue.primaryWhatsappNumber = updates.primaryWhatsappNumber;
+	}
+
+	if (updates.alternateWhatsappNumber !== undefined && updates.alternateWhatsappNumber !== existingLead.alternateWhatsappNumber) {
+		patch.alternateWhatsappNumber = updates.alternateWhatsappNumber;
+		oldValue.alternateWhatsappNumber = existingLead.alternateWhatsappNumber ?? null;
+		newValue.alternateWhatsappNumber = updates.alternateWhatsappNumber;
+	}
+
+	if (updates.studentInfo !== undefined && updates.studentInfo !== existingLead.studentInfo) {
+		patch.studentInfo = updates.studentInfo;
+		oldValue.studentInfo = existingLead.studentInfo ?? null;
+		newValue.studentInfo = updates.studentInfo;
+	}
+
+	if (updates.preferredLanguage !== undefined && updates.preferredLanguage !== existingLead.preferredLanguage) {
+		patch.preferredLanguage = updates.preferredLanguage;
+		oldValue.preferredLanguage = existingLead.preferredLanguage ?? null;
+		newValue.preferredLanguage = updates.preferredLanguage;
+	}
+
+	if (updates.preferredSchedule !== undefined && updates.preferredSchedule !== existingLead.preferredSchedule) {
+		patch.preferredSchedule = updates.preferredSchedule;
+		oldValue.preferredSchedule = existingLead.preferredSchedule ?? null;
+		newValue.preferredSchedule = updates.preferredSchedule;
+	}
+
+	if (updates.preferredDays !== undefined && JSON.stringify(updates.preferredDays) !== JSON.stringify(existingLead.preferredDays ?? [])) {
+		patch.preferredDays = updates.preferredDays;
+		oldValue.preferredDays = existingLead.preferredDays ?? null;
+		newValue.preferredDays = updates.preferredDays;
+	}
+
+	if (updates.preferredTimeslots !== undefined && JSON.stringify(updates.preferredTimeslots) !== JSON.stringify(existingLead.preferredTimeslots ?? [])) {
+		patch.preferredTimeslots = updates.preferredTimeslots;
+		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
+		newValue.preferredTimeslots = updates.preferredTimeslots;
+	}
+
+	if (updates.price !== undefined && updates.price !== existingLead.price) {
+		patch.price = updates.price;
+		oldValue.price = existingLead.price ?? null;
+		newValue.price = updates.price;
+	}
+
+	if (updates.startClassWhen !== undefined && updates.startClassWhen !== existingLead.startClassWhen) {
+		patch.startClassWhen = updates.startClassWhen;
+		oldValue.startClassWhen = existingLead.startClassWhen ?? null;
+		newValue.startClassWhen = updates.startClassWhen;
+	}
+
+	if (updates.hearAboutUs !== undefined && updates.hearAboutUs !== existingLead.hearAboutUs) {
+		patch.hearAboutUs = updates.hearAboutUs;
+		oldValue.hearAboutUs = existingLead.hearAboutUs ?? null;
+		newValue.hearAboutUs = updates.hearAboutUs;
+	}
+
+	if (updates.demoAvailability !== undefined && updates.demoAvailability !== existingLead.demoAvailability) {
+		patch.demoAvailability = updates.demoAvailability;
+		oldValue.demoAvailability = existingLead.demoAvailability ?? null;
+		newValue.demoAvailability = updates.demoAvailability;
+	}
+
+	if (updates.preferredMentorGender !== undefined && updates.preferredMentorGender !== existingLead.preferredMentorGender) {
+		patch.preferredMentorGender = updates.preferredMentorGender;
+		oldValue.preferredMentorGender = existingLead.preferredMentorGender ?? null;
+		newValue.preferredMentorGender = updates.preferredMentorGender;
 	}
 
 	return { patch, oldValue, newValue };
@@ -216,6 +301,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	preferredSchedule: doc.preferredSchedule,
 	preferredDays: doc.preferredDays ?? [],
 	preferredTimeslots: doc.preferredTimeslots ?? [],
+	price: doc.price,
 	startClassWhen: doc.startClassWhen,
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
@@ -268,13 +354,7 @@ export const LeadService = {
 
 	update: async (
 		leadId: string,
-		updates: {
-			name?: string;
-			phone?: string;
-			level?: string;
-			assignedTo?: string;
-			demoRequestAssignedTo?: string;
-		},
+		updates: UpdateLeadPayload,
 		performedBy?: string,
 	): Promise<Lead | null> => {
 		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
@@ -282,7 +362,42 @@ export const LeadService = {
 			return null;
 		}
 
-		const { patch, oldValue, newValue } = leadFieldPatch(existingLead, updates);
+		let effectiveUpdates: UpdateLeadPayload = updates;
+		if (updates.preferredTimeslots !== undefined) {
+			const items = updates.preferredTimeslots as unknown[];
+			const needsFetch = items.some((it) => typeof it === "string" || (it && (it as any).id) || (it && (it as any)._id));
+			if (needsFetch) {
+				const ids = items
+					.map((it) => (typeof it === "string" ? it : (it && ((it as any).id ?? (it as any)._id))))
+					.filter(Boolean)
+					.map(String);
+
+				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } }).lean().exec();
+				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
+				const normalized = items.map((it) => {
+					if (typeof it === "string") {
+						const ts = map.get(it);
+						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: it };
+					}
+					if (it && (it as any).id) {
+						const id = String((it as any).id);
+						const ts = map.get(id);
+						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+					}
+					if (it && (it as any)._id) {
+						const id = String((it as any)._id);
+						const ts = map.get(id);
+						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+					}
+					// already a snapshot
+					return it as any;
+				});
+
+				effectiveUpdates = { ...updates, preferredTimeslots: normalized };
+			}
+		}
+
+		const { patch, oldValue, newValue } = leadFieldPatch(existingLead, effectiveUpdates);
 		if (Object.keys(patch).length === 0) {
 			return mapLead(existingLead);
 		}
@@ -322,13 +437,17 @@ export const LeadService = {
 		status?: string;
 		limit?: number;
 		offset?: number;
+		sortBy?: string;
+		sortOrder?: "asc" | "desc";
 	}): Promise<{ leads: Lead[]; total: number; page: number; pageSize: number }> => {
 		const limit = filters.limit ?? 25;
 		const offset = filters.offset ?? 0;
 		const page = Math.floor(offset / limit) + 1;
+		const sortBy = filters.sortBy ?? "nextFollowUpAt";
+		const sortOrder = filters.sortOrder === "asc" ? 1 : -1;
 
 		const leads = await LeadModel.find()
-			.sort({ createdAt: -1 })
+			.sort({ [sortBy]: sortOrder })
 			.lean<LeadDocument[]>();
 
 		let filtered = leads;
@@ -840,6 +959,38 @@ export const LeadService = {
 
 		// Update lead: mark form as completed, fill in form data, clear token
 		// ZID will be generated later during admission confirmation
+		let preferredTimeslots = data.preferredTimeslots;
+		if (Array.isArray(data.preferredTimeslots) && data.preferredTimeslots.length > 0) {
+			const items = data.preferredTimeslots as unknown[];
+			const needsFetch = items.some((it) => typeof it === "string" || (it && (it as any).id) || (it && (it as any)._id));
+			if (needsFetch) {
+				const ids = items
+					.map((it) => (typeof it === "string" ? it : (it && ((it as any).id ?? (it as any)._id))))
+					.filter(Boolean)
+					.map(String);
+
+				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } }).lean().exec();
+				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
+				preferredTimeslots = items.map((it) => {
+					if (typeof it === "string") {
+						const ts = map.get(it);
+						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: it };
+					}
+					if (it && (it as any).id) {
+						const id = String((it as any).id);
+						const ts = map.get(id);
+						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+					}
+					if (it && (it as any)._id) {
+						const id = String((it as any)._id);
+						const ts = map.get(id);
+						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+					}
+					return it as any;
+				});
+			}
+		}
+
 		const updatedLead = await LeadModel.findByIdAndUpdate(leadId, {
 			formCompleted: true,
 			status: "FORM_FILLED",
@@ -856,7 +1007,8 @@ export const LeadService = {
 			preferredLanguage: data.preferredLanguage,
 			preferredSchedule: data.preferredSchedule,
 			preferredDays: data.preferredDays,
-			preferredTimeslots: data.preferredTimeslots,
+			preferredTimeslots,
+			price: data.price,
 			startClassWhen: data.startClassWhen,
 			hearAboutUs: data.hearAboutUs,
 			demoAvailability: data.demoAvailability,
@@ -937,6 +1089,7 @@ export const LeadService = {
 			preferredSchedule: existingLead.preferredSchedule,
 			preferredDays: existingLead.preferredDays,
 			preferredTimeslots: existingLead.preferredTimeslots,
+			price: existingLead.price,
 			startClassWhen: existingLead.startClassWhen,
 			hearAboutUs: existingLead.hearAboutUs,
 			demoAvailability: existingLead.demoAvailability,

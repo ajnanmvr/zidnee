@@ -109,12 +109,15 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		preferredSchedule: lead.preferredSchedule,
 		preferredDays: lead.preferredDays ?? [],
 		preferredTimeslots: lead.preferredTimeslots ?? [],
+		price: lead.price,
 		startClassWhen: lead.startClassWhen,
 		hearAboutUs: lead.hearAboutUs,
 		demoAvailability: lead.demoAvailability,
 		preferredMentorGender: lead.preferredMentorGender,
 		status: lead.status ?? computeLeadStatus(lead),
 		demos,
+		createdAt: lead.createdAt?.toISOString() ?? null,
+		updatedAt: lead.updatedAt?.toISOString() ?? null,
 	};
 };
 
@@ -189,6 +192,8 @@ export const listLeadsController = async (
 	const status = typeof req.query.status === "string" ? req.query.status : undefined;
 	const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 25;
 	const offset = typeof req.query.offset === "string" ? parseInt(req.query.offset, 10) : 0;
+	const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy : "nextFollowUpAt";
+	const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
 
 	const { leads, total, page, pageSize } = await LeadService.listLeads({
 		createdBy: req.user.userId,
@@ -197,6 +202,8 @@ export const listLeadsController = async (
 		status,
 		limit,
 		offset,
+		sortBy,
+		sortOrder,
 	});
 
 	res.json({
@@ -604,7 +611,7 @@ export const submitLeadFormController = async (
 		gender: payload.gender,
 		primaryWhatsappNumber: payload.primaryWhatsappNumber,
 		alternateWhatsappNumber: payload.alternateWhatsappNumber,
-		studentInfo: payload.studentInfo,
+		studentInfo: payload.studentInfo ?? "",
 		preferredLanguage: payload.preferredLanguage,
 		preferredSchedule: payload.preferredSchedule,
 		preferredDays: payload.preferredDays,

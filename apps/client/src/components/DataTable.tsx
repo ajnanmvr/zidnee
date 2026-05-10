@@ -3,14 +3,13 @@ import {
 	flexRender,
 	getCoreRowModel,
 	getSortedRowModel,
-	getPaginationRowModel,
 	getFilteredRowModel,
 	useReactTable,
 	type SortingState,
 	type ColumnFiltersState,
 	type ColumnDef,
 } from "@tanstack/react-table";
-import { HiChevronLeft, HiChevronRight, HiArrowsUpDown, HiArrowUp, HiArrowDown, HiEllipsisHorizontal } from "react-icons/hi2";
+import { HiArrowsUpDown, HiArrowUp, HiArrowDown, HiEllipsisHorizontal } from "react-icons/hi2";
 import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/utils/export";
 
 interface DataTableProps<T> {
@@ -31,7 +30,6 @@ export function DataTable<T>({
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
-	const [pageSize, setPageSize] = useState(10);
 
 	const table = useReactTable({
 		data,
@@ -47,7 +45,6 @@ export function DataTable<T>({
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
 	});
 
 	const handleExport = (format: "csv" | "excel" | "pdf") => {
@@ -149,48 +146,6 @@ export function DataTable<T>({
 						No records found.
 					</div>
 				)}
-			</div>
-
-			{/* Pagination */}
-			<div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-gray-600">Rows per page:</span>
-					<select
-						value={pageSize}
-						onChange={(e) => {
-							setPageSize(Number(e.target.value));
-							table.setPageSize(Number(e.target.value));
-						}}
-						className="rounded-2xl border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-600"
-					>
-						{[5, 10, 20, 30, 40, 50].map((size) => (
-							<option key={size} value={size}>
-								{size}
-							</option>
-						))}
-					</select>
-				</div>
-
-				<div className="text-sm text-gray-600">
-					Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-				</div>
-
-				<div className="flex items-center gap-2">
-					<button
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
-						className="rounded-2xl border border-gray-300 bg-white px-3 py-1 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						<HiChevronLeft className="h-4 w-4" />
-					</button>
-					<button
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
-						className="rounded-2xl border border-gray-300 bg-white px-3 py-1 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						<HiChevronRight className="h-4 w-4" />
-					</button>
-				</div>
 			</div>
 		</div>
 	);
