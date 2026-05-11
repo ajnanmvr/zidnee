@@ -749,7 +749,7 @@ export const LeadDetailPage = () => {
 			>
 				<div className="space-y-4">
 					<p className="text-sm text-slate-600">
-						Enter the course price (in INR).
+						Enter the price (in INR).
 					</p>
 					<input
 						type="number"
@@ -1117,7 +1117,7 @@ export const LeadDetailPage = () => {
 									<>
 										<div>
 											<p className="text-xs text-gray-600 font-semibold mb-1">
-												Course Price
+												Price
 											</p>
 											<p className="text-2xl font-bold text-gray-900">
 												₹{lead.price}

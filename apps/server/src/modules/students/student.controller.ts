@@ -14,8 +14,6 @@ const toStudentResponse = (
 		mentorId: student.mentorId,
 		counsellorId: student.counsellorId,
 		batchId: student.batchId,
-		courseId: student.courseId,
-		programType: student.programType,
 		batchType: student.batchType,
 		status: student.status,
 		admittedAt: student.admittedAt.toISOString(),

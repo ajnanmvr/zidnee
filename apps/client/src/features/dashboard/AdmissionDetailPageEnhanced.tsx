@@ -7,7 +7,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useBatchesByMentorQuery } from "@/features/batches/batches.queries";
-import { useCoursesQuery } from "@/features/courses/courses.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { useLeadDetailQuery } from "@/features/leads/leads.queries";
 import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
@@ -25,36 +24,29 @@ export const AdmissionDetailPageEnhanced = () => {
 	const navigate = useNavigate();
 	const leadQuery = useLeadDetailQuery(token, leadId ?? "");
 	const usersQuery = useUsersQuery(token);
-	const coursesQuery = useCoursesQuery(token);
 	const confirmAdmissionMutation = useConfirmAdmissionMutation();
 
 	const { control, handleSubmit, setError, reset, setValue, watch } = useForm<
 		ConfirmAdmissionForm & {
-			programType?: "ONLINE_SCHOOL" | "COURSES";
 			batchType?: "1_TO_1" | "GROUP";
 			mentorId?: string;
 			batchId?: string;
-			courseId?: string;
 		}
 	>({
 		defaultValues: {
 			counsellorId: undefined,
-			programType: undefined,
 			batchType: undefined,
 			mentorId: undefined,
 			batchId: undefined,
-			courseId: undefined,
 			note: "",
 		},
 	});
 
 	const selectedMentorId = watch("mentorId");
-	const selectedProgramType = watch("programType");
 	const selectedBatchType = watch("batchType");
 
 	const batchesQuery = useBatchesByMentorQuery(token, selectedMentorId ?? "");
 	const allUsers = usersQuery.data?.users ?? [];
-	const courses = coursesQuery.data?.courses ?? [];
 
 	const mentors = useMemo(
 		() =>
@@ -98,21 +90,19 @@ export const AdmissionDetailPageEnhanced = () => {
 
 	// Auto-select counsellor when mentor is selected
 	useEffect(() => {
-		if (selectedMentorId && selectedProgramType === "ONLINE_SCHOOL") {
+		if (selectedMentorId) {
 			const mentor = allUsers.find((user) => user.id === selectedMentorId);
 			if (mentor?.counsellorId) {
 				setValue("counsellorId", mentor.counsellorId);
 			}
 		}
-	}, [selectedMentorId, selectedProgramType, allUsers, setValue]);
+	}, [selectedMentorId, allUsers, setValue]);
 
 	const onSubmit = async (
 		form: ConfirmAdmissionForm & {
-			programType?: "ONLINE_SCHOOL" | "COURSES";
 			batchType?: "1_TO_1" | "GROUP";
 			mentorId?: string;
 			batchId?: string;
-			courseId?: string;
 		},
 	) => {
 		if (!leadId) {
@@ -121,11 +111,9 @@ export const AdmissionDetailPageEnhanced = () => {
 
 		const validation = ConfirmAdmissionPayloadSchema.safeParse({
 			counsellorId: form.counsellorId,
-			programType: form.programType,
 			batchType: form.batchType,
 			mentorId: form.mentorId,
 			batchId: form.batchId,
-			courseId: form.courseId,
 			note: form.note,
 		});
 
@@ -253,63 +241,10 @@ export const AdmissionDetailPageEnhanced = () => {
 			</div>
 
 			<form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
-				{/* Program Type Selection */}
-				<div className="rounded-2xl border border-gray-300 bg-white p-6">
-					<h3 className="mb-4 text-sm font-semibold text-gray-900">
-						Select Program
+				<div className="space-y-4 rounded-2xl border border-gray-300 bg-white p-6">
+					<h3 className="text-sm font-semibold text-gray-900">
+						Online School Setup
 					</h3>
-					<div className="grid gap-3 md:grid-cols-2">
-						<Controller
-							name="programType"
-							control={control}
-							render={({ field }) => (
-								<button
-									type="button"
-									onClick={() => field.onChange("ONLINE_SCHOOL")}
-									className={`rounded-2xl border-2 p-4 text-left transition ${
-										field.value === "ONLINE_SCHOOL"
-											? "border-blue-600 bg-blue-50"
-											: "border-gray-300 bg-white hover:border-gray-400"
-									}`}
-								>
-									<div className="font-semibold text-gray-900">
-										Online School
-									</div>
-									<div className="text-sm text-gray-600">
-										1-to-1 or Group learning with mentors
-									</div>
-								</button>
-							)}
-						/>
-						<Controller
-							name="programType"
-							control={control}
-							render={({ field }) => (
-								<button
-									type="button"
-									onClick={() => field.onChange("COURSES")}
-									className={`rounded-2xl border-2 p-4 text-left transition ${
-										field.value === "COURSES"
-											? "border-blue-600 bg-blue-50"
-											: "border-gray-300 bg-white hover:border-gray-400"
-									}`}
-								>
-									<div className="font-semibold text-gray-900">Courses</div>
-									<div className="text-sm text-gray-600">
-										Structured course enrollment
-									</div>
-								</button>
-							)}
-						/>
-					</div>
-				</div>
-
-				{/* Online School Workflow */}
-				{selectedProgramType === "ONLINE_SCHOOL" && (
-					<div className="space-y-4 rounded-2xl border border-gray-300 bg-white p-6">
-						<h3 className="text-sm font-semibold text-gray-900">
-							Online School Setup
-						</h3>
 
 						{/* Mentor Selection */}
 						<Controller
@@ -432,45 +367,6 @@ export const AdmissionDetailPageEnhanced = () => {
 							</>
 						)}
 					</div>
-				)}
-
-				{/* Courses Workflow */}
-				{selectedProgramType === "COURSES" && (
-					<div className="space-y-4 rounded-2xl border border-gray-300 bg-white p-6">
-						<h3 className="text-sm font-semibold text-gray-900">
-							Course Enrollment
-						</h3>
-
-						<Controller
-							name="courseId"
-							control={control}
-							render={({ field, fieldState }) => (
-								<label className="grid gap-2 text-sm font-medium text-gray-600">
-									<span>Select Course</span>
-									<select
-										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-										value={field.value ?? ""}
-										onChange={(e) =>
-											field.onChange(e.target.value || undefined)
-										}
-									>
-										<option value="">Choose a course...</option>
-										{courses.map((course) => (
-											<option key={course.id} value={course.id}>
-												{course.name} - Level {course.level}
-											</option>
-										))}
-									</select>
-									{fieldState.error?.message && (
-										<span className="text-xs text-red-600">
-											{fieldState.error.message}
-										</span>
-									)}
-								</label>
-							)}
-						/>
-					</div>
-				)}
 
 				{/* Counsellor Selection */}
 				<div className="rounded-2xl border border-gray-300 bg-white p-6">
@@ -484,8 +380,7 @@ export const AdmissionDetailPageEnhanced = () => {
 									<div className="flex flex-col gap-2">
 										<div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
 											<span className="font-medium text-gray-900">
-												Auto-assigned:{" "}
-												{userNameById.get(mentorCounsellorId ?? "") ?? "-"}
+												Auto-assigned: {userNameById.get(mentorCounsellorId ?? "") ?? "-"}
 											</span>
 											<p className="mt-1 text-xs text-gray-600">
 												The selected mentor already has a counsellor assigned

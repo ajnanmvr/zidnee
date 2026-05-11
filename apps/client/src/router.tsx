@@ -70,11 +70,6 @@ const CreateMentorPage = lazy(() =>
 		default: module.CreateMentorPage,
 	})),
 );
-const CoursesPage = lazy(() =>
-	import("@/features/dashboard/CoursesPage").then((module) => ({
-		default: module.CoursesPage,
-	})),
-);
 const GroupsPage = lazy(() =>
 	import("@/features/dashboard/GroupsPage").then((module) => ({
 		default: module.GroupsPage,
@@ -164,211 +159,203 @@ export const router = createBrowserRouter([
 		element: <RequireAuth />,
 		children: [
 			{
-			element: (
-				<Suspense fallback={routeFallback}>
-					<DashboardLayout />
-				</Suspense>
-			),
+				element: (
+					<Suspense fallback={routeFallback}>
+						<DashboardLayout />
+					</Suspense>
+				),
 				children: [
 					{
 						index: true,
-					element: (
-						<Suspense fallback={routeFallback}>
-							<OverviewPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<OverviewPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "leads",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<LeadsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<LeadsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "admissions",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<AdmissionsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<AdmissionsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "admissions/:leadId",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<AdmissionDetailPageEnhanced />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<AdmissionDetailPageEnhanced />
+							</Suspense>
+						),
 					},
 					{
 						path: "students",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<StudentsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<StudentsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "counsellor/mentors",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CounsellorMentorsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CounsellorMentorsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "counsellor/students",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CounsellorStudentsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CounsellorStudentsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "counsellors",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CounsellorsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CounsellorsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "counsellors/create",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CreateCounsellorPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CreateCounsellorPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "mentors",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<MentorsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MentorsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "mentors/create",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CreateMentorPage />
-						</Suspense>
-					),
-					},
-					{
-						path: "courses",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CoursesPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CreateMentorPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "groups",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<GroupsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<GroupsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "time-slots",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CreateTimeSlotsPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CreateTimeSlotsPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "leads/:leadId",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<LeadDetailPageNew />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<LeadDetailPageNew />
+							</Suspense>
+						),
 					},
 					{
 						path: "leads/:leadId/edit",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<LeadEditPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<LeadEditPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "users",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<UsersPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<UsersPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "users/create",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CreateUserPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CreateUserPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "users/:userId/edit",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<EditUserPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<EditUserPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "roles",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<RolesPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<RolesPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "roles/create",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<CreateRolePage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CreateRolePage />
+							</Suspense>
+						),
 					},
 					{
 						path: "roles/:roleId/edit",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<EditRolePage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<EditRolePage />
+							</Suspense>
+						),
 					},
 					{
 						path: "me",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<MePage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MePage />
+							</Suspense>
+						),
 					},
 					{
 						path: "demo-management/unassigned",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<UnassignedDemosPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<UnassignedDemosPage />
+							</Suspense>
+						),
 					},
 					{
 						path: "demo-management/scheduled",
-					element: (
-						<Suspense fallback={routeFallback}>
-							<ScheduledDemosPage />
-						</Suspense>
-					),
+						element: (
+							<Suspense fallback={routeFallback}>
+								<ScheduledDemosPage />
+							</Suspense>
+						),
 					},
 				],
 			},

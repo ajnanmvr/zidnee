@@ -110,22 +110,17 @@ Lead Created
 
 5. Enrollment
 - studentId
-- courseId
 - batchId
 - mentorId
 
-6. Course
-- name
-- prefix (ZID, ZIG)
-
-7. Batch
+6. Batch
 - name
 - type (GROUP | INDIVIDUAL)
 - level
 - checkpoints
 - mentorId
 
-8. FollowUp
+7. FollowUp
 - entityId
 - type (SALES | COUNSELLOR)
 - lastContactedAt

@@ -21,7 +21,6 @@ import {
 	Sidebar,
 } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
-import { useCoursesQuery } from "@/features/courses/courses.queries";
 import {
 	getLeadStageCounts,
 	type LeadStageId,
@@ -49,7 +48,6 @@ const titles: Record<string, string> = {
 	"/counsellors/create": "Create Counsellor",
 	"/mentors": "Mentors",
 	"/mentors/create": "Create Mentor",
-	"/courses": "Courses",
 	"/time-slots": "Time Slots",
 	"/users": "Users",
 	"/users/create": "Create User",
@@ -71,10 +69,6 @@ const resolveTitle = (pathname: string, search: string): string => {
 
 	if (/^\/mentors\/create$/.test(pathname)) {
 		return "Create Mentor";
-	}
-
-	if (/^\/courses$/.test(pathname)) {
-		return "Courses";
 	}
 
 	if (/^\/time-slots$/.test(pathname)) {
@@ -121,7 +115,6 @@ export const DashboardLayout = () => {
 	const admissionsQuery = useAdmissionLeadsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const coursesQuery = useCoursesQuery(token);
 	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token);
 	const scheduledDemosQuery = useDemoRequestsQuery(token);
@@ -271,15 +264,6 @@ export const DashboardLayout = () => {
 					},
 				]
 			: []),
-		{
-			to: "/courses",
-			label: "Courses",
-			description: "Catalog",
-			icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-			count: coursesQuery.data?.courses.length ?? 0,
-			accent: "rose",
-			section: "Learners",
-		},
 		{
 			to: "/time-slots",
 			label: "Time Slots",

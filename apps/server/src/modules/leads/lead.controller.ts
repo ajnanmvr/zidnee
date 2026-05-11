@@ -458,8 +458,6 @@ export const confirmAdmissionController = async (
 		counsellorId,
 		result.data.mentorId,
 		result.data.batchId,
-		result.data.courseId,
-		result.data.programType,
 		result.data.batchType,
 		req.user.userId,
 		result.data.note,

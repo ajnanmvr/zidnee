@@ -1,7 +1,5 @@
 export * from "./activity.schema.js";
 export * from "./batch.schema.js";
-export * from "./course.schema.js";
-export * from "./enrollment.schema.js";
 export * from "./env.schema.js";
 export * from "./lead.response.schema.js";
 export * from "./lead.schema.js";

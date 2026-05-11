@@ -3,7 +3,6 @@ import type {
 	ChangePasswordPayload,
 	ConfirmAdmissionPayload,
 	CreateCounsellorPayload,
-	CreateCoursePayload,
 	CreateLeadPayload,
 	CreateMentorPayload,
 	CreateRolePayload,
@@ -21,7 +20,6 @@ export type CreateRoleForm = CreateRolePayload;
 export type CreateUserForm = CreateUserPayload;
 export type CreateMentorForm = CreateMentorPayload;
 export type CreateCounsellorForm = CreateCounsellorPayload;
-export type CreateCourseForm = CreateCoursePayload;
 export type CreateTimeSlotForm = CreateTimeSlotPayload;
 export type UpdateRoleForm = UpdateRolePayload;
 export type UpdateUserForm = UpdateUserPayload;

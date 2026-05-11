@@ -97,35 +97,30 @@ Lead Created
 
 ### 5) Enrollment
 - studentId
-- courseId
 - batchId
 - mentorId
 
-### 6) Course
-- name
-- prefix (ZID, ZIG)
-
-### 7) Batch
+### 6) Batch
 - name
 - type (GROUP | INDIVIDUAL)
 - level
 - checkpoints (for example [true, false, false])
 - mentorId
 
-### 8) FollowUp
+### 7) FollowUp
 - entityId (leadId or studentId)
 - type (SALES | COUNSELLOR)
 - lastContactedAt
 - nextFollowUpAt
 - customNextFollowUpAt
 
-### 9) Ticket
+### 8) Ticket
 - studentId
 - createdBy
 - issue
 - status
 
-### 10) Payment
+### 9) Payment
 - studentId
 - enrollmentId
 - amount

@@ -3,14 +3,13 @@ import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 export type StudentDocument = Omit<
 	Student,
-	"id" | "leadId" | "mentorId" | "counsellorId" | "batchId" | "courseId"
+	"id" | "leadId" | "mentorId" | "counsellorId" | "batchId"
 > & {
 	_id: Types.ObjectId;
 	leadId: Types.ObjectId;
 	mentorId?: Types.ObjectId;
 	counsellorId?: Types.ObjectId;
 	batchId?: Types.ObjectId;
-	courseId?: Types.ObjectId;
 	admittedAt: Date;
 };
 
@@ -51,16 +50,6 @@ const studentSchema = new Schema<StudentDocument>(
 		batchId: {
 			type: Schema.Types.ObjectId,
 			ref: "Batch",
-			required: false,
-		},
-		courseId: {
-			type: Schema.Types.ObjectId,
-			ref: "Course",
-			required: false,
-		},
-		programType: {
-			type: String,
-			enum: ["ONLINE_SCHOOL", "COURSES"],
 			required: false,
 		},
 		batchType: {

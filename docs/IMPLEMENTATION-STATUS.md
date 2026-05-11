@@ -163,19 +163,17 @@ Definition of done:
 Notes:
 - Client-side counsellor workspace pages now list mentors assigned to the logged-in counsellor and the students under those mentors.
 
-## Step 6 - Batch + Enrollment + Group/Individual Progress
+## Step 6 - Batch + Group/Individual Progress
 
 Step status: Not Started
 
 Scope:
-- Course, batch, enrollment structure
+- Batch structure
 - Group progress ownership at batch level
 - Optional individual progress simplicity
 
 Checklist:
-- [ ] Add course schema/model
 - [ ] Add batch schema/model with type and checkpoints
-- [ ] Add enrollment schema/model
 - [ ] Implement batch-level progress updates
 - [ ] Keep follow-up responsibilities on student entity
 - [ ] Add frontend batch/enrollment pages
