@@ -24,6 +24,7 @@ export type Permission = z.infer<typeof PermissionSchema>;
 export const RoleSchema = z.object({
 	id: ObjectIdStringSchema,
 	name: z.string().min(1).max(100),
+	type: z.enum(["general", "mentor", "counsellor", "sales"]).default("general"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 	isSystem: z.boolean().default(false), // System roles cannot be deleted
@@ -40,6 +41,9 @@ export const UserSchema = z.object({
 	email: z.email(),
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
+	gender: z.enum(["male", "female"]).optional(),
+	mentorId: z.string().min(1).max(100).optional(),
+	counsellorId: z.string().min(1).max(100).optional(),
 	roleIds: z.array(ObjectIdStringSchema),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
@@ -66,16 +70,40 @@ export const RegisterPayloadSchema = z.object({
 export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
 
 export const CreateUserPayloadSchema = RegisterPayloadSchema.extend({
+	gender: z.enum(["male", "female"]),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
 });
 
 export type CreateUserPayload = z.infer<typeof CreateUserPayloadSchema>;
 
+export const CreateMentorPayloadSchema = z.object({
+	name: z.string().min(1).max(255),
+	username: z.string().min(1).max(100).optional(),
+	gender: z.enum(["male", "female"]),
+	mentorCode: z.string().min(1).max(50).optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
+});
+
+export type CreateMentorPayload = z.infer<typeof CreateMentorPayloadSchema>;
+
+export const CreateCounsellorPayloadSchema = z.object({
+	name: z.string().min(1).max(255),
+	username: z.string().min(1).max(100).optional(),
+	gender: z.enum(["male", "female"]),
+	counsellorCode: z.string().min(1).max(50).optional(),
+});
+
+export type CreateCounsellorPayload = z.infer<
+	typeof CreateCounsellorPayloadSchema
+>;
+
 export const UpdateUserPayloadSchema = z.object({
 	username: z.string().min(1).max(100).optional(),
 	email: z.email().optional(),
 	name: z.string().min(1).max(255).optional(),
+	gender: z.enum(["male", "female"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
 });
 
 export type UpdateUserPayload = z.infer<typeof UpdateUserPayloadSchema>;
@@ -132,6 +160,7 @@ export type PermissionCheck = z.infer<typeof PermissionCheckSchema>;
 // Role Management Payloads
 export const CreateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100),
+	type: z.enum(["general", "mentor", "counsellor", "sales"]).default("general"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 });
@@ -140,6 +169,7 @@ export type CreateRolePayload = z.infer<typeof CreateRolePayloadSchema>;
 
 export const UpdateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100).optional(),
+	type: z.enum(["general", "mentor", "counsellor", "sales"]).optional(),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema).optional(),
 });

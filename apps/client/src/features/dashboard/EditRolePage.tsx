@@ -1,10 +1,15 @@
-import { UpdateRolePayloadSchema } from "@repo/schema";
+﻿import { UpdateRolePayloadSchema } from "@repo/schema";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { HiCheckCircle, HiShieldCheck } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { Field, Panel, TextAreaField } from "@/components/dashboard-ui";
+import {
+	Field,
+	Panel,
+	SelectField,
+	TextAreaField,
+} from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUpdateRoleMutation } from "@/features/roles/use-role-management-mutations";
@@ -22,6 +27,7 @@ export const EditRolePage = () => {
 		useForm<UpdateRoleForm>({
 			defaultValues: {
 				name: "",
+				type: "general",
 				description: "",
 				permissionIds: [],
 			},
@@ -42,6 +48,7 @@ export const EditRolePage = () => {
 
 		reset({
 			name: role.name,
+			type: role.type ?? "general",
 			description: role.description ?? "",
 			permissionIds: role.permissionIds,
 		});
@@ -56,6 +63,7 @@ export const EditRolePage = () => {
 
 		const validation = UpdateRolePayloadSchema.safeParse({
 			name: form.name,
+			type: form.type || undefined,
 			description: form.description || undefined,
 			permissionIds: form.permissionIds,
 		});
@@ -135,13 +143,13 @@ export const EditRolePage = () => {
 				action={
 					<Link
 						to="/roles"
-						className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Back
 					</Link>
 				}
 			>
-				<p className="text-sm text-ink-soft">Role not found.</p>
+				<p className="text-sm text-gray-600">Role not found.</p>
 			</Panel>
 		);
 	}
@@ -153,7 +161,7 @@ export const EditRolePage = () => {
 			action={
 				<Link
 					to="/roles"
-					className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+					className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 				>
 					<HiShieldCheck className="h-4 w-4" aria-hidden="true" />
 					Back to roles
@@ -175,20 +183,39 @@ export const EditRolePage = () => {
 						)}
 					/>
 					<Controller
-						name="description"
+						name="type"
 						control={control}
 						render={({ field, fieldState }) => (
-							<TextAreaField
-								label="Description"
-								value={field.value ?? ""}
+							<SelectField
+								label="Role Type"
+								value={field.value ?? "general"}
 								onChange={field.onChange}
+								options={[
+									{ value: "general", label: "General" },
+									{ value: "mentor", label: "Mentor" },
+									{ value: "counsellor", label: "Counsellor" },
+									{ value: "sales", label: "Sales" },
+								]}
 								error={fieldState.error?.message}
 							/>
 						)}
 					/>
 				</div>
 
-				<div className="mt-4 grid gap-2 text-sm font-medium text-ink-soft">
+				<Controller
+					name="description"
+					control={control}
+					render={({ field, fieldState }) => (
+						<TextAreaField
+							label="Description"
+							value={field.value ?? ""}
+							onChange={field.onChange}
+							error={fieldState.error?.message}
+						/>
+					)}
+				/>
+
+				<div className="mt-4 grid gap-2 text-sm font-medium text-gray-600">
 					<span>Permissions</span>
 					<div className="flex flex-wrap gap-2">
 						{permissionsQuery.data?.permissions.map((permission) => {
@@ -199,8 +226,8 @@ export const EditRolePage = () => {
 									key={permission.id}
 									className={
 										selected
-											? "rounded-full border border-brand bg-brand-soft px-3 py-2 text-xs font-semibold text-brand"
-											: "rounded-full border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-soft"
+											? "rounded-full border border-blue-600 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-600"
+											: "rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600"
 									}
 									onClick={() => {
 										const nextPermissionIds = selected
@@ -221,7 +248,7 @@ export const EditRolePage = () => {
 						})}
 					</div>
 					{formState.errors.permissionIds?.message ? (
-						<p className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+						<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
 							{formState.errors.permissionIds.message}
 						</p>
 					) : null}
@@ -230,7 +257,7 @@ export const EditRolePage = () => {
 				<div className="mt-5 flex gap-2">
 					<button
 						type="submit"
-						className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-surface"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 						disabled={updateRoleMutation.isPending}
 					>
 						<HiCheckCircle className="h-4 w-4" aria-hidden="true" />
@@ -238,7 +265,7 @@ export const EditRolePage = () => {
 					</button>
 					<Link
 						to="/roles"
-						className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-ink"
+						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Cancel
 					</Link>
@@ -246,7 +273,7 @@ export const EditRolePage = () => {
 			</form>
 
 			{banner ? (
-				<p className="mt-4 rounded-2xl border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-brand">
+				<p className="mt-4 rounded-2xl border border-blue-600/15 bg-blue-100 px-4 py-3 text-sm text-blue-600">
 					{banner}
 				</p>
 			) : null}

@@ -1,8 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/api/users"
-method: GET
-auth:
-  type: bearer
-  credentials:
-    token: "{{authToken}}"
-order: 1000

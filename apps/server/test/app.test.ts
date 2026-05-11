@@ -66,4 +66,64 @@ describe("app routes", () => {
 		expect(createResponse.body.username).toBe("newuser");
 		expect(createResponse.body.email).toBe("newuser@example.com");
 	});
+
+	it("creates lead with phone only and supports postpone from follow-up list", async () => {
+		const loginResponse = await request(app).post("/api/auth/login").send({
+			username: "admin",
+			password: "123456",
+		});
+
+		expect(loginResponse.status).toBe(200);
+
+		const createResponse = await request(app)
+			.post("/api/leads")
+			.set("Authorization", `Bearer ${loginResponse.body.token}`)
+			.send({
+				phone: "+919876543210",
+			});
+
+		expect(createResponse.status).toBe(201);
+		expect(createResponse.body.ok).toBe(true);
+		expect(createResponse.body.lead.phone).toBe("+919876543210");
+
+		const leadId = createResponse.body.lead.id as string;
+
+		const dueResponseBeforePostpone = await request(app)
+			.get("/api/leads/follow-ups/due")
+			.set("Authorization", `Bearer ${loginResponse.body.token}`);
+
+		expect(dueResponseBeforePostpone.status).toBe(200);
+		expect(dueResponseBeforePostpone.body.ok).toBe(true);
+		expect(
+			dueResponseBeforePostpone.body.leads.some(
+				(lead: { id?: string }) => lead.id === leadId,
+			),
+		).toBe(true);
+
+		const postponeTo = new Date(
+			Date.now() + 3 * 24 * 60 * 60 * 1000,
+		).toISOString();
+		const postponeResponse = await request(app)
+			.patch(`/api/leads/${leadId}/follow-up/postpone`)
+			.set("Authorization", `Bearer ${loginResponse.body.token}`)
+			.send({
+				customNextFollowUpAt: postponeTo,
+			});
+
+		expect(postponeResponse.status).toBe(200);
+		expect(postponeResponse.body.ok).toBe(true);
+		expect(postponeResponse.body.lead.customNextFollowUpAt).toBe(postponeTo);
+
+		const dueResponseAfterPostpone = await request(app)
+			.get("/api/leads/follow-ups/due")
+			.set("Authorization", `Bearer ${loginResponse.body.token}`);
+
+		expect(dueResponseAfterPostpone.status).toBe(200);
+		expect(dueResponseAfterPostpone.body.ok).toBe(true);
+		expect(
+			dueResponseAfterPostpone.body.leads.some(
+				(lead: { id?: string }) => lead.id === leadId,
+			),
+		).toBe(false);
+	});
 });

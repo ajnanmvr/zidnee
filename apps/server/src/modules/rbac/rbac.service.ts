@@ -75,6 +75,7 @@ const toRole = (doc: RoleDocument): Role => {
 	return {
 		id: doc._id.toString(),
 		name: doc.name,
+		type: doc.type ?? "general",
 		description: doc.description,
 		permissionIds: doc.permissionIds,
 		isSystem: doc.isSystem,
@@ -90,6 +91,8 @@ const toUser = (doc: UserDocument): User => {
 		email: doc.email,
 		password: doc.password,
 		name: doc.name,
+		mentorId: doc.mentorId,
+		counsellorId: doc.counsellorId,
 		roleIds: doc.roleIds,
 		isActive: doc.isActive,
 		createdAt: doc.createdAt,
@@ -280,6 +283,7 @@ export const RoleService = {
 		await initializeDefaults();
 		const created = await RoleModel.create({
 			name: role.name,
+			type: role.type ?? "general",
 			description: role.description,
 			permissionIds: role.permissionIds,
 			isSystem: role.isSystem,
@@ -329,6 +333,7 @@ export const RoleService = {
 			{
 				$set: {
 					name: data.name,
+					type: data.type,
 					description: data.description,
 					permissionIds: data.permissionIds,
 				},
@@ -361,6 +366,8 @@ export const UserService = {
 			email: user.email,
 			password: user.password,
 			name: user.name,
+			mentorId: user.mentorId,
+			counsellorId: user.counsellorId,
 			roleIds: user.roleIds,
 			isActive: user.isActive,
 		});
@@ -403,6 +410,8 @@ export const UserService = {
 					email: data.email,
 					password: data.password,
 					name: data.name,
+					mentorId: data.mentorId,
+					counsellorId: data.counsellorId,
 					roleIds: data.roleIds,
 					isActive: data.isActive,
 				},

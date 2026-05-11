@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
 import {
 	AdminChangePasswordPayloadSchema,
 	ChangePasswordPayloadSchema,
+	CreateCounsellorPayloadSchema,
+	CreateMentorPayloadSchema,
 	CreateUserPayloadSchema,
 	SetUserStatusPayloadSchema,
 	UpdateUserPayloadSchema,
@@ -19,6 +22,10 @@ import {
 	RoleService,
 	UserService,
 } from "../rbac/rbac.service.js";
+import {
+	buildSequentialIdentity,
+	USER_IDENTITY_PREFIXES,
+} from "./user.identity.js";
 
 const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 	for (const roleId of roleIds) {
@@ -28,6 +35,29 @@ const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 			});
 		}
 	}
+};
+
+const findRoleByName = async (roleName: string) => {
+	return (
+		(await RoleService.findAll()).find((role) => role.name === roleName) ?? null
+	);
+};
+
+const findRoleByType = async (
+	roleType: "general" | "mentor" | "counsellor" | "sales",
+) => {
+	return (
+		(await RoleService.findAll()).find((role) => role.type === roleType) ?? null
+	);
+};
+
+const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
+	const users = await UserService.findAll();
+	const existingIds = users.map((user) =>
+		kind === "mentor" ? user.mentorId : user.counsellorId,
+	);
+
+	return buildSequentialIdentity(USER_IDENTITY_PREFIXES[kind], existingIds);
 };
 
 export const createUserController = async (
@@ -73,7 +103,121 @@ export const createUserController = async (
 		email: result.data.email,
 		password,
 		name: result.data.name,
+		gender: result.data.gender,
 		roleIds,
+		isActive: true,
+	});
+
+	res.status(201).json({
+		ok: true,
+		...(await getUserWithRelations(createdUser)),
+	});
+};
+
+export const createMentorController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const result = CreateMentorPayloadSchema.safeParse(req.body);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	if (result.data.username) {
+		const existingByUsername = await UserService.findByUsername(
+			result.data.username,
+		);
+		if (existingByUsername) {
+			throw new ConflictError("Username already in use");
+		}
+	}
+
+	const mentorRole = await findRoleByType("mentor");
+	if (!mentorRole) {
+		throw new NotFoundError("Mentor role");
+	}
+
+	if (result.data.counsellorId) {
+		const counsellor = await UserService.findById(result.data.counsellorId);
+		if (!counsellor) {
+			throw new NotFoundError("Counsellor");
+		}
+
+		const counsellorRole = await findRoleByType("counsellor");
+
+		const isCounsellor = counsellorRole
+			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
+			: false;
+		if (!isCounsellor) {
+			throw new ValidationError({
+				counsellorId: ["Selected user is not a counsellor"],
+			});
+		}
+	}
+
+	const mentorId = await nextIdentity("mentor");
+	const username = result.data.username || mentorId;
+	const email = `${username}@zidnee.local`;
+	const password = randomUUID();
+
+	const hashedPassword = await hashPassword(password);
+	const createdUser = await UserService.create({
+		username,
+		email,
+		password: hashedPassword,
+		name: result.data.name,
+		gender: result.data.gender,
+		mentorId,
+		counsellorId: result.data.counsellorId,
+		roleIds: [mentorRole.id],
+		isActive: true,
+	});
+
+	res.status(201).json({
+		ok: true,
+		...(await getUserWithRelations(createdUser)),
+	});
+};
+
+export const createCounsellorController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const result = CreateCounsellorPayloadSchema.safeParse(req.body);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	if (result.data.username) {
+		const existingByUsername = await UserService.findByUsername(
+			result.data.username,
+		);
+		if (existingByUsername) {
+			throw new ConflictError("Username already in use");
+		}
+	}
+
+	const counsellorRole = await findRoleByType("counsellor");
+	if (!counsellorRole) {
+		throw new NotFoundError("Counsellor role");
+	}
+
+	const counsellorId = await nextIdentity("counsellor");
+	const username = result.data.username || counsellorId;
+	const email = `${username}@zidnee.local`;
+	const password = randomUUID();
+
+	const hashedPassword = await hashPassword(password);
+	const createdUser = await UserService.create({
+		username,
+		email,
+		password: hashedPassword,
+		name: result.data.name,
+		gender: result.data.gender,
+		counsellorId,
+		roleIds: [counsellorRole.id],
 		isActive: true,
 	});
 
@@ -151,11 +295,41 @@ export const updateUserController = async (
 		await ensureRoleIdsExist(result.data.roleIds);
 	}
 
+	if (result.data.counsellorId) {
+		const counsellor = await UserService.findById(result.data.counsellorId);
+		if (!counsellor) {
+			throw new NotFoundError("Counsellor");
+		}
+
+		const counsellorRole = await findRoleByType("counsellor");
+		const isCounsellor = counsellorRole
+			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
+			: false;
+		if (!isCounsellor) {
+			throw new ValidationError({
+				counsellorId: ["Selected user is not a counsellor"],
+			});
+		}
+
+		const mentorRole = await findRoleByType("mentor");
+		const isMentor = mentorRole
+			? (result.data.roleIds ?? existingUser.roleIds).some(
+					(roleId) => roleId === mentorRole.id,
+				)
+			: false;
+		if (!isMentor) {
+			throw new ValidationError({
+				counsellorId: ["Counsellor can only be assigned to mentor accounts"],
+			});
+		}
+	}
+
 	const updatedUser = await UserService.update(userId, {
 		username: result.data.username,
 		email: result.data.email,
 		name: result.data.name,
 		roleIds: result.data.roleIds,
+		counsellorId: result.data.counsellorId,
 	});
 
 	if (!updatedUser) {

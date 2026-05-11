@@ -1,6 +1,8 @@
 import { type ApiErrorResponse, ApiErrorResponseSchema } from "@repo/schema";
 import axios from "axios";
 import { api } from "@/api/client";
+import { queryClient } from "@/lib/query-client";
+import { useSessionStore } from "@/lib/stores/session.store";
 
 type Validator<T> = {
 	safeParse: (
@@ -28,6 +30,38 @@ const authHeaders = (token: string) => ({
 	Authorization: `Bearer ${token}`,
 });
 
+const isSessionFailure = (
+	path: string,
+	status: number,
+	payload: ApiErrorResponse,
+): boolean => {
+	if (status === 401 || status === 403) {
+		return true;
+	}
+
+	const message = payload.message?.toLowerCase() ?? "";
+	if (path === "/auth/me" && status === 404) {
+		return true;
+	}
+
+	return (
+		message.includes("token") ||
+		message.includes("not authenticated") ||
+		message.includes("user not found") ||
+		message.includes("invalid session")
+	);
+};
+
+const handleSessionFailure = () => {
+	const { token, clearToken } = useSessionStore.getState();
+	if (!token) {
+		return;
+	}
+
+	clearToken();
+	queryClient.clear();
+};
+
 export const requestWithSchema = async <T>(
 	path: string,
 	schema: Validator<T>,
@@ -50,9 +84,13 @@ export const requestWithSchema = async <T>(
 		if (axios.isAxiosError(error)) {
 			const status = error.response?.status ?? 500;
 			const apiError = ApiErrorResponseSchema.safeParse(error.response?.data);
+			const payload = apiError.success ? apiError.data : {};
+			if (isSessionFailure(path, status, payload)) {
+				handleSessionFailure();
+			}
 			throw new ApiError(
 				status,
-				apiError.success ? apiError.data : {},
+				payload,
 				apiError.success ? apiError.data.message : error.message,
 			);
 		}
@@ -62,6 +100,12 @@ export const requestWithSchema = async <T>(
 
 	const parsed = schema.safeParse(raw);
 	if (!parsed.success) {
+		console.error(
+			"Response validation failed. Expected schema:",
+			schema,
+			"Received:",
+			raw,
+		);
 		throw new Error("Response validation failed");
 	}
 

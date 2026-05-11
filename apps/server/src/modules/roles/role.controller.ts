@@ -42,6 +42,7 @@ export const createRoleController = async (
 
 	const role = await RoleService.create({
 		name: result.data.name,
+		type: result.data.type ?? "general",
 		description: result.data.description,
 		permissionIds: result.data.permissionIds,
 		isSystem: false,

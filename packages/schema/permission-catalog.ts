@@ -53,6 +53,36 @@ export const PERMISSION_CATALOG = {
 		resource: "permissions",
 		action: "read",
 	},
+	LEAD_CREATE: {
+		name: "Create Lead",
+		description: "Create a new lead",
+		resource: "leads",
+		action: "create",
+	},
+	LEAD_READ: {
+		name: "Read Lead",
+		description: "Read lead information",
+		resource: "leads",
+		action: "read",
+	},
+	LEAD_UPDATE: {
+		name: "Update Lead",
+		description: "Update lead information",
+		resource: "leads",
+		action: "update",
+	},
+	LEAD_DELETE: {
+		name: "Delete Lead",
+		description: "Delete lead information",
+		resource: "leads",
+		action: "delete",
+	},
+	STUDENT_READ: {
+		name: "Read Student",
+		description: "Read student information",
+		resource: "students",
+		action: "read",
+	},
 	ORDER_DELETE: {
 		name: "Delete Order",
 		description: "Delete order records",

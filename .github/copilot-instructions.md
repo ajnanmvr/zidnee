@@ -16,6 +16,231 @@ Who should be contacted right now?
 
 Every feature must support this.
 
+## Master Plan (Authoritative Reference)
+
+This section is the current blueprint and should be treated as the primary execution reference for new module design.
+If any older section in this file conflicts with the items below, prefer this section.
+
+### System Purpose
+
+Zidnee is a CRM + Student Lifecycle + Operations Management system.
+
+It manages:
+- Lead to conversion
+- Optional demo
+- Student onboarding
+- Counsellor operations
+- Follow-ups (core engine)
+- Group and individual learning tracking
+- Payment tracking
+
+### Complete Flow
+
+Lead Created
+-> Assigned to Sales
+-> Follow-up Loop
+-> (Optional Demo)
+-> Sales Decision
+-> Send Form Link
+-> Student Submits Form
+-> Student Created (ZID Generated)
+-> Counsellor Assigned
+-> Counsellor Follow-up Loop
+-> Inactive/Leave Handling
+-> Batch Progress Tracking
+-> Completion / Dropout
+
+### Core Concepts
+
+- Lead = potential student
+- Student = converted lead
+- Enrollment = what they joined
+- ZID = student identity
+- FollowUp = system engine
+- Batch = group learning
+- Counsellor = lifecycle owner
+
+### Roles
+
+- Admin
+- Sales
+- Demo Team
+- Counsellor
+- Mentor
+
+### Target Data Model Set
+
+1. User
+- name
+- email
+- password
+- role
+
+2. Lead
+- name
+- phone
+- level
+- status
+- assignedTo
+- demoRequired
+- formSent
+- formCompleted
+- lastContactedAt
+- nextFollowUpAt
+- customNextFollowUpAt
+
+3. DemoSession (optional)
+- leadId
+- mentorId
+- status
+- attemptNumber
+
+4. Student
+- zid
+- name
+- phone
+- age
+- level
+- isActive
+- inactiveFrom
+- inactiveUntil
+- counsellorId
+- batchId
+- status (ACTIVE | COMPLETED | DROPPED)
+
+5. Enrollment
+- studentId
+- courseId
+- batchId
+- mentorId
+
+6. Course
+- name
+- prefix (ZID, ZIG)
+
+7. Batch
+- name
+- type (GROUP | INDIVIDUAL)
+- level
+- checkpoints
+- mentorId
+
+8. FollowUp
+- entityId
+- type (SALES | COUNSELLOR)
+- lastContactedAt
+- nextFollowUpAt
+- customNextFollowUpAt
+
+9. Ticket
+- studentId
+- createdBy
+- issue
+- status
+
+10. Payment
+- studentId
+- enrollmentId
+- amount
+- date
+- method
+
+### ZID Rules
+
+- Format: [PREFIX][NUMBER]
+- Example: ZID11, ZIG11
+- Sequence per prefix
+- Starts from 11
+- Never changes
+
+### Follow-up Engine Rules
+
+Fields:
+- lastContactedAt
+- nextFollowUpAt
+- customNextFollowUpAt
+
+Date logic:
+- If customNextFollowUpAt exists, use it.
+- Otherwise use auto schedule.
+
+Auto schedule:
+- 1 to 3: +1 day
+- 4 to 6: +2 days
+- 7 to 10: +7 days
+- above 10: +30 days
+
+Visibility:
+- nextFollowUpAt <= now
+- OR customNextFollowUpAt <= now
+
+### Form System
+
+- Route: /form/:leadId
+- Flow: sales sends link -> student fills -> student created -> ZID generated -> counsellor assigned
+
+### Inactive / Leave
+
+- Student fields: isActive, inactiveFrom, inactiveUntil
+- Hidden when inactive
+- Reappears when inactiveUntil <= now
+
+### Group vs Individual
+
+- Group progress tracked at Batch level
+- Individual progress can be tracked per student (simple)
+- Rule: Progress = Batch, Follow-up = Student
+
+### Demo System
+
+- lead.demoRequired controls demo path
+- true -> demo flow
+- false -> direct form flow
+
+### Payment Tracking
+
+- Keep simple: record payments only
+- No complex billing engine
+- Track: totalPaid, pending, history
+
+### Dashboard Logic
+
+Sales dashboard:
+- assignedTo = sales
+- and follow-up due now
+
+Counsellor dashboard:
+- assignedTo = counsellor
+- and (follow-up due or inactiveUntil <= now)
+
+### Development Order (Strict)
+
+Phase 1:
+- Auth
+- Lead
+- Follow-up engine
+
+Phase 2:
+- Form system
+- Student + ZID
+
+Phase 3:
+- Counsellor system
+
+Phase 4:
+- Batch + group logic
+
+Phase 5:
+- Tickets + payments
+
+### Guardrails
+
+- No over-modeling
+- No separate reminder system
+- No complex scheduling engine
+- Keep logic follow-up driven
+- Build feature by feature
+
 ## Core Lifecycle
 
 Lead

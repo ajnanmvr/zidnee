@@ -1,57 +1,10 @@
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useMemo,
-	useState,
-} from "react";
+﻿import type { ReactNode } from "react";
 
-const storageKey = "zidnee.authToken";
+// Zustand-based session store (replaces React Context)
+export { useSessionStore as useSession } from "./stores/session.store.js";
 
-type SessionContextValue = {
-	token: string;
-	setToken: (token: string) => void;
-	clearToken: () => void;
-};
-
-const SessionContext = createContext<SessionContextValue | null>(null);
-
-const readStoredToken = (): string => {
-	if (typeof window === "undefined") {
-		return "";
-	}
-
-	return window.localStorage.getItem(storageKey) ?? "";
-};
-
+// SessionProvider is now a no-op wrapper for backward compatibility
+// Zustand doesn't require a context provider for state management
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
-	const [token, setTokenState] = useState(readStoredToken);
-
-	const value = useMemo<SessionContextValue>(
-		() => ({
-			token,
-			setToken: (nextToken: string) => {
-				window.localStorage.setItem(storageKey, nextToken);
-				setTokenState(nextToken);
-			},
-			clearToken: () => {
-				window.localStorage.removeItem(storageKey);
-				setTokenState("");
-			},
-		}),
-		[token],
-	);
-
-	return (
-		<SessionContext.Provider value={value}>{children}</SessionContext.Provider>
-	);
-};
-
-export const useSession = (): SessionContextValue => {
-	const context = useContext(SessionContext);
-	if (!context) {
-		throw new Error("useSession must be used inside SessionProvider");
-	}
-
-	return context;
+	return children;
 };

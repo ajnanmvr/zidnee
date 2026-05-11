@@ -9,6 +9,8 @@ import {
 	assignRoleController,
 	changeMyPasswordController,
 	changeUserPasswordController,
+	createCounsellorController,
+	createMentorController,
 	createUserController,
 	deleteUserController,
 	getUserController,
@@ -26,6 +28,16 @@ router.post(
 	"/",
 	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
 	asyncHandler(createUserController),
+);
+router.post(
+	"/counsellors",
+	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
+	asyncHandler(createCounsellorController),
+);
+router.post(
+	"/mentors",
+	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
+	asyncHandler(createMentorController),
 );
 router.get(
 	"/",
