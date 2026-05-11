@@ -19,3 +19,5 @@ Thumbs.db
 
 # Biome / Linter caches
 .biome/
+# Turborepo
+.turbo
