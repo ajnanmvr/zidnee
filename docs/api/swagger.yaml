@@ -1,0 +1,918 @@
+openapi: 3.0.0
+info:
+  title: Zidnee API Documentation
+  version: 1.0.0
+  description: CRM + Student Lifecycle + Follow-up Automation platform API
+  contact:
+    name: Zidnee Team
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.zidnee.com
+    description: Production server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+      required:
+        - message
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Lead:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        level:
+          type: string
+        status:
+          type: string
+          enum:
+            - NEW
+            - CONTACTED
+            - DEMO_REQUESTED
+            - FORM_SENT
+            - FORM_COMPLETED
+            - CONVERTED
+            - REJECTED
+        assignedTo:
+          type: string
+        demoRequired:
+          type: boolean
+        formSent:
+          type: boolean
+        formCompleted:
+          type: boolean
+        lastContactedAt:
+          type: string
+          format: date-time
+        nextFollowUpAt:
+          type: string
+          format: date-time
+        customNextFollowUpAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Student:
+      type: object
+      properties:
+        _id:
+          type: string
+        zid:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        age:
+          type: number
+        level:
+          type: string
+        isActive:
+          type: boolean
+        inactiveFrom:
+          type: string
+          format: date-time
+        inactiveUntil:
+          type: string
+          format: date-time
+        counsellorId:
+          type: string
+        batchId:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - COMPLETED
+            - DROPPED
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+security:
+  - bearerAuth: []
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate a user with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get the currently authenticated user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/export/swagger-json:
+    get:
+      tags:
+        - Export
+      summary: Download Swagger spec (JSON)
+      description: Download OpenAPI specification as JSON file for importing into API testing tools
+      responses:
+        '200':
+          description: Swagger JSON file
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/export/swagger-yaml:
+    get:
+      tags:
+        - Export
+      summary: Download Swagger spec (YAML)
+      description: Download OpenAPI specification as YAML file for importing into API testing tools
+      responses:
+        '200':
+          description: Swagger YAML file
+          content:
+            application/x-yaml:
+              schema:
+                type: object
+  /api/leads:
+    post:
+      tags:
+        - Leads
+      summary: Create a new lead
+      description: Create a new lead (requires LEAD_CREATE permission)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                level:
+                  type: string
+                demoRequired:
+                  type: boolean
+              required:
+                - name
+                - phone
+                - level
+      responses:
+        '201':
+          description: Lead created successfully
+    get:
+      tags:
+        - Leads
+      summary: List all leads
+      description: Retrieve a paginated list of leads (requires LEAD_READ permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of leads
+  /api/leads/for-demo:
+    get:
+      tags:
+        - Leads
+      summary: List pending demo leads
+      description: Get leads pending demo assignment
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of leads pending demo
+  /api/leads/demo-requests:
+    get:
+      tags:
+        - Leads
+      summary: List demo requests
+      description: Get all demo requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of demo requests
+  /api/leads/admissions:
+    get:
+      tags:
+        - Leads
+      summary: List admission leads
+      description: Get leads in admission stage
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of admission leads
+  /api/leads/{leadId}:
+    get:
+      tags:
+        - Leads
+      summary: Get lead by ID
+      description: Retrieve a specific lead by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Lead details
+    patch:
+      tags:
+        - Leads
+      summary: Update lead
+      description: Update lead information
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Lead updated successfully
+    delete:
+      tags:
+        - Leads
+      summary: Delete lead
+      description: Delete a lead (requires LEAD_DELETE permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: Lead deleted successfully
+  /api/leads/{leadId}/follow-up/postpone:
+    patch:
+      tags:
+        - Leads
+      summary: Postpone follow-up
+      description: Postpone the next follow-up date for a lead
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nextFollowUpAt:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Follow-up postponed successfully
+  /api/leads/{leadId}/demo/request:
+    patch:
+      tags:
+        - Leads
+      summary: Request demo for lead
+      description: Request a demo session for a lead
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Demo requested successfully
+  /api/leads/{leadId}/form-link:
+    post:
+      tags:
+        - Leads
+      summary: Generate form link
+      description: Generate a form submission link for a lead
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Form link generated
+  /api/leads/{leadId}/activities:
+    get:
+      tags:
+        - Leads
+      summary: Get lead activities
+      description: Get activity log for a lead
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Lead activities
+  /form/{leadId}/submit:
+    post:
+      tags:
+        - Lead Forms
+      summary: Submit lead form
+      description: Submit lead form (public endpoint)
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Form submitted successfully
+  /form/{leadId}/validate:
+    get:
+      tags:
+        - Lead Forms
+      summary: Validate form link
+      description: Validate if a form link is valid (public endpoint)
+      parameters:
+        - in: path
+          name: leadId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Form link is valid
+  /api/permissions:
+    get:
+      tags:
+        - Permissions
+      summary: List all permissions
+      description: Retrieve all available permissions in the system
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of permissions
+  /api/permissions/{permissionId}:
+    get:
+      tags:
+        - Permissions
+      summary: Get permission by ID
+      description: Retrieve a specific permission
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: permissionId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Permission details
+  /api/roles:
+    post:
+      tags:
+        - Roles
+      summary: Create a new role
+      description: Create a new role with permissions (requires ROLE_CREATE permission)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Role created
+    get:
+      tags:
+        - Roles
+      summary: List all roles
+      description: Retrieve all roles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of roles
+  /api/roles/{roleId}:
+    get:
+      tags:
+        - Roles
+      summary: Get role by ID
+      description: Retrieve a specific role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: roleId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Role details
+    patch:
+      tags:
+        - Roles
+      summary: Update role
+      description: Update role information
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: roleId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Role updated
+    delete:
+      tags:
+        - Roles
+      summary: Delete role
+      description: Delete a role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: roleId
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: Role deleted
+  /api/students:
+    get:
+      tags:
+        - Students
+      summary: List all students
+      description: Retrieve a paginated list of students (requires STUDENT_READ permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - COMPLETED
+              - DROPPED
+      responses:
+        '200':
+          description: List of students with ZID, name, level, and status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+  /api/form/options/time-slots:
+    get:
+      tags:
+        - Time Slots
+      summary: Get available time slots (public)
+      description: Retrieve available time slots for form options (public endpoint)
+      responses:
+        '200':
+          description: List of available time slots
+  /api/time-slots:
+    post:
+      tags:
+        - Time Slots
+      summary: Create time slot
+      description: Create a new time slot
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                day:
+                  type: string
+                startTime:
+                  type: string
+                endTime:
+                  type: string
+      responses:
+        '201':
+          description: Time slot created
+    get:
+      tags:
+        - Time Slots
+      summary: List time slots
+      description: Retrieve all time slots
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of time slots
+  /api/time-slots/{id}:
+    patch:
+      tags:
+        - Time Slots
+      summary: Update time slot
+      description: Update a time slot
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Time slot updated
+    delete:
+      tags:
+        - Time Slots
+      summary: Delete time slot
+      description: Delete a time slot
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: Time slot deleted
+  /api/users:
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      description: Create a new user (requires USER_CREATE permission)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                roleId:
+                  type: string
+      responses:
+        '201':
+          description: User created
+    get:
+      tags:
+        - Users
+      summary: List all users
+      description: Retrieve all users (requires USER_READ permission)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users
+  /api/users/me/password:
+    patch:
+      tags:
+        - Users
+      summary: Change own password
+      description: Change the current user's password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password changed successfully
+  /api/users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: Retrieve a specific user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: User details
+    patch:
+      tags:
+        - Users
+      summary: Update user
+      description: Update user information
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User updated
+    delete:
+      tags:
+        - Users
+      summary: Delete user
+      description: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: User deleted
+  /api/users/{userId}/status:
+    patch:
+      tags:
+        - Users
+      summary: Set user status
+      description: Set user active/inactive status
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Status updated
+  /api/users/{userId}/password:
+    patch:
+      tags:
+        - Users
+      summary: Change user password
+      description: Change another user's password (requires USER_UPDATE permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password updated
+  /api/users/{userId}/roles:
+    post:
+      tags:
+        - Users
+      summary: Assign role to user
+      description: Assign a role to a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roleId:
+                  type: string
+      responses:
+        '200':
+          description: Role assigned
+    delete:
+      tags:
+        - Users
+      summary: Remove role from user
+      description: Remove a role from a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Role removed
+tags: []

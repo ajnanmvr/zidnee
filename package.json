@@ -19,11 +19,18 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.11",
+		"@types/js-yaml": "^4.0.9",
+		"@types/swagger-ui-express": "^4.1.8",
 		"turbo": "^2.9.6",
 		"typescript": "5.9.2"
 	},
 	"packageManager": "pnpm@9.0.0",
 	"engines": {
 		"node": ">=18"
+	},
+	"dependencies": {
+		"js-yaml": "^4.1.1",
+		"swagger-jsdoc": "^6.2.8",
+		"swagger-ui-express": "^5.0.1"
 	}
 }

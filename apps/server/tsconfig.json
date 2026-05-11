@@ -3,7 +3,7 @@
 	"extends": "@repo/typescript-config/node.json",
 	"compilerOptions": {
 		"outDir": "./dist",
-		"rootDir": "./src",
+		"rootDir": ".",
 		"types": ["node"],
 		"ignoreDeprecations": "6.0",
 		"baseUrl": "./src",
@@ -11,6 +11,6 @@
 			"@/*": ["*"]
 		}
 	},
-	"include": ["src/**/*.ts"],
+	"include": ["src/**/*.ts", "scripts/**/*.ts"],
 	"exclude": ["dist", "node_modules"]
 }

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authRoutes from "../modules/auth/auth.routes.js";
+import exportRoutes from "../modules/export/export.routes.js";
 import leadRoutes from "../modules/leads/lead.routes.js";
 import permissionRoutes from "../modules/permissions/permission.routes.js";
 import roleRoutes from "../modules/roles/role.routes.js";
@@ -16,5 +17,6 @@ router.use("/users", userRoutes);
 router.use("/leads", leadRoutes);
 router.use("/students", studentRoutes);
 router.use("/time-slots", timeSlotRoutes);
+router.use("/export", exportRoutes);
 
 export default router;
