@@ -16,11 +16,11 @@ import {
 import { hashPassword, verifyPassword } from "./auth.password.js";
 import { createToken } from "./auth.token.js";
 
-const createAuthToken = (userId: string, email: string, roleIds: string[]) => {
+const createAuthToken = (userId: string, username: string, roleIds: string[]) => {
 	const create = async (): Promise<string> => {
 		return createToken({
 			userId,
-			email,
+			username,
 			roleIds,
 			permissionIds: await getEffectivePermissionIds(roleIds),
 		});
@@ -57,7 +57,7 @@ export const loginController = async (
 		throw new AuthenticationError("User account is inactive");
 	}
 
-	const token = await createAuthToken(user.id, user.email, user.roleIds);
+	const token = await createAuthToken(user.id, user.username, user.roleIds);
 
 	res.json({
 		ok: true,
@@ -76,10 +76,12 @@ export const registerController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	// Check if user already exists
-	const existingUser = await UserService.findByEmail(result.data.email);
-	if (existingUser) {
-		throw new ConflictError("Email already in use");
+	// Check if user already exists (email optional)
+	if (result.data.email) {
+		const existingUser = await UserService.findByEmail(result.data.email);
+		if (existingUser) {
+			throw new ConflictError("Email already in use");
+		}
 	}
 
 	const existingUsername = await UserService.findByUsername(
@@ -110,11 +112,7 @@ export const registerController = async (
 		isActive: true,
 	});
 
-	const token = await createAuthToken(
-		newUser.id,
-		newUser.email,
-		newUser.roleIds,
-	);
+	const token = await createAuthToken(newUser.id, newUser.username, newUser.roleIds);
 
 	res.status(201).json({
 		ok: true,

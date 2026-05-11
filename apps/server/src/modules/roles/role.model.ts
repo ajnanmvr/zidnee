@@ -15,9 +15,9 @@ const roleSchema = new Schema<RoleDocument>(
 		},
 		type: {
 			type: String,
-			enum: ["general", "mentor", "counsellor", "sales"],
+			enum: ["admin", "mentor", "counsellor", "sales"] as const,
 			required: true,
-			default: "general",
+			default: "admin",
 			index: true,
 		},
 		description: {

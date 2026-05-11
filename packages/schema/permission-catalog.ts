@@ -23,6 +23,12 @@ export const PERMISSION_CATALOG = {
 		resource: "users",
 		action: "delete",
 	},
+	USER_CHANGE_PASSWORD: {
+		name: "Change Password",
+		description: "Change a user's password",
+		resource: "users",
+		action: "change-password",
+	},
 	ROLE_CREATE: {
 		name: "Create Role",
 		description: "Create a new role",

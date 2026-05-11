@@ -32,7 +32,7 @@ export const CounsellorMentorsPage = () => {
 	const mentorCards = useMemo(() => {
 		const mentors = allUsers.filter(
 			(user) =>
-				user.roles.some((role) => (role.type ?? "general") === "mentor") &&
+				user.roles.some((role) => (role.type ?? "admin") === "mentor") &&
 				user.counsellorId === currentUserId,
 		);
 

@@ -9,16 +9,13 @@ const userSchema = new Schema<UserDocument>(
 	{
 		username: {
 			type: String,
-			required: false,
+			required: true,
 			unique: true,
-			sparse: true,
 			index: true,
 		},
 		email: {
 			type: String,
-			required: true,
-			unique: true,
-			index: true,
+			index: false,
 		},
 		password: {
 			type: String,

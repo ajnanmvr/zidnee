@@ -5,6 +5,6 @@ export const CounsellorsPage = () => (
 		title="Counsellors"
 		description="Counsellor team"
 		roleType="counsellor"
-		createPath="/counsellors/create"
+		createPath="/users/create"
 	/>
 );

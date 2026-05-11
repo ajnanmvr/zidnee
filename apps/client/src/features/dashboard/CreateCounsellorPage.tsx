@@ -1,12 +1,12 @@
-﻿import { CreateAccountPage } from "./CreateAccountPage";
+﻿import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const CreateCounsellorPage = () => {
-	return (
-		<CreateAccountPage
-			defaultRoleType="counsellor"
-			title="Create counsellor"
-			description="Add a new counsellor"
-			backTo="/counsellors"
-		/>
-	);
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		navigate("/users/create");
+	}, [navigate]);
+
+	return null;
 };

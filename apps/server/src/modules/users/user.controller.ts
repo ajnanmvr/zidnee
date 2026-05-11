@@ -44,7 +44,7 @@ const findRoleByName = async (roleName: string) => {
 };
 
 const findRoleByType = async (
-	roleType: "general" | "mentor" | "counsellor" | "sales",
+	roleType: "admin" | "mentor" | "counsellor" | "sales",
 ) => {
 	return (
 		(await RoleService.findAll()).find((role) => role.type === roleType) ?? null

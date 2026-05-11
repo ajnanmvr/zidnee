@@ -247,7 +247,7 @@ router.patch(
  */
 router.patch(
 	"/:userId/password",
-	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
+	requirePermissionKey("USER_CHANGE_PASSWORD" satisfies PermissionKey),
 	asyncHandler(changeUserPasswordController),
 );
 router.delete(

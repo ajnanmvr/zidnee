@@ -5,6 +5,6 @@ export const MentorsPage = () => (
 		title="Mentors"
 		description="Mentor team"
 		roleType="mentor"
-		createPath="/mentors/create"
+		createPath="/users/create"
 	/>
 );

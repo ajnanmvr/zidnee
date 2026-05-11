@@ -31,7 +31,7 @@ export const AdmissionDetailPage = () => {
 
 	const counsellors = useMemo(() => {
 		return allUsers.filter((user) =>
-			user.roles.some((role) => isCounsellorRole(role.type ?? "general")),
+			user.roles.some((role) => isCounsellorRole(role.type ?? "admin")),
 		);
 	}, [allUsers]);
 

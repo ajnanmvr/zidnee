@@ -24,7 +24,7 @@ import type {
 import { useSession } from "@/lib/session";
 
 export type CreateAccountRoleType =
-	| "general"
+	| "admin"
 	| "sales"
 	| "mentor"
 	| "counsellor";
@@ -116,7 +116,7 @@ export const CreateAccountPage = ({
 	const createMentorMutation = useCreateMentorMutation();
 	const createCounsellorMutation = useCreateCounsellorMutation();
 	const [roleType, setRoleType] = useState<CreateAccountRoleType>(
-		defaultRoleType ?? parseRoleFromSearch(location.search) ?? "general",
+		defaultRoleType ?? parseRoleFromSearch(location.search) ?? "admin",
 	);
 
 	const users = usersQuery.data?.users ?? [];
@@ -236,7 +236,7 @@ export const CreateAccountPage = ({
 		const validation = CreateUserPayloadSchema.safeParse({
 			name: form.name,
 			username: form.username,
-			email: form.email,
+			email: form.email || undefined,
 			password: form.password,
 			gender: form.gender,
 			roleIds: chosenRoleIds.length > 0 ? chosenRoleIds : undefined,

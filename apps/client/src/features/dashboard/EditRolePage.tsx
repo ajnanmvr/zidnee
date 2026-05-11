@@ -27,7 +27,7 @@ export const EditRolePage = () => {
 		useForm<UpdateRoleForm>({
 			defaultValues: {
 				name: "",
-				type: "general",
+				type: "admin",
 				description: "",
 				permissionIds: [],
 			},
@@ -48,7 +48,7 @@ export const EditRolePage = () => {
 
 		reset({
 			name: role.name,
-			type: role.type ?? "general",
+			type: role.type ?? "admin",
 			description: role.description ?? "",
 			permissionIds: role.permissionIds,
 		});

@@ -1,12 +1,12 @@
-﻿import { CreateAccountPage } from "./CreateAccountPage";
+﻿import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const CreateMentorPage = () => {
-	return (
-		<CreateAccountPage
-			defaultRoleType="mentor"
-			title="Create mentor"
-			description="Add a new mentor"
-			backTo="/mentors"
-		/>
-	);
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		navigate("/users/create");
+	}, [navigate]);
+
+	return null;
 };

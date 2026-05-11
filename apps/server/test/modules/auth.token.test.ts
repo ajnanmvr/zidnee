@@ -6,7 +6,7 @@ describe("auth token helpers", () => {
 	it("creates and verifies JWT tokens", () => {
 		const payload = {
 			userId: randomUUID(),
-			email: "jwt@example.com",
+			username: "jwt-user",
 			roleIds: [randomUUID()],
 			permissionIds: [randomUUID()],
 		};
@@ -16,7 +16,7 @@ describe("auth token helpers", () => {
 
 		expect(token).toBeTypeOf("string");
 		expect(decoded?.userId).toBe(payload.userId);
-		expect(decoded?.email).toBe(payload.email);
+		expect(decoded?.username).toBe(payload.username);
 	});
 
 	it("returns null for invalid token", () => {

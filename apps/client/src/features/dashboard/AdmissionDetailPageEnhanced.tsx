@@ -51,7 +51,7 @@ export const AdmissionDetailPageEnhanced = () => {
 	const mentors = useMemo(
 		() =>
 			allUsers.filter((user) =>
-				user.roles?.some((role) => isMentorRole(role.type ?? "general")),
+				user.roles?.some((role) => isMentorRole(role.type ?? "admin")),
 			),
 		[allUsers],
 	);
@@ -59,7 +59,7 @@ export const AdmissionDetailPageEnhanced = () => {
 	const counsellors = useMemo(
 		() =>
 			allUsers.filter((user) =>
-				user.roles?.some((role) => isCounsellorRole(role.type ?? "general")),
+				user.roles?.some((role) => isCounsellorRole(role.type ?? "admin")),
 			),
 		[allUsers],
 	);

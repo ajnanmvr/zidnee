@@ -1,5 +1,6 @@
 ﻿import { CreateRolePayloadSchema } from "@repo/schema";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
 import { Link } from "react-router-dom";
@@ -28,14 +29,14 @@ export const CreateRolePage = () => {
 		useForm<CreateRoleForm>({
 			defaultValues: {
 				name: "",
-				type: "general",
+				type: "admin",
 				description: "",
 				permissionIds: [],
 			},
 		});
 	const formValues = watch();
 	const selectedPermissionIds = formValues.permissionIds ?? [];
-	const [banner, setBanner] = useState("");
+    
 
 	const groupedPermissions = useMemo<PermissionGroup[]>(() => {
 		const groups = new Map<string, PermissionGroup["items"]>();
@@ -72,8 +73,6 @@ export const CreateRolePage = () => {
 	};
 
 	const onSubmit = async (form: CreateRoleForm) => {
-		setBanner("");
-
 		const validation = CreateRolePayloadSchema.safeParse({
 			name: form.name,
 			type: form.type,
@@ -108,43 +107,41 @@ export const CreateRolePage = () => {
 			return;
 		}
 
-		try {
-			await createRoleMutation.mutateAsync(validation.data);
-			setBanner("Role created successfully.");
-			reset({ name: "", type: "general", description: "", permissionIds: [] });
-		} catch (error) {
-			if (error instanceof ApiError) {
-				const serverErrors = error.payload.errors ?? {};
-				const nameError = serverErrors.name?.[0];
-				const descriptionError = serverErrors.description?.[0];
-				const permissionIdsError = serverErrors.permissionIds?.[0];
+			try {
+				await createRoleMutation.mutateAsync(validation.data);
+				toast.success("Role created successfully.");
+				reset({ name: "", type: "admin", description: "", permissionIds: [] });
+			} catch (error) {
+				if (error instanceof ApiError) {
+					const serverErrors = error.payload.errors ?? {};
+					const nameError = serverErrors.name?.[0];
+					const descriptionError = serverErrors.description?.[0];
+					const permissionIdsError = serverErrors.permissionIds?.[0];
 
-				if (nameError) {
-					setError("name", { type: "server", message: nameError });
+					if (nameError) {
+						setError("name", { type: "server", message: nameError });
+					}
+
+					if (descriptionError) {
+						setError("description", {
+							type: "server",
+							message: descriptionError,
+						});
+					}
+
+					if (permissionIdsError) {
+						setError("permissionIds", {
+							type: "server",
+							message: permissionIdsError,
+						});
+					}
+
+					toast.error(error.payload.message ?? "Unable to create role");
+					return;
 				}
 
-				if (descriptionError) {
-					setError("description", {
-						type: "server",
-						message: descriptionError,
-					});
-				}
-
-				if (permissionIdsError) {
-					setError("permissionIds", {
-						type: "server",
-						message: permissionIdsError,
-					});
-				}
-
-				setBanner(error.payload.message ?? "Unable to create role");
-				return;
+				toast.error(error instanceof Error ? error.message : "Unable to create role");
 			}
-
-			setBanner(
-				error instanceof Error ? error.message : "Unable to create role",
-			);
-		}
 	};
 
 	return (
@@ -277,11 +274,7 @@ export const CreateRolePage = () => {
 					</Link>
 				</div>
 
-				{banner ? (
-					<p className="rounded-2xl border border-blue-600/15 bg-blue-100 px-4 py-3 text-sm text-blue-600">
-						{banner}
-					</p>
-				) : null}
+				{/* toasts are used for feedback */}
 			</form>
 		</section>
 	);

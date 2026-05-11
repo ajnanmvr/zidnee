@@ -96,7 +96,7 @@ export const UnassignedDemosPage = () => {
 
 	const mentors =
 		usersQuery.data?.users.filter((user) =>
-			user.roles?.some((role) => (role.type ?? "general") === "mentor"),
+			user.roles?.some((role) => (role.type ?? "admin") === "mentor"),
 		) ?? [];
 
 	const unassignedDemos = demosQuery.data?.leads ?? [];

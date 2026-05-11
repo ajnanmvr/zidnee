@@ -35,7 +35,7 @@ export const CounsellorStudentsPage = () => {
 					.filter(
 						(user) =>
 							user.roles.some(
-								(role) => (role.type ?? "general") === "mentor",
+								(role) => (role.type ?? "admin") === "mentor",
 							) && user.counsellorId === currentUserId,
 					)
 					.map((mentor) => mentor.id),

@@ -160,7 +160,6 @@ export const UsersPage = () => {
 							<tr>
 								<th className="px-4 py-3 font-semibold">Name</th>
 								<th className="px-4 py-3 font-semibold">Username</th>
-								<th className="px-4 py-3 font-semibold">Email</th>
 								<th className="px-4 py-3 font-semibold">Roles</th>
 								<th className="px-4 py-3 font-semibold">Status</th>
 								<th className="px-4 py-3 font-semibold">Actions</th>
@@ -178,7 +177,7 @@ export const UsersPage = () => {
 									<td className="px-4 py-3 text-gray-600">
 										{user.username ?? "-"}
 									</td>
-									<td className="px-4 py-3 text-gray-600">{user.email}</td>
+									{/* email removed; using username */}
 									<td className="px-4 py-3">
 										<div className="flex flex-wrap gap-2">
 											{user.roles.map((role) => (

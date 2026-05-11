@@ -1,44 +1,33 @@
-﻿import {
-	AdminChangePasswordPayloadSchema,
-	CreateUserPayloadSchema,
-} from "@repo/schema";
-import { useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import {
-	HiCheckCircle,
-	HiLockClosed,
-	HiPencilSquare,
-	HiPower,
-	HiTrash,
-	HiUserPlus,
-} from "react-icons/hi2";
-import { Link, useNavigate } from "react-router-dom";
-import { ApiError } from "@/api/request";
+﻿import { ApiError } from "@/api/request";
 import { ActionButton } from "@/components/ActionButton";
 import { ConfirmDialog, Field, Modal, Panel } from "@/components/dashboard-ui";
-import { useRolesQuery } from "@/features/roles/roles.queries";
-import { useCreateUserMutation } from "@/features/users/use-create-user-mutation";
 import {
 	useChangeUserPasswordMutation,
 	useDeleteUserMutation,
 	useSetUserStatusMutation,
 } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
-import type { CreateUserForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import {
+	AdminChangePasswordPayloadSchema
+} from "@repo/schema";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+	HiLockClosed,
+	HiPencilSquare,
+	HiPower,
+	HiTrash,
+	HiUserPlus
+} from "react-icons/hi2";
+import { Link, useNavigate } from "react-router-dom";
 
 type RoleUsersPageProps = {
 	title: string;
 	description: string;
-	roleType: "general" | "mentor" | "counsellor" | "sales";
+	roleType: "admin" | "mentor" | "counsellor" | "sales";
 	createPath: string;
-};
-
-type RoleCreatePageProps = {
-	title: string;
-	description: string;
-	roleType: "general" | "mentor" | "counsellor" | "sales";
-	backTo: string;
 };
 
 const matchesRoleType = (roleType: string, expectedType: string) =>
@@ -58,7 +47,6 @@ export const RoleUsersPage = ({
 	const navigate = useNavigate();
 	const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
 	const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-	const [banner, setBanner] = useState("");
 	const { control, handleSubmit, reset, setError } = useForm<{
 		newPassword: string;
 	}>({
@@ -81,25 +69,23 @@ export const RoleUsersPage = ({
 	};
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
-		setBanner("");
+		// clear any existing banner state
 
-		try {
-			await setUserStatusMutation.mutateAsync({ userId, isActive: !isActive });
-			setBanner(
-				!isActive
-					? "User activated successfully."
-					: "User deactivated successfully.",
-			);
-		} catch (error) {
-			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? "Unable to update status");
-				return;
+			try {
+				await setUserStatusMutation.mutateAsync({ userId, isActive: !isActive });
+				toast.success(
+					!isActive
+						? "User activated successfully."
+						: "User deactivated successfully.",
+				);
+			} catch (error) {
+				if (error instanceof ApiError) {
+					toast.error(error.payload.message ?? "Unable to update status");
+					return;
+				}
+
+				toast.error(error instanceof Error ? error.message : "Unable to update status");
 			}
-
-			setBanner(
-				error instanceof Error ? error.message : "Unable to update status",
-			);
-		}
 	};
 
 	const handleDeleteUser = async () => {
@@ -107,21 +93,19 @@ export const RoleUsersPage = ({
 			return;
 		}
 
-		setBanner("");
+		// clear banner
 
 		try {
 			await deleteUserMutation.mutateAsync(deleteUserId);
-			setBanner("User deleted successfully.");
+			toast.success("User deleted successfully.");
 			setDeleteUserId(null);
 		} catch (error) {
 			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? "Unable to delete user");
+				toast.error(error.payload.message ?? "Unable to delete user");
 				return;
 			}
 
-			setBanner(
-				error instanceof Error ? error.message : "Unable to delete user",
-			);
+			toast.error(error instanceof Error ? error.message : "Unable to delete user");
 		}
 	};
 
@@ -130,7 +114,7 @@ export const RoleUsersPage = ({
 			return;
 		}
 
-		setBanner("");
+		// clear banner
 
 		const validation = AdminChangePasswordPayloadSchema.safeParse({
 			newPassword,
@@ -149,7 +133,7 @@ export const RoleUsersPage = ({
 				userId: passwordUserId,
 				payload: validation.data,
 			});
-			setBanner("Password updated successfully.");
+			toast.success("Password updated successfully.");
 			setPasswordUserId(null);
 			reset({ newPassword: "" });
 		} catch (error) {
@@ -158,13 +142,11 @@ export const RoleUsersPage = ({
 				if (passwordError) {
 					setError("newPassword", { type: "server", message: passwordError });
 				}
-				setBanner(error.payload.message ?? "Unable to update password");
+				toast.error(error.payload.message ?? "Unable to update password");
 				return;
 			}
 
-			setBanner(
-				error instanceof Error ? error.message : "Unable to update password",
-			);
+			toast.error(error instanceof Error ? error.message : "Unable to update password");
 		}
 	};
 
@@ -189,7 +171,6 @@ export const RoleUsersPage = ({
 							<tr>
 								<th className="px-4 py-3 font-semibold">Name</th>
 								<th className="px-4 py-3 font-semibold">Username</th>
-								<th className="px-4 py-3 font-semibold">Email</th>
 								<th className="px-4 py-3 font-semibold">{identityHeader}</th>
 								{roleType === "mentor" && (
 									<th className="px-4 py-3 font-semibold">Counsellor</th>
@@ -211,7 +192,6 @@ export const RoleUsersPage = ({
 									<td className="px-4 py-3 text-gray-600">
 										{user.username ?? "-"}
 									</td>
-									<td className="px-4 py-3 text-gray-600">{user.email}</td>
 									<td className="px-4 py-3 text-gray-600">
 										{roleType === "mentor"
 											? (user.mentorId ?? "-")
@@ -357,183 +337,11 @@ export const RoleUsersPage = ({
 					/>
 				</form>
 			</Modal>
-
-			{banner ? (
-				<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-					{banner}
-				</p>
-			) : null}
 		</div>
 	);
 };
 
-export const RoleUserCreatePage = ({
-	title,
-	description,
-	roleType,
-	backTo,
-}: RoleCreatePageProps) => {
-	const { token } = useSession();
-	const rolesQuery = useRolesQuery(token);
-	const createUserMutation = useCreateUserMutation();
-	const { control, handleSubmit, setError } = useForm<CreateUserForm>({
-		defaultValues: {
-			name: "",
-			username: "",
-			email: "",
-			password: "",
-			roleIds: [],
-		},
-	});
-	const [banner, setBanner] = useState("");
-
-	const allRoles = rolesQuery.data?.roles ?? [];
-	const role = useMemo(
-		() =>
-			allRoles.find((item) =>
-				matchesRoleType(item.type ?? "general", roleType),
-			) ?? null,
-		[allRoles, roleType],
-	);
-
-	const onSubmit = async (form: CreateUserForm) => {
-		if (!role) {
-			setBanner(`Role type ${roleType} not found.`);
-			return;
-		}
-
-		setBanner("");
-		const validation = CreateUserPayloadSchema.safeParse({
-			...form,
-			roleIds: [role.id],
-		});
-		if (!validation.success) {
-			const errors = validation.error.flatten().fieldErrors;
-			if (errors.name?.[0])
-				setError("name", { type: "manual", message: errors.name[0] });
-			if (errors.username?.[0])
-				setError("username", { type: "manual", message: errors.username[0] });
-			if (errors.email?.[0])
-				setError("email", { type: "manual", message: errors.email[0] });
-			if (errors.password?.[0])
-				setError("password", { type: "manual", message: errors.password[0] });
-			return;
-		}
-
-		try {
-			await createUserMutation.mutateAsync(validation.data);
-			setBanner(`User created successfully.`);
-		} catch (error) {
-			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? `Unable to create user`);
-				return;
-			}
-
-			setBanner(
-				error instanceof Error ? error.message : `Unable to create user`,
-			);
-		}
-	};
-
-	return (
-		<Panel title={title} description={description}>
-			{role ? (
-				<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
-					<div className="grid gap-4 md:grid-cols-2">
-						<Controller
-							name="name"
-							control={control}
-							render={({ field, fieldState }) => (
-								<Field
-									label="Full name"
-									value={field.value}
-									onChange={field.onChange}
-									placeholder="Ajnan"
-									error={fieldState.error?.message}
-								/>
-							)}
-						/>
-						<Controller
-							name="username"
-							control={control}
-							render={({ field, fieldState }) => (
-								<Field
-									label="Username"
-									value={field.value}
-									onChange={field.onChange}
-									placeholder="ajnan"
-									error={fieldState.error?.message}
-								/>
-							)}
-						/>
-						<Controller
-							name="email"
-							control={control}
-							render={({ field, fieldState }) => (
-								<Field
-									label="Email"
-									value={field.value}
-									onChange={field.onChange}
-									placeholder="ajnan@zidnee.com"
-									error={fieldState.error?.message}
-								/>
-							)}
-						/>
-						<Controller
-							name="password"
-							control={control}
-							render={({ field, fieldState }) => (
-								<Field
-									label="Password"
-									type="password"
-									value={field.value}
-									onChange={field.onChange}
-									placeholder="Minimum 6 characters"
-									error={fieldState.error?.message}
-								/>
-							)}
-						/>
-					</div>
-
-					<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-						Target role:{" "}
-						<span className="font-semibold text-gray-900">{role.name}</span>
-					</div>
-
-					<div className="flex flex-wrap gap-2">
-						<button
-							type="submit"
-							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-							disabled={createUserMutation.isPending}
-						>
-							<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-							{createUserMutation.isPending
-								? "Creating..."
-								: `Create ${title.slice(0, -1)}`}
-						</button>
-						<Link
-							to={backTo}
-							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
-						>
-							<HiCheckCircle
-								className="h-4 w-4 text-red-600"
-								aria-hidden="true"
-							/>
-							Cancel
-						</Link>
-					</div>
-
-					{banner ? (
-						<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-							{banner}
-						</p>
-					) : null}
-				</form>
-			) : (
-				<p className="text-sm text-gray-600">
-					Role type {roleType} not found. Create the role first.
-				</p>
-			)}
-		</Panel>
-	);
+export const RoleUserCreatePage = () => {
+	// Redirects to the unified create user page
+	return null;
 };

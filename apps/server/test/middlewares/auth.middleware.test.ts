@@ -41,7 +41,7 @@ describe("auth middleware", () => {
 	it("authMiddleware attaches req.user for valid token", () => {
 		const token = createToken({
 			userId: randomUUID(),
-			email: "valid@example.com",
+			username: "valid-user",
 			roleIds: [randomUUID()],
 			permissionIds: [],
 		});
@@ -56,7 +56,7 @@ describe("auth middleware", () => {
 		authMiddleware(req, createResponse(), next);
 
 		expect(next).toHaveBeenCalledWith();
-		expect(req.user?.email).toBe("valid@example.com");
+		expect(req.user?.username).toBe("valid-user");
 	});
 
 	it("authMiddleware sends auth error on missing header", () => {
@@ -76,14 +76,14 @@ describe("auth middleware", () => {
 		});
 
 		const req = createRequest({
-			user: {
-				userId: randomUUID(),
-				email: "permission@example.com",
-				roleIds: [randomUUID()],
-				permissionIds: [permission.id],
-				iat: 0,
-				exp: 0,
-			},
+				user: {
+					userId: randomUUID(),
+					username: "permission-user",
+					roleIds: [randomUUID()],
+					permissionIds: [permission.id],
+					iat: 0,
+					exp: 0,
+				},
 		});
 		const next = vi.fn();
 
@@ -99,14 +99,14 @@ describe("auth middleware", () => {
 		});
 
 		const req = createRequest({
-			user: {
-				userId: randomUUID(),
-				email: "no-permission@example.com",
-				roleIds: [randomUUID()],
-				permissionIds: [],
-				iat: 0,
-				exp: 0,
-			},
+				user: {
+					userId: randomUUID(),
+					username: "no-permission",
+					roleIds: [randomUUID()],
+					permissionIds: [],
+					iat: 0,
+					exp: 0,
+				},
 		});
 		const next = vi.fn();
 
@@ -120,14 +120,14 @@ describe("auth middleware", () => {
 		const roleId = randomUUID();
 		const middleware = requireRole([roleId]);
 		const req = createRequest({
-			user: {
-				userId: randomUUID(),
-				email: "role@example.com",
-				roleIds: [roleId],
-				permissionIds: [],
-				iat: 0,
-				exp: 0,
-			},
+				user: {
+					userId: randomUUID(),
+					username: "role-user",
+					roleIds: [roleId],
+					permissionIds: [],
+					iat: 0,
+					exp: 0,
+				},
 		});
 		const next = vi.fn();
 

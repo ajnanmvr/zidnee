@@ -24,7 +24,7 @@ export type Permission = z.infer<typeof PermissionSchema>;
 export const RoleSchema = z.object({
 	id: ObjectIdStringSchema,
 	name: z.string().min(1).max(100),
-	type: z.enum(["general", "mentor", "counsellor", "sales"]).default("general"),
+	type: z.enum(["admin", "mentor", "counsellor", "sales"] as const).default("admin"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 	isSystem: z.boolean().default(false), // System roles cannot be deleted
@@ -37,8 +37,8 @@ export type Role = z.infer<typeof RoleSchema>;
 // Users with role assignments
 export const UserSchema = z.object({
 	id: ObjectIdStringSchema,
-	username: z.string().min(1).max(100).optional(),
-	email: z.email(),
+	username: z.string().min(1).max(100),
+	email: z.string().email().optional(),
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
 	gender: z.enum(["male", "female"]).optional(),
@@ -62,7 +62,7 @@ export type LoginPayload = z.infer<typeof LoginPayloadSchema>;
 
 export const RegisterPayloadSchema = z.object({
 	username: z.string().min(1).max(100),
-	email: z.email(),
+	email: z.email().optional(),
 	password: z.string().min(6).max(255),
 	name: z.string().min(1).max(255),
 });
@@ -70,7 +70,7 @@ export const RegisterPayloadSchema = z.object({
 export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
 
 export const CreateUserPayloadSchema = RegisterPayloadSchema.extend({
-	gender: z.enum(["male", "female"]),
+	gender: z.enum(["male", "female"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
 });
 
@@ -99,7 +99,7 @@ export type CreateCounsellorPayload = z.infer<
 
 export const UpdateUserPayloadSchema = z.object({
 	username: z.string().min(1).max(100).optional(),
-	email: z.email().optional(),
+	email: z.string().email().optional(),
 	name: z.string().min(1).max(255).optional(),
 	gender: z.enum(["male", "female"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
@@ -132,7 +132,7 @@ export type AdminChangePasswordPayload = z.infer<
 // JWT Token Payload
 export const JWTPayloadSchema = z.object({
 	userId: ObjectIdStringSchema,
-	email: z.string().email(),
+	username: z.string().min(1).max(100),
 	roleIds: z.array(ObjectIdStringSchema),
 	permissionIds: z.array(ObjectIdStringSchema),
 	iat: z.number(),
@@ -160,7 +160,7 @@ export type PermissionCheck = z.infer<typeof PermissionCheckSchema>;
 // Role Management Payloads
 export const CreateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100),
-	type: z.enum(["general", "mentor", "counsellor", "sales"]).default("general"),
+	type: z.enum(["admin", "mentor", "counsellor", "sales"] as const).default("admin"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 });
@@ -169,7 +169,7 @@ export type CreateRolePayload = z.infer<typeof CreateRolePayloadSchema>;
 
 export const UpdateRolePayloadSchema = z.object({
 	name: z.string().min(1).max(100).optional(),
-	type: z.enum(["general", "mentor", "counsellor", "sales"]).optional(),
+	type: z.enum(["admin", "mentor", "counsellor", "sales"] as const).optional(),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema).optional(),
 });
