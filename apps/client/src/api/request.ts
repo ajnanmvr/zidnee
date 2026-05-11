@@ -3,6 +3,7 @@ import axios from "axios";
 import { api } from "@/api/client";
 import { queryClient } from "@/lib/query-client";
 import { useSessionStore } from "@/lib/stores/session.store";
+import toast from "react-hot-toast";
 
 type Validator<T> = {
 	safeParse: (
@@ -86,7 +87,25 @@ export const requestWithSchema = async <T>(
 			const apiError = ApiErrorResponseSchema.safeParse(error.response?.data);
 			const payload = apiError.success ? apiError.data : {};
 			if (isSessionFailure(path, status, payload)) {
-				handleSessionFailure();
+				// prompt user to logout on auth/session failures
+				try {
+					if (typeof window !== "undefined") {
+						const confirmed = window.confirm(
+							"Your session appears to be invalid or expired. Log out now?",
+						);
+						if (confirmed) {
+							handleSessionFailure();
+							toast.success("Logged out");
+							window.location.href = "/login";
+						} else {
+							// still clear session silently to avoid inconsistent state
+							handleSessionFailure();
+						}
+					}
+				} catch (e) {
+					// fallback to immediate logout on error
+					handleSessionFailure();
+				}
 			}
 			throw new ApiError(
 				status,

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { NotFoundError } from "../../utils/errors.util.js";
+import { NotFoundError, AuthenticationError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { ActivityService } from "./activity.service.js";
 
@@ -43,7 +43,7 @@ export const deleteLeadActivityController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");

@@ -12,9 +12,8 @@ import {
 	UpdateLeadPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
-import { NotFoundError, ValidationError } from "../../utils/errors.util.js";
+import { AuthenticationError, NotFoundError, ValidationError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
-import { RoleService } from "../rbac/rbac.service.js";
 import { StudentService } from "../students/student.service.js";
 import { UserModel } from "../users/user.model.js";
 import { LeadService } from "./lead.service.js";
@@ -143,7 +142,7 @@ export const createLeadController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const result = CreateLeadPayloadSchema.safeParse(req.body);
@@ -175,7 +174,7 @@ export const updateLeadController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -205,7 +204,7 @@ export const listLeadsController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const scope = req.query.scope === "mine" ? "mine" : "all";
@@ -302,7 +301,7 @@ export const postponeLeadFollowUpController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -336,7 +335,7 @@ export const requestLeadDemoController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -357,7 +356,7 @@ export const markDemoCompletedController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -389,7 +388,7 @@ export const redemoLeadController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -426,7 +425,7 @@ export const confirmAdmissionController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -483,7 +482,7 @@ export const requestAdmissionController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -532,7 +531,7 @@ export const assignDemoMentorController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -569,7 +568,7 @@ export const generateFormLinkController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -588,7 +587,7 @@ export const revokeFormLinkController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -609,7 +608,7 @@ export const cancelLeadDemoController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -665,7 +664,7 @@ export const deleteLeadController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
@@ -717,7 +716,7 @@ export const assignDemoCounsellorController = async (
 	res: Response,
 ): Promise<void> => {
 	if (!req.user) {
-		throw new Error("User not authenticated");
+		throw new AuthenticationError("User not authenticated");
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
