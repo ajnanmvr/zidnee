@@ -71,6 +71,12 @@ const userSchema = new Schema<UserDocument>(
 	},
 );
 
+// Indexes for zids fields to ensure uniqueness where present
+userSchema.index({ "zids.mentor": 1 }, { unique: true, sparse: true });
+userSchema.index({ "zids.counsellor": 1 }, { unique: true, sparse: true });
+userSchema.index({ "zids.sales": 1 }, { unique: true, sparse: true });
+userSchema.index({ "zids.admin": 1 }, { unique: true, sparse: true });
+
 export const UserModel =
 	(mongoose.models.User as Model<UserDocument> | undefined) ??
 	mongoose.model<UserDocument>("User", userSchema);

@@ -32,9 +32,9 @@ export const UsersPage = () => {
 	const deleteUserMutation = useDeleteUserMutation();
 	const setUserStatusMutation = useSetUserStatusMutation();
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
-	const pageRoleType = location.search.includes("role=sales")
-		? "sales"
-		: "admin";
+	const pageRoleType = location.search.includes("role=")
+		? (location.search.includes("role=sales") ? "sales" : "admin")
+		: null;
 	const { control, handleSubmit, reset, setError } =
 		useForm<AdminChangePasswordForm>({
 			defaultValues: { newPassword: "" },
@@ -88,12 +88,10 @@ export const UsersPage = () => {
 	};
 
 	const users = useMemo(() => {
-		return (
-			usersQuery.data?.users.filter((user) =>
-				user.roles.some((role) =>
-					matchesRoleType(role.type ?? "admin", pageRoleType),
-				),
-			) ?? []
+		const all = usersQuery.data?.users ?? [];
+		if (!pageRoleType) return all;
+		return all.filter((user) =>
+			user.roles.some((role) => matchesRoleType(role.type ?? "admin", pageRoleType)),
 		);
 	}, [pageRoleType, usersQuery.data?.users]);
 

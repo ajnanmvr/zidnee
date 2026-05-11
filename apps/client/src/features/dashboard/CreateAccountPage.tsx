@@ -49,14 +49,14 @@ type CreateAccountForm = {
 };
 
 const roleLabels: Record<CreateAccountRoleType, string> = {
-	general: "User",
+	admin: "User",
 	sales: "Sales",
 	mentor: "Mentor",
 	counsellor: "Counsellor",
 };
 
 const rolePrefixes: Record<CreateAccountRoleType, string> = {
-	general: "zud",
+	admin: "zud",
 	sales: "zsl",
 	mentor: "zmn",
 	counsellor: "zcs",
@@ -84,8 +84,9 @@ const buildSequentialIdentity = (
 
 const parseRoleFromSearch = (search: string): CreateAccountRoleType | null => {
 	const value = new URLSearchParams(search).get("role");
+
 	if (
-		value === "general" ||
+		value === "admin" ||
 		value === "sales" ||
 		value === "mentor" ||
 		value === "counsellor"
@@ -303,7 +304,7 @@ export const CreateAccountPage = ({
 	};
 
 	const roleOptions: Array<{ value: CreateAccountRoleType; label: string }> = [
-		{ value: "general", label: "User" },
+		{ value: "admin", label: "User" },
 		{ value: "sales", label: "Sales" },
 		{ value: "mentor", label: "Mentor" },
 		{ value: "counsellor", label: "Counsellor" },
@@ -440,7 +441,7 @@ export const CreateAccountPage = ({
 							</label>
 						)}
 					/>
-					{roleType === "general" || roleType === "sales" ? (
+					{roleType === "admin" || roleType === "sales" ? (
 						<Controller
 							name="email"
 							control={control}
@@ -455,7 +456,7 @@ export const CreateAccountPage = ({
 							)}
 						/>
 					) : null}
-					{roleType === "general" || roleType === "sales" ? (
+					{roleType === "admin" || roleType === "sales" ? (
 						<Controller
 							name="password"
 							control={control}

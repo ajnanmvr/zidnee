@@ -60,10 +60,20 @@ const CreateCounsellorPage = lazy(() =>
 		default: module.CreateCounsellorPage,
 	})),
 );
+const CounsellorDetailPage = lazy(() =>
+    import("@/features/dashboard/CounsellorDetailPage").then((module) => ({
+        default: module.CounsellorDetailPage,
+    })),
+);
 const MentorsPage = lazy(() =>
 	import("@/features/dashboard/MentorsPage").then((module) => ({
 		default: module.MentorsPage,
 	})),
+);
+const MentorDetailPage = lazy(() =>
+    import("@/features/dashboard/MentorDetailPage").then((module) => ({
+        default: module.MentorDetailPage,
+    })),
 );
 const CreateMentorPage = lazy(() =>
 	import("@/features/dashboard/CreateMentorPage").then((module) => ({
@@ -230,6 +240,14 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
+						path: "counsellors/:id",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<CounsellorDetailPage />
+							</Suspense>
+						),
+					},
+					{
 						path: "counsellors/create",
 						element: (
 							<Suspense fallback={routeFallback}>
@@ -242,6 +260,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<MentorsPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "mentors/:id",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MentorDetailPage />
 							</Suspense>
 						),
 					},

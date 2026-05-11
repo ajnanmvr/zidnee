@@ -19,7 +19,8 @@ import {
 	HiPencilSquare,
 	HiPower,
 	HiTrash,
-	HiUserPlus
+	HiUserPlus,
+	HiEye
 } from "react-icons/hi2";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -47,6 +48,11 @@ export const RoleUsersPage = ({
 	const navigate = useNavigate();
 	const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
 	const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+	const [query, setQuery] = useState<string>("");
+	const [sortBy, setSortBy] = useState<"identity" | "name" | "counsellor">(
+		"identity",
+	);
+	const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 	const { control, handleSubmit, reset, setError } = useForm<{
 		newPassword: string;
 	}>({
@@ -54,19 +60,50 @@ export const RoleUsersPage = ({
 	});
 	const allUsers = usersQuery.data?.users ?? [];
 
-	const users = useMemo(() => {
-		return allUsers.filter((user) =>
-			user.roles.some((role) =>
-				matchesRoleType(role.type ?? "general", roleType),
-			),
-		);
-	}, [allUsers, roleType]);
-	const identityHeader = roleType === "mentor" ? "Mentor ID" : "Counsellor ID";
 	const userNameById = new Map(allUsers.map((u) => [u.id, u.name]));
 	const getCounsellorName = (counsellorId?: string) => {
 		if (!counsellorId) return "-";
 		return userNameById.get(counsellorId) ?? "-";
 	};
+
+	const users = useMemo(() => {
+		const filtered = allUsers.filter((user) =>
+			user.roles.some((role) => matchesRoleType(role.type ?? "admin", roleType)),
+		);
+
+		const q = query.trim().toLowerCase();
+		const searched = q
+			? filtered.filter((user) => {
+					const identity =
+						(user.zids && (user.zids as any)[roleType]) ?? user.mentorId ?? user.counsellorId ?? user.username ?? "";
+					const counsellorName = getCounsellorName(user.counsellorId).toLowerCase();
+					return (
+						identity.toLowerCase().includes(q) ||
+						(user.name ?? "").toLowerCase().includes(q) ||
+						counsellorName.includes(q)
+					);
+			  })
+			: filtered;
+
+		const sorted = searched.slice().sort((a, b) => {
+			const aIdentity = ((a.zids && (a.zids as any)[roleType]) ?? a.mentorId ?? a.counsellorId ?? a.username ?? "").toLowerCase();
+			const bIdentity = ((b.zids && (b.zids as any)[roleType]) ?? b.mentorId ?? b.counsellorId ?? b.username ?? "").toLowerCase();
+			const aName = (a.name ?? "").toLowerCase();
+			const bName = (b.name ?? "").toLowerCase();
+			const aCounsellor = getCounsellorName(a.counsellorId).toLowerCase();
+			const bCounsellor = getCounsellorName(b.counsellorId).toLowerCase();
+
+			let cmp = 0;
+			if (sortBy === "identity") cmp = aIdentity.localeCompare(bIdentity);
+			else if (sortBy === "name") cmp = aName.localeCompare(bName);
+			else cmp = aCounsellor.localeCompare(bCounsellor);
+
+			return sortDir === "asc" ? cmp : -cmp;
+		});
+
+		return sorted;
+	}, [allUsers, roleType, query, sortBy, sortDir]);
+	const identityHeader = roleType === "mentor" ? "Mentor ID" : "Counsellor ID";
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
 		// clear any existing banner state
@@ -165,13 +202,40 @@ export const RoleUsersPage = ({
 					</Link>
 				}
 			>
+				<div className="mb-4 flex items-center gap-3">
+					<Field
+						label="Search"
+						type="text"
+						value={query}
+						onChange={(v) => setQuery(v)}
+						placeholder="Search by id, name or counsellor"
+					/>
+					<div className="ml-auto flex items-center gap-2">
+						<select
+							value={sortBy}
+							onChange={(e) => setSortBy(e.target.value as any)}
+							className="rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm"
+						>
+							<option value="identity">Sort: Identity</option>
+							<option value="name">Sort: Name</option>
+							<option value="counsellor">Sort: Counsellor</option>
+						</select>
+						<button
+							type="button"
+							onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+							className="rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm"
+						>
+							{sortDir === "asc" ? "Asc" : "Desc"}
+						</button>
+					</div>
+				</div>
+
 				<div className="overflow-x-auto rounded-3xl border border-gray-300">
 					<table className="min-w-full border-collapse bg-white text-left text-sm">
 						<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
 							<tr>
-								<th className="px-4 py-3 font-semibold">Name</th>
-								<th className="px-4 py-3 font-semibold">Username</th>
 								<th className="px-4 py-3 font-semibold">{identityHeader}</th>
+								<th className="px-4 py-3 font-semibold">Name</th>
 								{roleType === "mentor" && (
 									<th className="px-4 py-3 font-semibold">Counsellor</th>
 								)}
@@ -186,20 +250,17 @@ export const RoleUsersPage = ({
 									key={user.id}
 									className="border-t border-gray-300 align-top"
 								>
+									<td className="px-4 py-3 text-gray-600 font-semibold">
+										{(user.zids && (user.zids as any)[roleType]) ?? (roleType === "mentor" ? user.mentorId : user.counsellorId) ?? "-"}
+									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
 									</td>
-									<td className="px-4 py-3 text-gray-600">
-										{user.username ?? "-"}
-									</td>
-									<td className="px-4 py-3 text-gray-600">
-										{roleType === "mentor"
-											? (user.mentorId ?? "-")
-											: (user.counsellorId ?? "-")}
-									</td>
 									{roleType === "mentor" && (
 										<td className="px-4 py-3 text-gray-600">
-											{getCounsellorName(user.counsellorId)}
+											<Link to={user.counsellorId ? `/counsellors/${user.counsellorId}` : '#'} className="text-indigo-600 hover:underline">
+												{getCounsellorName(user.counsellorId)}
+											</Link>
 										</td>
 									)}
 									<td className="px-4 py-3">
@@ -227,6 +288,20 @@ export const RoleUsersPage = ({
 									</td>
 									<td className="px-4 py-3">
 										<div className="flex flex-wrap items-center gap-2">
+											<button
+												type="button"
+												className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+												onClick={() => {
+													if (roleType === "mentor") navigate(`/mentors/${user.id}`);
+													else if (roleType === "counsellor") navigate(`/counsellors/${user.id}`);
+													else navigate(`/users/${user.id}`);
+												}}
+												title="View user"
+												aria-label="View user"
+											>
+												<HiEye className="h-4 w-4" aria-hidden="true" />
+											</button>
+
 											<button
 												type="button"
 												className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50"
