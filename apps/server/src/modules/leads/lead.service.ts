@@ -5,6 +5,7 @@ import type {
 	UpdateLeadPayload,
 } from "@repo/schema";
 import { randomBytes } from "crypto";
+import { Types } from "mongoose";
 import { ConflictError } from "../../utils/errors.util.js";
 import {
 	type StudentDocument,
@@ -413,7 +414,9 @@ export const LeadService = {
 		const created = await LeadModel.create({
 			phone: lead.phone,
 			name: lead.name,
-			assignedTo: lead.assignedTo ?? lead.createdBy,
+			assignedTo: lead.assignedTo
+				? new Types.ObjectId(lead.assignedTo)
+				: new Types.ObjectId(lead.createdBy),
 			createdBy: lead.createdBy,
 			nextFollowUpAt: effectiveNextFollowUpAt,
 			demos: [],

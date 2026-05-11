@@ -1,7 +1,10 @@
 import type { Lead, LeadDemo, LeadStatus } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
+export type LeadDocument = Omit<
+	Lead,
+	"id" | "createdBy" | "assignedTo" | "demoRequestAssignedTo"
+> & {
 	_id: Types.ObjectId;
 	createdBy: Types.ObjectId;
 	assignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
