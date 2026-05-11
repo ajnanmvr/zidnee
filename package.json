@@ -9,6 +9,7 @@
 		"seed": "pnpm --filter api seed",
 		"seed:api": "pnpm --filter api seed",
 		"test:api": "pnpm --filter api test",
+		"swagger:generate": "pnpm --filter api swagger:generate",
 		"lint": "turbo run lint",
 		"fix": "biome check --write .",
 		"fix:api": "biome check --write apps/server",
