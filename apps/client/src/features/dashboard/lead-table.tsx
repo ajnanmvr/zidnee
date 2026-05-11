@@ -1,14 +1,14 @@
 ﻿import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Link } from "react-router-dom";
-import { type LeadStageId } from "@/features/leads/lead-stage-filters";
 import { DateCell } from "@/components/DateCell";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
+import type { LeadStageId } from "@/features/leads/lead-stage-filters";
 
-export const formatUserName = (userName?: string | null) => userName?.trim() || "-";
+export const formatUserName = (userName?: string | null) =>
+	userName?.trim() || "-";
 
-const getLeadFollowUpDate = (lead: LeadResponse) =>
-	lead.nextFollowUpAt;
+const getLeadFollowUpDate = (lead: LeadResponse) => lead.nextFollowUpAt;
 
 export const getLeadUrgency = (lead: LeadResponse) => {
 	const dateValue = getLeadFollowUpDate(lead);
@@ -44,15 +44,24 @@ const getLeadStatusTone = (lead: LeadResponse) => {
 	}
 
 	if (lead.status === "DEMO_ASSIGNED") {
-		return { className: "bg-violet-500/10 text-violet-700", label: "Demo Scheduled" };
+		return {
+			className: "bg-violet-500/10 text-violet-700",
+			label: "Demo Scheduled",
+		};
 	}
 
 	if (lead.status === "DEMO_REQUEST") {
-		return { className: "bg-amber-500/10 text-amber-700", label: "Demo Request" };
+		return {
+			className: "bg-amber-500/10 text-amber-700",
+			label: "Demo Request",
+		};
 	}
 
 	if (lead.status === "FORM_FILLED") {
-		return { className: "bg-emerald-500/10 text-emerald-700", label: "Form Filled" };
+		return {
+			className: "bg-emerald-500/10 text-emerald-700",
+			label: "Form Filled",
+		};
 	}
 
 	if (lead.status === "FORM_SENT") {
@@ -73,7 +82,9 @@ const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
 
 	return (
 		<div className="flex items-center gap-2">
-			<span className={`h-2.5 w-2.5 rounded-full ${toneClasses.split(" ")[0]}`} />
+			<span
+				className={`h-2.5 w-2.5 rounded-full ${toneClasses.split(" ")[0]}`}
+			/>
 			<span className={`text-xs font-semibold ${toneClasses.split(" ")[1]}`}>
 				{urgency.label}
 			</span>
@@ -89,13 +100,11 @@ export type LeadTableAction = {
 	className?: string;
 };
 
-export const buildLeadColumns = (
-	options?: {
-		getActions?: (lead: LeadResponse) => LeadTableAction[];
-		activeStage?: LeadStageId;
-		userNameById?: Map<string, string>;
-	},
-): ColumnDef<LeadResponse>[] => [
+export const buildLeadColumns = (options?: {
+	getActions?: (lead: LeadResponse) => LeadTableAction[];
+	activeStage?: LeadStageId;
+	userNameById?: Map<string, string>;
+}): ColumnDef<LeadResponse>[] => [
 	{
 		id: "urgency",
 		header: "Status",
@@ -106,7 +115,9 @@ export const buildLeadColumns = (
 		accessorKey: "phone",
 		header: "Phone",
 		cell: (info) => (
-			<div className="font-semibold text-gray-900">{String(info.getValue())}</div>
+			<div className="font-semibold text-gray-900">
+				{String(info.getValue())}
+			</div>
 		),
 		enableSorting: true,
 	},
@@ -114,7 +125,10 @@ export const buildLeadColumns = (
 		accessorKey: "name",
 		header: "Name",
 		cell: (info) => (
-			<Link className="font-semibold text-blue-600 hover:text-blue-600/80" to={`/leads/${info.row.original.id}`}>
+			<Link
+				className="font-semibold text-blue-600 hover:text-blue-600/80"
+				to={`/leads/${info.row.original.id}`}
+			>
 				{(info.getValue() as string) ?? "-"}
 			</Link>
 		),
@@ -130,8 +144,11 @@ export const buildLeadColumns = (
 			const nameMap = options?.userNameById;
 			if (stage === "demoRequest") {
 				const controllerId = lead.demoRequestAssignedTo ?? null;
-				if (!controllerId) return <span className="text-sm text-slate-500">-</span>;
-				return <span className="text-sm">{nameMap?.get(controllerId) ?? "-"}</span>;
+				if (!controllerId)
+					return <span className="text-sm text-slate-500">-</span>;
+				return (
+					<span className="text-sm">{nameMap?.get(controllerId) ?? "-"}</span>
+				);
 			}
 			if (stage === "demoAssigned" || stage === "demoCompleted") {
 				const mentorId = latestDemo?.mentorId ?? null;
@@ -148,7 +165,9 @@ export const buildLeadColumns = (
 			const lead = info.row.original;
 			const status = getLeadStatusTone(lead);
 			return (
-				<span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
+				<span
+					className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
+				>
 					{status.label}
 				</span>
 			);
@@ -172,16 +191,20 @@ export const buildLeadColumns = (
 					key: "view",
 					label: "View",
 					to: (item) => `/leads/${item.id}`,
-					className: "inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100",
+					className:
+						"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100",
 				},
 				{
 					key: "postpone",
 					label: "Postpone",
 					to: (item) => `/leads/${item.id}?action=postpone`,
-					className: "inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
+					className:
+						"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
 				},
 			];
-			const actions = options?.getActions ? options.getActions(lead) : defaultActions;
+			const actions = options?.getActions
+				? options.getActions(lead)
+				: defaultActions;
 
 			return (
 				<div className="flex flex-wrap items-center gap-2">
@@ -190,7 +213,10 @@ export const buildLeadColumns = (
 							return (
 								<Link
 									key={action.key}
-									className={action.className ?? "inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"}
+									className={
+										action.className ??
+										"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+									}
 									to={action.to(lead)}
 								>
 									{action.label}
@@ -202,7 +228,10 @@ export const buildLeadColumns = (
 							<button
 								key={action.key}
 								type="button"
-								className={action.className ?? "inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"}
+								className={
+									action.className ??
+									"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+								}
 								onClick={() => action.onClick?.(lead)}
 							>
 								{action.label}
@@ -215,7 +244,3 @@ export const buildLeadColumns = (
 		enableSorting: false,
 	},
 ];
-
-
-
-

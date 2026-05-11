@@ -1,15 +1,20 @@
-﻿import { useState } from "react";
-import {
+﻿import {
+	type ColumnDef,
+	type ColumnFiltersState,
 	flexRender,
 	getCoreRowModel,
-	getSortedRowModel,
 	getFilteredRowModel,
-	useReactTable,
+	getSortedRowModel,
 	type SortingState,
-	type ColumnFiltersState,
-	type ColumnDef,
+	useReactTable,
 } from "@tanstack/react-table";
-import { HiArrowsUpDown, HiArrowUp, HiArrowDown, HiEllipsisHorizontal } from "react-icons/hi2";
+import { useState } from "react";
+import {
+	HiArrowDown,
+	HiArrowsUpDown,
+	HiArrowUp,
+	HiEllipsisHorizontal,
+} from "react-icons/hi2";
 import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/utils/export";
 
 interface DataTableProps<T> {
@@ -107,10 +112,17 @@ export function DataTable<T>({
 										key={header.id}
 										className="px-4 py-3 font-semibold"
 										onClick={header.column.getToggleSortingHandler()}
-										style={{ cursor: header.column.getCanSort() ? "pointer" : "default" }}
+										style={{
+											cursor: header.column.getCanSort()
+												? "pointer"
+												: "default",
+										}}
 									>
 										<div className="inline-flex items-center gap-2">
-											{flexRender(header.column.columnDef.header, header.getContext())}
+											{flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
 											{header.column.getCanSort() && (
 												<span>
 													{header.column.getIsSorted() === "asc" ? (
@@ -118,7 +130,7 @@ export function DataTable<T>({
 													) : header.column.getIsSorted() === "desc" ? (
 														<HiArrowDown className="h-4 w-4 text-blue-600" />
 													) : (
-													<HiArrowsUpDown className="h-4 w-4 text-gray-600 opacity-50" />
+														<HiArrowsUpDown className="h-4 w-4 text-gray-600 opacity-50" />
 													)}
 												</span>
 											)}
@@ -151,7 +163,11 @@ export function DataTable<T>({
 	);
 }
 
-function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") => void }) {
+function ExportMenu({
+	onExport,
+}: {
+	onExport: (format: "csv" | "excel" | "pdf") => void;
+}) {
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -169,6 +185,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 			{open && (
 				<div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-300 bg-white p-2 shadow-lg">
 					<button
+						type="button"
 						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-gray-50"
 						onClick={() => {
 							onExport("csv");
@@ -178,6 +195,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 						Export CSV
 					</button>
 					<button
+						type="button"
 						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-gray-50"
 						onClick={() => {
 							onExport("excel");
@@ -187,6 +205,7 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 						Export Excel
 					</button>
 					<button
+						type="button"
 						className="w-full text-left rounded px-2 py-2 text-sm hover:bg-gray-50"
 						onClick={() => {
 							onExport("pdf");
@@ -200,7 +219,3 @@ function ExportMenu({ onExport }: { onExport: (format: "csv" | "excel" | "pdf") 
 		</div>
 	);
 }
-
-
-
-

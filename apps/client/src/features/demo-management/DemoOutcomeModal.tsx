@@ -1,9 +1,9 @@
+import type { LeadResponse } from "@repo/schema";
 import { useState } from "react";
-import { Modal } from "@/components/dashboard-ui";
-import { HiCheckCircle, HiArrowPath } from "react-icons/hi2";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import type { LeadResponse } from "@repo/schema";
+import { HiArrowPath, HiCheckCircle } from "react-icons/hi2";
+import { Modal } from "@/components/dashboard-ui";
 
 interface DemoOutcomeModalProps {
 	open: boolean;
@@ -20,7 +20,9 @@ export const DemoOutcomeModal = ({
 	onProceed,
 	onRedemo,
 }: DemoOutcomeModalProps) => {
-	const [selectedOutcome, setSelectedOutcome] = useState<"proceed" | "redemo" | null>(null);
+	const [selectedOutcome, setSelectedOutcome] = useState<
+		"proceed" | "redemo" | null
+	>(null);
 	const [isLoading, setIsLoading] = useState(false);
 
 	const {
@@ -73,7 +75,11 @@ export const DemoOutcomeModal = ({
 	});
 
 	const demoCount = demo?.demos?.length ?? 0;
-	const previousMentors = demo?.demos?.slice(0, -1).map((d) => d.mentorId).filter(Boolean) ?? [];
+	const previousMentors =
+		demo?.demos
+			?.slice(0, -1)
+			.map((d) => d.mentorId)
+			.filter(Boolean) ?? [];
 	const currentMentor = demo?.demos?.[demo.demos.length - 1]?.mentorId;
 
 	return (
@@ -92,7 +98,9 @@ export const DemoOutcomeModal = ({
 			{selectedOutcome === null ? (
 				<div className="space-y-4">
 					<div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-						<p className="text-sm text-blue-900 font-medium">Demo Information</p>
+						<p className="text-sm text-blue-900 font-medium">
+							Demo Information
+						</p>
 						<div className="mt-3 grid grid-cols-2 gap-4 text-sm">
 							<div>
 								<p className="text-gray-600">Total Demos</p>
@@ -100,20 +108,28 @@ export const DemoOutcomeModal = ({
 							</div>
 							<div>
 								<p className="text-gray-600">Current Mentor</p>
-								<p className="font-semibold text-gray-900">{currentMentor ? "Assigned" : "N/A"}</p>
+								<p className="font-semibold text-gray-900">
+									{currentMentor ? "Assigned" : "N/A"}
+								</p>
 							</div>
 							<div>
 								<p className="text-gray-600">Previous Mentors</p>
-								<p className="font-semibold text-gray-900">{previousMentors.length > 0 ? previousMentors.length : "None"}</p>
+								<p className="font-semibold text-gray-900">
+									{previousMentors.length > 0 ? previousMentors.length : "None"}
+								</p>
 							</div>
 							<div>
 								<p className="text-gray-600">Student Name</p>
-								<p className="font-semibold text-gray-900 truncate">{demo?.name}</p>
+								<p className="font-semibold text-gray-900 truncate">
+									{demo?.name}
+								</p>
 							</div>
 						</div>
 					</div>
 
-					<p className="text-sm font-semibold text-gray-900">What would you like to do?</p>
+					<p className="text-sm font-semibold text-gray-900">
+						What would you like to do?
+					</p>
 
 					<div className="grid grid-cols-2 gap-3">
 						{/* Proceed Option */}
@@ -126,7 +142,9 @@ export const DemoOutcomeModal = ({
 								<HiCheckCircle className="h-5 w-5 text-emerald-600" />
 								<span className="font-semibold text-emerald-900">Proceed</span>
 							</div>
-							<p className="text-xs text-emerald-700">Demo OK - Create student and proceed with enrollment</p>
+							<p className="text-xs text-emerald-700">
+								Demo OK - Create student and proceed with enrollment
+							</p>
 						</button>
 
 						{/* Re-Demo Option */}
@@ -139,16 +157,22 @@ export const DemoOutcomeModal = ({
 								<HiArrowPath className="h-5 w-5 text-amber-600" />
 								<span className="font-semibold text-amber-900">Re-Demo</span>
 							</div>
-							<p className="text-xs text-amber-700">Schedule another demo attempt</p>
+							<p className="text-xs text-amber-700">
+								Schedule another demo attempt
+							</p>
 						</button>
 					</div>
 				</div>
 			) : selectedOutcome === "proceed" ? (
 				<div className="space-y-4">
 					<div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-						<p className="text-sm font-semibold text-emerald-900 mb-2">Confirm Proceed</p>
+						<p className="text-sm font-semibold text-emerald-900 mb-2">
+							Confirm Proceed
+						</p>
 						<p className="text-sm text-emerald-800">
-							This will mark the demo as completed and create a new student record. The student will be assigned to a counsellor and onboarded.
+							This will mark the demo as completed and create a new student
+							record. The student will be assigned to a counsellor and
+							onboarded.
 						</p>
 						<div className="mt-3 text-xs text-emerald-700 space-y-1">
 							<p>✓ Demo marked as completed</p>
@@ -181,9 +205,12 @@ export const DemoOutcomeModal = ({
 			) : (
 				<div className="space-y-4">
 					<div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-						<p className="text-sm font-semibold text-amber-900 mb-2">Schedule Re-Demo</p>
+						<p className="text-sm font-semibold text-amber-900 mb-2">
+							Schedule Re-Demo
+						</p>
 						<p className="text-sm text-amber-800 mb-3">
-							This will create a new demo attempt. The previous mentor information will be preserved in the student's record.
+							This will create a new demo attempt. The previous mentor
+							information will be preserved in the student's record.
 						</p>
 						{previousMentors.length > 0 && (
 							<div className="text-xs text-amber-700 bg-white rounded p-2">
@@ -193,16 +220,24 @@ export const DemoOutcomeModal = ({
 						)}
 					</div>
 
-					<form onSubmit={() => void onRedemoFormSubmit()} className="space-y-3">
+					<form
+						onSubmit={() => void onRedemoFormSubmit()}
+						className="space-y-3"
+					>
 						<Controller
 							name="note"
 							control={redemoControl}
 							rules={{
-								maxLength: { value: 500, message: "Note cannot exceed 500 characters" },
+								maxLength: {
+									value: 500,
+									message: "Note cannot exceed 500 characters",
+								},
 							}}
 							render={({ field, fieldState }) => (
 								<label className="grid gap-1 text-sm font-medium text-gray-600">
-									<span className="text-gray-700">Reason for Re-Demo (Optional)</span>
+									<span className="text-gray-700">
+										Reason for Re-Demo (Optional)
+									</span>
 									<textarea
 										placeholder="e.g., Student was nervous, had connection issues, needs more preparation..."
 										value={field.value || ""}
@@ -214,7 +249,9 @@ export const DemoOutcomeModal = ({
 									/>
 									<div className="flex justify-between">
 										{fieldState.error?.message && (
-											<p className="text-xs text-red-600">{fieldState.error.message}</p>
+											<p className="text-xs text-red-600">
+												{fieldState.error.message}
+											</p>
 										)}
 										<p className="text-xs text-gray-500 ml-auto">
 											{(field.value || "").length}/500

@@ -1,15 +1,23 @@
+import { TimeSlotsResponseSchema } from "@repo/schema";
 import { useQuery } from "@tanstack/react-query";
 import { requestWithSchema } from "@/api/request";
-import { TimeSlotsResponseSchema } from "@repo/schema";
 
 export const timeSlotsQueryKeys = {
-	timeSlots: (token: string | null) => ["time-slots", token ?? "public"] as const,
+	timeSlots: (token: string | null) =>
+		["time-slots", token ?? "public"] as const,
 };
 
 export const useTimeSlotsQuery = (token: string) => {
 	return useQuery({
 		queryKey: timeSlotsQueryKeys.timeSlots(token),
-		queryFn: () => requestWithSchema("/time-slots", TimeSlotsResponseSchema, "GET", undefined, token),
+		queryFn: () =>
+			requestWithSchema(
+				"/time-slots",
+				TimeSlotsResponseSchema,
+				"GET",
+				undefined,
+				token,
+			),
 		enabled: Boolean(token),
 	});
 };
@@ -17,6 +25,11 @@ export const useTimeSlotsQuery = (token: string) => {
 export const usePublicTimeSlotsQuery = () => {
 	return useQuery({
 		queryKey: timeSlotsQueryKeys.timeSlots(null),
-		queryFn: () => requestWithSchema("/form/options/time-slots", TimeSlotsResponseSchema, "GET"),
+		queryFn: () =>
+			requestWithSchema(
+				"/form/options/time-slots",
+				TimeSlotsResponseSchema,
+				"GET",
+			),
 	});
 };

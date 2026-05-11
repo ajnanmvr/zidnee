@@ -11,12 +11,11 @@ export const DateCell: React.FC<DateCellProps> = ({ date, className }) => {
 	const resolvedClassName = className ?? "font-semibold text-gray-900";
 
 	return (
-		<span className={`cursor-help inline-block ${resolvedClassName}`} title={fullDate} aria-label={fullDate}>
-				{displayText}
+		<span
+			className={`cursor-help inline-block ${resolvedClassName}`}
+			title={fullDate}
+		>
+			{displayText}
 		</span>
 	);
 };
-
-
-
-

@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { Field, TextAreaField, SelectField } from "@/components/dashboard-ui";
+import { Field, SelectField, TextAreaField } from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useCreateRoleMutation } from "@/features/roles/use-create-role-mutation";
 import type { CreateRoleForm } from "@/lib/dashboard-types";
@@ -154,7 +154,9 @@ export const CreateRolePage = () => {
 					<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
 						Builder
 					</p>
-					<h3 className="mt-1 text-xl font-semibold text-gray-900">Create role</h3>
+					<h3 className="mt-1 text-xl font-semibold text-gray-900">
+						Create role
+					</h3>
 				</div>
 				<span className="rounded-full bg-purple-600-soft px-3 py-1.5 text-sm font-medium text-gray-900">
 					{selectedPermissionIds.length} selected
@@ -284,7 +286,3 @@ export const CreateRolePage = () => {
 		</section>
 	);
 };
-
-
-
-

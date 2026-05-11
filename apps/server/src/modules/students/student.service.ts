@@ -1,13 +1,13 @@
 import type { Student } from "@repo/schema";
-import { LeadModel, type LeadDocument } from "../leads/lead.model.js";
 import { ActivityService } from "../leads/activity.service.js";
+import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { UserModel } from "../users/user.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
-import { StudentModel, type StudentDocument } from "./student.model.js";
+import { type StudentDocument, StudentModel } from "./student.model.js";
 
 const getLatestLeadDemo = (lead: LeadDocument) => {
 	const demos = lead.demos ?? [];
-	return demos.length > 0 ? demos[demos.length - 1] ?? null : null;
+	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
 };
 
 const setLatestLeadDemo = (
@@ -49,18 +49,23 @@ const toStudent = (doc: StudentDocument): Student => {
 };
 
 const nextStudentZid = async (): Promise<string> => {
-	const students = await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
+	const students =
+		await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
 	return buildStudentIdentity(students.map((student) => student.zid));
 };
 
 export const StudentService = {
 	listStudents: async (): Promise<Student[]> => {
-		const students = await StudentModel.find().sort({ admittedAt: -1 }).lean<StudentDocument[]>();
+		const students = await StudentModel.find()
+			.sort({ admittedAt: -1 })
+			.lean<StudentDocument[]>();
 		return students.map(toStudent);
 	},
 
 	findByLeadId: async (leadId: string): Promise<Student | null> => {
-		const student = await StudentModel.findOne({ leadId }).lean<StudentDocument | null>();
+		const student = await StudentModel.findOne({
+			leadId,
+		}).lean<StudentDocument | null>();
 		return student ? toStudent(student) : null;
 	},
 
@@ -75,20 +80,24 @@ export const StudentService = {
 		performedBy?: string,
 		note?: string,
 	): Promise<Student | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return null;
 		}
 
-		const existingStudent = await StudentModel.findOne({ leadId }).lean<StudentDocument | null>();
+		const existingStudent = await StudentModel.findOne({
+			leadId,
+		}).lean<StudentDocument | null>();
 		if (existingStudent) {
 			return toStudent(existingStudent);
 		}
 
 		const latestDemo = getLatestLeadDemo(existingLead);
 		let resolvedCounsellorId = counsellorId;
-		let resolvedMentorId = mentorId ?? latestDemo?.mentorId?.toString();
-		
+		const resolvedMentorId = mentorId ?? latestDemo?.mentorId?.toString();
+
 		if (!resolvedCounsellorId && resolvedMentorId) {
 			const mentor = await UserModel.findById(resolvedMentorId).lean();
 			resolvedCounsellorId = mentor?.counsellorId?.toString();

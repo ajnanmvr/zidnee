@@ -1,12 +1,20 @@
-import type { Lead, LeadFormData, LeadStatus, UpdateLeadPayload } from "@repo/schema";
+import type {
+	Lead,
+	LeadFormData,
+	LeadStatus,
+	UpdateLeadPayload,
+} from "@repo/schema";
 import { randomBytes } from "crypto";
-import { LeadModel, type LeadDocument } from "./lead.model.js";
-import { TimeSlotModel } from "../timeslots/timeslot.model.js";
-import { ActivityService } from "./activity.service.js";
-import { ZidService } from "../zid/zid.service.js";
-import { StudentModel, type StudentDocument } from "../students/student.model.js";
-import type { LeadDocumentExt } from "./lead.model.js";
 import { ConflictError } from "../../utils/errors.util.js";
+import {
+	type StudentDocument,
+	StudentModel,
+} from "../students/student.model.js";
+import { TimeSlotModel } from "../timeslots/timeslot.model.js";
+import { ZidService } from "../zid/zid.service.js";
+import { ActivityService } from "./activity.service.js";
+import type { LeadDocumentExt } from "./lead.model.js";
+import { type LeadDocument, LeadModel } from "./lead.model.js";
 
 type LeadDemo = NonNullable<Lead["demos"]>[number];
 
@@ -45,7 +53,10 @@ const toObjectIdString = (value: unknown): string | undefined => {
 	return undefined;
 };
 
-const leadFieldPatch = (existingLead: LeadDocument, updates: UpdateLeadPayload) => {
+const leadFieldPatch = (
+	existingLead: LeadDocument,
+	updates: UpdateLeadPayload,
+) => {
 	const patch: Record<string, unknown> = {};
 	const oldValue: Record<string, unknown> = {};
 	const newValue: Record<string, unknown> = {};
@@ -69,14 +80,22 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: UpdateLeadPayload) 
 	}
 
 	const currentAssignedTo = toObjectIdString(existingLead.assignedTo);
-	if (updates.assignedTo !== undefined && updates.assignedTo !== currentAssignedTo) {
+	if (
+		updates.assignedTo !== undefined &&
+		updates.assignedTo !== currentAssignedTo
+	) {
 		patch.assignedTo = updates.assignedTo;
 		oldValue.assignedTo = currentAssignedTo ?? null;
 		newValue.assignedTo = updates.assignedTo;
 	}
 
-	const currentDemoRequestAssignedTo = toObjectIdString(existingLead.demoRequestAssignedTo);
-	if (updates.demoRequestAssignedTo !== undefined && updates.demoRequestAssignedTo !== currentDemoRequestAssignedTo) {
+	const currentDemoRequestAssignedTo = toObjectIdString(
+		existingLead.demoRequestAssignedTo,
+	);
+	if (
+		updates.demoRequestAssignedTo !== undefined &&
+		updates.demoRequestAssignedTo !== currentDemoRequestAssignedTo
+	) {
 		patch.demoRequestAssignedTo = updates.demoRequestAssignedTo;
 		oldValue.demoRequestAssignedTo = currentDemoRequestAssignedTo ?? null;
 		newValue.demoRequestAssignedTo = updates.demoRequestAssignedTo;
@@ -88,55 +107,85 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: UpdateLeadPayload) 
 		newValue.gender = updates.gender;
 	}
 
-	if (updates.dateOfBirth !== undefined && updates.dateOfBirth?.getTime() !== existingLead.dateOfBirth?.getTime()) {
+	if (
+		updates.dateOfBirth !== undefined &&
+		updates.dateOfBirth?.getTime() !== existingLead.dateOfBirth?.getTime()
+	) {
 		patch.dateOfBirth = updates.dateOfBirth;
 		oldValue.dateOfBirth = existingLead.dateOfBirth ?? null;
 		newValue.dateOfBirth = updates.dateOfBirth;
 	}
 
-	if (updates.residingCountry !== undefined && updates.residingCountry !== existingLead.residingCountry) {
+	if (
+		updates.residingCountry !== undefined &&
+		updates.residingCountry !== existingLead.residingCountry
+	) {
 		patch.residingCountry = updates.residingCountry;
 		oldValue.residingCountry = existingLead.residingCountry ?? null;
 		newValue.residingCountry = updates.residingCountry;
 	}
 
-	if (updates.primaryWhatsappNumber !== undefined && updates.primaryWhatsappNumber !== existingLead.primaryWhatsappNumber) {
+	if (
+		updates.primaryWhatsappNumber !== undefined &&
+		updates.primaryWhatsappNumber !== existingLead.primaryWhatsappNumber
+	) {
 		patch.primaryWhatsappNumber = updates.primaryWhatsappNumber;
 		oldValue.primaryWhatsappNumber = existingLead.primaryWhatsappNumber ?? null;
 		newValue.primaryWhatsappNumber = updates.primaryWhatsappNumber;
 	}
 
-	if (updates.alternateWhatsappNumber !== undefined && updates.alternateWhatsappNumber !== existingLead.alternateWhatsappNumber) {
+	if (
+		updates.alternateWhatsappNumber !== undefined &&
+		updates.alternateWhatsappNumber !== existingLead.alternateWhatsappNumber
+	) {
 		patch.alternateWhatsappNumber = updates.alternateWhatsappNumber;
-		oldValue.alternateWhatsappNumber = existingLead.alternateWhatsappNumber ?? null;
+		oldValue.alternateWhatsappNumber =
+			existingLead.alternateWhatsappNumber ?? null;
 		newValue.alternateWhatsappNumber = updates.alternateWhatsappNumber;
 	}
 
-	if (updates.studentInfo !== undefined && updates.studentInfo !== existingLead.studentInfo) {
+	if (
+		updates.studentInfo !== undefined &&
+		updates.studentInfo !== existingLead.studentInfo
+	) {
 		patch.studentInfo = updates.studentInfo;
 		oldValue.studentInfo = existingLead.studentInfo ?? null;
 		newValue.studentInfo = updates.studentInfo;
 	}
 
-	if (updates.preferredLanguage !== undefined && updates.preferredLanguage !== existingLead.preferredLanguage) {
+	if (
+		updates.preferredLanguage !== undefined &&
+		updates.preferredLanguage !== existingLead.preferredLanguage
+	) {
 		patch.preferredLanguage = updates.preferredLanguage;
 		oldValue.preferredLanguage = existingLead.preferredLanguage ?? null;
 		newValue.preferredLanguage = updates.preferredLanguage;
 	}
 
-	if (updates.preferredSchedule !== undefined && updates.preferredSchedule !== existingLead.preferredSchedule) {
+	if (
+		updates.preferredSchedule !== undefined &&
+		updates.preferredSchedule !== existingLead.preferredSchedule
+	) {
 		patch.preferredSchedule = updates.preferredSchedule;
 		oldValue.preferredSchedule = existingLead.preferredSchedule ?? null;
 		newValue.preferredSchedule = updates.preferredSchedule;
 	}
 
-	if (updates.preferredDays !== undefined && JSON.stringify(updates.preferredDays) !== JSON.stringify(existingLead.preferredDays ?? [])) {
+	if (
+		updates.preferredDays !== undefined &&
+		JSON.stringify(updates.preferredDays) !==
+			JSON.stringify(existingLead.preferredDays ?? [])
+	) {
 		patch.preferredDays = updates.preferredDays;
 		oldValue.preferredDays = existingLead.preferredDays ?? null;
 		newValue.preferredDays = updates.preferredDays;
 	}
 
-	if (updates.preferredTimeslots !== undefined && JSON.stringify(updates.preferredTimeslots) !== JSON.stringify(existingLead.preferredTimeslots ?? [])) {
+	if (
+		updates.preferredTimeslots !== undefined &&
+		JSON.stringify(updates.preferredTimeslots) !==
+			JSON.stringify(existingLead.preferredTimeslots ?? [])
+	) {
 		patch.preferredTimeslots = updates.preferredTimeslots;
 		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
 		newValue.preferredTimeslots = updates.preferredTimeslots;
@@ -148,25 +197,37 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: UpdateLeadPayload) 
 		newValue.price = updates.price;
 	}
 
-	if (updates.startClassWhen !== undefined && updates.startClassWhen !== existingLead.startClassWhen) {
+	if (
+		updates.startClassWhen !== undefined &&
+		updates.startClassWhen !== existingLead.startClassWhen
+	) {
 		patch.startClassWhen = updates.startClassWhen;
 		oldValue.startClassWhen = existingLead.startClassWhen ?? null;
 		newValue.startClassWhen = updates.startClassWhen;
 	}
 
-	if (updates.hearAboutUs !== undefined && updates.hearAboutUs !== existingLead.hearAboutUs) {
+	if (
+		updates.hearAboutUs !== undefined &&
+		updates.hearAboutUs !== existingLead.hearAboutUs
+	) {
 		patch.hearAboutUs = updates.hearAboutUs;
 		oldValue.hearAboutUs = existingLead.hearAboutUs ?? null;
 		newValue.hearAboutUs = updates.hearAboutUs;
 	}
 
-	if (updates.demoAvailability !== undefined && updates.demoAvailability !== existingLead.demoAvailability) {
+	if (
+		updates.demoAvailability !== undefined &&
+		updates.demoAvailability !== existingLead.demoAvailability
+	) {
 		patch.demoAvailability = updates.demoAvailability;
 		oldValue.demoAvailability = existingLead.demoAvailability ?? null;
 		newValue.demoAvailability = updates.demoAvailability;
 	}
 
-	if (updates.preferredMentorGender !== undefined && updates.preferredMentorGender !== existingLead.preferredMentorGender) {
+	if (
+		updates.preferredMentorGender !== undefined &&
+		updates.preferredMentorGender !== existingLead.preferredMentorGender
+	) {
 		patch.preferredMentorGender = updates.preferredMentorGender;
 		oldValue.preferredMentorGender = existingLead.preferredMentorGender ?? null;
 		newValue.preferredMentorGender = updates.preferredMentorGender;
@@ -175,7 +236,9 @@ const leadFieldPatch = (existingLead: LeadDocument, updates: UpdateLeadPayload) 
 	return { patch, oldValue, newValue };
 };
 
-const toDemo = (demo: NonNullable<LeadDocument["demos"]>[number]): LeadDemo => ({
+const toDemo = (
+	demo: NonNullable<LeadDocument["demos"]>[number],
+): LeadDemo => ({
 	mentorId: demo.mentorId?.toString(),
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
@@ -192,7 +255,9 @@ const toDemo = (demo: NonNullable<LeadDocument["demos"]>[number]): LeadDemo => (
 	note: demo.note,
 });
 
-const fromDemo = (demo: LeadDemo): NonNullable<LeadDocument["demos"]>[number] => ({
+const fromDemo = (
+	demo: LeadDemo,
+): NonNullable<LeadDocument["demos"]>[number] => ({
 	mentorId: demo.mentorId,
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
@@ -209,9 +274,11 @@ const fromDemo = (demo: LeadDemo): NonNullable<LeadDocument["demos"]>[number] =>
 	note: demo.note,
 });
 
-const getLatestDemo = (lead: LeadDocument): NonNullable<LeadDocument["demos"]>[number] | null => {
+const getLatestDemo = (
+	lead: LeadDocument,
+): NonNullable<LeadDocument["demos"]>[number] | null => {
 	const demos = lead.demos ?? [];
-	return demos.length > 0 ? demos[demos.length - 1] ?? null : null;
+	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
 };
 
 const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
@@ -228,17 +295,30 @@ const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
 	}
 
 	// Demo completed
-	if (latestDemo?.completedAt && latestDemo?.requestedAt && !latestDemo?.studentId) {
+	if (
+		latestDemo?.completedAt &&
+		latestDemo?.requestedAt &&
+		!latestDemo?.studentId
+	) {
 		return "DEMO_COMPLETED";
 	}
 
 	// Demo assigned (has mentor and assignedAt, but not completed)
-	if (latestDemo?.mentorId && latestDemo?.assignedAt && latestDemo?.requestedAt && !latestDemo?.completedAt) {
+	if (
+		latestDemo?.mentorId &&
+		latestDemo?.assignedAt &&
+		latestDemo?.requestedAt &&
+		!latestDemo?.completedAt
+	) {
 		return "DEMO_ASSIGNED";
 	}
 
 	// Demo requested (has requestedAt but not assigned yet)
-	if (latestDemo?.requestedAt && !latestDemo?.assignedAt && !latestDemo?.completedAt) {
+	if (
+		latestDemo?.requestedAt &&
+		!latestDemo?.assignedAt &&
+		!latestDemo?.completedAt
+	) {
 		return "DEMO_REQUEST";
 	}
 
@@ -267,7 +347,9 @@ const setLatestDemo = (
 ): NonNullable<LeadDocument["demos"]> => {
 	const demos = [...(lead.demos ?? [])];
 	if (demos.length === 0) {
-		demos.push({ demoRequired: false, ...patch } as NonNullable<LeadDocument["demos"]>[number]);
+		demos.push({ demoRequired: false, ...patch } as NonNullable<
+			LeadDocument["demos"]
+		>[number]);
 		return demos;
 	}
 
@@ -306,7 +388,10 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
 	preferredMentorGender: doc.preferredMentorGender,
-	nextFollowUpAt: toDateOrFallback(doc.nextFollowUpAt, doc.createdAt ?? new Date()),
+	nextFollowUpAt: toDateOrFallback(
+		doc.nextFollowUpAt,
+		doc.createdAt ?? new Date(),
+	),
 	status: doc.status ?? computeLeadStatus(doc),
 	demos: (doc.demos ?? []).map(toDemo),
 	createdAt: doc.createdAt,
@@ -357,7 +442,9 @@ export const LeadService = {
 		updates: UpdateLeadPayload,
 		performedBy?: string,
 	): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return null;
 		}
@@ -365,29 +452,58 @@ export const LeadService = {
 		let effectiveUpdates: UpdateLeadPayload = updates;
 		if (updates.preferredTimeslots !== undefined) {
 			const items = updates.preferredTimeslots as unknown[];
-			const needsFetch = items.some((it) => typeof it === "string" || (it && (it as any).id) || (it && (it as any)._id));
+			const needsFetch = items.some(
+				(it) =>
+					typeof it === "string" ||
+					(it && (it as any).id) ||
+					(it && (it as any)._id),
+			);
 			if (needsFetch) {
 				const ids = items
-					.map((it) => (typeof it === "string" ? it : (it && ((it as any).id ?? (it as any)._id))))
+					.map((it) =>
+						typeof it === "string"
+							? it
+							: it && ((it as any).id ?? (it as any)._id),
+					)
 					.filter(Boolean)
 					.map(String);
 
-				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } }).lean().exec();
+				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } })
+					.lean()
+					.exec();
 				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
 				const normalized = items.map((it) => {
 					if (typeof it === "string") {
 						const ts = map.get(it);
-						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: it };
+						return ts
+							? {
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
+							: { label: it };
 					}
 					if (it && (it as any).id) {
 						const id = String((it as any).id);
 						const ts = map.get(id);
-						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+						return ts
+							? {
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
+							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
 						const id = String((it as any)._id);
 						const ts = map.get(id);
-						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+						return ts
+							? {
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
+							: { label: (it as any).label ?? id };
 					}
 					// already a snapshot
 					return it as any;
@@ -397,7 +513,10 @@ export const LeadService = {
 			}
 		}
 
-		const { patch, oldValue, newValue } = leadFieldPatch(existingLead, effectiveUpdates);
+		const { patch, oldValue, newValue } = leadFieldPatch(
+			existingLead,
+			effectiveUpdates,
+		);
 		if (Object.keys(patch).length === 0) {
 			return mapLead(existingLead);
 		}
@@ -409,7 +528,10 @@ export const LeadService = {
 		).lean<LeadDocument | null>();
 
 		if (performedBy && updatedLead) {
-			const type = Object.prototype.hasOwnProperty.call(patch, "assignedTo") && Object.keys(patch).length === 1 ? "ASSIGNED" : "UPDATED";
+			const type =
+				Object.hasOwn(patch, "assignedTo") && Object.keys(patch).length === 1
+					? "ASSIGNED"
+					: "UPDATED";
 			await ActivityService.logActivity(
 				leadId,
 				type,
@@ -426,7 +548,9 @@ export const LeadService = {
 	},
 
 	findById: async (leadId: string): Promise<Lead | null> => {
-		const lead = await LeadModel.findById(leadId).populate("assignedTo", "name username").lean<LeadDocument | null>();
+		const lead = await LeadModel.findById(leadId)
+			.populate("assignedTo", "name username")
+			.lean<LeadDocument | null>();
 		return lead ? mapLead(lead) : null;
 	},
 
@@ -439,7 +563,12 @@ export const LeadService = {
 		offset?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
-	}): Promise<{ leads: Lead[]; total: number; page: number; pageSize: number }> => {
+	}): Promise<{
+		leads: Lead[];
+		total: number;
+		page: number;
+		pageSize: number;
+	}> => {
 		const limit = filters.limit ?? 25;
 		const offset = filters.offset ?? 0;
 		const page = Math.floor(offset / limit) + 1;
@@ -452,7 +581,9 @@ export const LeadService = {
 
 		let filtered = leads;
 		if (filters.scope === "mine") {
-			filtered = filtered.filter((lead) => toObjectIdString(lead.assignedTo) === filters.createdBy);
+			filtered = filtered.filter(
+				(lead) => toObjectIdString(lead.assignedTo) === filters.createdBy,
+			);
 		}
 
 		if (filters.timeFilter === "today") {
@@ -461,7 +592,10 @@ export const LeadService = {
 			const endOfDay = new Date();
 			endOfDay.setHours(23, 59, 59, 999);
 			filtered = filtered.filter((lead) => {
-				const nextFollowUpAt = toDateOrFallback(lead.nextFollowUpAt, lead.createdAt ?? new Date());
+				const nextFollowUpAt = toDateOrFallback(
+					lead.nextFollowUpAt,
+					lead.createdAt ?? new Date(),
+				);
 				return nextFollowUpAt >= startOfDay && nextFollowUpAt <= endOfDay;
 			});
 		}
@@ -492,31 +626,40 @@ export const LeadService = {
 	},
 
 	listPendingDemoRequests: async (): Promise<Lead[]> => {
-		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
-		return leads
-			.filter((lead) => lead.status === "DEMO_REQUEST")
-			.map(mapLead);
+		const leads = await LeadModel.find()
+			.sort({ createdAt: -1 })
+			.lean<LeadDocument[]>();
+		return leads.filter((lead) => lead.status === "DEMO_REQUEST").map(mapLead);
 	},
 
 	listDemoRequests: async (): Promise<Lead[]> => {
-		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
-		return leads
-			.filter((lead) => lead.status === "DEMO_ASSIGNED")
-			.map(mapLead);
+		const leads = await LeadModel.find()
+			.sort({ createdAt: -1 })
+			.lean<LeadDocument[]>();
+		return leads.filter((lead) => lead.status === "DEMO_ASSIGNED").map(mapLead);
 	},
 
 	listAdmissionLeads: async (): Promise<Lead[]> => {
-		const leads = await LeadModel.find().sort({ createdAt: -1 }).lean<LeadDocument[]>();
+		const leads = await LeadModel.find()
+			.sort({ createdAt: -1 })
+			.lean<LeadDocument[]>();
 		return leads
 			.filter((lead) => {
 				const latestDemo = getLatestDemo(lead);
-				return Boolean(latestDemo?.admissionRequestedAt && !latestDemo?.studentId);
+				return Boolean(
+					latestDemo?.admissionRequestedAt && !latestDemo?.studentId,
+				);
 			})
 			.map(mapLead);
 	},
 
-	requestDemo: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+	requestDemo: async (
+		leadId: string,
+		performedBy?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 		if (!existingLead.formCompleted) {
 			throw new ConflictError("Form must be filled before requesting a demo");
@@ -524,7 +667,9 @@ export const LeadService = {
 
 		const latestDemo = getLatestDemo(existingLead);
 		if (latestDemo?.requestedAt && !latestDemo?.completedAt) {
-			throw new ConflictError("Cannot request a new demo while a demo is already pending");
+			throw new ConflictError(
+				"Cannot request a new demo while a demo is already pending",
+			);
 		}
 
 		const now = new Date();
@@ -561,8 +706,14 @@ export const LeadService = {
 		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
-	markDemoCompleted: async (leadId: string, performedBy?: string, note?: string): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+	markDemoCompleted: async (
+		leadId: string,
+		performedBy?: string,
+		note?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
 		const now = new Date();
@@ -604,7 +755,9 @@ export const LeadService = {
 		note?: string,
 		counsellorId?: string,
 	): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
 		const now = new Date();
@@ -641,7 +794,11 @@ export const LeadService = {
 				performedBy,
 				`Requested redemo for ${existingLead.phone}`,
 				{ mentorId: previousMentorId },
-				{ mentorId: effectiveMentorId, requestedAt: now.toISOString(), counsellorId },
+				{
+					mentorId: effectiveMentorId,
+					requestedAt: now.toISOString(),
+					counsellorId,
+				},
 				note,
 			);
 		}
@@ -654,7 +811,9 @@ export const LeadService = {
 		counsellorId: string,
 		performedBy?: string,
 	): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
 		const demos = setLatestDemo(existingLead, {
@@ -691,11 +850,15 @@ export const LeadService = {
 		demoScheduledFor: Date,
 		performedBy?: string,
 	): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
 		const now = new Date();
-		const nextFollowUpAt = new Date(demoScheduledFor.getTime() + 60 * 60 * 1000);
+		const nextFollowUpAt = new Date(
+			demoScheduledFor.getTime() + 60 * 60 * 1000,
+		);
 		const demos = setLatestDemo(existingLead, {
 			mentorId,
 			assignedAt: now,
@@ -724,7 +887,8 @@ export const LeadService = {
 				`Scheduled demo for ${existingLead.phone}`,
 				{
 					mentorId: getLatestDemo(existingLead)?.mentorId?.toString(),
-					demoScheduledFor: getLatestDemo(existingLead)?.demoScheduledFor?.toISOString(),
+					demoScheduledFor:
+						getLatestDemo(existingLead)?.demoScheduledFor?.toISOString(),
 				},
 				{
 					mentorId,
@@ -743,7 +907,9 @@ export const LeadService = {
 		performedBy?: string,
 		note?: string,
 	): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
 		const now = new Date();
@@ -768,8 +934,14 @@ export const LeadService = {
 				"ADMISSION_REQUESTED",
 				performedBy,
 				`Requested admission for ${existingLead.phone}`,
-				{ admissionCounsellorId: getLatestDemo(existingLead)?.admissionCounsellorId?.toString() },
-				{ admissionCounsellorId: counsellorId, admissionRequestedAt: now.toISOString() },
+				{
+					admissionCounsellorId:
+						getLatestDemo(existingLead)?.admissionCounsellorId?.toString(),
+				},
+				{
+					admissionCounsellorId: counsellorId,
+					admissionRequestedAt: now.toISOString(),
+				},
 				note,
 			);
 		}
@@ -783,18 +955,20 @@ export const LeadService = {
 		performedBy?: string,
 		note?: string,
 	): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
 		const now = new Date();
 		const latestDemo = getLatestDemo(existingLead);
 		const demos = latestDemo
 			? setLatestDemo(existingLead, {
-				lastContactedAt: now,
-				customNextFollowUpAt,
-				nextFollowUpAt: customNextFollowUpAt,
-			})
-			: existingLead.demos ?? [];
+					lastContactedAt: now,
+					customNextFollowUpAt,
+					nextFollowUpAt: customNextFollowUpAt,
+				})
+			: (existingLead.demos ?? []);
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -813,7 +987,10 @@ export const LeadService = {
 				"FOLLOW_UP_POSTPONED",
 				performedBy,
 				`Postponed follow-up to ${customNextFollowUpAt.toISOString()}`,
-				{ customNextFollowUpAt: getLatestDemo(existingLead)?.customNextFollowUpAt?.toISOString() },
+				{
+					customNextFollowUpAt:
+						getLatestDemo(existingLead)?.customNextFollowUpAt?.toISOString(),
+				},
 				{ customNextFollowUpAt: customNextFollowUpAt.toISOString() },
 				note,
 			);
@@ -823,7 +1000,9 @@ export const LeadService = {
 	},
 
 	generateFormLink: async (leadId: string, performedBy?: string) => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocumentExt | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocumentExt | null>();
 		if (!existingLead) {
 			return null;
 		}
@@ -870,8 +1049,13 @@ export const LeadService = {
 		};
 	},
 
-	revokeFormLink: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+	revokeFormLink: async (
+		leadId: string,
+		performedBy?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return null;
 		}
@@ -902,8 +1086,13 @@ export const LeadService = {
 		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
-	cancelDemo: async (leadId: string, performedBy?: string): Promise<Lead | null> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+	cancelDemo: async (
+		leadId: string,
+		performedBy?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return null;
 		}
@@ -914,7 +1103,12 @@ export const LeadService = {
 		}
 
 		const latestDemo = demos[demos.length - 1];
-		if (latestDemo?.completedAt || latestDemo?.admissionRequestedAt || latestDemo?.admissionCompletedAt || latestDemo?.studentId) {
+		if (
+			latestDemo?.completedAt ||
+			latestDemo?.admissionRequestedAt ||
+			latestDemo?.admissionCompletedAt ||
+			latestDemo?.studentId
+		) {
 			return mapLead(existingLead);
 		}
 
@@ -945,7 +1139,11 @@ export const LeadService = {
 		return updatedLead ? mapLead(updatedLead) : null;
 	},
 
-	submitLeadForm: async (leadId: string, token: string, data: LeadFormData): Promise<{ ok: boolean } | null> => {
+	submitLeadForm: async (
+		leadId: string,
+		token: string,
+		data: LeadFormData,
+	): Promise<{ ok: boolean } | null> => {
 		const existingLead = await LeadModel.findById(leadId);
 		if (!existingLead) {
 			return null;
@@ -960,62 +1158,98 @@ export const LeadService = {
 		// Update lead: mark form as completed, fill in form data, clear token
 		// ZID will be generated later during admission confirmation
 		let preferredTimeslots = data.preferredTimeslots;
-		if (Array.isArray(data.preferredTimeslots) && data.preferredTimeslots.length > 0) {
+		if (
+			Array.isArray(data.preferredTimeslots) &&
+			data.preferredTimeslots.length > 0
+		) {
 			const items = data.preferredTimeslots as unknown[];
-			const needsFetch = items.some((it) => typeof it === "string" || (it && (it as any).id) || (it && (it as any)._id));
+			const needsFetch = items.some(
+				(it) =>
+					typeof it === "string" ||
+					(it && (it as any).id) ||
+					(it && (it as any)._id),
+			);
 			if (needsFetch) {
 				const ids = items
-					.map((it) => (typeof it === "string" ? it : (it && ((it as any).id ?? (it as any)._id))))
+					.map((it) =>
+						typeof it === "string"
+							? it
+							: it && ((it as any).id ?? (it as any)._id),
+					)
 					.filter(Boolean)
 					.map(String);
 
-				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } }).lean().exec();
+				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } })
+					.lean()
+					.exec();
 				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
 				preferredTimeslots = items.map((it) => {
 					if (typeof it === "string") {
 						const ts = map.get(it);
-						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: it };
+						return ts
+							? {
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
+							: { label: it };
 					}
 					if (it && (it as any).id) {
 						const id = String((it as any).id);
 						const ts = map.get(id);
-						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+						return ts
+							? {
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
+							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
 						const id = String((it as any)._id);
 						const ts = map.get(id);
-						return ts ? { label: ts.label, durationMinutes: ts.durationMinutes, timesPerWeek: ts.timesPerWeek } : { label: (it as any).label ?? id };
+						return ts
+							? {
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
+							: { label: (it as any).label ?? id };
 					}
 					return it as any;
 				});
 			}
 		}
 
-		const updatedLead = await LeadModel.findByIdAndUpdate(leadId, {
-			formCompleted: true,
-			status: "FORM_FILLED",
-			// keep `formSent` as true to indicate a form was sent historically
-			formSent: true,
-			name: data.name,
-			dateOfBirth: data.dateOfBirth,
-			residingCountry: data.residingCountry,
-			level: data.level,
-			gender: data.gender,
-			primaryWhatsappNumber: data.primaryWhatsappNumber,
-			alternateWhatsappNumber: data.alternateWhatsappNumber,
-			studentInfo: data.studentInfo,
-			preferredLanguage: data.preferredLanguage,
-			preferredSchedule: data.preferredSchedule,
-			preferredDays: data.preferredDays,
-			preferredTimeslots,
-			price: data.price,
-			startClassWhen: data.startClassWhen,
-			hearAboutUs: data.hearAboutUs,
-			demoAvailability: data.demoAvailability,
-			preferredMentorGender: data.preferredMentorGender,
-			formToken: undefined,
-			formTokenExpiresAt: new Date(),
-		}, { returnDocument: "after" });
+		const updatedLead = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{
+				formCompleted: true,
+				status: "FORM_FILLED",
+				// keep `formSent` as true to indicate a form was sent historically
+				formSent: true,
+				name: data.name,
+				dateOfBirth: data.dateOfBirth,
+				residingCountry: data.residingCountry,
+				level: data.level,
+				gender: data.gender,
+				primaryWhatsappNumber: data.primaryWhatsappNumber,
+				alternateWhatsappNumber: data.alternateWhatsappNumber,
+				studentInfo: data.studentInfo,
+				preferredLanguage: data.preferredLanguage,
+				preferredSchedule: data.preferredSchedule,
+				preferredDays: data.preferredDays,
+				preferredTimeslots,
+				price: data.price,
+				startClassWhen: data.startClassWhen,
+				hearAboutUs: data.hearAboutUs,
+				demoAvailability: data.demoAvailability,
+				preferredMentorGender: data.preferredMentorGender,
+				formToken: undefined,
+				formTokenExpiresAt: new Date(),
+			},
+			{ returnDocument: "after" },
+		);
 
 		if (!updatedLead) {
 			return null;
@@ -1051,17 +1285,26 @@ export const LeadService = {
 			primaryWhatsappNumber?: string;
 			alternateWhatsappNumber?: string;
 			studentInfo?: string;
-			preferredLanguage?: "Malayalam Only" | "English Only" | "Malayalam - English Mixed";
+			preferredLanguage?:
+				| "Malayalam Only"
+				| "English Only"
+				| "Malayalam - English Mixed";
 			preferredSchedule?: string;
 			preferredDays?: string[];
-			preferredTimeslots?: { label: string; timesPerWeek: number; durationMinutes: number }[];
+			preferredTimeslots?: {
+				label: string;
+				timesPerWeek: number;
+				durationMinutes: number;
+			}[];
 			startClassWhen?: string;
 			hearAboutUs?: string;
 			demoAvailability?: string;
 			preferredMentorGender?: "male" | "female" | "both";
 		};
 	}> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		if (!existingLead) {
 			return { isValid: false };
 		}
@@ -1082,7 +1325,8 @@ export const LeadService = {
 			residingCountry: existingLead.residingCountry,
 			level: existingLead.level,
 			gender: existingLead.gender,
-			primaryWhatsappNumber: existingLead.primaryWhatsappNumber ?? existingLead.phone,
+			primaryWhatsappNumber:
+				existingLead.primaryWhatsappNumber ?? existingLead.phone,
 			alternateWhatsappNumber: existingLead.alternateWhatsappNumber,
 			studentInfo: existingLead.studentInfo,
 			preferredLanguage: existingLead.preferredLanguage,
@@ -1102,8 +1346,15 @@ export const LeadService = {
 		};
 	},
 
-	delete: async (leadId: string, performedBy?: string, performedByName?: string, note?: string): Promise<boolean> => {
-		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+	delete: async (
+		leadId: string,
+		performedBy?: string,
+		performedByName?: string,
+		note?: string,
+	): Promise<boolean> => {
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
 		const result = await LeadModel.findByIdAndDelete(leadId);
 
 		if (performedBy && existingLead) {
@@ -1111,7 +1362,9 @@ export const LeadService = {
 				leadId,
 				"DELETED",
 				performedBy,
-				note ? `Lead deleted: ${existingLead.phone}` : `Lead deleted: ${existingLead.phone}`,
+				note
+					? `Lead deleted: ${existingLead.phone}`
+					: `Lead deleted: ${existingLead.phone}`,
 				{ phone: existingLead.phone, name: existingLead.name },
 				note ? { reason: note } : undefined,
 				note,

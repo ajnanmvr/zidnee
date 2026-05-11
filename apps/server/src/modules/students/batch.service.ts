@@ -1,5 +1,9 @@
-import type { Batch, CreateBatchPayload, UpdateBatchPayload } from "@repo/schema";
-import { BatchModel, type BatchDocument } from "./batch.model.js";
+import type {
+	Batch,
+	CreateBatchPayload,
+	UpdateBatchPayload,
+} from "@repo/schema";
+import { type BatchDocument, BatchModel } from "./batch.model.js";
 
 const toBatch = (doc: BatchDocument): Batch => {
 	return {
@@ -43,7 +47,10 @@ export const BatchService = {
 		return batches.map(toBatch);
 	},
 
-	update: async (id: string, payload: UpdateBatchPayload): Promise<Batch | null> => {
+	update: async (
+		id: string,
+		payload: UpdateBatchPayload,
+	): Promise<Batch | null> => {
 		const batch = await BatchModel.findByIdAndUpdate(
 			id,
 			{

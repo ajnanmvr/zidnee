@@ -35,7 +35,9 @@ export const ConfirmAdmissionPayloadSchema = z.object({
 	note: z.string().max(500).optional(),
 });
 
-export type ConfirmAdmissionPayload = z.infer<typeof ConfirmAdmissionPayloadSchema>;
+export type ConfirmAdmissionPayload = z.infer<
+	typeof ConfirmAdmissionPayloadSchema
+>;
 
 export const StudentResponseSchema = StudentSchema.omit({
 	admittedAt: true,
@@ -54,7 +56,9 @@ export const StudentResponseEnvelopeSchema = z.object({
 	student: StudentResponseSchema,
 });
 
-export type StudentResponseEnvelope = z.infer<typeof StudentResponseEnvelopeSchema>;
+export type StudentResponseEnvelope = z.infer<
+	typeof StudentResponseEnvelopeSchema
+>;
 
 export const StudentsResponseSchema = z.object({
 	ok: z.boolean(),

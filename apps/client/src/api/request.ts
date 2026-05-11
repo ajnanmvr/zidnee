@@ -100,7 +100,12 @@ export const requestWithSchema = async <T>(
 
 	const parsed = schema.safeParse(raw);
 	if (!parsed.success) {
-		console.error("Response validation failed. Expected schema:", schema, "Received:", raw);
+		console.error(
+			"Response validation failed. Expected schema:",
+			schema,
+			"Received:",
+			raw,
+		);
 		throw new Error("Response validation failed");
 	}
 

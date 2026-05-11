@@ -19,12 +19,28 @@ export type LeadStageDefinition = {
 export const leadStageDefinitions: LeadStageDefinition[] = [
 	{ id: "all", label: "All Leads", description: "Not converted or closed" },
 	{ id: "followUp", label: "Follow Up", description: "No form sent" },
-	{ id: "formSent", label: "Form Sent", description: "Form sent but not completed" },
+	{
+		id: "formSent",
+		label: "Form Sent",
+		description: "Form sent but not completed",
+	},
 	{ id: "formFilled", label: "Form Filled", description: "Form completed" },
 	{ id: "demoRequest", label: "Demo Request", description: "Demo requested" },
-	{ id: "demoAssigned", label: "Demo Scheduled", description: "Demo scheduled with mentor" },
-	{ id: "demoCompleted", label: "Demo Completed", description: "Demo completed" },
-	{ id: "demoCancelled", label: "Demo Cancelled", description: "Demo cancelled" },
+	{
+		id: "demoAssigned",
+		label: "Demo Scheduled",
+		description: "Demo scheduled with mentor",
+	},
+	{
+		id: "demoCompleted",
+		label: "Demo Completed",
+		description: "Demo completed",
+	},
+	{
+		id: "demoCancelled",
+		label: "Demo Cancelled",
+		description: "Demo cancelled",
+	},
 ];
 
 export const getLeadStagePredicate = (
@@ -57,19 +73,25 @@ export const getLeadStagePredicate = (
 	};
 };
 
-export const getLeadStageCounts = (leads: LeadResponse[], _currentUserId?: string | null) => {
-	return leadStageDefinitions.reduce<Record<LeadStageId, number>>((accumulator, stage) => {
-		const predicate = getLeadStagePredicate(stage.id, _currentUserId);
-		accumulator[stage.id] = leads.filter(predicate).length;
-		return accumulator;
-	}, {
-		all: 0,
-		followUp: 0,
-		formSent: 0,
-		formFilled: 0,
-		demoRequest: 0,
-		demoAssigned: 0,
-		demoCompleted: 0,
-		demoCancelled: 0,
-	});
+export const getLeadStageCounts = (
+	leads: LeadResponse[],
+	_currentUserId?: string | null,
+) => {
+	return leadStageDefinitions.reduce<Record<LeadStageId, number>>(
+		(accumulator, stage) => {
+			const predicate = getLeadStagePredicate(stage.id, _currentUserId);
+			accumulator[stage.id] = leads.filter(predicate).length;
+			return accumulator;
+		},
+		{
+			all: 0,
+			followUp: 0,
+			formSent: 0,
+			formFilled: 0,
+			demoRequest: 0,
+			demoAssigned: 0,
+			demoCompleted: 0,
+			demoCancelled: 0,
+		},
+	);
 };

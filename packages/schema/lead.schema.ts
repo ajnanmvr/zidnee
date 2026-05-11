@@ -22,16 +22,13 @@ const PhoneNumberSchema = z
 	.max(20)
 	.regex(/^[+]?\d{8,20}$/, "Phone number must contain only digits");
 
-const OptionalTextSchema = z.preprocess(
-	(value) => {
-		if (typeof value === "string" && value.trim() === "") {
-			return undefined;
-		}
+const OptionalTextSchema = z.preprocess((value) => {
+	if (typeof value === "string" && value.trim() === "") {
+		return undefined;
+	}
 
-		return value;
-	},
-	z.string().trim().min(1).max(255).optional(),
-);
+	return value;
+}, z.string().trim().min(1).max(255).optional());
 
 export const LeadTimeslotSnapshotSchema = z.object({
 	label: z.string().min(1).max(120),
@@ -50,7 +47,11 @@ export const LeadFormDataSchema = z.object({
 	primaryWhatsappNumber: PhoneNumberSchema,
 	alternateWhatsappNumber: PhoneNumberSchema.optional(),
 	studentInfo: z.string().min(1).max(1000),
-	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
+	preferredLanguage: z.enum([
+		"Malayalam Only",
+		"English Only",
+		"Malayalam - English Mixed",
+	]),
 	preferredSchedule: z.string().min(1).max(150),
 	preferredDays: z.array(z.string().min(1)).min(1),
 	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1),
@@ -100,7 +101,9 @@ export const LeadSchema = z.object({
 	primaryWhatsappNumber: PhoneNumberSchema.optional(),
 	alternateWhatsappNumber: PhoneNumberSchema.optional(),
 	studentInfo: z.string().max(1000).optional(),
-	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]).optional(),
+	preferredLanguage: z
+		.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"])
+		.optional(),
 	preferredSchedule: z.string().max(150).optional(),
 	preferredDays: z.array(z.string()).default([]),
 	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).default([]),
@@ -126,31 +129,34 @@ export const CreateLeadPayloadSchema = z.object({
 
 export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
 
-export const UpdateLeadPayloadSchema = z.object({
-	phone: PhoneNumberSchema.optional(),
-	name: OptionalTextSchema,
-	level: OptionalTextSchema,
-	assignedTo: ObjectIdStringSchema.optional(),
-	demoRequestAssignedTo: ObjectIdStringSchema.optional(),
-	gender: z.enum(["male", "female"]).optional(),
-	dateOfBirth: z.coerce.date().optional(),
-	residingCountry: z.string().max(100).optional(),
-	primaryWhatsappNumber: PhoneNumberSchema.optional(),
-	alternateWhatsappNumber: PhoneNumberSchema.optional(),
-	studentInfo: z.string().max(1000).optional(),
-	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]).optional(),
-	preferredSchedule: z.string().max(150).optional(),
-	preferredDays: z.array(z.string().min(1)).optional(),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).optional(),
-	price: z.number().int().nonnegative().optional(),
-	startClassWhen: z.string().max(100).optional(),
-	hearAboutUs: z.string().max(255).optional(),
-	demoAvailability: z.string().max(100).optional(),
-	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
-}).refine(
-	(value) => Object.values(value).some((v) => v !== undefined),
-	{ message: "At least one field must be provided" },
-);
+export const UpdateLeadPayloadSchema = z
+	.object({
+		phone: PhoneNumberSchema.optional(),
+		name: OptionalTextSchema,
+		level: OptionalTextSchema,
+		assignedTo: ObjectIdStringSchema.optional(),
+		demoRequestAssignedTo: ObjectIdStringSchema.optional(),
+		gender: z.enum(["male", "female"]).optional(),
+		dateOfBirth: z.coerce.date().optional(),
+		residingCountry: z.string().max(100).optional(),
+		primaryWhatsappNumber: PhoneNumberSchema.optional(),
+		alternateWhatsappNumber: PhoneNumberSchema.optional(),
+		studentInfo: z.string().max(1000).optional(),
+		preferredLanguage: z
+			.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"])
+			.optional(),
+		preferredSchedule: z.string().max(150).optional(),
+		preferredDays: z.array(z.string().min(1)).optional(),
+		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).optional(),
+		price: z.number().int().nonnegative().optional(),
+		startClassWhen: z.string().max(100).optional(),
+		hearAboutUs: z.string().max(255).optional(),
+		demoAvailability: z.string().max(100).optional(),
+		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
+	})
+	.refine((value) => Object.values(value).some((v) => v !== undefined), {
+		message: "At least one field must be provided",
+	});
 
 export type UpdateLeadPayload = z.infer<typeof UpdateLeadPayloadSchema>;
 
@@ -182,7 +188,9 @@ export const AssignDemoCounsellorPayloadSchema = z.object({
 	counsellorId: ObjectIdStringSchema,
 });
 
-export type AssignDemoCounsellorPayload = z.infer<typeof AssignDemoCounsellorPayloadSchema>;
+export type AssignDemoCounsellorPayload = z.infer<
+	typeof AssignDemoCounsellorPayloadSchema
+>;
 
 export const GenerateFormLinkResponseSchema = z.object({
 	formLink: z.string().url(),
@@ -194,7 +202,9 @@ export const DeleteLeadPayloadSchema = z.object({
 
 export type DeleteLeadPayload = z.infer<typeof DeleteLeadPayloadSchema>;
 
-export type GenerateFormLinkResponse = z.infer<typeof GenerateFormLinkResponseSchema>;
+export type GenerateFormLinkResponse = z.infer<
+	typeof GenerateFormLinkResponseSchema
+>;
 
 export const SubmitLeadFormPayloadSchema = z.object({
 	name: z.string().min(1).max(255),
@@ -205,7 +215,11 @@ export const SubmitLeadFormPayloadSchema = z.object({
 	primaryWhatsappNumber: PhoneNumberSchema,
 	alternateWhatsappNumber: PhoneNumberSchema.optional(),
 	studentInfo: z.string().max(1000).optional(),
-	preferredLanguage: z.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"]),
+	preferredLanguage: z.enum([
+		"Malayalam Only",
+		"English Only",
+		"Malayalam - English Mixed",
+	]),
 	preferredSchedule: z.string().min(1).max(150),
 	preferredDays: z.array(z.string().min(1)).min(1),
 	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1),

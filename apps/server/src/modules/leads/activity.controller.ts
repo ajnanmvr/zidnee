@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
+import { NotFoundError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { ActivityService } from "./activity.service.js";
-import { NotFoundError } from "../../utils/errors.util.js";
 
 const toActivityResponse = (activity: any) => {
 	const performedByName = activity.performedBy?.name || "Unknown";
-	
+
 	return {
 		id: activity._id.toString(),
 		leadId: activity.leadId.toString(),
@@ -16,7 +16,10 @@ const toActivityResponse = (activity: any) => {
 		oldValue: activity.oldValue,
 		newValue: activity.newValue,
 		note: activity.note,
-		createdAt: activity.createdAt instanceof Date ? activity.createdAt.toISOString() : activity.createdAt,
+		createdAt:
+			activity.createdAt instanceof Date
+				? activity.createdAt.toISOString()
+				: activity.createdAt,
 	};
 };
 

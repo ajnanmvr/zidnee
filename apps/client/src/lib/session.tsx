@@ -8,7 +8,3 @@ export { useSessionStore as useSession } from "./stores/session.store.js";
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
 	return children;
 };
-
-
-
-

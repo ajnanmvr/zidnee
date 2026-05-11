@@ -1,5 +1,8 @@
-import { LeadActivityModel, type LeadActivityDocument } from "./activity.model.js";
 import type { ActivityType } from "@repo/schema";
+import {
+	type LeadActivityDocument,
+	LeadActivityModel,
+} from "./activity.model.js";
 
 export class ActivityService {
 	static async logActivity(
@@ -24,21 +27,27 @@ export class ActivityService {
 		return activity.save();
 	}
 
-	static async getLeadActivities(leadId: string): Promise<LeadActivityDocument[]> {
+	static async getLeadActivities(
+		leadId: string,
+	): Promise<LeadActivityDocument[]> {
 		return LeadActivityModel.find({ leadId })
 			.populate("performedBy", "name")
 			.sort({ createdAt: -1 })
 			.exec();
 	}
 
-	static async deleteActivity(activityId: string): Promise<LeadActivityDocument | null> {
-		const deleted = await LeadActivityModel.findByIdAndDelete(activityId).lean<LeadActivityDocument | null>();
+	static async deleteActivity(
+		activityId: string,
+	): Promise<LeadActivityDocument | null> {
+		const deleted = await LeadActivityModel.findByIdAndDelete(
+			activityId,
+		).lean<LeadActivityDocument | null>();
 		return deleted;
 	}
 
 	static async toActivity(doc: LeadActivityDocument) {
 		const performedByName = (doc.performedBy as any)?.name || "Unknown";
-		
+
 		return {
 			id: doc._id.toString(),
 			leadId: doc.leadId.toString(),

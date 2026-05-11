@@ -9,8 +9,8 @@ import {
 	MessageResponseSchema,
 	PostponeLeadFollowUpPayloadSchema,
 	RedemoLeadPayloadSchema,
-	UpdateLeadPayloadSchema,
 	StudentResponseEnvelopeSchema,
+	UpdateLeadPayloadSchema,
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
@@ -33,12 +33,12 @@ export const fetchDueLeadFollowUps = async (
 	const sortOrder = options?.sortOrder ?? "desc";
 	const limit = 25;
 	const offset = (page - 1) * limit;
-	
+
 	let query = `?scope=${scope}&timeFilter=${timeFilter}&limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
 	if (status) {
 		query += `&status=${status}`;
 	}
-	
+
 	return requestWithSchema(
 		`/leads${query}`,
 		LeadsResponseSchema,
@@ -213,7 +213,11 @@ export const requestAdmission = async (
 	);
 };
 
-export const deleteLead = async (token: string, leadId: string, payload: { note: string }) => {
+export const deleteLead = async (
+	token: string,
+	leadId: string,
+	payload: { note: string },
+) => {
 	return requestWithSchema(
 		`/leads/${leadId}`,
 		MessageResponseSchema,

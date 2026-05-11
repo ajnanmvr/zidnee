@@ -1,5 +1,9 @@
-import type { Course, CreateCoursePayload, UpdateCoursePayload } from "@repo/schema";
-import { CourseModel, type CourseDocument } from "./course.model.js";
+import type {
+	Course,
+	CreateCoursePayload,
+	UpdateCoursePayload,
+} from "@repo/schema";
+import { type CourseDocument, CourseModel } from "./course.model.js";
 
 const toCourse = (doc: CourseDocument): Course => {
 	return {
@@ -32,11 +36,16 @@ export const CourseService = {
 	},
 
 	findAll: async (): Promise<Course[]> => {
-		const courses = await CourseModel.find({ isActive: true }).lean<CourseDocument[]>();
+		const courses = await CourseModel.find({ isActive: true }).lean<
+			CourseDocument[]
+		>();
 		return courses.map(toCourse);
 	},
 
-	update: async (id: string, payload: UpdateCoursePayload): Promise<Course | null> => {
+	update: async (
+		id: string,
+		payload: UpdateCoursePayload,
+	): Promise<Course | null> => {
 		const course = await CourseModel.findByIdAndUpdate(
 			id,
 			{

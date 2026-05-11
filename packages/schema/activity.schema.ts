@@ -56,4 +56,6 @@ export const LeadActivitiesResponseSchema = z.object({
 	activities: z.array(LeadActivityResponseSchema),
 });
 
-export type LeadActivitiesResponse = z.infer<typeof LeadActivitiesResponseSchema>;
+export type LeadActivitiesResponse = z.infer<
+	typeof LeadActivitiesResponseSchema
+>;

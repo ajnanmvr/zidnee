@@ -1,7 +1,12 @@
 import { Router } from "express";
-import { asyncHandler } from "../../middlewares/error.middleware.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
-import { createTimeSlotController, listTimeSlotsController, updateTimeSlotController, deleteTimeSlotController } from "./timeslot.controller.js";
+import { asyncHandler } from "../../middlewares/error.middleware.js";
+import {
+	createTimeSlotController,
+	deleteTimeSlotController,
+	listTimeSlotsController,
+	updateTimeSlotController,
+} from "./timeslot.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
 

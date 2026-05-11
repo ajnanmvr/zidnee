@@ -23,7 +23,8 @@ export const MePage = () => {
 	const [banner, setBanner] = useState("");
 
 	const roleNames =
-		me?.roles.map((role) => role.type ?? role.name ?? "general").join(", ") ?? "Workspace member";
+		me?.roles.map((role) => role.type ?? role.name ?? "general").join(", ") ??
+		"Workspace member";
 
 	const onSubmit = async (passwordForm: ChangePasswordForm) => {
 		setBanner("");
@@ -114,7 +115,9 @@ export const MePage = () => {
 						<p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-600">
 							Role
 						</p>
-						<p className="mt-1 text-sm font-semibold text-gray-900">{roleNames}</p>
+						<p className="mt-1 text-sm font-semibold text-gray-900">
+							{roleNames}
+						</p>
 					</div>
 					<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 sm:col-span-2">
 						<p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-600">
@@ -184,7 +187,3 @@ export const MePage = () => {
 		</div>
 	);
 };
-
-
-
-

@@ -1,6 +1,7 @@
-import { format, isTomorrow, isToday, isYesterday } from "date-fns";
+import { format, isToday, isTomorrow, isYesterday } from "date-fns";
 
-const toDate = (date: Date | string): Date => (typeof date === "string" ? new Date(date) : date);
+const toDate = (date: Date | string): Date =>
+	typeof date === "string" ? new Date(date) : date;
 
 const isValidDate = (date: Date) => !Number.isNaN(date.getTime());
 

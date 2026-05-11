@@ -1,22 +1,31 @@
-import { useMemo, useState } from "react";
+import type { LeadResponse } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
+import { format, isPast, isToday } from "date-fns";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+	HiArrowLeft,
+	HiCalendarDays,
+	HiCheckCircle,
+	HiExclamationTriangle,
+} from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
-import { useSession } from "@/lib/session";
-import { useMeQuery } from "@/features/auth/auth.queries";
-import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
-import { useUsersQuery } from "@/features/users/users.queries";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
-import { useMarkDemoCompletedMutation, useAssignDemoMentorMutation, useRequestRedemoMutation } from "@/features/leads/use-lead-mutations";
-import { Modal } from "@/components/dashboard-ui";
 import { DataTable } from "@/components/DataTable";
 import { DateCell } from "@/components/DateCell";
-import { HiArrowLeft, HiCheckCircle, HiCalendarDays, HiExclamationTriangle } from "react-icons/hi2";
-import toast from "react-hot-toast";
-import { Controller, useForm } from "react-hook-form";
-import { format, isPast, isToday } from "date-fns";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { LeadResponse } from "@repo/schema";
-import { RequirementsModal } from "./RequirementsModal";
+import { Modal } from "@/components/dashboard-ui";
+import { useMeQuery } from "@/features/auth/auth.queries";
+import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
+import {
+	useAssignDemoMentorMutation,
+	useMarkDemoCompletedMutation,
+	useRequestRedemoMutation,
+} from "@/features/leads/use-lead-mutations";
+import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
+import { useUsersQuery } from "@/features/users/users.queries";
+import { useSession } from "@/lib/session";
 import { DemoOutcomeModal } from "./DemoOutcomeModal";
+import { RequirementsModal } from "./RequirementsModal";
 
 export const ScheduledDemosPage = () => {
 	const navigate = useNavigate();
@@ -34,9 +43,11 @@ export const ScheduledDemosPage = () => {
 	const [completeOpen, setCompleteOpen] = useState(false);
 	const [rescheduleOpen, setRescheduleOpen] = useState(false);
 	const [requirementsOpen, setRequirementsOpen] = useState(false);
-	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
+	const [selectedRequirements, setSelectedRequirements] =
+		useState<LeadResponse | null>(null);
 	const [outcomeOpen, setOutcomeOpen] = useState(false);
-	const [outcomeDemoForAction, setOutcomeDemoForAction] = useState<LeadResponse | null>(null);
+	const [outcomeDemoForAction, setOutcomeDemoForAction] =
+		useState<LeadResponse | null>(null);
 	const [viewScope, setViewScope] = useState<"mine" | "all">("mine");
 
 	const {
@@ -164,7 +175,9 @@ export const ScheduledDemosPage = () => {
 		setSelectedDemo(demo);
 		resetReschedule({
 			mentorId: latestDemo?.mentorId || "",
-			demoScheduledFor: latestDemo?.demoScheduledFor ? new Date(latestDemo.demoScheduledFor) : new Date(Date.now() + 24 * 60 * 60 * 1000),
+			demoScheduledFor: latestDemo?.demoScheduledFor
+				? new Date(latestDemo.demoScheduledFor)
+				: new Date(Date.now() + 24 * 60 * 60 * 1000),
 		});
 		setRescheduleOpen(true);
 	};
@@ -174,7 +187,8 @@ export const ScheduledDemosPage = () => {
 		setRequirementsOpen(true);
 	};
 
-	const getLatestDemo = (demo: LeadResponse) => demo.demos[demo.demos.length - 1] ?? null;
+	const getLatestDemo = (demo: LeadResponse) =>
+		demo.demos[demo.demos.length - 1] ?? null;
 
 	const getDemoScheduleStatus = (demo: LeadResponse) => {
 		const scheduledFor = getLatestDemo(demo)?.demoScheduledFor;
@@ -194,40 +208,73 @@ export const ScheduledDemosPage = () => {
 		return isPast(scheduledDate) ? ("overdue" as const) : ("upcoming" as const);
 	};
 
-	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
+	const mentors =
+		usersQuery.data?.users.filter((user) =>
+			user.roles?.some((role) => (role.type ?? "general") === "mentor"),
+		) ?? [];
 
 	const scheduledDemos = demosQuery.data?.leads ?? [];
-	const visibleDemos = viewScope === "mine"
-		? scheduledDemos.filter((demo) => getLatestDemo(demo)?.mentorId === currentUserId)
-		: scheduledDemos;
+	const visibleDemos =
+		viewScope === "mine"
+			? scheduledDemos.filter(
+					(demo) => getLatestDemo(demo)?.mentorId === currentUserId,
+				)
+			: scheduledDemos;
 	const userNameById = new Map(
-		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
+		(usersQuery.data?.users ?? []).map((user) => [
+			user.id,
+			user.name || user.username,
+		]),
 	);
-	const overdueDemos = visibleDemos.filter((demo) => getDemoScheduleStatus(demo) === "overdue");
-	const todayDemos = visibleDemos.filter((demo) => getDemoScheduleStatus(demo) === "today");
-	const upcomingDemos = visibleDemos.filter((demo) => getDemoScheduleStatus(demo) === "upcoming");
+	const overdueDemos = visibleDemos.filter(
+		(demo) => getDemoScheduleStatus(demo) === "overdue",
+	);
+	const todayDemos = visibleDemos.filter(
+		(demo) => getDemoScheduleStatus(demo) === "today",
+	);
+	const upcomingDemos = visibleDemos.filter(
+		(demo) => getDemoScheduleStatus(demo) === "upcoming",
+	);
 
-	const columns = useMemo<ColumnDef<LeadResponse>[]>(() => [
+	const columns: ColumnDef<LeadResponse>[] = [
 		{
 			accessorKey: "name",
 			header: "Name",
 			cell: ({ row }) => (
 				<div>
 					<p className="font-semibold text-gray-900">{row.original.name}</p>
-					<p className="text-xs text-gray-500 font-mono">{row.original.phone}</p>
+					<p className="text-xs text-gray-500 font-mono">
+						{row.original.phone}
+					</p>
 				</div>
 			),
 		},
 		{
 			accessorKey: "level",
 			header: "Level",
-			cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.level || "-"}</span>,
+			cell: ({ row }) => (
+				<span className="font-medium text-gray-900">
+					{row.original.level || "-"}
+				</span>
+			),
 		},
 		{
 			id: "attempt",
 			header: "Attempt",
 			accessorFn: (row) => row.demos.length,
-			cell: ({ row }) => <span className="font-medium text-gray-900">{Math.max(1, row.original.demos.length || 1)}{Math.max(1, row.original.demos.length || 1) === 1 ? "st" : Math.max(1, row.original.demos.length || 1) === 2 ? "nd" : Math.max(1, row.original.demos.length || 1) === 3 ? "rd" : "th"} demo</span>,
+			cell: ({ row }) => (
+				<span className="font-medium text-gray-900">
+					{Math.max(1, row.original.demos.length || 1)}
+					{Math.max(1, row.original.demos.length || 1) === 1
+						? "st"
+						: Math.max(1, row.original.demos.length || 1) === 2
+							? "nd"
+							: Math.max(1, row.original.demos.length || 1) === 3
+								? "rd"
+								: "th"}{" "}
+					demo
+				</span>
+			),
 		},
 		{
 			id: "scheduledFor",
@@ -236,9 +283,17 @@ export const ScheduledDemosPage = () => {
 			cell: ({ row }) => {
 				const scheduledFor = getLatestDemo(row.original)?.demoScheduledFor;
 				const scheduleStatus = getDemoScheduleStatus(row.original);
-				const scheduleTone = scheduleStatus === "overdue" ? "text-red-700" : scheduleStatus === "today" ? "text-amber-700" : "text-emerald-700";
+				const scheduleTone =
+					scheduleStatus === "overdue"
+						? "text-red-700"
+						: scheduleStatus === "today"
+							? "text-amber-700"
+							: "text-emerald-700";
 				return (
-					<DateCell date={scheduledFor ?? ""} className={`font-semibold ${scheduleTone}`} />
+					<DateCell
+						date={scheduledFor ?? ""}
+						className={`font-semibold ${scheduleTone}`}
+					/>
 				);
 			},
 		},
@@ -247,11 +302,19 @@ export const ScheduledDemosPage = () => {
 			header: "Mentor",
 			accessorFn: (row) => {
 				const latestDemo = getLatestDemo(row);
-				return latestDemo?.mentorId ? (userNameById.get(latestDemo.mentorId) ?? latestDemo.mentorId) : "-";
+				return latestDemo?.mentorId
+					? (userNameById.get(latestDemo.mentorId) ?? latestDemo.mentorId)
+					: "-";
 			},
 			cell: ({ row }) => {
 				const latestDemo = getLatestDemo(row.original);
-				return <span className="font-medium text-gray-900">{latestDemo?.mentorId ? (userNameById.get(latestDemo.mentorId) ?? latestDemo.mentorId) : "-"}</span>;
+				return (
+					<span className="font-medium text-gray-900">
+						{latestDemo?.mentorId
+							? (userNameById.get(latestDemo.mentorId) ?? latestDemo.mentorId)
+							: "-"}
+					</span>
+				);
 			},
 		},
 		{
@@ -269,20 +332,24 @@ export const ScheduledDemosPage = () => {
 			},
 			cell: ({ row }) => {
 				const scheduleStatus = getDemoScheduleStatus(row.original);
-				const badgeClass = scheduleStatus === "overdue"
-					? "bg-red-100 text-red-700"
-					: scheduleStatus === "today"
-						? "bg-amber-100 text-amber-700"
-						: "bg-emerald-100 text-emerald-700";
-				const label = scheduleStatus === "unscheduled"
-					? "Unscheduled"
-					: scheduleStatus === "today"
-						? "Today"
-						: scheduleStatus === "overdue"
-							? "Overdue"
-							: "Upcoming";
+				const badgeClass =
+					scheduleStatus === "overdue"
+						? "bg-red-100 text-red-700"
+						: scheduleStatus === "today"
+							? "bg-amber-100 text-amber-700"
+							: "bg-emerald-100 text-emerald-700";
+				const label =
+					scheduleStatus === "unscheduled"
+						? "Unscheduled"
+						: scheduleStatus === "today"
+							? "Today"
+							: scheduleStatus === "overdue"
+								? "Overdue"
+								: "Upcoming";
 				return (
-					<span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
+					<span
+						className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
+					>
 						{label}
 					</span>
 				);
@@ -319,7 +386,7 @@ export const ScheduledDemosPage = () => {
 				</div>
 			),
 		},
-	], [userNameById]);
+	];
 
 	if (demosQuery.isLoading || meQuery.isLoading) {
 		return (
@@ -343,8 +410,12 @@ export const ScheduledDemosPage = () => {
 							<HiArrowLeft className="h-6 w-6 text-gray-900" />
 						</button>
 						<div>
-							<h1 className="text-2xl font-bold text-gray-900">Scheduled Demos</h1>
-							<p className="mt-1 text-sm text-gray-600">{visibleDemos.length} demo(s) in the current view</p>
+							<h1 className="text-2xl font-bold text-gray-900">
+								Scheduled Demos
+							</h1>
+							<p className="mt-1 text-sm text-gray-600">
+								{visibleDemos.length} demo(s) in the current view
+							</p>
 						</div>
 					</div>
 					<div className="inline-flex rounded-2xl border border-gray-200 bg-gray-50 p-1">
@@ -371,15 +442,25 @@ export const ScheduledDemosPage = () => {
 				{visibleDemos.length === 0 ? (
 					<div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 px-8 py-12 text-center">
 						<HiCalendarDays className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-						<p className="text-lg font-medium text-gray-700">No scheduled demos in this view</p>
-						<p className="mt-1 text-sm text-gray-600">Switch to All assignments to see every scheduled demo</p>
+						<p className="text-lg font-medium text-gray-700">
+							No scheduled demos in this view
+						</p>
+						<p className="mt-1 text-sm text-gray-600">
+							Switch to All assignments to see every scheduled demo
+						</p>
 					</div>
 				) : (
 					<div className="space-y-4">
 						<div className="flex flex-wrap gap-2 text-sm">
-							<span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-700">Overdue: {overdueDemos.length}</span>
-							<span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">Today: {todayDemos.length}</span>
-							<span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">Upcoming: {upcomingDemos.length}</span>
+							<span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-700">
+								Overdue: {overdueDemos.length}
+							</span>
+							<span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">
+								Today: {todayDemos.length}
+							</span>
+							<span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">
+								Upcoming: {upcomingDemos.length}
+							</span>
 						</div>
 						<DataTable
 							columns={columns}
@@ -390,11 +471,13 @@ export const ScheduledDemosPage = () => {
 						/>
 
 						{/* Overdue Section */}
-					{false && (
+						{false && (
 							<section>
 								<div className="mb-4 flex items-center gap-2">
 									<HiExclamationTriangle className="h-5 w-5 text-red-600" />
-									<h2 className="text-lg font-semibold text-red-700">Overdue Demos ({overdueDemos.length})</h2>
+									<h2 className="text-lg font-semibold text-red-700">
+										Overdue Demos ({overdueDemos.length})
+									</h2>
 								</div>
 								<div className="grid gap-4">
 									{overdueDemos.map((demo) => (
@@ -406,31 +489,62 @@ export const ScheduledDemosPage = () => {
 												<div className="flex-1 min-w-0">
 													{/* Lead Info */}
 													<div className="flex items-baseline gap-2 mb-3">
-														<h3 className="text-lg font-semibold text-gray-900">{demo.name}</h3>
-														<span className="text-sm text-gray-600 font-mono">{demo.phone}</span>
+														<h3 className="text-lg font-semibold text-gray-900">
+															{demo.name}
+														</h3>
+														<span className="text-sm text-gray-600 font-mono">
+															{demo.phone}
+														</span>
 													</div>
 
 													{/* Details Grid */}
 													<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
 														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Level</p>
-															<p className="text-sm font-medium text-gray-900">{demo.level}</p>
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Level
+															</p>
+															<p className="text-sm font-medium text-gray-900">
+																{demo.level}
+															</p>
 														</div>
 														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Mentor</p>
-															<p className="text-sm font-medium text-gray-900">{demo.demos[demo.demos.length - 1]?.mentorId ? "Assigned" : "-"}</p>
-														</div>
-														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-red-600 mb-1">Scheduled For</p>
-															<p className="text-sm font-bold text-red-700">
-																{demo.demos[demo.demos.length - 1]?.demoScheduledFor
-																	? <DateCell date={demo.demos[demo.demos.length - 1].demoScheduledFor} className="font-bold text-red-700" />
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Mentor
+															</p>
+															<p className="text-sm font-medium text-gray-900">
+																{demo.demos[demo.demos.length - 1]?.mentorId
+																	? "Assigned"
 																	: "-"}
 															</p>
 														</div>
 														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Assigned To</p>
-															<p className="text-sm font-medium text-gray-900">{demo.demoRequestAssignedTo ? (userNameById.get(demo.demoRequestAssignedTo) ?? demo.demoRequestAssignedTo) : "-"}</p>
+															<p className="text-xs font-semibold uppercase tracking-wider text-red-600 mb-1">
+																Scheduled For
+															</p>
+															<p className="text-sm font-bold text-red-700">
+																{demo.demos.at(-1)?.demoScheduledFor ? (
+																	<DateCell
+																		date={
+																			demo.demos.at(-1)?.demoScheduledFor ?? ""
+																		}
+																		className="font-bold text-red-700"
+																	/>
+																) : (
+																	"-"
+																)}
+															</p>
+														</div>
+														<div>
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Assigned To
+															</p>
+															<p className="text-sm font-medium text-gray-900">
+																{demo.demoRequestAssignedTo
+																	? (userNameById.get(
+																			demo.demoRequestAssignedTo,
+																		) ?? demo.demoRequestAssignedTo)
+																	: "-"}
+															</p>
 														</div>
 													</div>
 												</div>
@@ -469,10 +583,12 @@ export const ScheduledDemosPage = () => {
 						)}
 
 						{/* Upcoming Section */}
-					{false && (
+						{false && (
 							<section>
 								<div className="mb-4">
-									<h2 className="text-lg font-semibold text-gray-900">Upcoming Demos ({upcomingDemos.length})</h2>
+									<h2 className="text-lg font-semibold text-gray-900">
+										Upcoming Demos ({upcomingDemos.length})
+									</h2>
 								</div>
 								<div className="grid gap-4">
 									{upcomingDemos.map((demo) => (
@@ -484,31 +600,62 @@ export const ScheduledDemosPage = () => {
 												<div className="flex-1 min-w-0">
 													{/* Lead Info */}
 													<div className="flex items-baseline gap-2 mb-3">
-														<h3 className="text-lg font-semibold text-gray-900">{demo.name}</h3>
-														<span className="text-sm text-gray-600 font-mono">{demo.phone}</span>
+														<h3 className="text-lg font-semibold text-gray-900">
+															{demo.name}
+														</h3>
+														<span className="text-sm text-gray-600 font-mono">
+															{demo.phone}
+														</span>
 													</div>
 
 													{/* Details Grid */}
 													<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
 														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Level</p>
-															<p className="text-sm font-medium text-gray-900">{demo.level}</p>
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Level
+															</p>
+															<p className="text-sm font-medium text-gray-900">
+																{demo.level}
+															</p>
 														</div>
 														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Mentor</p>
-															<p className="text-sm font-medium text-gray-900">{demo.demos[demo.demos.length - 1]?.mentorId ? "Assigned" : "-"}</p>
-														</div>
-														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Scheduled For</p>
-															<p className="text-sm font-medium text-emerald-700">
-																{demo.demos[demo.demos.length - 1]?.demoScheduledFor
-																	? <DateCell date={demo.demos[demo.demos.length - 1].demoScheduledFor} className="font-medium text-emerald-700" />
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Mentor
+															</p>
+															<p className="text-sm font-medium text-gray-900">
+																{demo.demos[demo.demos.length - 1]?.mentorId
+																	? "Assigned"
 																	: "-"}
 															</p>
 														</div>
 														<div>
-															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Assigned To</p>
-															<p className="text-sm font-medium text-gray-900">{demo.demoRequestAssignedTo ? (userNameById.get(demo.demoRequestAssignedTo) ?? demo.demoRequestAssignedTo) : "-"}</p>
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Scheduled For
+															</p>
+															<p className="text-sm font-medium text-emerald-700">
+																{demo.demos.at(-1)?.demoScheduledFor ? (
+																	<DateCell
+																		date={
+																			demo.demos.at(-1)?.demoScheduledFor ?? ""
+																		}
+																		className="font-medium text-emerald-700"
+																	/>
+																) : (
+																	"-"
+																)}
+															</p>
+														</div>
+														<div>
+															<p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">
+																Assigned To
+															</p>
+															<p className="text-sm font-medium text-gray-900">
+																{demo.demoRequestAssignedTo
+																	? (userNameById.get(
+																			demo.demoRequestAssignedTo,
+																		) ?? demo.demoRequestAssignedTo)
+																	: "-"}
+															</p>
 														</div>
 													</div>
 												</div>
@@ -579,16 +726,19 @@ export const ScheduledDemosPage = () => {
 							disabled={markDemoCompletedMutation.isPending}
 						>
 							<HiCheckCircle className="h-4 w-4" />
-							{markDemoCompletedMutation.isPending ? "Completing..." : "Mark Completed"}
+							{markDemoCompletedMutation.isPending
+								? "Completing..."
+								: "Mark Completed"}
 						</button>
 					</>
 				}
 			>
-				<form className="grid gap-4" onSubmit={handleCompleteSubmit(onMarkCompleted)}>
+				<form className="grid gap-4" onSubmit={onMarkCompleted}>
 					<div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 flex gap-3">
 						<HiExclamationTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
 						<p className="text-sm text-amber-800">
-							<strong>Note:</strong> Marking a demo as completed is permanent and cannot be undone.
+							<strong>Note:</strong> Marking a demo as completed is permanent
+							and cannot be undone.
 						</p>
 					</div>
 
@@ -614,7 +764,9 @@ export const ScheduledDemosPage = () => {
 			<Modal
 				open={rescheduleOpen}
 				title="Reschedule Demo"
-				description={selectedDemo ? `Reschedule demo for ${selectedDemo.name}` : ""}
+				description={
+					selectedDemo ? `Reschedule demo for ${selectedDemo.name}` : ""
+				}
 				onClose={() => {
 					setRescheduleOpen(false);
 					setSelectedDemo(null);
@@ -640,12 +792,14 @@ export const ScheduledDemosPage = () => {
 							disabled={reassignDemoMutation.isPending}
 						>
 							<HiCalendarDays className="h-4 w-4" />
-							{reassignDemoMutation.isPending ? "Rescheduling..." : "Reschedule"}
+							{reassignDemoMutation.isPending
+								? "Rescheduling..."
+								: "Reschedule"}
 						</button>
 					</>
 				}
 			>
-				<form className="grid gap-4" onSubmit={handleRescheduleSubmit(onReschedule)}>
+				<form className="grid gap-4" onSubmit={onReschedule}>
 					{/* Mentor Selection */}
 					<Controller
 						name="mentorId"
@@ -666,7 +820,9 @@ export const ScheduledDemosPage = () => {
 									))}
 								</select>
 								{fieldState.error?.message ? (
-									<p className="text-xs text-red-600">{fieldState.error.message}</p>
+									<p className="text-xs text-red-600">
+										{fieldState.error.message}
+									</p>
 								) : null}
 							</label>
 						)}
@@ -701,7 +857,9 @@ export const ScheduledDemosPage = () => {
 									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
 								/>
 								{fieldState.error?.message ? (
-									<p className="text-xs text-red-600">{fieldState.error.message}</p>
+									<p className="text-xs text-red-600">
+										{fieldState.error.message}
+									</p>
 								) : null}
 							</label>
 						)}

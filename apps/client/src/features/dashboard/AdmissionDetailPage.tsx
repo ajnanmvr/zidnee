@@ -1,14 +1,14 @@
 ﻿import { ConfirmAdmissionPayloadSchema } from "@repo/schema";
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { HiAcademicCap } from "react-icons/hi2";
 import toast from "react-hot-toast";
+import { HiAcademicCap } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Panel, TextAreaField } from "@/components/dashboard-ui";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
-import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
 import { useLeadDetailQuery } from "@/features/leads/leads.queries";
+import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import type { ConfirmAdmissionForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
@@ -23,27 +23,34 @@ export const AdmissionDetailPage = () => {
 	const leadQuery = useLeadDetailQuery(token, leadId ?? "");
 	const usersQuery = useUsersQuery(token);
 	const confirmAdmissionMutation = useConfirmAdmissionMutation();
-	const { control, handleSubmit, setError, reset, setValue } = useForm<ConfirmAdmissionForm>({
-		defaultValues: { counsellorId: undefined, note: "" },
-	});
+	const { control, handleSubmit, setError, reset, setValue } =
+		useForm<ConfirmAdmissionForm>({
+			defaultValues: { counsellorId: undefined, note: "" },
+		});
 	const allUsers = usersQuery.data?.users ?? [];
 
 	const counsellors = useMemo(() => {
-		return allUsers.filter((user) => user.roles.some((role) => isCounsellorRole(role.type ?? "general")));
+		return allUsers.filter((user) =>
+			user.roles.some((role) => isCounsellorRole(role.type ?? "general")),
+		);
 	}, [allUsers]);
 
 	const userNameById = useMemo(
 		() =>
 			new Map(
-				allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)]),
+				allUsers.map((user) => [
+					user.id,
+					formatUserName(user.name ?? user.username),
+				]),
 			),
 		[allUsers],
 	);
 
 	const lead = leadQuery.data?.lead;
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
-	const defaultCounsellorId = latestDemo?.admissionCounsellorId
-		?? (latestDemo?.mentorId
+	const defaultCounsellorId =
+		latestDemo?.admissionCounsellorId ??
+		(latestDemo?.mentorId
 			? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
 			: undefined);
 
@@ -62,7 +69,10 @@ export const AdmissionDetailPage = () => {
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
 			if (errors.counsellorId?.[0]) {
-				setError("counsellorId", { type: "manual", message: errors.counsellorId[0] });
+				setError("counsellorId", {
+					type: "manual",
+					message: errors.counsellorId[0],
+				});
 			}
 			if (errors.note?.[0]) {
 				setError("note", { type: "manual", message: errors.note[0] });
@@ -75,7 +85,9 @@ export const AdmissionDetailPage = () => {
 				leadId,
 				payload: validation.data,
 			});
-			toast.success(`Admission confirmed. Student ID ${response.student.zid} created.`);
+			toast.success(
+				`Admission confirmed. Student ID ${response.student.zid} created.`,
+			);
 			reset({ counsellorId: undefined, note: "" });
 			navigate("/students");
 		} catch (error) {
@@ -84,20 +96,34 @@ export const AdmissionDetailPage = () => {
 				return;
 			}
 
-			toast.error(error instanceof Error ? error.message : "Unable to confirm admission");
+			toast.error(
+				error instanceof Error ? error.message : "Unable to confirm admission",
+			);
 		}
 	};
 
 	if (!leadId) {
-		return <Panel title="Admission" description="Lead not found">Lead not found.</Panel>;
+		return (
+			<Panel title="Admission" description="Lead not found">
+				Lead not found.
+			</Panel>
+		);
 	}
 
 	if (leadQuery.isLoading) {
-		return <Panel title="Admission" description="Loading lead...">Loading lead...</Panel>;
+		return (
+			<Panel title="Admission" description="Loading lead...">
+				Loading lead...
+			</Panel>
+		);
 	}
 
 	if (!lead) {
-		return <Panel title="Admission" description="Lead not found">Lead not found.</Panel>;
+		return (
+			<Panel title="Admission" description="Lead not found">
+				Lead not found.
+			</Panel>
+		);
 	}
 
 	return (
@@ -115,10 +141,23 @@ export const AdmissionDetailPage = () => {
 			</div>
 
 			<div className="mb-6 grid gap-3 rounded-3xl border border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-				<p>Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})</p>
-				<p>Demo mentor: {latestDemo?.mentorId ? userNameById.get(latestDemo.mentorId) ?? "-" : "-"}</p>
-				<p>Selected counsellor will handle form sending, details collection, and final admission confirmation.</p>
-				<p>Student ID will be generated automatically on confirmation in the format `ZID001`.</p>
+				<p>
+					Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})
+				</p>
+				<p>
+					Demo mentor:{" "}
+					{latestDemo?.mentorId
+						? (userNameById.get(latestDemo.mentorId) ?? "-")
+						: "-"}
+				</p>
+				<p>
+					Selected counsellor will handle form sending, details collection, and
+					final admission confirmation.
+				</p>
+				<p>
+					Student ID will be generated automatically on confirmation in the
+					format `ZID001`.
+				</p>
 			</div>
 
 			<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
@@ -131,7 +170,9 @@ export const AdmissionDetailPage = () => {
 							<select
 								className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 								value={field.value ?? defaultCounsellorId ?? ""}
-								onChange={(event) => field.onChange(event.target.value || undefined)}
+								onChange={(event) =>
+									field.onChange(event.target.value || undefined)
+								}
 							>
 								<option value="">Select counsellor</option>
 								{counsellors.map((counsellor) => (
@@ -141,7 +182,9 @@ export const AdmissionDetailPage = () => {
 								))}
 							</select>
 							{fieldState.error?.message ? (
-								<span className="text-xs text-red-600">{fieldState.error.message}</span>
+								<span className="text-xs text-red-600">
+									{fieldState.error.message}
+								</span>
 							) : null}
 						</label>
 					)}
@@ -168,14 +211,12 @@ export const AdmissionDetailPage = () => {
 						disabled={confirmAdmissionMutation.isPending}
 					>
 						<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
-						{confirmAdmissionMutation.isPending ? "Confirming..." : "Confirm admission"}
+						{confirmAdmissionMutation.isPending
+							? "Confirming..."
+							: "Confirm admission"}
 					</button>
 				</div>
 			</form>
 		</Panel>
 	);
 };
-
-
-
-

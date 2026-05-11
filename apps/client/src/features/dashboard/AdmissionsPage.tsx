@@ -1,8 +1,8 @@
 ﻿import type { LeadResponse } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { HiAcademicCap } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
@@ -23,7 +23,10 @@ export const AdmissionsPage = () => {
 	const userNameById = useMemo(
 		() =>
 			new Map(
-				allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)]),
+				allUsers.map((user) => [
+					user.id,
+					formatUserName(user.name ?? user.username),
+				]),
 			),
 		[allUsers],
 	);
@@ -45,7 +48,9 @@ export const AdmissionsPage = () => {
 				header: "Demo mentor",
 				cell: (info) => {
 					const latestDemo = getLatestLeadDemo(info.row.original);
-					return latestDemo?.mentorId ? userNameById.get(latestDemo.mentorId) ?? "-" : "-";
+					return latestDemo?.mentorId
+						? (userNameById.get(latestDemo.mentorId) ?? "-")
+						: "-";
 				},
 			},
 			{
@@ -54,7 +59,7 @@ export const AdmissionsPage = () => {
 				cell: (info) => {
 					const latestDemo = getLatestLeadDemo(info.row.original);
 					return latestDemo?.admissionCounsellorId
-						? userNameById.get(latestDemo.admissionCounsellorId) ?? "-"
+						? (userNameById.get(latestDemo.admissionCounsellorId) ?? "-")
 						: "-";
 				},
 			},
@@ -85,7 +90,9 @@ export const AdmissionsPage = () => {
 			{admissionsQuery.isLoading ? (
 				<div className="py-8 text-center text-sm text-gray-600">Loading...</div>
 			) : admissionsQuery.isError ? (
-				<div className="py-8 text-center text-sm text-gray-600">Unable to load admissions.</div>
+				<div className="py-8 text-center text-sm text-gray-600">
+					Unable to load admissions.
+				</div>
 			) : (
 				<DataTable
 					columns={columns}
@@ -97,7 +104,3 @@ export const AdmissionsPage = () => {
 		</Panel>
 	);
 };
-
-
-
-

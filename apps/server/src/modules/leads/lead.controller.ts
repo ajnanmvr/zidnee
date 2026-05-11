@@ -1,26 +1,28 @@
 import {
-	AssignDemoPayloadSchema,
 	AssignDemoCounsellorPayloadSchema,
+	AssignDemoPayloadSchema,
+	ConfirmAdmissionPayloadSchema,
 	CreateLeadPayloadSchema,
-	RedemoLeadPayloadSchema,
-	PostponeLeadFollowUpPayloadSchema,
-	UpdateLeadPayloadSchema,
+	DeleteLeadPayloadSchema,
 	type Lead,
 	type LeadStatus,
-	ConfirmAdmissionPayloadSchema,
-	DeleteLeadPayloadSchema,
+	PostponeLeadFollowUpPayloadSchema,
+	RedemoLeadPayloadSchema,
+	SubmitLeadFormPayloadSchema,
+	UpdateLeadPayloadSchema,
 } from "@repo/schema";
-import { SubmitLeadFormPayloadSchema } from "@repo/schema";
 import type { Request, Response } from "express";
 import { NotFoundError, ValidationError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
-import { LeadService } from "./lead.service.js";
-import { UserModel } from "../users/user.model.js";
 import { RoleService } from "../rbac/rbac.service.js";
 import { StudentService } from "../students/student.service.js";
+import { UserModel } from "../users/user.model.js";
+import { LeadService } from "./lead.service.js";
 
 const getLatestDemo = (lead: Lead) => {
-	return lead.demos && lead.demos.length > 0 ? lead.demos[lead.demos.length - 1] : null;
+	return lead.demos && lead.demos.length > 0
+		? lead.demos[lead.demos.length - 1]
+		: null;
 };
 
 const computeLeadStatus = (lead: Lead): LeadStatus => {
@@ -37,17 +39,30 @@ const computeLeadStatus = (lead: Lead): LeadStatus => {
 	}
 
 	// Demo completed
-	if (latestDemo?.completedAt && latestDemo?.requestedAt && !latestDemo?.studentId) {
+	if (
+		latestDemo?.completedAt &&
+		latestDemo?.requestedAt &&
+		!latestDemo?.studentId
+	) {
 		return "DEMO_COMPLETED";
 	}
 
 	// Demo assigned (has mentor and assignedAt, but not completed)
-	if (latestDemo?.mentorId && latestDemo?.assignedAt && latestDemo?.requestedAt && !latestDemo?.completedAt) {
+	if (
+		latestDemo?.mentorId &&
+		latestDemo?.assignedAt &&
+		latestDemo?.requestedAt &&
+		!latestDemo?.completedAt
+	) {
 		return "DEMO_ASSIGNED";
 	}
 
 	// Demo requested (has requestedAt but not assigned yet)
-	if (latestDemo?.requestedAt && !latestDemo?.assignedAt && !latestDemo?.completedAt) {
+	if (
+		latestDemo?.requestedAt &&
+		!latestDemo?.assignedAt &&
+		!latestDemo?.completedAt
+	) {
 		return "DEMO_REQUEST";
 	}
 
@@ -71,22 +86,23 @@ const computeLeadStatus = (lead: Lead): LeadStatus => {
 };
 
 const toLeadResponse = (lead: Lead): Record<string, unknown> => {
-	const demos = lead.demos?.map((demo) => ({
-		mentorId: demo.mentorId ?? null,
-		requestedAt: demo.requestedAt?.toISOString() ?? null,
-		assignedAt: demo.assignedAt?.toISOString() ?? null,
-		demoScheduledFor: demo.demoScheduledFor?.toISOString() ?? null,
-		completedAt: demo.completedAt?.toISOString() ?? null,
-		demoRequired: demo.demoRequired,
-		lastContactedAt: demo.lastContactedAt?.toISOString() ?? null,
-		nextFollowUpAt: demo.nextFollowUpAt?.toISOString() ?? null,
-		customNextFollowUpAt: demo.customNextFollowUpAt?.toISOString() ?? null,
-		admissionRequestedAt: demo.admissionRequestedAt?.toISOString() ?? null,
-		admissionCounsellorId: demo.admissionCounsellorId ?? null,
-		admissionCompletedAt: demo.admissionCompletedAt?.toISOString() ?? null,
-		studentId: demo.studentId ?? null,
-		note: demo.note ?? null,
-	})) ?? [];
+	const demos =
+		lead.demos?.map((demo) => ({
+			mentorId: demo.mentorId ?? null,
+			requestedAt: demo.requestedAt?.toISOString() ?? null,
+			assignedAt: demo.assignedAt?.toISOString() ?? null,
+			demoScheduledFor: demo.demoScheduledFor?.toISOString() ?? null,
+			completedAt: demo.completedAt?.toISOString() ?? null,
+			demoRequired: demo.demoRequired,
+			lastContactedAt: demo.lastContactedAt?.toISOString() ?? null,
+			nextFollowUpAt: demo.nextFollowUpAt?.toISOString() ?? null,
+			customNextFollowUpAt: demo.customNextFollowUpAt?.toISOString() ?? null,
+			admissionRequestedAt: demo.admissionRequestedAt?.toISOString() ?? null,
+			admissionCounsellorId: demo.admissionCounsellorId ?? null,
+			admissionCompletedAt: demo.admissionCompletedAt?.toISOString() ?? null,
+			studentId: demo.studentId ?? null,
+			note: demo.note ?? null,
+		})) ?? [];
 
 	return {
 		id: lead.id,
@@ -98,7 +114,8 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		createdBy: lead.createdBy,
 		formSent: lead.formSent,
 		formCompleted: lead.formCompleted,
-		nextFollowUpAt: lead.nextFollowUpAt?.toISOString() ?? new Date().toISOString(),
+		nextFollowUpAt:
+			lead.nextFollowUpAt?.toISOString() ?? new Date().toISOString(),
 		dateOfBirth: lead.dateOfBirth?.toISOString(),
 		residingCountry: lead.residingCountry,
 		gender: lead.gender,
@@ -167,7 +184,11 @@ export const updateLeadController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const updatedLead = await LeadService.update(leadId, result.data, req.user.userId);
+	const updatedLead = await LeadService.update(
+		leadId,
+		result.data,
+		req.user.userId,
+	);
 
 	if (!updatedLead) {
 		throw new NotFoundError("Lead");
@@ -189,10 +210,14 @@ export const listLeadsController = async (
 
 	const scope = req.query.scope === "mine" ? "mine" : "all";
 	const timeFilter = req.query.timeFilter === "today" ? "today" : "all";
-	const status = typeof req.query.status === "string" ? req.query.status : undefined;
-	const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 25;
-	const offset = typeof req.query.offset === "string" ? parseInt(req.query.offset, 10) : 0;
-	const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy : "nextFollowUpAt";
+	const status =
+		typeof req.query.status === "string" ? req.query.status : undefined;
+	const limit =
+		typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 25;
+	const offset =
+		typeof req.query.offset === "string" ? parseInt(req.query.offset, 10) : 0;
+	const sortBy =
+		typeof req.query.sortBy === "string" ? req.query.sortBy : "nextFollowUpAt";
 	const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
 
 	const { leads, total, page, pageSize } = await LeadService.listLeads({
@@ -336,12 +361,18 @@ export const markDemoCompletedController = async (
 	}
 
 	const leadId = requireStringValue(req.params.leadId, "leadId");
-	const result = RedemoLeadPayloadSchema.pick({ note: true }).safeParse(req.body);
+	const result = RedemoLeadPayloadSchema.pick({ note: true }).safeParse(
+		req.body,
+	);
 	if (!result.success) {
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const updatedLead = await LeadService.markDemoCompleted(leadId, req.user.userId, result.data.note);
+	const updatedLead = await LeadService.markDemoCompleted(
+		leadId,
+		req.user.userId,
+		result.data.note,
+	);
 
 	if (!updatedLead) {
 		throw new NotFoundError("Lead");
@@ -650,7 +681,12 @@ export const deleteLeadController = async (
 	const user = await UserModel.findById(req.user.userId).lean();
 	const userName = user?.name || "Unknown";
 
-	const deleted = await LeadService.delete(leadId, req.user.userId, userName, result.data.note);
+	const deleted = await LeadService.delete(
+		leadId,
+		req.user.userId,
+		userName,
+		result.data.note,
+	);
 
 	if (!deleted) {
 		throw new NotFoundError("Lead");

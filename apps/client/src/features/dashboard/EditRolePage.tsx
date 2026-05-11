@@ -4,7 +4,12 @@ import { Controller, useForm } from "react-hook-form";
 import { HiCheckCircle, HiShieldCheck } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { Field, Panel, SelectField, TextAreaField } from "@/components/dashboard-ui";
+import {
+	Field,
+	Panel,
+	SelectField,
+	TextAreaField,
+} from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUpdateRoleMutation } from "@/features/roles/use-role-management-mutations";
@@ -195,59 +200,59 @@ export const EditRolePage = () => {
 							/>
 						)}
 					/>
-			</div>
-
-			<Controller
-				name="description"
-				control={control}
-				render={({ field, fieldState }) => (
-					<TextAreaField
-						label="Description"
-						value={field.value ?? ""}
-						onChange={field.onChange}
-						error={fieldState.error?.message}
-					/>
-				)}
-			/>
-
-			<div className="mt-4 grid gap-2 text-sm font-medium text-gray-600">
-				<span>Permissions</span>
-				<div className="flex flex-wrap gap-2">
-					{permissionsQuery.data?.permissions.map((permission) => {
-						const selected = selectedPermissionIds.includes(permission.id);
-						return (
-							<button
-								type="button"
-								key={permission.id}
-								className={
-									selected
-										? "rounded-full border border-blue-600 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-600"
-										: "rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600"
-								}
-								onClick={() => {
-									const nextPermissionIds = selected
-										? selectedPermissionIds.filter(
-												(id) => id !== permission.id,
-											)
-										: [...selectedPermissionIds, permission.id];
-
-									setValue("permissionIds", nextPermissionIds, {
-										shouldValidate: true,
-										shouldDirty: true,
-									});
-								}}
-							>
-								{permission.name}
-							</button>
-						);
-					})}
 				</div>
-				{formState.errors.permissionIds?.message ? (
-					<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
-						{formState.errors.permissionIds.message}
-					</p>
-				) : null}
-			</div>
+
+				<Controller
+					name="description"
+					control={control}
+					render={({ field, fieldState }) => (
+						<TextAreaField
+							label="Description"
+							value={field.value ?? ""}
+							onChange={field.onChange}
+							error={fieldState.error?.message}
+						/>
+					)}
+				/>
+
+				<div className="mt-4 grid gap-2 text-sm font-medium text-gray-600">
+					<span>Permissions</span>
+					<div className="flex flex-wrap gap-2">
+						{permissionsQuery.data?.permissions.map((permission) => {
+							const selected = selectedPermissionIds.includes(permission.id);
+							return (
+								<button
+									type="button"
+									key={permission.id}
+									className={
+										selected
+											? "rounded-full border border-blue-600 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-600"
+											: "rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600"
+									}
+									onClick={() => {
+										const nextPermissionIds = selected
+											? selectedPermissionIds.filter(
+													(id) => id !== permission.id,
+												)
+											: [...selectedPermissionIds, permission.id];
+
+										setValue("permissionIds", nextPermissionIds, {
+											shouldValidate: true,
+											shouldDirty: true,
+										});
+									}}
+								>
+									{permission.name}
+								</button>
+							);
+						})}
+					</div>
+					{formState.errors.permissionIds?.message ? (
+						<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
+							{formState.errors.permissionIds.message}
+						</p>
+					) : null}
+				</div>
 
 				<div className="mt-5 flex gap-2">
 					<button
@@ -275,7 +280,3 @@ export const EditRolePage = () => {
 		</Panel>
 	);
 };
-
-
-
-

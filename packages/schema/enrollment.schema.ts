@@ -20,7 +20,9 @@ export const CreateEnrollmentPayloadSchema = z.object({
 	batchId: ObjectIdStringSchema.optional(),
 });
 
-export type CreateEnrollmentPayload = z.infer<typeof CreateEnrollmentPayloadSchema>;
+export type CreateEnrollmentPayload = z.infer<
+	typeof CreateEnrollmentPayloadSchema
+>;
 
 export const EnrollmentResponseSchema = EnrollmentSchema.omit({
 	enrolledAt: true,

@@ -1,9 +1,15 @@
-import { CreateTimeSlotPayloadSchema, UpdateTimeSlotPayloadSchema } from "@repo/schema";
+import {
+	CreateTimeSlotPayloadSchema,
+	UpdateTimeSlotPayloadSchema,
+} from "@repo/schema";
 import type { Request, Response } from "express";
+import { requireStringValue } from "../rbac/rbac.http.js";
 import { ValidationError } from "../../utils/errors.util.js";
 import { TimeSlotService } from "./timeslot.service.js";
 
-const toTimeSlotResponse = (timeSlot: Awaited<ReturnType<typeof TimeSlotService.create>>) => ({
+const toTimeSlotResponse = (
+	timeSlot: Awaited<ReturnType<typeof TimeSlotService.create>>,
+) => ({
 	id: timeSlot.id,
 	label: timeSlot.label,
 	durationMinutes: timeSlot.durationMinutes,
@@ -13,7 +19,10 @@ const toTimeSlotResponse = (timeSlot: Awaited<ReturnType<typeof TimeSlotService.
 	updatedAt: timeSlot.updatedAt?.toISOString() ?? null,
 });
 
-export const listTimeSlotsController = async (_req: Request, res: Response): Promise<void> => {
+export const listTimeSlotsController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
 	const timeSlots = await TimeSlotService.findAll();
 	res.json({
 		ok: true,
@@ -21,7 +30,10 @@ export const listTimeSlotsController = async (_req: Request, res: Response): Pro
 	});
 };
 
-export const createTimeSlotController = async (req: Request, res: Response): Promise<void> => {
+export const createTimeSlotController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
 	const result = CreateTimeSlotPayloadSchema.safeParse(req.body);
 	if (!result.success) {
 		throw new ValidationError(result.error.flatten().fieldErrors);
@@ -35,14 +47,17 @@ export const createTimeSlotController = async (req: Request, res: Response): Pro
 	});
 };
 
-export const updateTimeSlotController = async (req: Request, res: Response): Promise<void> => {
-	const id = req.params.id;
+export const updateTimeSlotController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const id = requireStringValue(req.params.id, "id");
 	const result = UpdateTimeSlotPayloadSchema.safeParse(req.body);
- 	if (!result.success) {
+	if (!result.success) {
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const timeSlot = await TimeSlotService.update(id, result.data as any);
+	const timeSlot = await TimeSlotService.update(id, result.data);
 
 	res.json({
 		ok: true,
@@ -50,8 +65,11 @@ export const updateTimeSlotController = async (req: Request, res: Response): Pro
 	});
 };
 
-export const deleteTimeSlotController = async (req: Request, res: Response): Promise<void> => {
-	const id = req.params.id;
+export const deleteTimeSlotController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const id = requireStringValue(req.params.id, "id");
 	await TimeSlotService.remove(id);
 	res.json({ ok: true });
 };

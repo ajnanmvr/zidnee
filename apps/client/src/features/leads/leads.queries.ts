@@ -17,7 +17,18 @@ export const leadsQueryKeys = {
 		page: number = 1,
 		sortBy: string = "nextFollowUpAt",
 		sortOrder: "asc" | "desc" = "desc",
-	) => ["leads", "list", token, scope, timeFilter, status, page, sortBy, sortOrder] as const,
+	) =>
+		[
+			"leads",
+			"list",
+			token,
+			scope,
+			timeFilter,
+			status,
+			page,
+			sortBy,
+			sortOrder,
+		] as const,
 	demoRequests: (token: string) => ["leads", "demo-requests", token] as const,
 	pendingDemoRequests: (token: string) => ["leads", "for-demo", token] as const,
 	admissions: (token: string) => ["leads", "admissions", token] as const,
@@ -70,16 +81,29 @@ export const useDueLeadFollowUpsQuery = (
 	const sortOrder = options?.sortOrder ?? "desc";
 
 	return useQuery({
-		queryKey: leadsQueryKeys.list(token, scope, timeFilter, status, page, sortBy, sortOrder),
-		queryFn: () => fetchDueLeadFollowUps(token, { scope, timeFilter, status, page, sortBy, sortOrder }),
+		queryKey: leadsQueryKeys.list(
+			token,
+			scope,
+			timeFilter,
+			status,
+			page,
+			sortBy,
+			sortOrder,
+		),
+		queryFn: () =>
+			fetchDueLeadFollowUps(token, {
+				scope,
+				timeFilter,
+				status,
+				page,
+				sortBy,
+				sortOrder,
+			}),
 		enabled: Boolean(token),
 	});
 };
 
-export const useLeadActivitiesQuery = (
-	token: string,
-	leadId: string,
-) => {
+export const useLeadActivitiesQuery = (token: string, leadId: string) => {
 	return useQuery({
 		queryKey: leadsQueryKeys.activities(token, leadId),
 		queryFn: () => fetchLeadActivities(token, leadId),
@@ -87,10 +111,7 @@ export const useLeadActivitiesQuery = (
 	});
 };
 
-export const useLeadDetailQuery = (
-	token: string,
-	leadId: string,
-) => {
+export const useLeadDetailQuery = (token: string, leadId: string) => {
 	return useQuery({
 		queryKey: leadsQueryKeys.detail(token, leadId),
 		queryFn: () => fetchLeadById(token, leadId),

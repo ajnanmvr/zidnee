@@ -1,17 +1,17 @@
 import { ConfirmAdmissionPayloadSchema } from "@repo/schema";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { HiAcademicCap, HiPlus } from "react-icons/hi2";
 import toast from "react-hot-toast";
+import { HiAcademicCap } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { Panel, TextAreaField, Modal } from "@/components/dashboard-ui";
-import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
-import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
-import { useLeadDetailQuery } from "@/features/leads/leads.queries";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useBatchesByMentorQuery } from "@/features/batches/batches.queries";
 import { useCoursesQuery } from "@/features/courses/courses.queries";
+import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
+import { useLeadDetailQuery } from "@/features/leads/leads.queries";
+import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
+import { useUsersQuery } from "@/features/users/users.queries";
 import type { ConfirmAdmissionForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
@@ -57,27 +57,41 @@ export const AdmissionDetailPageEnhanced = () => {
 	const courses = coursesQuery.data?.courses ?? [];
 
 	const mentors = useMemo(
-		() => allUsers.filter((user) => user.roles?.some((role) => isMentorRole(role.type ?? "general"))),
+		() =>
+			allUsers.filter((user) =>
+				user.roles?.some((role) => isMentorRole(role.type ?? "general")),
+			),
 		[allUsers],
 	);
 
 	const counsellors = useMemo(
-		() => allUsers.filter((user) => user.roles?.some((role) => isCounsellorRole(role.type ?? "general"))),
+		() =>
+			allUsers.filter((user) =>
+				user.roles?.some((role) => isCounsellorRole(role.type ?? "general")),
+			),
 		[allUsers],
 	);
 
 	const userNameById = useMemo(
-		() => new Map(allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)])),
+		() =>
+			new Map(
+				allUsers.map((user) => [
+					user.id,
+					formatUserName(user.name ?? user.username),
+				]),
+			),
 		[allUsers],
 	);
 
 	const selectedMentor = useMemo(
-		() => allUsers.find((u) => u.id === selectedMentorId),
+		() => allUsers.find((user) => user.id === selectedMentorId),
 		[selectedMentorId, allUsers],
 	);
 
 	const mentorHasCounsellor = selectedMentor?.counsellorId;
-	const mentorCounsellorId = mentorHasCounsellor ? selectedMentor.counsellorId : null;
+	const mentorCounsellorId = mentorHasCounsellor
+		? selectedMentor.counsellorId
+		: null;
 
 	const lead = leadQuery.data?.lead;
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
@@ -85,7 +99,7 @@ export const AdmissionDetailPageEnhanced = () => {
 	// Auto-select counsellor when mentor is selected
 	useEffect(() => {
 		if (selectedMentorId && selectedProgramType === "ONLINE_SCHOOL") {
-			const mentor = allUsers.find((u) => u.id === selectedMentorId);
+			const mentor = allUsers.find((user) => user.id === selectedMentorId);
 			if (mentor?.counsellorId) {
 				setValue("counsellorId", mentor.counsellorId);
 			}
@@ -118,7 +132,10 @@ export const AdmissionDetailPageEnhanced = () => {
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
 			if (errors.counsellorId?.[0]) {
-				setError("counsellorId", { type: "manual", message: errors.counsellorId[0] });
+				setError("counsellorId", {
+					type: "manual",
+					message: errors.counsellorId[0],
+				});
 			}
 			if (errors.note?.[0]) {
 				setError("note", { type: "manual", message: errors.note[0] });
@@ -131,7 +148,9 @@ export const AdmissionDetailPageEnhanced = () => {
 				leadId,
 				payload: validation.data,
 			});
-			toast.success(`Admission confirmed. Student ID ${response.student.zid} created.`);
+			toast.success(
+				`Admission confirmed. Student ID ${response.student.zid} created.`,
+			);
 			reset();
 			navigate("/students");
 		} catch (error) {
@@ -140,20 +159,34 @@ export const AdmissionDetailPageEnhanced = () => {
 				return;
 			}
 
-			toast.error(error instanceof Error ? error.message : "Unable to confirm admission");
+			toast.error(
+				error instanceof Error ? error.message : "Unable to confirm admission",
+			);
 		}
 	};
 
 	if (!leadId) {
-		return <Panel title="Admission" description="Lead not found">Lead not found.</Panel>;
+		return (
+			<Panel title="Admission" description="Lead not found">
+				Lead not found.
+			</Panel>
+		);
 	}
 
 	if (leadQuery.isLoading) {
-		return <Panel title="Admission" description="Loading lead...">Loading lead...</Panel>;
+		return (
+			<Panel title="Admission" description="Loading lead...">
+				Loading lead...
+			</Panel>
+		);
 	}
 
 	if (!lead) {
-		return <Panel title="Admission" description="Lead not found">Lead not found.</Panel>;
+		return (
+			<Panel title="Admission" description="Lead not found">
+				Lead not found.
+			</Panel>
+		);
 	}
 
 	return (
@@ -171,30 +204,60 @@ export const AdmissionDetailPageEnhanced = () => {
 			</div>
 
 			<div className="mb-6 grid gap-3 rounded-3xl border border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-				<p>Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})</p>
+				<p>
+					Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})
+				</p>
 				<p>
 					Demo mentor:{" "}
-					{latestDemo?.mentorId ? userNameById.get(latestDemo.mentorId) ?? "-" : "-"}
+					{latestDemo?.mentorId
+						? (userNameById.get(latestDemo.mentorId) ?? "-")
+						: "-"}
 				</p>
 				<div className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-gray-700">
-					<p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Form preferences</p>
+					<p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+						Form preferences
+					</p>
 					<div className="grid gap-2 md:grid-cols-3">
-						<p><span className="font-medium text-gray-900">Start class:</span> {lead.startClassWhen || "-"}</p>
-						<p><span className="font-medium text-gray-900">Schedule:</span> {lead.preferredSchedule || "-"}</p>
-						<p><span className="font-medium text-gray-900">Demo availability:</span> {lead.demoAvailability || "-"}</p>
-						<p><span className="font-medium text-gray-900">Time slots:</span> {lead.preferredTimeslots?.length ? lead.preferredTimeslots.map((timeslot) => typeof timeslot === "string" ? timeslot : `${timeslot.label} • ${timeslot.timesPerWeek}/week • ${timeslot.durationMinutes} min`).join(", ") : "-"}</p>
+						<p>
+							<span className="font-medium text-gray-900">Start class:</span>{" "}
+							{lead.startClassWhen || "-"}
+						</p>
+						<p>
+							<span className="font-medium text-gray-900">Schedule:</span>{" "}
+							{lead.preferredSchedule || "-"}
+						</p>
+						<p>
+							<span className="font-medium text-gray-900">
+								Demo availability:
+							</span>{" "}
+							{lead.demoAvailability || "-"}
+						</p>
+						<p>
+							<span className="font-medium text-gray-900">Time slots:</span>{" "}
+							{lead.preferredTimeslots?.length
+								? lead.preferredTimeslots
+										.map((timeslot) =>
+											typeof timeslot === "string"
+												? timeslot
+												: `${timeslot.label} • ${timeslot.timesPerWeek}/week • ${timeslot.durationMinutes} min`,
+										)
+										.join(", ")
+								: "-"}
+						</p>
 					</div>
 				</div>
 				<p>
-					Student ID will be generated automatically on confirmation in the format
-					`ZID###`.
+					Student ID will be generated automatically on confirmation in the
+					format `ZID###`.
 				</p>
 			</div>
 
 			<form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
 				{/* Program Type Selection */}
 				<div className="rounded-2xl border border-gray-300 bg-white p-6">
-					<h3 className="mb-4 text-sm font-semibold text-gray-900">Select Program</h3>
+					<h3 className="mb-4 text-sm font-semibold text-gray-900">
+						Select Program
+					</h3>
 					<div className="grid gap-3 md:grid-cols-2">
 						<Controller
 							name="programType"
@@ -209,7 +272,9 @@ export const AdmissionDetailPageEnhanced = () => {
 											: "border-gray-300 bg-white hover:border-gray-400"
 									}`}
 								>
-									<div className="font-semibold text-gray-900">Online School</div>
+									<div className="font-semibold text-gray-900">
+										Online School
+									</div>
 									<div className="text-sm text-gray-600">
 										1-to-1 or Group learning with mentors
 									</div>
@@ -230,7 +295,9 @@ export const AdmissionDetailPageEnhanced = () => {
 									}`}
 								>
 									<div className="font-semibold text-gray-900">Courses</div>
-									<div className="text-sm text-gray-600">Structured course enrollment</div>
+									<div className="text-sm text-gray-600">
+										Structured course enrollment
+									</div>
 								</button>
 							)}
 						/>
@@ -240,7 +307,9 @@ export const AdmissionDetailPageEnhanced = () => {
 				{/* Online School Workflow */}
 				{selectedProgramType === "ONLINE_SCHOOL" && (
 					<div className="space-y-4 rounded-2xl border border-gray-300 bg-white p-6">
-						<h3 className="text-sm font-semibold text-gray-900">Online School Setup</h3>
+						<h3 className="text-sm font-semibold text-gray-900">
+							Online School Setup
+						</h3>
 
 						{/* Mentor Selection */}
 						<Controller
@@ -252,7 +321,9 @@ export const AdmissionDetailPageEnhanced = () => {
 									<select
 										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 										value={field.value ?? ""}
-										onChange={(e) => field.onChange(e.target.value || undefined)}
+										onChange={(e) =>
+											field.onChange(e.target.value || undefined)
+										}
 									>
 										<option value="">Choose a mentor...</option>
 										{mentors.map((mentor) => (
@@ -262,7 +333,9 @@ export const AdmissionDetailPageEnhanced = () => {
 										))}
 									</select>
 									{fieldState.error?.message && (
-										<span className="text-xs text-red-600">{fieldState.error.message}</span>
+										<span className="text-xs text-red-600">
+											{fieldState.error.message}
+										</span>
 									)}
 								</label>
 							)}
@@ -272,7 +345,9 @@ export const AdmissionDetailPageEnhanced = () => {
 							<>
 								{/* Batch Type Selection */}
 								<div className="grid gap-2">
-									<span className="text-sm font-medium text-gray-600">Batch Type</span>
+									<span className="text-sm font-medium text-gray-600">
+										Batch Type
+									</span>
 									<div className="grid gap-2 md:grid-cols-2">
 										<Controller
 											name="batchType"
@@ -287,8 +362,12 @@ export const AdmissionDetailPageEnhanced = () => {
 															: "border-gray-300 bg-white"
 													}`}
 												>
-													<div className="font-semibold text-gray-900">1-to-1</div>
-													<div className="text-xs text-gray-600">Personal tutoring</div>
+													<div className="font-semibold text-gray-900">
+														1-to-1
+													</div>
+													<div className="text-xs text-gray-600">
+														Personal tutoring
+													</div>
 												</button>
 											)}
 										/>
@@ -305,8 +384,12 @@ export const AdmissionDetailPageEnhanced = () => {
 															: "border-gray-300 bg-white"
 													}`}
 												>
-													<div className="font-semibold text-gray-900">Group</div>
-													<div className="text-xs text-gray-600">Group learning</div>
+													<div className="font-semibold text-gray-900">
+														Group
+													</div>
+													<div className="text-xs text-gray-600">
+														Group learning
+													</div>
 												</button>
 											)}
 										/>
@@ -324,7 +407,9 @@ export const AdmissionDetailPageEnhanced = () => {
 												<select
 													className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 													value={field.value ?? ""}
-													onChange={(e) => field.onChange(e.target.value || undefined)}
+													onChange={(e) =>
+														field.onChange(e.target.value || undefined)
+													}
 												>
 													<option value="">Choose a group...</option>
 													{batchesQuery.data?.batches
@@ -352,7 +437,9 @@ export const AdmissionDetailPageEnhanced = () => {
 				{/* Courses Workflow */}
 				{selectedProgramType === "COURSES" && (
 					<div className="space-y-4 rounded-2xl border border-gray-300 bg-white p-6">
-						<h3 className="text-sm font-semibold text-gray-900">Course Enrollment</h3>
+						<h3 className="text-sm font-semibold text-gray-900">
+							Course Enrollment
+						</h3>
 
 						<Controller
 							name="courseId"
@@ -363,7 +450,9 @@ export const AdmissionDetailPageEnhanced = () => {
 									<select
 										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 										value={field.value ?? ""}
-										onChange={(e) => field.onChange(e.target.value || undefined)}
+										onChange={(e) =>
+											field.onChange(e.target.value || undefined)
+										}
 									>
 										<option value="">Choose a course...</option>
 										{courses.map((course) => (
@@ -373,7 +462,9 @@ export const AdmissionDetailPageEnhanced = () => {
 										))}
 									</select>
 									{fieldState.error?.message && (
-										<span className="text-xs text-red-600">{fieldState.error.message}</span>
+										<span className="text-xs text-red-600">
+											{fieldState.error.message}
+										</span>
 									)}
 								</label>
 							)}
@@ -387,25 +478,27 @@ export const AdmissionDetailPageEnhanced = () => {
 						name="counsellorId"
 						control={control}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
+							<div className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Counsellor</span>
 								{mentorHasCounsellor ? (
 									<div className="flex flex-col gap-2">
 										<div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
 											<span className="font-medium text-gray-900">
-												Auto-assigned: {userNameById.get(mentorCounsellorId!)}
+												Auto-assigned:{" "}
+												{userNameById.get(mentorCounsellorId ?? "") ?? "-"}
 											</span>
 											<p className="mt-1 text-xs text-gray-600">
 												The selected mentor already has a counsellor assigned
 											</p>
 										</div>
-										<input type="hidden" value={field.value ?? ""} onChange={field.onChange} />
 									</div>
 								) : (
 									<select
 										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 										value={field.value ?? ""}
-										onChange={(e) => field.onChange(e.target.value || undefined)}
+										onChange={(e) =>
+											field.onChange(e.target.value || undefined)
+										}
 									>
 										<option value="">Select counsellor</option>
 										{counsellors.map((counsellor) => (
@@ -416,9 +509,11 @@ export const AdmissionDetailPageEnhanced = () => {
 									</select>
 								)}
 								{fieldState.error?.message && (
-									<span className="text-xs text-red-600">{fieldState.error.message}</span>
+									<span className="text-xs text-red-600">
+										{fieldState.error.message}
+									</span>
 								)}
-							</label>
+							</div>
 						)}
 					/>
 				</div>
@@ -446,7 +541,9 @@ export const AdmissionDetailPageEnhanced = () => {
 						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
 					>
 						<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
-						{confirmAdmissionMutation.isPending ? "Confirming..." : "Confirm Admission"}
+						{confirmAdmissionMutation.isPending
+							? "Confirming..."
+							: "Confirm Admission"}
 					</button>
 					<Link
 						to="/admissions"

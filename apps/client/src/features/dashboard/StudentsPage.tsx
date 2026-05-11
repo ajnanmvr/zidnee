@@ -20,7 +20,10 @@ export const StudentsPage = () => {
 	const userNameById = useMemo(
 		() =>
 			new Map(
-				allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)]),
+				allUsers.map((user) => [
+					user.id,
+					formatUserName(user.name ?? user.username),
+				]),
 			),
 		[allUsers],
 	);
@@ -30,7 +33,11 @@ export const StudentsPage = () => {
 			{
 				accessorKey: "zid",
 				header: "Student ID",
-				cell: (info) => <div className="font-semibold text-gray-900">{String(info.getValue())}</div>,
+				cell: (info) => (
+					<div className="font-semibold text-gray-900">
+						{String(info.getValue())}
+					</div>
+				),
 			},
 			{ accessorKey: "name", header: "Name" },
 			{ accessorKey: "phone", header: "Phone" },
@@ -39,7 +46,7 @@ export const StudentsPage = () => {
 				header: "Counsellor",
 				cell: (info) =>
 					info.row.original.counsellorId
-						? userNameById.get(info.row.original.counsellorId) ?? "-"
+						? (userNameById.get(info.row.original.counsellorId) ?? "-")
 						: "-",
 			},
 			{
@@ -47,24 +54,34 @@ export const StudentsPage = () => {
 				header: "Mentor",
 				cell: (info) =>
 					info.row.original.mentorId
-						? userNameById.get(info.row.original.mentorId) ?? "-"
+						? (userNameById.get(info.row.original.mentorId) ?? "-")
 						: "-",
 			},
 			{
 				accessorKey: "admittedAt",
 				header: "Admitted",
-				cell: (info) => <DateCell date={String(info.getValue())} className="font-medium text-gray-900" />,
+				cell: (info) => (
+					<DateCell
+						date={String(info.getValue())}
+						className="font-medium text-gray-900"
+					/>
+				),
 			},
 		],
 		[userNameById],
 	);
 
 	return (
-		<Panel title="Students" description="Admissions converted to enrolled students">
+		<Panel
+			title="Students"
+			description="Admissions converted to enrolled students"
+		>
 			{studentsQuery.isLoading ? (
 				<div className="py-8 text-center text-sm text-gray-600">Loading...</div>
 			) : studentsQuery.isError ? (
-				<div className="py-8 text-center text-sm text-gray-600">Unable to load students.</div>
+				<div className="py-8 text-center text-sm text-gray-600">
+					Unable to load students.
+				</div>
 			) : (
 				<DataTable
 					columns={columns}
@@ -76,7 +93,3 @@ export const StudentsPage = () => {
 		</Panel>
 	);
 };
-
-
-
-

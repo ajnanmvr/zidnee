@@ -43,7 +43,9 @@ export const TimeSlotResponseEnvelopeSchema = z.object({
 	timeSlot: TimeSlotResponseSchema,
 });
 
-export type TimeSlotResponseEnvelope = z.infer<typeof TimeSlotResponseEnvelopeSchema>;
+export type TimeSlotResponseEnvelope = z.infer<
+	typeof TimeSlotResponseEnvelopeSchema
+>;
 
 export const TimeSlotsResponseSchema = z.object({
 	ok: z.boolean(),

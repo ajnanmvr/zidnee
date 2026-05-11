@@ -1,10 +1,11 @@
-﻿import { LoginPage } from "@/features/auth/LoginPage";
+﻿import { createBrowserRouter, Navigate } from "react-router-dom";
+import { LoginPage } from "@/features/auth/LoginPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { AdmissionDetailPageEnhanced } from "@/features/dashboard/AdmissionDetailPageEnhanced";
 import { AdmissionsPage } from "@/features/dashboard/AdmissionsPage";
 import { CounsellorMentorsPage } from "@/features/dashboard/CounsellorMentorsPage";
-import { CounsellorsPage } from "@/features/dashboard/CounsellorsPage";
 import { CounsellorStudentsPage } from "@/features/dashboard/CounsellorStudentsPage";
+import { CounsellorsPage } from "@/features/dashboard/CounsellorsPage";
 import CoursesPage from "@/features/dashboard/CoursesPage";
 import { CreateCounsellorPage } from "@/features/dashboard/CreateCounsellorPage";
 import { CreateMentorPage } from "@/features/dashboard/CreateMentorPage";
@@ -15,8 +16,8 @@ import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
 import { EditRolePage } from "@/features/dashboard/EditRolePage";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
 import GroupsPage from "@/features/dashboard/GroupsPage";
-import { LeadEditPage } from "@/features/dashboard/LeadEditPage";
 import { LeadDetailPageNew } from "@/features/dashboard/LeadDetailPageNew";
+import { LeadEditPage } from "@/features/dashboard/LeadEditPage";
 import { LeadsPage } from "@/features/dashboard/LeadsPage";
 import { MentorsPage } from "@/features/dashboard/MentorsPage";
 import { MePage } from "@/features/dashboard/MePage";
@@ -27,17 +28,16 @@ import { UsersPage } from "@/features/dashboard/UsersPage";
 import { ScheduledDemosPage } from "@/features/demo-management/ScheduledDemosPage";
 import { UnassignedDemosPage } from "@/features/demo-management/UnassignedDemosPage";
 import PublicFormPage from "@/features/public/PublicFormPage";
-import { createBrowserRouter, Navigate } from "react-router-dom";
 
 export const router = createBrowserRouter([
 	{
 		path: "/login",
 		element: <LoginPage />,
 	},
-		{
-			path: "/form/:leadId",
-			element: <PublicFormPage />,
-		},
+	{
+		path: "/form/:leadId",
+		element: <PublicFormPage />,
+	},
 	{
 		element: <RequireAuth />,
 		children: [
@@ -153,7 +153,3 @@ export const router = createBrowserRouter([
 		element: <Navigate to="/" replace />,
 	},
 ]);
-
-
-
-

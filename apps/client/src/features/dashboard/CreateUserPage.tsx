@@ -3,7 +3,3 @@
 export const CreateUserPage = () => {
 	return <CreateAccountPage />;
 };
-
-
-
-

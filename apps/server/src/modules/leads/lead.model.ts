@@ -1,6 +1,5 @@
-import type { Lead, LeadStatus } from "@repo/schema";
+import type { Lead, LeadDemo, LeadStatus } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
-import type { LeadDemo } from "@repo/schema";
 
 export type LeadDocument = Omit<Lead, "id" | "createdBy"> & {
 	_id: Types.ObjectId;
@@ -63,7 +62,17 @@ const leadSchema = new Schema<LeadDocumentExt>(
 		},
 		status: {
 			type: String,
-			enum: ["FOLLOW_UP", "FORM_SENT", "FORM_FILLED", "DEMO_REQUEST", "DEMO_ASSIGNED", "DEMO_COMPLETED", "DEMO_CANCELLED", "CONVERTED", "CLOSED"],
+			enum: [
+				"FOLLOW_UP",
+				"FORM_SENT",
+				"FORM_FILLED",
+				"DEMO_REQUEST",
+				"DEMO_ASSIGNED",
+				"DEMO_COMPLETED",
+				"DEMO_CANCELLED",
+				"CONVERTED",
+				"CLOSED",
+			],
 			required: true,
 			default: "FOLLOW_UP",
 			index: true,

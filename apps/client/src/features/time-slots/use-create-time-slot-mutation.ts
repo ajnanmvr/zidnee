@@ -1,15 +1,18 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/lib/session";
-import { createTimeSlot } from "@/features/time-slots/time-slots.service";
-import { timeSlotsQueryKeys } from "@/features/time-slots/time-slots.queries";
 import type { TimeSlotsResponse } from "@repo/schema";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { timeSlotsQueryKeys } from "@/features/time-slots/time-slots.queries";
+import { createTimeSlot } from "@/features/time-slots/time-slots.service";
+import { useSession } from "@/lib/session";
 
 export const useCreateTimeSlotMutation = () => {
 	const { token } = useSession();
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (payload: { durationMinutes: number; timesPerWeek: number }) => {
+		mutationFn: async (payload: {
+			durationMinutes: number;
+			timesPerWeek: number;
+		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
@@ -29,7 +32,9 @@ export const useCreateTimeSlotMutation = () => {
 						return previous;
 					}
 
-					const alreadyPresent = previous.timeSlots.some((slot) => slot.id === result.timeSlot.id);
+					const alreadyPresent = previous.timeSlots.some(
+						(slot) => slot.id === result.timeSlot.id,
+					);
 					if (alreadyPresent) {
 						return previous;
 					}

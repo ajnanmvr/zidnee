@@ -1,14 +1,14 @@
+import { randomUUID } from "node:crypto";
 import {
 	AdminChangePasswordPayloadSchema,
+	ChangePasswordPayloadSchema,
 	CreateCounsellorPayloadSchema,
 	CreateMentorPayloadSchema,
-	ChangePasswordPayloadSchema,
 	CreateUserPayloadSchema,
 	SetUserStatusPayloadSchema,
 	UpdateUserPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
-import { randomUUID } from "node:crypto";
 import {
 	AuthenticationError,
 	ConflictError,
@@ -37,13 +37,18 @@ const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 	}
 };
 
-
 const findRoleByName = async (roleName: string) => {
-	return (await RoleService.findAll()).find((role) => role.name === roleName) ?? null;
+	return (
+		(await RoleService.findAll()).find((role) => role.name === roleName) ?? null
+	);
 };
 
-const findRoleByType = async (roleType: "general" | "mentor" | "counsellor" | "sales") => {
-	return (await RoleService.findAll()).find((role) => role.type === roleType) ?? null;
+const findRoleByType = async (
+	roleType: "general" | "mentor" | "counsellor" | "sales",
+) => {
+	return (
+		(await RoleService.findAll()).find((role) => role.type === roleType) ?? null
+	);
 };
 
 const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
@@ -119,9 +124,13 @@ export const createMentorController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const existingByUsername = await UserService.findByUsername(result.data.username);
-	if (existingByUsername) {
-		throw new ConflictError("Username already in use");
+	if (result.data.username) {
+		const existingByUsername = await UserService.findByUsername(
+			result.data.username,
+		);
+		if (existingByUsername) {
+			throw new ConflictError("Username already in use");
+		}
 	}
 
 	const mentorRole = await findRoleByType("mentor");
@@ -181,9 +190,13 @@ export const createCounsellorController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const existingByUsername = await UserService.findByUsername(result.data.username);
-	if (existingByUsername) {
-		throw new ConflictError("Username already in use");
+	if (result.data.username) {
+		const existingByUsername = await UserService.findByUsername(
+			result.data.username,
+		);
+		if (existingByUsername) {
+			throw new ConflictError("Username already in use");
+		}
 	}
 
 	const counsellorRole = await findRoleByType("counsellor");
@@ -300,7 +313,9 @@ export const updateUserController = async (
 
 		const mentorRole = await findRoleByType("mentor");
 		const isMentor = mentorRole
-			? (result.data.roleIds ?? existingUser.roleIds).some((roleId) => roleId === mentorRole.id)
+			? (result.data.roleIds ?? existingUser.roleIds).some(
+					(roleId) => roleId === mentorRole.id,
+				)
 			: false;
 		if (!isMentor) {
 			throw new ValidationError({

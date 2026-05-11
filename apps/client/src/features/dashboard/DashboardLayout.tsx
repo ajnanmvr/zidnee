@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState } from "react";
 import {
 	HiAcademicCap,
-	HiCheckCircle,
 	HiArchiveBox,
 	HiBookmarkSquare,
 	HiCalendarDays,
+	HiCheckCircle,
 	HiClipboardDocumentList,
 	HiIdentification,
 	HiPhone,
@@ -21,23 +21,22 @@ import {
 	Sidebar,
 } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import { useCoursesQuery } from "@/features/courses/courses.queries";
 import {
 	getLeadStageCounts,
-	leadStageDefinitions,
 	type LeadStageId,
+	leadStageDefinitions,
 } from "@/features/leads/lead-stage-filters";
 import {
 	useAdmissionLeadsQuery,
+	useDemoRequestsQuery,
 	useDueLeadFollowUpsQuery,
 	usePendingDemoRequestsQuery,
-	useDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
-import { useCoursesQuery } from "@/features/courses/courses.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
+import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
-import { isPast, isToday } from "date-fns";
 
 const titles: Record<string, string> = {
 	"/": "Overview",
@@ -115,7 +114,10 @@ export const DashboardLayout = () => {
 	const { token, clearToken } = useSession();
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const { data: me, error } = useMeQuery(token);
-	const leadsQuery = useDueLeadFollowUpsQuery(token, { scope: "all", timeFilter: "all" });
+	const leadsQuery = useDueLeadFollowUpsQuery(token, {
+		scope: "all",
+		timeFilter: "all",
+	});
 	const admissionsQuery = useAdmissionLeadsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
@@ -130,31 +132,47 @@ export const DashboardLayout = () => {
 	const allStudents = studentsQuery.data?.students ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
-	const isCounsellor = me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ?? false;
-	const currentCounsellorMentors = allUsers.filter((user) =>
-		user.roles.some((role) => (role.type ?? "general") === "mentor") && user.counsellorId === currentUserId,
+	const isCounsellor =
+		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
+		false;
+	const currentCounsellorMentors = allUsers.filter(
+		(user) =>
+			user.roles.some((role) => (role.type ?? "general") === "mentor") &&
+			user.counsellorId === currentUserId,
 	);
-	const currentCounsellorMentorIds = new Set(currentCounsellorMentors.map((mentor) => mentor.id));
-	const currentCounsellorStudents = allStudents.filter((student) =>
-		student.counsellorId === currentUserId || (student.mentorId ? currentCounsellorMentorIds.has(student.mentorId) : false),
+	const currentCounsellorMentorIds = new Set(
+		currentCounsellorMentors.map((mentor) => mentor.id),
 	);
-	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter((lead) => lead.demoRequestAssignedTo === currentUserId).length;
-	const myScheduledDemoCount = (scheduledDemosQuery.data?.leads ?? []).filter((lead) => {
-		const latestDemo = lead.demos[lead.demos.length - 1];
-		if (!latestDemo?.demoScheduledFor) {
-			return false;
-		}
+	const currentCounsellorStudents = allStudents.filter(
+		(student) =>
+			student.counsellorId === currentUserId ||
+			(student.mentorId
+				? currentCounsellorMentorIds.has(student.mentorId)
+				: false),
+	);
+	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
+		(lead) => lead.demoRequestAssignedTo === currentUserId,
+	).length;
+	const myScheduledDemoCount = (scheduledDemosQuery.data?.leads ?? []).filter(
+		(lead) => {
+			const latestDemo = lead.demos[lead.demos.length - 1];
+			if (!latestDemo?.demoScheduledFor) {
+				return false;
+			}
 
-		if (latestDemo.mentorId !== currentUserId) {
-			return false;
-		}
+			if (latestDemo.mentorId !== currentUserId) {
+				return false;
+			}
 
-		return Boolean(latestDemo.mentorId) && !latestDemo.completedAt;
-	}).length;
+			return Boolean(latestDemo.mentorId) && !latestDemo.completedAt;
+		},
+	).length;
 	const currentLocation = `${location.pathname}${location.search}`;
 	const leadStageIcons = {
 		all: <HiPhone className="h-5 w-5" aria-hidden="true" />,
-		followUp: <HiPresentationChartLine className="h-5 w-5" aria-hidden="true" />,
+		followUp: (
+			<HiPresentationChartLine className="h-5 w-5" aria-hidden="true" />
+		),
 		formSent: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
 		formFilled: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
 		demoRequest: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
@@ -162,7 +180,10 @@ export const DashboardLayout = () => {
 		demoCompleted: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 		demoCancelled: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
 	} as const;
-	const leadStageAccents: Record<LeadStageId, NonNullable<NavigationItem["accent"]>> = {
+	const leadStageAccents: Record<
+		LeadStageId,
+		NonNullable<NavigationItem["accent"]>
+	> = {
 		all: "teal",
 		followUp: "lime",
 		formSent: "amber",
@@ -175,14 +196,16 @@ export const DashboardLayout = () => {
 
 	const getLeadStageItems = (): NavigationItem[] => {
 		return leadStageDefinitions
-			.filter(stage => stage.id !== 'all')
+			.filter((stage) => stage.id !== "all")
 			.map((stage) => {
 				const id = stage.id as Exclude<LeadStageId, "all">;
 				return {
 					to: `/leads?stage=${id}`,
 					label: stage.label,
 					description: stage.description,
-					icon: leadStageIcons[id] || <HiPhone className="h-5 w-5" aria-hidden="true" />,
+					icon: leadStageIcons[id] || (
+						<HiPhone className="h-5 w-5" aria-hidden="true" />
+					),
 					count: leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
@@ -228,25 +251,25 @@ export const DashboardLayout = () => {
 		},
 		...(isCounsellor
 			? [
-				{
-					to: "/counsellor/mentors",
-					label: "Mentor Follow-up",
-					description: "My mentors",
-					icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
-					count: currentCounsellorMentors.length,
-					accent: "teal",
-					section: "Counsellor Workspace",
-				},
-				{
-					to: "/counsellor/students",
-					label: "My Students",
-					description: "Under my mentors",
-					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count: currentCounsellorStudents.length,
-					accent: "cyan",
-					section: "Counsellor Workspace",
-				},
-			]
+					{
+						to: "/counsellor/mentors",
+						label: "Mentor Follow-up",
+						description: "My mentors",
+						icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
+						count: currentCounsellorMentors.length,
+						accent: "teal",
+						section: "Counsellor Workspace",
+					},
+					{
+						to: "/counsellor/students",
+						label: "My Students",
+						description: "Under my mentors",
+						icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+						count: currentCounsellorStudents.length,
+						accent: "cyan",
+						section: "Counsellor Workspace",
+					},
+				]
 			: []),
 		{
 			to: "/courses",
@@ -346,7 +369,7 @@ export const DashboardLayout = () => {
 
 	// Filter out any undefined items and ensure all items have icons
 	const validNavItems = navItems.filter((item): item is NavigationItem =>
-		Boolean(item && item.icon && item.to && item.label)
+		Boolean(item?.icon && item.to && item.label),
 	);
 
 	return (
@@ -384,7 +407,3 @@ export const DashboardLayout = () => {
 		</main>
 	);
 };
-
-
-
-

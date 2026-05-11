@@ -121,7 +121,9 @@ export const OverviewPage = () => {
 							<span
 								className={`h-3 w-3 rounded-full ${item.accent === "brand" ? "bg-blue-600" : item.accent === "accent" ? "bg-purple-600" : "bg-gray-900"}`}
 							/>
-							<p className="text-sm font-semibold text-gray-900">{item.title}</p>
+							<p className="text-sm font-semibold text-gray-900">
+								{item.title}
+							</p>
 						</div>
 						<p className="mt-3 text-sm leading-6 text-gray-600">{item.body}</p>
 					</div>
@@ -138,7 +140,3 @@ export const OverviewPage = () => {
 		</div>
 	);
 };
-
-
-
-

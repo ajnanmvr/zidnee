@@ -100,7 +100,9 @@ describe("app routes", () => {
 			),
 		).toBe(true);
 
-		const postponeTo = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+		const postponeTo = new Date(
+			Date.now() + 3 * 24 * 60 * 60 * 1000,
+		).toISOString();
 		const postponeResponse = await request(app)
 			.patch(`/api/leads/${leadId}/follow-up/postpone`)
 			.set("Authorization", `Bearer ${loginResponse.body.token}`)

@@ -1,7 +1,10 @@
 import type { Student } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type StudentDocument = Omit<Student, "id" | "leadId" | "mentorId" | "counsellorId" | "batchId" | "courseId"> & {
+export type StudentDocument = Omit<
+	Student,
+	"id" | "leadId" | "mentorId" | "counsellorId" | "batchId" | "courseId"
+> & {
 	_id: Types.ObjectId;
 	leadId: Types.ObjectId;
 	mentorId?: Types.ObjectId;

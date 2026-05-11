@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Model, type Types } from "mongoose";
+import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 interface ZidSequenceDocument {
 	_id: string; // prefix like 'ZID', 'ZIG'

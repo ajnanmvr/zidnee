@@ -13,7 +13,15 @@ export type NavigationItem = {
 	description: string;
 	icon: ReactNode;
 	count?: number;
-	accent?: "emerald" | "teal" | "lime" | "amber" | "orange" | "cyan" | "violet" | "rose";
+	accent?:
+		| "emerald"
+		| "teal"
+		| "lime"
+		| "amber"
+		| "orange"
+		| "cyan"
+		| "violet"
+		| "rose";
 	section?: string;
 };
 
@@ -21,14 +29,29 @@ export type Tone = "brand" | "accent" | "ink" | "sky" | "warm";
 
 const toneStyles: Record<Tone, { dot: string; fill: string; border: string }> =
 	{
-		brand: { dot: "bg-emerald-600", fill: "bg-emerald-600", border: "border-emerald-600/20" },
-		accent: { dot: "bg-purple-600", fill: "bg-purple-600", border: "border-purple-600/20" },
+		brand: {
+			dot: "bg-emerald-600",
+			fill: "bg-emerald-600",
+			border: "border-emerald-600/20",
+		},
+		accent: {
+			dot: "bg-purple-600",
+			fill: "bg-purple-600",
+			border: "border-purple-600/20",
+		},
 		ink: { dot: "bg-gray-900", fill: "bg-gray-900", border: "border-gray-300" },
 		sky: { dot: "bg-sky-600", fill: "bg-sky-600", border: "border-sky-600/20" },
-		warm: { dot: "bg-orange-600", fill: "bg-orange-600", border: "border-orange-600/20" },
+		warm: {
+			dot: "bg-orange-600",
+			fill: "bg-orange-600",
+			border: "border-orange-600/20",
+		},
 	};
 
-const accentStyles: Record<NonNullable<NavigationItem["accent"]>, { icon: string; badge: string; active: string }> = {
+const accentStyles: Record<
+	NonNullable<NavigationItem["accent"]>,
+	{ icon: string; badge: string; active: string }
+> = {
 	emerald: {
 		icon: "text-emerald-700",
 		badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
@@ -148,9 +171,17 @@ type ConfirmDialogProps = {
 	onCancel: () => void;
 };
 
-export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: SidebarProps) => {
+export const Sidebar = ({
+	items,
+	open,
+	onToggle,
+	onLogout,
+	currentLocation,
+}: SidebarProps) => {
 	const isActiveItem = (item: NavigationItem) => currentLocation === item.to;
-	const groupedItems = items.reduce<Array<{ section: string; items: NavigationItem[] }>>((groups, item) => {
+	const groupedItems = items.reduce<
+		Array<{ section: string; items: NavigationItem[] }>
+	>((groups, item) => {
 		const section = item.section ?? "General";
 		const existingGroup = groups.find((group) => group.section === section);
 		if (existingGroup) {
@@ -182,16 +213,16 @@ export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: Si
 					/>
 					{open ? (
 						<div>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-							Zidnee ERP
-						</p>
-						<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
+							<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
+								Zidnee ERP
+							</p>
+							<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
 						</div>
 					) : null}
 				</div>
 				<button
 					type="button"
-						className="grid h-9 w-9 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
+					className="grid h-9 w-9 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
 					onClick={onToggle}
 					aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
 				>
@@ -206,7 +237,10 @@ export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: Si
 				</button>
 			</div>
 
-			<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
+			<nav
+				className="flex-1 overflow-y-auto px-3 py-4"
+				aria-label="Dashboard sections"
+			>
 				<div className="grid gap-4">
 					{groupedItems.map((group) => (
 						<div key={group.section} className="grid gap-1">
@@ -237,7 +271,9 @@ export const Sidebar = ({ items, open, onToggle, onLogout, currentLocation }: Si
 														{item.label}
 													</span>
 													{typeof item.count === "number" && item.count > 0 ? (
-														<span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}>
+														<span
+															className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}
+														>
 															{item.count}
 														</span>
 													) : null}
@@ -306,7 +342,9 @@ export const DashboardHeader = ({
 										) : null}
 										<span
 											className={
-												crumb === lastCrumb ? "text-emerald-700" : "text-gray-600"
+												crumb === lastCrumb
+													? "text-emerald-700"
+													: "text-gray-600"
 											}
 										>
 											{crumb}
@@ -325,10 +363,10 @@ export const DashboardHeader = ({
 							{avatarSeed}
 						</span>
 						<div className="min-w-0">
-						<p className="truncate text-sm font-semibold text-gray-900">
-							{userName}
-						</p>
-						<p className="truncate text-xs text-gray-600">{userLabel}</p>
+							<p className="truncate text-sm font-semibold text-gray-900">
+								{userName}
+							</p>
+							<p className="truncate text-xs text-gray-600">{userLabel}</p>
 						</div>
 					</Link>
 				</div>
@@ -355,7 +393,7 @@ export const MetricCard = ({
 				</p>
 				<span className={`h-2.5 w-2.5 rounded-full ${styles.dot}`} />
 			</div>
-				<p className="mt-4 text-2xl font-semibold tracking-tight text-gray-900">
+			<p className="mt-4 text-2xl font-semibold tracking-tight text-gray-900">
 				{value}
 			</p>
 			<div className="mt-4 h-1.5 w-full rounded-full bg-gray-50">
@@ -370,10 +408,10 @@ export const MetricCard = ({
 
 export const Panel = ({ title, description, children, action }: PanelProps) => {
 	return (
-			<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
-				<div className="flex items-center justify-between gap-4">
-					<div>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
+		<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
+			<div className="flex items-center justify-between gap-4">
+				<div>
+					<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
 						{description}
 					</p>
 					<h3 className="mt-1 text-xl font-semibold text-gray-900">{title}</h3>
@@ -568,7 +606,3 @@ export const ConfirmDialog = ({
 		</Modal>
 	);
 };
-
-
-
-

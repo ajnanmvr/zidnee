@@ -1,7 +1,17 @@
-﻿import { AdminChangePasswordPayloadSchema, CreateUserPayloadSchema } from "@repo/schema";
+﻿import {
+	AdminChangePasswordPayloadSchema,
+	CreateUserPayloadSchema,
+} from "@repo/schema";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { HiCheckCircle, HiLockClosed, HiPencilSquare, HiPower, HiTrash, HiUserPlus } from "react-icons/hi2";
+import {
+	HiCheckCircle,
+	HiLockClosed,
+	HiPencilSquare,
+	HiPower,
+	HiTrash,
+	HiUserPlus,
+} from "react-icons/hi2";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { ActionButton } from "@/components/ActionButton";
@@ -34,7 +44,12 @@ type RoleCreatePageProps = {
 const matchesRoleType = (roleType: string, expectedType: string) =>
 	roleType === expectedType;
 
-export const RoleUsersPage = ({ title, description, roleType, createPath }: RoleUsersPageProps) => {
+export const RoleUsersPage = ({
+	title,
+	description,
+	roleType,
+	createPath,
+}: RoleUsersPageProps) => {
 	const { token } = useSession();
 	const usersQuery = useUsersQuery(token);
 	const deleteUserMutation = useDeleteUserMutation();
@@ -44,18 +59,22 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 	const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
 	const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 	const [banner, setBanner] = useState("");
-	const { control, handleSubmit, reset, setError } = useForm<{ newPassword: string }>({
+	const { control, handleSubmit, reset, setError } = useForm<{
+		newPassword: string;
+	}>({
 		defaultValues: { newPassword: "" },
 	});
 	const allUsers = usersQuery.data?.users ?? [];
 
 	const users = useMemo(() => {
 		return allUsers.filter((user) =>
-			user.roles.some((role) => matchesRoleType(role.type ?? "general", roleType)),
+			user.roles.some((role) =>
+				matchesRoleType(role.type ?? "general", roleType),
+			),
 		);
 	}, [allUsers, roleType]);
 	const identityHeader = roleType === "mentor" ? "Mentor ID" : "Counsellor ID";
-	const userNameById = new Map(allUsers.map(u => [u.id, u.name]));
+	const userNameById = new Map(allUsers.map((u) => [u.id, u.name]));
 	const getCounsellorName = (counsellorId?: string) => {
 		if (!counsellorId) return "-";
 		return userNameById.get(counsellorId) ?? "-";
@@ -66,14 +85,20 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 
 		try {
 			await setUserStatusMutation.mutateAsync({ userId, isActive: !isActive });
-			setBanner(!isActive ? "User activated successfully." : "User deactivated successfully.");
+			setBanner(
+				!isActive
+					? "User activated successfully."
+					: "User deactivated successfully.",
+			);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				setBanner(error.payload.message ?? "Unable to update status");
 				return;
 			}
 
-			setBanner(error instanceof Error ? error.message : "Unable to update status");
+			setBanner(
+				error instanceof Error ? error.message : "Unable to update status",
+			);
 		}
 	};
 
@@ -94,7 +119,9 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 				return;
 			}
 
-			setBanner(error instanceof Error ? error.message : "Unable to delete user");
+			setBanner(
+				error instanceof Error ? error.message : "Unable to delete user",
+			);
 		}
 	};
 
@@ -105,9 +132,12 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 
 		setBanner("");
 
-		const validation = AdminChangePasswordPayloadSchema.safeParse({ newPassword });
+		const validation = AdminChangePasswordPayloadSchema.safeParse({
+			newPassword,
+		});
 		if (!validation.success) {
-			const passwordError = validation.error.flatten().fieldErrors.newPassword?.[0];
+			const passwordError =
+				validation.error.flatten().fieldErrors.newPassword?.[0];
 			if (passwordError) {
 				setError("newPassword", { type: "manual", message: passwordError });
 			}
@@ -132,7 +162,9 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 				return;
 			}
 
-			setBanner(error instanceof Error ? error.message : "Unable to update password");
+			setBanner(
+				error instanceof Error ? error.message : "Unable to update password",
+			);
 		}
 	};
 
@@ -159,7 +191,9 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 								<th className="px-4 py-3 font-semibold">Username</th>
 								<th className="px-4 py-3 font-semibold">Email</th>
 								<th className="px-4 py-3 font-semibold">{identityHeader}</th>
-								{roleType === "mentor" && <th className="px-4 py-3 font-semibold">Counsellor</th>}
+								{roleType === "mentor" && (
+									<th className="px-4 py-3 font-semibold">Counsellor</th>
+								)}
 								<th className="px-4 py-3 font-semibold">Roles</th>
 								<th className="px-4 py-3 font-semibold">Status</th>
 								<th className="px-4 py-3 font-semibold">Actions</th>
@@ -167,14 +201,21 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 						</thead>
 						<tbody>
 							{users.map((user) => (
-								<tr key={user.id} className="border-t border-gray-300 align-top">
-									<td className="px-4 py-3 font-semibold text-gray-900">{user.name}</td>
-									<td className="px-4 py-3 text-gray-600">{user.username ?? "-"}</td>
+								<tr
+									key={user.id}
+									className="border-t border-gray-300 align-top"
+								>
+									<td className="px-4 py-3 font-semibold text-gray-900">
+										{user.name}
+									</td>
+									<td className="px-4 py-3 text-gray-600">
+										{user.username ?? "-"}
+									</td>
 									<td className="px-4 py-3 text-gray-600">{user.email}</td>
 									<td className="px-4 py-3 text-gray-600">
 										{roleType === "mentor"
-											? user.mentorId ?? "-"
-											: user.counsellorId ?? "-"}
+											? (user.mentorId ?? "-")
+											: (user.counsellorId ?? "-")}
 									</td>
 									{roleType === "mentor" && (
 										<td className="px-4 py-3 text-gray-600">
@@ -184,14 +225,23 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 									<td className="px-4 py-3">
 										<div className="flex flex-wrap gap-2">
 											{user.roles.map((role) => (
-												<span key={role.id} className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600">
+												<span
+													key={role.id}
+													className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
+												>
 													{role.name}
 												</span>
 											))}
 										</div>
 									</td>
 									<td className="px-4 py-3">
-										<span className={user.isActive ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700" : "rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700"}>
+										<span
+											className={
+												user.isActive
+													? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
+													: "rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700"
+											}
+										>
 											{user.isActive ? "Active" : "Inactive"}
 										</span>
 									</td>
@@ -204,10 +254,18 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 												title="Edit user"
 												aria-label="Edit user"
 											>
-												<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
+												<HiPencilSquare
+													className="h-4 w-4"
+													aria-hidden="true"
+												/>
 											</button>
 											<ActionButton
-												icon={<HiLockClosed className="h-4 w-4" aria-hidden="true" />}
+												icon={
+													<HiLockClosed
+														className="h-4 w-4"
+														aria-hidden="true"
+													/>
+												}
 												tooltip="Change password"
 												color="purple"
 												onClick={() => {
@@ -216,13 +274,21 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 												}}
 											/>
 											<ActionButton
-												icon={<HiPower className="h-4 w-4" aria-hidden="true" />}
-												tooltip={user.isActive ? "Deactivate user" : "Activate user"}
+												icon={
+													<HiPower className="h-4 w-4" aria-hidden="true" />
+												}
+												tooltip={
+													user.isActive ? "Deactivate user" : "Activate user"
+												}
 												color={user.isActive ? "orange" : "green"}
-												onClick={() => void handleToggleStatus(user.id, user.isActive)}
+												onClick={() =>
+													void handleToggleStatus(user.id, user.isActive)
+												}
 											/>
 											<ActionButton
-												icon={<HiTrash className="h-4 w-4" aria-hidden="true" />}
+												icon={
+													<HiTrash className="h-4 w-4" aria-hidden="true" />
+												}
 												tooltip="Delete user"
 												color="red"
 												onClick={() => setDeleteUserId(user.id)}
@@ -254,12 +320,23 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 				onClose={() => setPasswordUserId(null)}
 				footer={
 					<>
-						<button type="button" className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900" onClick={() => setPasswordUserId(null)}>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => setPasswordUserId(null)}
+						>
 							Cancel
 						</button>
-						<button type="submit" form="role-password-form" className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" disabled={changeUserPasswordMutation.isPending}>
+						<button
+							type="submit"
+							form="role-password-form"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+							disabled={changeUserPasswordMutation.isPending}
+						>
 							<HiLockClosed className="h-4 w-4" aria-hidden="true" />
-							{changeUserPasswordMutation.isPending ? "Saving..." : "Update password"}
+							{changeUserPasswordMutation.isPending
+								? "Saving..."
+								: "Update password"}
 						</button>
 					</>
 				}
@@ -281,23 +358,41 @@ export const RoleUsersPage = ({ title, description, roleType, createPath }: Role
 				</form>
 			</Modal>
 
-			{banner ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{banner}</p> : null}
+			{banner ? (
+				<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+					{banner}
+				</p>
+			) : null}
 		</div>
 	);
 };
 
-export const RoleUserCreatePage = ({ title, description, roleType, backTo }: RoleCreatePageProps) => {
+export const RoleUserCreatePage = ({
+	title,
+	description,
+	roleType,
+	backTo,
+}: RoleCreatePageProps) => {
 	const { token } = useSession();
 	const rolesQuery = useRolesQuery(token);
 	const createUserMutation = useCreateUserMutation();
 	const { control, handleSubmit, setError } = useForm<CreateUserForm>({
-		defaultValues: { name: "", username: "", email: "", password: "", roleIds: [] },
+		defaultValues: {
+			name: "",
+			username: "",
+			email: "",
+			password: "",
+			roleIds: [],
+		},
 	});
 	const [banner, setBanner] = useState("");
 
 	const allRoles = rolesQuery.data?.roles ?? [];
 	const role = useMemo(
-		() => allRoles.find((item) => matchesRoleType(item.type ?? "general", roleType)) ?? null,
+		() =>
+			allRoles.find((item) =>
+				matchesRoleType(item.type ?? "general", roleType),
+			) ?? null,
 		[allRoles, roleType],
 	);
 
@@ -308,13 +403,20 @@ export const RoleUserCreatePage = ({ title, description, roleType, backTo }: Rol
 		}
 
 		setBanner("");
-		const validation = CreateUserPayloadSchema.safeParse({ ...form, roleIds: [role.id] });
+		const validation = CreateUserPayloadSchema.safeParse({
+			...form,
+			roleIds: [role.id],
+		});
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
-			if (errors.name?.[0]) setError("name", { type: "manual", message: errors.name[0] });
-			if (errors.username?.[0]) setError("username", { type: "manual", message: errors.username[0] });
-			if (errors.email?.[0]) setError("email", { type: "manual", message: errors.email[0] });
-			if (errors.password?.[0]) setError("password", { type: "manual", message: errors.password[0] });
+			if (errors.name?.[0])
+				setError("name", { type: "manual", message: errors.name[0] });
+			if (errors.username?.[0])
+				setError("username", { type: "manual", message: errors.username[0] });
+			if (errors.email?.[0])
+				setError("email", { type: "manual", message: errors.email[0] });
+			if (errors.password?.[0])
+				setError("password", { type: "manual", message: errors.password[0] });
 			return;
 		}
 
@@ -327,7 +429,9 @@ export const RoleUserCreatePage = ({ title, description, roleType, backTo }: Rol
 				return;
 			}
 
-			setBanner(error instanceof Error ? error.message : `Unable to create user`);
+			setBanner(
+				error instanceof Error ? error.message : `Unable to create user`,
+			);
 		}
 	};
 
@@ -336,36 +440,100 @@ export const RoleUserCreatePage = ({ title, description, roleType, backTo }: Rol
 			{role ? (
 				<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
 					<div className="grid gap-4 md:grid-cols-2">
-						<Controller name="name" control={control} render={({ field, fieldState }) => <Field label="Full name" value={field.value} onChange={field.onChange} placeholder="Ajnan" error={fieldState.error?.message} />} />
-						<Controller name="username" control={control} render={({ field, fieldState }) => <Field label="Username" value={field.value} onChange={field.onChange} placeholder="ajnan" error={fieldState.error?.message} />} />
-						<Controller name="email" control={control} render={({ field, fieldState }) => <Field label="Email" value={field.value} onChange={field.onChange} placeholder="ajnan@zidnee.com" error={fieldState.error?.message} />} />
-						<Controller name="password" control={control} render={({ field, fieldState }) => <Field label="Password" type="password" value={field.value} onChange={field.onChange} placeholder="Minimum 6 characters" error={fieldState.error?.message} />} />
+						<Controller
+							name="name"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Full name"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="Ajnan"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+						<Controller
+							name="username"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Username"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="ajnan"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+						<Controller
+							name="email"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Email"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="ajnan@zidnee.com"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+						<Controller
+							name="password"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Password"
+									type="password"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="Minimum 6 characters"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
 					</div>
 
 					<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-						Target role: <span className="font-semibold text-gray-900">{role.name}</span>
+						Target role:{" "}
+						<span className="font-semibold text-gray-900">{role.name}</span>
 					</div>
 
 					<div className="flex flex-wrap gap-2">
-						<button type="submit" className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70" disabled={createUserMutation.isPending}>
+						<button
+							type="submit"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+							disabled={createUserMutation.isPending}
+						>
 							<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-							{createUserMutation.isPending ? "Creating..." : `Create ${title.slice(0, -1)}`}
+							{createUserMutation.isPending
+								? "Creating..."
+								: `Create ${title.slice(0, -1)}`}
 						</button>
-						<Link to={backTo} className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">
-							<HiCheckCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
+						<Link
+							to={backTo}
+							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							<HiCheckCircle
+								className="h-4 w-4 text-red-600"
+								aria-hidden="true"
+							/>
 							Cancel
 						</Link>
 					</div>
 
-					{banner ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{banner}</p> : null}
+					{banner ? (
+						<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+							{banner}
+						</p>
+					) : null}
 				</form>
 			) : (
-				<p className="text-sm text-gray-600">Role type {roleType} not found. Create the role first.</p>
+				<p className="text-sm text-gray-600">
+					Role type {roleType} not found. Create the role first.
+				</p>
 			)}
 		</Panel>
 	);
 };
-
-
-
-

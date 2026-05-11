@@ -5,9 +5,10 @@ import {
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
+import { getLeadActivitiesController } from "./activity.controller.js";
 import {
-	assignDemoMentorController,
 	assignDemoCounsellorController,
+	assignDemoMentorController,
 	cancelLeadDemoController,
 	confirmAdmissionController,
 	createLeadController,
@@ -15,20 +16,19 @@ import {
 	generateFormLinkController,
 	getLeadByIdController,
 	listAdmissionLeadsController,
+	listDemoRequestsController,
 	listLeadsController,
 	listPendingDemoRequestsController,
-	listDemoRequestsController,
 	markDemoCompletedController,
+	postponeLeadFollowUpController,
+	redemoLeadController,
 	requestAdmissionController,
 	requestLeadDemoController,
 	revokeFormLinkController,
-	redemoLeadController,
-	postponeLeadFollowUpController,
+	submitLeadFormController,
 	updateLeadController,
+	validateFormLinkController,
 } from "./lead.controller.js";
-import { submitLeadFormController } from "./lead.controller.js";
-import { getLeadActivitiesController } from "./activity.controller.js";
-import { validateFormLinkController } from "./lead.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
 

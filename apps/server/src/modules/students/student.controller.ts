@@ -1,8 +1,10 @@
-import type { Request, Response } from "express";
 import { StudentsResponseSchema } from "@repo/schema";
+import type { Request, Response } from "express";
 import { StudentService } from "./student.service.js";
 
-const toStudentResponse = (student: Awaited<ReturnType<typeof StudentService.listStudents>>[number]) => {
+const toStudentResponse = (
+	student: Awaited<ReturnType<typeof StudentService.listStudents>>[number],
+) => {
 	return {
 		id: student.id,
 		zid: student.zid,
@@ -22,7 +24,15 @@ const toStudentResponse = (student: Awaited<ReturnType<typeof StudentService.lis
 	};
 };
 
-export const listStudentsController = async (_req: Request, res: Response): Promise<void> => {
+export const listStudentsController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
 	const students = await StudentService.listStudents();
-	res.json(StudentsResponseSchema.parse({ ok: true, students: students.map(toStudentResponse) }));
+	res.json(
+		StudentsResponseSchema.parse({
+			ok: true,
+			students: students.map(toStudentResponse),
+		}),
+	);
 };

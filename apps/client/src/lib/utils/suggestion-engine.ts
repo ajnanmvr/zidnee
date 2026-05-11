@@ -11,7 +11,9 @@ interface FollowUpSuggestion {
 /**
  * Parse temporal expressions from note text and suggest follow-up dates
  */
-export const parseSuggestionsFromNote = (note: string): FollowUpSuggestion[] => {
+export const parseSuggestionsFromNote = (
+	note: string,
+): FollowUpSuggestion[] => {
 	if (!note || typeof note !== "string") {
 		return [];
 	}
@@ -32,24 +34,37 @@ export const parseSuggestionsFromNote = (note: string): FollowUpSuggestion[] => 
 
 		// 2-3 days
 		{ regex: /\bin (2|two|3|three) days?\b/, days: 2, label: "In 2-3 days" },
-		{ regex: /\b(in a few|after a few) days?\b/, days: 2, label: "In a few days" },
+		{
+			regex: /\b(in a few|after a few) days?\b/,
+			days: 2,
+			label: "In a few days",
+		},
 
 		// This week / Next week
 		{ regex: /\bthis week\b/, days: 3, label: "This week" },
 		{ regex: /\bin (4|four|5|five) days?\b/, days: 4, label: "In 4-5 days" },
-		{ regex: /\bnext week\b|\b(in a week|after a week|week later)\b/, days: 7, label: "Next week" },
+		{
+			regex: /\bnext week\b|\b(in a week|after a week|week later)\b/,
+			days: 7,
+			label: "Next week",
+		},
 		{ regex: /\bin (7|seven) days?\b/, days: 7, label: "In 7 days" },
 
 		// 2 weeks
 		{
-			regex: /\bin (10|14|two weeks?|2 weeks?)\b|\b(in two weeks|after two weeks)\b/,
+			regex:
+				/\bin (10|14|two weeks?|2 weeks?)\b|\b(in two weeks|after two weeks)\b/,
 			days: 14,
 			label: "In 2 weeks",
 		},
 
 		// This month / Next month
 		{ regex: /\bthis month\b/, days: 7, label: "This month" },
-		{ regex: /\bnext month\b|\b(in a month|after a month|month later)\b/, days: 30, label: "Next month" },
+		{
+			regex: /\bnext month\b|\b(in a month|after a month|month later)\b/,
+			days: 30,
+			label: "Next month",
+		},
 		{ regex: /\bin (30|31) days?\b/, days: 30, label: "In 30 days" },
 
 		// Later / Follow up
@@ -57,7 +72,12 @@ export const parseSuggestionsFromNote = (note: string): FollowUpSuggestion[] => 
 		{ regex: /\blater\b/, days: 5, label: "Later" },
 
 		// Date patterns (approximate)
-		{ regex: /\b(next|following|upcoming) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/, days: 3, label: "Next week day" },
+		{
+			regex:
+				/\b(next|following|upcoming) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
+			days: 3,
+			label: "Next week day",
+		},
 	];
 
 	// Check each pattern
@@ -95,7 +115,9 @@ export const calculateFollowUpDate = (days: number): Date => {
 /**
  * Extract and format suggestions for UI display
  */
-export const formatSuggestionsForUI = (note: string): Array<{ label: string; date: Date }> => {
+export const formatSuggestionsForUI = (
+	note: string,
+): Array<{ label: string; date: Date }> => {
 	const suggestions = parseSuggestionsFromNote(note);
 	return suggestions.map((s) => ({
 		label: s.label,

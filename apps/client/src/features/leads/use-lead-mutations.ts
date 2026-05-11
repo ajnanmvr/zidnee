@@ -1,6 +1,10 @@
-import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { UpdateLeadPayload } from "@repo/schema";
+import {
+	type QueryClient,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { leadsQueryKeys } from "@/features/leads/leads.queries";
-import { studentsQueryKeys } from "@/features/students/students.queries";
 import {
 	assignDemoMentor,
 	cancelLeadDemo,
@@ -11,16 +15,16 @@ import {
 	markDemoCompleted,
 	postponeLeadFollowUp,
 	requestAdmission,
-	requestRedemo,
 	requestLeadDemo,
+	requestRedemo,
 	revokeFormLink,
 	updateLead,
 } from "@/features/leads/leads.service";
+import { studentsQueryKeys } from "@/features/students/students.queries";
 import type {
 	CreateLeadForm,
 	PostponeLeadFollowUpForm,
 } from "@/lib/dashboard-types";
-import type { UpdateLeadPayload } from "@repo/schema";
 import { useSession } from "@/lib/session";
 
 const invalidateLeadQueries = async (
@@ -182,7 +186,9 @@ export const useMarkDemoCompletedMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
-			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.list(token),
+			});
 		},
 	});
 };
@@ -211,7 +217,9 @@ export const useRequestRedemoMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
-			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.list(token),
+			});
 		},
 	});
 };
@@ -240,7 +248,9 @@ export const useConfirmAdmissionMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
-			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.list(token),
+			});
 		},
 	});
 };
@@ -269,7 +279,9 @@ export const useRequestAdmissionMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
-			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.list(token),
+			});
 		},
 	});
 };
@@ -367,4 +379,3 @@ export const useCancelLeadDemoMutation = () => {
 		},
 	});
 };
-

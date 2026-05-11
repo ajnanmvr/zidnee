@@ -1,5 +1,8 @@
 import type { CreateEnrollmentPayload, Enrollment } from "@repo/schema";
-import { EnrollmentModel, type EnrollmentDocument } from "./enrollment.model.js";
+import {
+	type EnrollmentDocument,
+	EnrollmentModel,
+} from "./enrollment.model.js";
 
 const toEnrollment = (doc: EnrollmentDocument): Enrollment => {
 	return {
@@ -27,31 +30,43 @@ export const EnrollmentService = {
 	},
 
 	findById: async (id: string): Promise<Enrollment | null> => {
-		const enrollment = await EnrollmentModel.findById(id).lean<EnrollmentDocument | null>();
+		const enrollment = await EnrollmentModel.findById(
+			id,
+		).lean<EnrollmentDocument | null>();
 		return enrollment ? toEnrollment(enrollment) : null;
 	},
 
 	findByStudentId: async (studentId: string): Promise<Enrollment[]> => {
-		const enrollments = await EnrollmentModel.find({ studentId }).lean<EnrollmentDocument[]>();
+		const enrollments = await EnrollmentModel.find({ studentId }).lean<
+			EnrollmentDocument[]
+		>();
 		return enrollments.map(toEnrollment);
 	},
 
 	findByBatchId: async (batchId: string): Promise<Enrollment[]> => {
-		const enrollments = await EnrollmentModel.find({ batchId }).lean<EnrollmentDocument[]>();
+		const enrollments = await EnrollmentModel.find({ batchId }).lean<
+			EnrollmentDocument[]
+		>();
 		return enrollments.map(toEnrollment);
 	},
 
 	findByCourseId: async (courseId: string): Promise<Enrollment[]> => {
-		const enrollments = await EnrollmentModel.find({ courseId }).lean<EnrollmentDocument[]>();
+		const enrollments = await EnrollmentModel.find({ courseId }).lean<
+			EnrollmentDocument[]
+		>();
 		return enrollments.map(toEnrollment);
 	},
 
 	findAll: async (): Promise<Enrollment[]> => {
-		const enrollments = await EnrollmentModel.find().lean<EnrollmentDocument[]>();
+		const enrollments =
+			await EnrollmentModel.find().lean<EnrollmentDocument[]>();
 		return enrollments.map(toEnrollment);
 	},
 
-	updateStatus: async (id: string, status: "ACTIVE" | "COMPLETED" | "DROPPED"): Promise<Enrollment | null> => {
+	updateStatus: async (
+		id: string,
+		status: "ACTIVE" | "COMPLETED" | "DROPPED",
+	): Promise<Enrollment | null> => {
 		const enrollment = await EnrollmentModel.findByIdAndUpdate(
 			id,
 			{ $set: { status } },

@@ -48,7 +48,9 @@ export const CourseResponseEnvelopeSchema = z.object({
 	course: CourseResponseSchema,
 });
 
-export type CourseResponseEnvelope = z.infer<typeof CourseResponseEnvelopeSchema>;
+export type CourseResponseEnvelope = z.infer<
+	typeof CourseResponseEnvelopeSchema
+>;
 
 export const CoursesResponseSchema = z.object({
 	ok: z.boolean(),

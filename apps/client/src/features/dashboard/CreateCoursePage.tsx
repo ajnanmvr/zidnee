@@ -1,7 +1,7 @@
 import { CreateCoursePayloadSchema } from "@repo/schema";
 import { Controller, useForm } from "react-hook-form";
-import { HiAcademicCap } from "react-icons/hi2";
 import toast from "react-hot-toast";
+import { HiAcademicCap } from "react-icons/hi2";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Field, Panel, TextAreaField } from "@/components/dashboard-ui";
@@ -29,7 +29,10 @@ export const CreateCoursePage = () => {
 				setError("prefix", { type: "manual", message: errors.prefix[0] });
 			}
 			if (errors.description?.[0]) {
-				setError("description", { type: "manual", message: errors.description[0] });
+				setError("description", {
+					type: "manual",
+					message: errors.description[0],
+				});
 			}
 			return;
 		}
@@ -45,7 +48,9 @@ export const CreateCoursePage = () => {
 				return;
 			}
 
-			toast.error(error instanceof Error ? error.message : "Unable to create course");
+			toast.error(
+				error instanceof Error ? error.message : "Unable to create course",
+			);
 		}
 	};
 

@@ -106,7 +106,9 @@ export const LoginPage = () => {
 								<div
 									className={`h-2.5 w-14 rounded-full ${color === "brand" ? "bg-blue-600" : color === "accent" ? "bg-purple-600" : "bg-gray-900"}`}
 								/>
-								<p className="mt-4 text-sm font-semibold text-gray-900">{label}</p>
+								<p className="mt-4 text-sm font-semibold text-gray-900">
+									{label}
+								</p>
 							</div>
 						))}
 					</div>
@@ -177,7 +179,3 @@ export const LoginPage = () => {
 		</main>
 	);
 };
-
-
-
-

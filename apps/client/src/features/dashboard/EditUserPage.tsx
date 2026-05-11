@@ -19,11 +19,15 @@ export const EditUserPage = () => {
 	const rolesQuery = useRolesQuery(token);
 	const updateUserMutation = useUpdateUserMutation();
 	const counsellors = useMemo(
-		() => (usersQuery.data?.users ?? []).filter((row) => row.roles.some((role) => role.type === "counsellor")),
+		() =>
+			(usersQuery.data?.users ?? []).filter((row) =>
+				row.roles.some((role) => role.type === "counsellor"),
+			),
 		[usersQuery.data?.users],
 	);
 	const mentorRoleId = useMemo(
-		() => rolesQuery.data?.roles.find((role) => role.type === "mentor")?.id ?? null,
+		() =>
+			rolesQuery.data?.roles.find((role) => role.type === "mentor")?.id ?? null,
 		[rolesQuery.data?.roles],
 	);
 	const { control, formState, handleSubmit, reset, setError, setValue, watch } =
@@ -37,7 +41,9 @@ export const EditUserPage = () => {
 			},
 		});
 	const selectedRoleIds = watch("roleIds") ?? [];
-	const showCounsellorSelector = mentorRoleId ? selectedRoleIds.includes(mentorRoleId) : false;
+	const showCounsellorSelector = mentorRoleId
+		? selectedRoleIds.includes(mentorRoleId)
+		: false;
 
 	const user = useMemo(
 		() => usersQuery.data?.users.find((row) => row.id === userId) ?? null,
@@ -93,7 +99,10 @@ export const EditUserPage = () => {
 			}
 
 			if (counsellorIdError) {
-				setError("counsellorId", { type: "manual", message: counsellorIdError });
+				setError("counsellorId", {
+					type: "manual",
+					message: counsellorIdError,
+				});
 			}
 
 			return;
@@ -131,7 +140,10 @@ export const EditUserPage = () => {
 				}
 
 				if (counsellorIdError) {
-					setError("counsellorId", { type: "server", message: counsellorIdError });
+					setError("counsellorId", {
+						type: "server",
+						message: counsellorIdError,
+					});
 				}
 
 				setBanner(error.payload.message ?? "Unable to update user");
@@ -265,7 +277,9 @@ export const EditUserPage = () => {
 									<select
 										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 										value={field.value ?? ""}
-										onChange={(event) => field.onChange(event.target.value || undefined)}
+										onChange={(event) =>
+											field.onChange(event.target.value || undefined)
+										}
 									>
 										<option value="">No counsellor</option>
 										{counsellors.map((counsellor) => (
@@ -275,7 +289,9 @@ export const EditUserPage = () => {
 										))}
 									</select>
 									{fieldState.error?.message ? (
-										<p className="text-xs text-red-600">{fieldState.error.message}</p>
+										<p className="text-xs text-red-600">
+											{fieldState.error.message}
+										</p>
 									) : null}
 								</label>
 							)}
@@ -309,7 +325,3 @@ export const EditUserPage = () => {
 		</Panel>
 	);
 };
-
-
-
-

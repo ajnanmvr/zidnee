@@ -1,6 +1,9 @@
 import type { PermissionKey } from "@repo/schema";
 import { Router } from "express";
-import { authMiddleware, requirePermissionKey } from "../../middlewares/auth.middleware.js";
+import {
+	authMiddleware,
+	requirePermissionKey,
+} from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import { listStudentsController } from "./student.controller.js";
 

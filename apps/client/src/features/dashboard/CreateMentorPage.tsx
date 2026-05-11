@@ -10,7 +10,3 @@ export const CreateMentorPage = () => {
 		/>
 	);
 };
-
-
-
-

@@ -1,10 +1,10 @@
 import cors from "cors";
 import express, { type Express } from "express";
-import morgan from 'morgan';
+import morgan from "morgan";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
-import routes from "./routes/index.js";
 import { publicLeadRoutes } from "./modules/leads/lead.routes.js";
 import timeSlotRoutes from "./modules/timeslots/timeslot.routes.js";
+import routes from "./routes/index.js";
 
 const app: Express = express();
 

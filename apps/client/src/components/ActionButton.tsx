@@ -30,7 +30,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 		orange: "text-amber-700 border-amber-300 hover:bg-amber-50",
 		purple: "text-violet-700 border-violet-300 hover:bg-violet-50",
 	};
-	const tooltipText = isLoading ? loadingLabel : tooltip ?? label ?? "Action";
+	const tooltipText = isLoading ? loadingLabel : (tooltip ?? label ?? "Action");
 
 	return (
 		<div className="relative inline-flex">
@@ -55,7 +55,3 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 		</div>
 	);
 };
-
-
-
-

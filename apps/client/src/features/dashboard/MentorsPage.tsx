@@ -8,6 +8,3 @@ export const MentorsPage = () => (
 		createPath="/mentors/create"
 	/>
 );
-
-
-

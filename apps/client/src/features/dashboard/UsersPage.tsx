@@ -9,7 +9,7 @@ import {
 	HiTrash,
 	HiUserPlus,
 } from "react-icons/hi2";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { ActionButton } from "@/components/ActionButton";
 import { ConfirmDialog, Field, Modal, Panel } from "@/components/dashboard-ui";
@@ -21,7 +21,6 @@ import {
 import { useUsersQuery } from "@/features/users/users.queries";
 import type { AdminChangePasswordForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
-import { useLocation } from "react-router-dom";
 
 const matchesRoleType = (roleType: string, expectedType: string) =>
 	roleType === expectedType;
@@ -33,7 +32,9 @@ export const UsersPage = () => {
 	const deleteUserMutation = useDeleteUserMutation();
 	const setUserStatusMutation = useSetUserStatusMutation();
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
-	const pageRoleType = location.search.includes("role=sales") ? "sales" : "general";
+	const pageRoleType = location.search.includes("role=sales")
+		? "sales"
+		: "general";
 	const { control, handleSubmit, reset, setError } =
 		useForm<AdminChangePasswordForm>({
 			defaultValues: { newPassword: "" },
@@ -87,9 +88,13 @@ export const UsersPage = () => {
 	};
 
 	const users = useMemo(() => {
-		return usersQuery.data?.users.filter((user) =>
-			user.roles.some((role) => matchesRoleType(role.type ?? "general", pageRoleType)),
-		) ?? [];
+		return (
+			usersQuery.data?.users.filter((user) =>
+				user.roles.some((role) =>
+					matchesRoleType(role.type ?? "general", pageRoleType),
+				),
+			) ?? []
+		);
 	}, [pageRoleType, usersQuery.data?.users]);
 
 	const onSubmitPassword = async (passwordForm: AdminChangePasswordForm) => {
@@ -163,7 +168,10 @@ export const UsersPage = () => {
 						</thead>
 						<tbody>
 							{users.map((user) => (
-								<tr key={user.id} className="border-t border-gray-300 align-top">
+								<tr
+									key={user.id}
+									className="border-t border-gray-300 align-top"
+								>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
 									</td>
@@ -208,7 +216,12 @@ export const UsersPage = () => {
 												/>
 											</Link>
 											<ActionButton
-												icon={<HiLockClosed className="h-4 w-4" aria-hidden="true" />}
+												icon={
+													<HiLockClosed
+														className="h-4 w-4"
+														aria-hidden="true"
+													/>
+												}
 												tooltip="Change password"
 												color="purple"
 												onClick={() => {
@@ -217,13 +230,21 @@ export const UsersPage = () => {
 												}}
 											/>
 											<ActionButton
-												icon={<HiPower className="h-4 w-4" aria-hidden="true" />}
-												tooltip={user.isActive ? "Deactivate user" : "Activate user"}
+												icon={
+													<HiPower className="h-4 w-4" aria-hidden="true" />
+												}
+												tooltip={
+													user.isActive ? "Deactivate user" : "Activate user"
+												}
 												color={user.isActive ? "orange" : "green"}
-												onClick={() => handleToggleStatus(user.id, user.isActive)}
+												onClick={() =>
+													handleToggleStatus(user.id, user.isActive)
+												}
 											/>
 											<ActionButton
-												icon={<HiTrash className="h-4 w-4" aria-hidden="true" />}
+												icon={
+													<HiTrash className="h-4 w-4" aria-hidden="true" />
+												}
 												tooltip="Delete user"
 												color="red"
 												onClick={() => setDeleteUserId(user.id)}
@@ -295,7 +316,3 @@ export const UsersPage = () => {
 		</div>
 	);
 };
-
-
-
-

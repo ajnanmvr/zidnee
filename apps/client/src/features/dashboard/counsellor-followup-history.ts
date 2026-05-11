@@ -1,15 +1,17 @@
-import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
 import type { LeadActivityResponse } from "@repo/schema";
-import { fetchLeadActivities } from "@/features/leads/leads.service";
+import { useQueries } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { leadsQueryKeys } from "@/features/leads/leads.queries";
+import { fetchLeadActivities } from "@/features/leads/leads.service";
 
 const currentMonthKey = () => {
 	const now = new Date();
 	return `${now.getFullYear()}-${now.getMonth()}`;
 };
 
-export const countActivitiesThisMonth = (activities: LeadActivityResponse[]) => {
+export const countActivitiesThisMonth = (
+	activities: LeadActivityResponse[],
+) => {
 	const monthKey = currentMonthKey();
 	return activities.filter((activity) => {
 		const date = new Date(activity.createdAt);
@@ -17,10 +19,14 @@ export const countActivitiesThisMonth = (activities: LeadActivityResponse[]) => 
 	}).length;
 };
 
-export const getLatestActivity = (activities: LeadActivityResponse[]) => activities[0] ?? null;
+export const getLatestActivity = (activities: LeadActivityResponse[]) =>
+	activities[0] ?? null;
 
 export const useLeadActivitiesMap = (token: string, leadIds: string[]) => {
-	const uniqueLeadIds = useMemo(() => Array.from(new Set(leadIds.filter(Boolean))), [leadIds]);
+	const uniqueLeadIds = useMemo(
+		() => Array.from(new Set(leadIds.filter(Boolean))),
+		[leadIds],
+	);
 	const queries = useQueries({
 		queries: uniqueLeadIds.map((leadId) => ({
 			queryKey: leadsQueryKeys.activities(token, leadId),

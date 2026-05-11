@@ -1,20 +1,20 @@
-import { useMemo, useState } from "react";
+import type { LeadResponse } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import { HiArrowLeft, HiArrowPath, HiCalendarDays } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
-import { useSession } from "@/lib/session";
-import { useMeQuery } from "@/features/auth/auth.queries";
-import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
-import { useUsersQuery } from "@/features/users/users.queries";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
-import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
-import { Modal } from "@/components/dashboard-ui";
 import { DataTable } from "@/components/DataTable";
 import { DateCell } from "@/components/DateCell";
-import { HiArrowLeft, HiArrowPath, HiCalendarDays } from "react-icons/hi2";
-import toast from "react-hot-toast";
-import { Controller, useForm } from "react-hook-form";
-import { format } from "date-fns";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { LeadResponse } from "@repo/schema";
+import { Modal } from "@/components/dashboard-ui";
+import { useMeQuery } from "@/features/auth/auth.queries";
+import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
+import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
+import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
+import { useUsersQuery } from "@/features/users/users.queries";
+import { useSession } from "@/lib/session";
 import { RequirementsModal } from "./RequirementsModal";
 
 export const UnassignedDemosPage = () => {
@@ -30,7 +30,8 @@ export const UnassignedDemosPage = () => {
 	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [requirementsOpen, setRequirementsOpen] = useState(false);
-	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
+	const [selectedRequirements, setSelectedRequirements] =
+		useState<LeadResponse | null>(null);
 	const [viewScope, setViewScope] = useState<"mine" | "all">("mine");
 
 	const {
@@ -78,8 +79,8 @@ export const UnassignedDemosPage = () => {
 	const handleOpenAssign = (demo: LeadResponse) => {
 		setSelectedDemo(demo);
 		// Pre-populate with user's preferred demo availability time
-		const scheduledDate = demo.demoAvailability 
-			? new Date(demo.demoAvailability) 
+		const scheduledDate = demo.demoAvailability
+			? new Date(demo.demoAvailability)
 			: new Date(Date.now() + 24 * 60 * 60 * 1000);
 		resetAssign({
 			mentorId: "",
@@ -93,40 +94,66 @@ export const UnassignedDemosPage = () => {
 		setRequirementsOpen(true);
 	};
 
-	const mentors = usersQuery.data?.users.filter((user) => user.roles?.some((role) => (role.type ?? "general") === "mentor")) ?? [];
+	const mentors =
+		usersQuery.data?.users.filter((user) =>
+			user.roles?.some((role) => (role.type ?? "general") === "mentor"),
+		) ?? [];
 
 	const unassignedDemos = demosQuery.data?.leads ?? [];
-	const visibleDemos = viewScope === "mine"
-		? unassignedDemos.filter((demo) => demo.demoRequestAssignedTo === currentUserId)
-		: unassignedDemos;
+	const visibleDemos =
+		viewScope === "mine"
+			? unassignedDemos.filter(
+					(demo) => demo.demoRequestAssignedTo === currentUserId,
+				)
+			: unassignedDemos;
 	const userNameById = new Map(
-		(usersQuery.data?.users ?? []).map((user) => [user.id, user.name || user.username]),
+		(usersQuery.data?.users ?? []).map((user) => [
+			user.id,
+			user.name || user.username,
+		]),
 	);
 
 	const formatDemoAttemptLabel = (attemptNumber: number) => {
-		const suffix = attemptNumber === 1 ? "st" : attemptNumber === 2 ? "nd" : attemptNumber === 3 ? "rd" : "th";
+		const suffix =
+			attemptNumber === 1
+				? "st"
+				: attemptNumber === 2
+					? "nd"
+					: attemptNumber === 3
+						? "rd"
+						: "th";
 		return `${attemptNumber}${suffix} demo`;
 	};
 
-	const columns = useMemo<ColumnDef<LeadResponse>[]>(() => [
+	const columns: ColumnDef<LeadResponse>[] = [
 		{
 			accessorKey: "name",
 			header: "Name",
 			cell: ({ row }) => (
 				<div>
 					<p className="font-semibold text-gray-900">{row.original.name}</p>
-					<p className="text-xs text-gray-500 font-mono">{row.original.phone}</p>
+					<p className="text-xs text-gray-500 font-mono">
+						{row.original.phone}
+					</p>
 				</div>
 			),
 		},
 		{
 			accessorKey: "level",
 			header: "Level",
-			cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.level || "-"}</span>,
+			cell: ({ row }) => (
+				<span className="font-medium text-gray-900">
+					{row.original.level || "-"}
+				</span>
+			),
 		},
 		{
 			header: "Attempt",
-			cell: ({ row }) => <span className="font-medium text-gray-900">{formatDemoAttemptLabel(Math.max(1, row.original.demos.length || 1))}</span>,
+			cell: ({ row }) => (
+				<span className="font-medium text-gray-900">
+					{formatDemoAttemptLabel(Math.max(1, row.original.demos.length || 1))}
+				</span>
+			),
 			accessorFn: (row) => row.demos.length,
 		},
 		{
@@ -135,17 +162,23 @@ export const UnassignedDemosPage = () => {
 			accessorFn: (row) => row.demos[row.demos.length - 1]?.requestedAt ?? "",
 			cell: ({ row }) => (
 				<DateCell
-					date={row.original.demos[row.original.demos.length - 1]?.requestedAt ?? ""}
+					date={
+						row.original.demos[row.original.demos.length - 1]?.requestedAt ?? ""
+					}
 					className="font-medium text-gray-900"
 				/>
 			),
 		},
 		{
 			header: "Assigned To",
-			accessorFn: (row) => userNameById.get(row.demoRequestAssignedTo ?? "") ?? "Unassigned",
+			accessorFn: (row) =>
+				userNameById.get(row.demoRequestAssignedTo ?? "") ?? "Unassigned",
 			cell: ({ row }) => (
 				<span className="font-medium text-gray-900">
-					{row.original.demoRequestAssignedTo ? (userNameById.get(row.original.demoRequestAssignedTo) ?? row.original.demoRequestAssignedTo) : "Unassigned"}
+					{row.original.demoRequestAssignedTo
+						? (userNameById.get(row.original.demoRequestAssignedTo) ??
+							row.original.demoRequestAssignedTo)
+						: "Unassigned"}
 				</span>
 			),
 		},
@@ -153,7 +186,9 @@ export const UnassignedDemosPage = () => {
 			header: "Re-demo Reason",
 			accessorFn: (row) => row.demos[row.demos.length - 1]?.note ?? "",
 			cell: ({ row }) => (
-				<span className="text-gray-700">{row.original.demos[row.original.demos.length - 1]?.note || "-"}</span>
+				<span className="text-gray-700">
+					{row.original.demos[row.original.demos.length - 1]?.note || "-"}
+				</span>
 			),
 		},
 		{
@@ -180,7 +215,7 @@ export const UnassignedDemosPage = () => {
 				</div>
 			),
 		},
-	], [userNameById]);
+	];
 
 	if (demosQuery.isLoading || meQuery.isLoading) {
 		return (
@@ -204,8 +239,12 @@ export const UnassignedDemosPage = () => {
 							<HiArrowLeft className="h-6 w-6 text-gray-900" />
 						</button>
 						<div>
-							<h1 className="text-2xl font-bold text-gray-900">Unassigned Demo Requests</h1>
-							<p className="mt-1 text-sm text-gray-600">{visibleDemos.length} demo request(s) in the current view</p>
+							<h1 className="text-2xl font-bold text-gray-900">
+								Unassigned Demo Requests
+							</h1>
+							<p className="mt-1 text-sm text-gray-600">
+								{visibleDemos.length} demo request(s) in the current view
+							</p>
 						</div>
 					</div>
 					<div className="inline-flex rounded-2xl border border-gray-200 bg-gray-50 p-1">
@@ -232,8 +271,12 @@ export const UnassignedDemosPage = () => {
 				{visibleDemos.length === 0 ? (
 					<div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 px-8 py-12 text-center">
 						<HiArrowPath className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-						<p className="text-lg font-medium text-gray-700">No demo requests in this view</p>
-						<p className="mt-1 text-sm text-gray-600">Switch to All assignments to see the full queue</p>
+						<p className="text-lg font-medium text-gray-700">
+							No demo requests in this view
+						</p>
+						<p className="mt-1 text-sm text-gray-600">
+							Switch to All assignments to see the full queue
+						</p>
 					</div>
 				) : (
 					<DataTable
@@ -281,7 +324,7 @@ export const UnassignedDemosPage = () => {
 					</>
 				}
 			>
-				<form className="grid gap-4" onSubmit={handleAssignSubmit(onAssignMentor)}>
+				<form className="grid gap-4" onSubmit={onAssignMentor}>
 					{/* Mentor Selection */}
 					<Controller
 						name="mentorId"
@@ -302,7 +345,9 @@ export const UnassignedDemosPage = () => {
 									))}
 								</select>
 								{fieldState.error?.message ? (
-									<p className="text-xs text-red-600">{fieldState.error.message}</p>
+									<p className="text-xs text-red-600">
+										{fieldState.error.message}
+									</p>
 								) : null}
 							</label>
 						)}
@@ -337,7 +382,9 @@ export const UnassignedDemosPage = () => {
 									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
 								/>
 								{fieldState.error?.message ? (
-									<p className="text-xs text-red-600">{fieldState.error.message}</p>
+									<p className="text-xs text-red-600">
+										{fieldState.error.message}
+									</p>
 								) : null}
 							</label>
 						)}
