@@ -42,8 +42,18 @@ export const UserSchema = z.object({
 	password: z.string(), // hashed password
 	name: z.string().min(1).max(255),
 	gender: z.enum(["male", "female"]).optional(),
+	// Legacy top-level mentor/counsellor ids are kept for compatibility
 	mentorId: z.string().min(1).max(100).optional(),
 	counsellorId: z.string().min(1).max(100).optional(),
+	// New structured ZIDs object storing generated identities per role
+	zids: z
+		.object({
+			mentor: z.string().min(1).max(100).optional(),
+			counsellor: z.string().min(1).max(100).optional(),
+			sales: z.string().min(1).max(100).optional(),
+			admin: z.string().min(1).max(100).optional(),
+		})
+		.optional(),
 	roleIds: z.array(ObjectIdStringSchema),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),

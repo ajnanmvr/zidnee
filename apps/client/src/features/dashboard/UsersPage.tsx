@@ -34,7 +34,7 @@ export const UsersPage = () => {
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
 	const pageRoleType = location.search.includes("role=sales")
 		? "sales"
-		: "general";
+		: "admin";
 	const { control, handleSubmit, reset, setError } =
 		useForm<AdminChangePasswordForm>({
 			defaultValues: { newPassword: "" },
@@ -91,7 +91,7 @@ export const UsersPage = () => {
 		return (
 			usersQuery.data?.users.filter((user) =>
 				user.roles.some((role) =>
-					matchesRoleType(role.type ?? "general", pageRoleType),
+					matchesRoleType(role.type ?? "admin", pageRoleType),
 				),
 			) ?? []
 		);

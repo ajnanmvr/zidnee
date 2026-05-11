@@ -16,6 +16,17 @@ import { useUpdateRoleMutation } from "@/features/roles/use-role-management-muta
 import type { UpdateRoleForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
+const normalizeRoleType = (
+	value: string | undefined,
+): "admin" | "mentor" | "counsellor" | "sales" => {
+	if (value === "mentor" || value === "counsellor" || value === "sales") {
+		return value;
+	}
+
+	// map legacy "general" role type to current "admin" type
+	return "admin";
+};
+
 export const EditRolePage = () => {
 	const { roleId = "" } = useParams();
 	const navigate = useNavigate();
@@ -48,7 +59,7 @@ export const EditRolePage = () => {
 
 		reset({
 			name: role.name,
-			type: role.type ?? "admin",
+			type: normalizeRoleType(role.type),
 			description: role.description ?? "",
 			permissionIds: role.permissionIds,
 		});
@@ -63,7 +74,7 @@ export const EditRolePage = () => {
 
 		const validation = UpdateRolePayloadSchema.safeParse({
 			name: form.name,
-			type: form.type || undefined,
+			type: normalizeRoleType(form.type),
 			description: form.description || undefined,
 			permissionIds: form.permissionIds,
 		});
@@ -188,10 +199,10 @@ export const EditRolePage = () => {
 						render={({ field, fieldState }) => (
 							<SelectField
 								label="Role Type"
-								value={field.value ?? "general"}
-								onChange={field.onChange}
-								options={[
-									{ value: "general", label: "General" },
+							value={field.value ?? "admin"}
+							onChange={field.onChange}
+							options={[
+								{ value: "admin", label: "Admin" },
 									{ value: "mentor", label: "Mentor" },
 									{ value: "counsellor", label: "Counsellor" },
 									{ value: "sales", label: "Sales" },

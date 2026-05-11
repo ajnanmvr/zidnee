@@ -1,6 +1,8 @@
 export const USER_IDENTITY_PREFIXES = {
-	mentor: "zmn",
-	counsellor: "zcs",
+	mentor: "zim",
+	counsellor: "zic",
+	sales: "zis",
+	admin: "zia",
 } as const;
 
 export const USER_IDENTITY_PAD_LENGTH = 3;

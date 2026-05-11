@@ -53,9 +53,7 @@ const findRoleByType = async (
 
 const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
 	const users = await UserService.findAll();
-	const existingIds = users.map((user) =>
-		kind === "mentor" ? user.mentorId : user.counsellorId,
-	);
+	const existingIds = users.map((user) => (user as any).zids?.[kind]);
 
 	return buildSequentialIdentity(USER_IDENTITY_PREFIXES[kind], existingIds);
 };
@@ -98,6 +96,16 @@ export const createUserController = async (
 	}
 
 	const password = await hashPassword(result.data.password);
+	// Generate ZIDs for any role types present
+	const zids: Record<string, string> = {};
+	const allRoles = await RoleService.findByIds(roleIds);
+	for (const role of allRoles) {
+		const type = role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined;
+		if (type && USER_IDENTITY_PREFIXES[type]) {
+			zids[type] = await nextIdentity(type as any);
+		}
+	}
+
 	const createdUser = await UserService.create({
 		username: result.data.username,
 		email: result.data.email,
@@ -105,6 +113,10 @@ export const createUserController = async (
 		name: result.data.name,
 		gender: result.data.gender,
 		roleIds,
+		zids,
+		// populate legacy mentorId for compatibility when generated
+		mentorId: (zids as any).mentor,
+		counsellorId: result.data.counsellorId as any,
 		isActive: true,
 	});
 
@@ -162,15 +174,19 @@ export const createMentorController = async (
 	const password = randomUUID();
 
 	const hashedPassword = await hashPassword(password);
+	const zids: Record<string, string> = { mentor: mentorId };
+
 	const createdUser = await UserService.create({
 		username,
 		email,
 		password: hashedPassword,
 		name: result.data.name,
 		gender: result.data.gender,
+		roleIds: [mentorRole.id],
+		zids,
+		// legacy field for compatibility
 		mentorId,
 		counsellorId: result.data.counsellorId,
-		roleIds: [mentorRole.id],
 		isActive: true,
 	});
 
@@ -210,14 +226,18 @@ export const createCounsellorController = async (
 	const password = randomUUID();
 
 	const hashedPassword = await hashPassword(password);
+	const zids: Record<string, string> = { counsellor: counsellorId };
+
 	const createdUser = await UserService.create({
 		username,
 		email,
 		password: hashedPassword,
 		name: result.data.name,
 		gender: result.data.gender,
-		counsellorId,
 		roleIds: [counsellorRole.id],
+		zids,
+		// legacy field for compatibility
+		counsellorId,
 		isActive: true,
 	});
 
@@ -324,12 +344,25 @@ export const updateUserController = async (
 		}
 	}
 
+	// If roles were provided, ensure missing ZIDs are generated for newly added role types
+	let zidsToSet = (existingUser as any).zids ?? {};
+	if (result.data.roleIds) {
+		const incomingRoles = await RoleService.findByIds(result.data.roleIds);
+		for (const role of incomingRoles) {
+			const t = role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined;
+			if (t && !(zidsToSet as any)[t]) {
+				(zidsToSet as any)[t] = await nextIdentity(t as any);
+			}
+		}
+	}
+
 	const updatedUser = await UserService.update(userId, {
 		username: result.data.username,
 		email: result.data.email,
 		name: result.data.name,
 		roleIds: result.data.roleIds,
 		counsellorId: result.data.counsellorId,
+		zids: zidsToSet,
 	});
 
 	if (!updatedUser) {
@@ -495,6 +528,27 @@ export const assignRoleController = async (
 	const updatedUser = await UserService.addRole(userId, roleId);
 	if (!updatedUser) {
 		throw new Error("Failed to assign role");
+	}
+
+	// If the role has an associated ZID type, ensure the user has one
+	const roleType = role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined;
+	if (roleType && USER_IDENTITY_PREFIXES[roleType]) {
+		const currentZids = (updatedUser as any).zids ?? {};
+		if (!currentZids[roleType]) {
+			currentZids[roleType] = await nextIdentity(roleType as any);
+			// keep legacy top-level field for mentor
+			const legacy: any = {};
+			if (roleType === "mentor") legacy.mentorId = currentZids[roleType];
+			if (roleType === "counsellor") legacy.counsellorId = currentZids[roleType];
+			const final = await UserService.update(userId, {
+				...(legacy as any),
+				zids: currentZids,
+			});
+			if (final) {
+				res.json({ ok: true, ...(await getUserWithRelations(final)) });
+				return;
+			}
+		}
 	}
 
 	res.json({

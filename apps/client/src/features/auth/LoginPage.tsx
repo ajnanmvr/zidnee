@@ -73,109 +73,53 @@ export const LoginPage = () => {
 	};
 
 	return (
-		<main className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 md:px-8 lg:px-12">
-			<div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-				<section className="rounded-[2.5rem] border border-gray-300 bg-white p-8 shadow-sm md:p-10 lg:p-12">
-					<div className="flex items-center gap-3">
-						<img
-							src="/logo.png"
-							alt="Zidnee logo"
-							className="h-12 w-12 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
+		<main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10 text-gray-900">
+			<form
+				className="w-full max-w-sm space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+				onSubmit={handleSubmit(onSubmit)}
+			>
+				<div>
+					<h1 className="text-xl font-semibold text-gray-900">Login</h1>
+					<p className="mt-1 text-sm text-gray-600">Username and password</p>
+				</div>
+
+				<Controller
+					name="username"
+					control={control}
+					render={({ field, fieldState }) => (
+						<Field
+							label="Username"
+							value={field.value}
+							onChange={field.onChange}
+							placeholder="admin"
+							error={fieldState.error?.message}
 						/>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-blue-600">
-							Zidnee Online Islamic School
-						</p>
-					</div>
-					<h2 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-gray-900 md:text-5xl">
-						Soft, calm access to your workspace.
-					</h2>
-					<p className="mt-4 max-w-xl text-base leading-7 text-gray-600">
-						Sign in to manage users, roles, and permissions from a routed
-						dashboard backed by React Query and shared Zod schemas.
-					</p>
-					<div className="mt-8 grid gap-3 sm:grid-cols-3">
-						{[
-							["brand", "Core actions"],
-							["ink", "Structure"],
-							["accent", "Highlights"],
-						].map(([color, label]) => (
-							<div
-								key={label}
-								className="rounded-3xl border border-gray-300 bg-gray-50 p-4 shadow-sm"
-							>
-								<div
-									className={`h-2.5 w-14 rounded-full ${color === "brand" ? "bg-blue-600" : color === "accent" ? "bg-purple-600" : "bg-gray-900"}`}
-								/>
-								<p className="mt-4 text-sm font-semibold text-gray-900">
-									{label}
-								</p>
-							</div>
-						))}
-					</div>
-					<div className="mt-8 rounded-3xl border border-gray-300 bg-blue-100 px-5 py-4 text-gray-900">
-						<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
-							Visual rule
-						</p>
-						<p className="mt-2 text-sm leading-6 text-gray-600">
-							Soft colors guide attention. Structure stays calm and readable.
-						</p>
-					</div>
-				</section>
+					)}
+				/>
 
-				<form
-					className="rounded-[2.5rem] border border-gray-300 bg-white gap-5 p-8 shadow-sm md:p-10 lg:p-12"
-					onSubmit={handleSubmit(onSubmit)}
+				<Controller
+					name="password"
+					control={control}
+					render={({ field, fieldState }) => (
+						<Field
+							label="Password"
+							value={field.value}
+							onChange={field.onChange}
+							type="password"
+							placeholder="123456"
+							error={fieldState.error?.message}
+						/>
+					)}
+				/>
+
+				<button
+					className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
+					type="submit"
+					disabled={loginMutation.isPending}
 				>
-					<div>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-blue-600">
-							Login
-						</p>
-						<h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
-							Welcome back
-						</h2>
-						<p className="mt-2 text-sm text-gray-600">
-							Use your seeded username and password to enter the dashboard.
-						</p>
-					</div>
-
-					<Controller
-						name="username"
-						control={control}
-						render={({ field, fieldState }) => (
-							<Field
-								label="Username"
-								value={field.value}
-								onChange={field.onChange}
-								placeholder="admin"
-								error={fieldState.error?.message}
-							/>
-						)}
-					/>
-
-					<Controller
-						name="password"
-						control={control}
-						render={({ field, fieldState }) => (
-							<Field
-								label="Password"
-								value={field.value}
-								onChange={field.onChange}
-								type="password"
-								placeholder="Minimum 6 characters"
-								error={fieldState.error?.message}
-							/>
-						)}
-					/>
-
-					<button
-						className="rounded-2xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
-						type="submit"
-						disabled={loginMutation.isPending}
-					>
-						{loginMutation.isPending ? "Signing in..." : "Sign in"}
-					</button>
-				</form>
-			</div>
+					{loginMutation.isPending ? "Signing in..." : "Sign in"}
+				</button>
+			</form>
 		</main>
 	);
 };
