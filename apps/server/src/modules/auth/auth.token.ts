@@ -1,7 +1,8 @@
+import { env } from "@/config/env.js";
 import type { JWTPayload } from "@repo/schema";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = env.JWT_SECRET
 
 export const createToken = (
 	payload: Omit<JWTPayload, "iat" | "exp">,

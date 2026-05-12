@@ -17,6 +17,7 @@ import { ActivityService } from "./activity.service.js";
 import { generateLeadSerialNumber } from "./lead-sequence.model.js";
 import type { LeadDocumentExt } from "./lead.model.js";
 import { type LeadDocument, LeadModel } from "./lead.model.js";
+import { env } from "process";
 
 type LeadDemo = NonNullable<Lead["demos"]>[number];
 
@@ -1014,7 +1015,7 @@ export const LeadService = {
 			return null;
 		}
 
-		const appUrl = process.env.APP_URL || "https://app.example.com";
+		const appUrl = env.APP_URL 
 		if (existingLead.formSent && existingLead.formToken) {
 			return {
 				formLink: `${appUrl}/form/${leadId}?token=${existingLead.formToken}`,
