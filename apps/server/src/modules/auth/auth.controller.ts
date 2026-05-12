@@ -77,8 +77,9 @@ export const registerController = async (
 	}
 
 	// Check if user already exists (email optional)
-	if (result.data.email) {
-		const existingUser = await UserService.findByEmail(result.data.email);
+	const normalizedEmail = result.data.email?.trim() || undefined;
+	if (normalizedEmail) {
+		const existingUser = await UserService.findByEmail(normalizedEmail);
 		if (existingUser) {
 			throw new ConflictError("Email already in use");
 		}
@@ -105,7 +106,7 @@ export const registerController = async (
 	// Create new user
 	const newUser = await UserService.create({
 		username: result.data.username,
-		email: result.data.email,
+		email: normalizedEmail,
 		password: hashedPassword,
 		name: result.data.name,
 		roleIds: [defaultRole.id],

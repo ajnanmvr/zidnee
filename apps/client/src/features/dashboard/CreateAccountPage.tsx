@@ -172,9 +172,9 @@ export const CreateAccountPage = ({
 	const resolvedBackTo =
 		backTo ??
 		(roleType === "mentor"
-			? "/mentors"
+			? "/users?role=mentor"
 			: roleType === "counsellor"
-				? "/counsellors"
+				? "/users?role=counsellor"
 				: roleType === "sales"
 					? "/users?role=sales"
 					: "/users");

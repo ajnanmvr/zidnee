@@ -202,6 +202,15 @@ const collectPermissionsByIds = async (
 		.filter((permission): permission is Permission => permission !== null);
 };
 
+const normalizeEmail = (email?: string): string | undefined => {
+	if (typeof email !== "string") {
+		return undefined;
+	}
+
+	const trimmed = email.trim();
+	return trimmed.length > 0 ? trimmed : undefined;
+};
+
 export const PermissionService = {
 	create: async (key: PermissionKey): Promise<Permission> => {
 		await initializeDefaults();
@@ -366,7 +375,7 @@ export const UserService = {
 		await initializeDefaults();
 		const created = await UserModel.create({
 			username: user.username,
-			email: user.email,
+			email: normalizeEmail(user.email),
 			password: user.password,
 			name: user.name,
 			mentorId: (user as any).mentorId,
@@ -386,7 +395,12 @@ export const UserService = {
 
 	findByEmail: async (email: string): Promise<User | null> => {
 		await initializeDefaults();
-		const user = await UserModel.findOne({ email }).lean<UserDocument | null>();
+		const normalizedEmail = normalizeEmail(email);
+		if (!normalizedEmail) {
+			return null;
+		}
+
+		const user = await UserModel.findOne({ email: normalizedEmail }).lean<UserDocument | null>();
 		return user ? toUser(user) : null;
 	},
 
@@ -411,7 +425,7 @@ export const UserService = {
 			{
 				$set: {
 					username: data.username,
-					email: data.email,
+					email: normalizeEmail(data.email),
 					password: data.password,
 					name: data.name,
 					mentorId: (data as any).mentorId,

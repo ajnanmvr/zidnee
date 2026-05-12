@@ -30,7 +30,6 @@ const userSchema = new Schema<UserDocument>(
 			enum: ["male", "female"],
 			required: false,
 		},
-		// Generated ZIDs per role (e.g. zim001, zic001, ...)
 		zids: {
 			type: {
 				mentor: { type: String },

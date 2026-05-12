@@ -139,11 +139,11 @@ export const CounsellorMentorsPage = () => {
 												</a>
 											) : null}
 											<Link
-												to={`/mentors/${mentor.id}`}
+												to={`/users/${mentor.id}/edit`}
 												className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-900 transition hover:border-gray-400"
 											>
 												<HiUserGroup className="h-4 w-4" aria-hidden="true" />
-												Open mentor record
+												Edit mentor record
 											</Link>
 										</div>
 									</div>

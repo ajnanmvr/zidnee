@@ -10,7 +10,6 @@ import {
 	HiPhone,
 	HiPresentationChartLine,
 	HiSquares2X2,
-	HiUserGroup,
 	HiUsers,
 } from "react-icons/hi2";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -34,7 +33,6 @@ import {
 } from "@/features/leads/leads.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
-import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
 const titles: Record<string, string> = {
@@ -44,10 +42,6 @@ const titles: Record<string, string> = {
 	"/students": "Students",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/counsellor/students": "Counsellor Students",
-	"/counsellors": "Counsellors",
-	"/counsellors/create": "Create Counsellor",
-	"/mentors": "Mentors",
-	"/mentors/create": "Create Mentor",
 	"/time-slots": "Time Slots",
 	"/users": "Users",
 	"/users/create": "Create User",
@@ -61,14 +55,6 @@ const titles: Record<string, string> = {
 const resolveTitle = (pathname: string, search: string): string => {
 	if (/^\/users\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit User";
-	}
-
-	if (/^\/counsellors\/create$/.test(pathname)) {
-		return "Create Counsellor";
-	}
-
-	if (/^\/mentors\/create$/.test(pathname)) {
-		return "Create Mentor";
 	}
 
 	if (/^\/time-slots$/.test(pathname)) {
@@ -114,34 +100,22 @@ export const DashboardLayout = () => {
 	});
 	const admissionsQuery = useAdmissionLeadsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
-	const usersQuery = useUsersQuery(token);
 	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token);
 	const scheduledDemosQuery = useDemoRequestsQuery(token);
 	const meName = me?.name ?? "User";
 	const currentUserId = me?.id;
 
-	const allUsers = usersQuery.data?.users ?? [];
 	const allStudents = studentsQuery.data?.students ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
 	const isCounsellor =
 		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
 		false;
-	const currentCounsellorMentors = allUsers.filter(
-		(user) =>
-			user.roles.some((role) => (role.type ?? "general") === "mentor") &&
-			user.counsellorId === currentUserId,
-	);
-	const currentCounsellorMentorIds = new Set(
-		currentCounsellorMentors.map((mentor) => mentor.id),
-	);
 	const currentCounsellorStudents = allStudents.filter(
 		(student) =>
 			student.counsellorId === currentUserId ||
-			(student.mentorId
-				? currentCounsellorMentorIds.has(student.mentorId)
-				: false),
+			Boolean(student.mentorId),
 	);
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,
@@ -242,28 +216,19 @@ export const DashboardLayout = () => {
 			accent: "cyan",
 			section: "Learners",
 		},
-		...(isCounsellor
-			? [
-					{
-						to: "/counsellor/mentors",
-						label: "Mentor Follow-up",
-						description: "My mentors",
-						icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
-						count: currentCounsellorMentors.length,
-						accent: "teal",
-						section: "Counsellor Workspace",
-					},
-					{
-						to: "/counsellor/students",
-						label: "My Students",
-						description: "Under my mentors",
-						icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-						count: currentCounsellorStudents.length,
-						accent: "cyan",
-						section: "Counsellor Workspace",
-					},
-				]
-			: []),
+						...(isCounsellor
+							? [
+								{
+									to: "/counsellor/students",
+									label: "My Students",
+									description: "Under my mentors",
+									icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+									count: currentCounsellorStudents.length,
+									accent: "cyan",
+									section: "Counsellor Workspace",
+								},
+							]
+						: []),
 		{
 			to: "/time-slots",
 			label: "Time Slots",
@@ -272,30 +237,6 @@ export const DashboardLayout = () => {
 			count: timeSlotsQuery.data?.timeSlots.length ?? 0,
 			accent: "teal",
 			section: "Learners",
-		},
-		{
-			to: "/counsellors",
-			label: "Counsellors",
-			description: "Team",
-			icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
-			accent: "teal",
-			section: "Management",
-		},
-		{
-			to: "/mentors",
-			label: "Mentors",
-			description: "Team",
-			icon: <HiUserGroup className="h-5 w-5" aria-hidden="true" />,
-			accent: "amber",
-			section: "Management",
-		},
-		{
-			to: "/users?role=sales",
-			label: "Sales",
-			description: "Team",
-			icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
-			accent: "rose",
-			section: "Management",
 		},
 		{
 			to: "/users",

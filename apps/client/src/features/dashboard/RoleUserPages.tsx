@@ -34,6 +34,22 @@ type RoleUsersPageProps = {
 const matchesRoleType = (roleType: string, expectedType: string) =>
 	roleType === expectedType;
 
+const getRoleIdentityLabel = (roleType: RoleUsersPageProps["roleType"]) => {
+	if (roleType === "mentor") {
+		return "Mentor ID";
+	}
+
+	if (roleType === "counsellor") {
+		return "Counsellor ID";
+	}
+
+	if (roleType === "sales") {
+		return "Sales ID";
+	}
+
+	return "Admin ID";
+};
+
 export const RoleUsersPage = ({
 	title,
 	description,
@@ -103,7 +119,7 @@ export const RoleUsersPage = ({
 
 		return sorted;
 	}, [allUsers, roleType, query, sortBy, sortDir]);
-	const identityHeader = roleType === "mentor" ? "Mentor ID" : "Counsellor ID";
+	const identityHeader = getRoleIdentityLabel(roleType);
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
 		// clear any existing banner state
@@ -258,7 +274,10 @@ export const RoleUsersPage = ({
 									</td>
 									{roleType === "mentor" && (
 										<td className="px-4 py-3 text-gray-600">
-											<Link to={user.counsellorId ? `/counsellors/${user.counsellorId}` : '#'} className="text-indigo-600 hover:underline">
+											<Link
+												to={user.counsellorId ? `/users/${user.counsellorId}/edit` : "#"}
+												className="text-indigo-600 hover:underline"
+											>
 												{getCounsellorName(user.counsellorId)}
 											</Link>
 										</td>
@@ -291,11 +310,7 @@ export const RoleUsersPage = ({
 											<button
 												type="button"
 												className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50"
-												onClick={() => {
-													if (roleType === "mentor") navigate(`/mentors/${user.id}`);
-													else if (roleType === "counsellor") navigate(`/counsellors/${user.id}`);
-													else navigate(`/users/${user.id}`);
-												}}
+												onClick={() => navigate(`/users/${user.id}`)}
 												title="View user"
 												aria-label="View user"
 											>

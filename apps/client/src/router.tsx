@@ -40,40 +40,15 @@ const StudentsPage = lazy(() =>
 		default: module.StudentsPage,
 	})),
 );
-const CounsellorMentorsPage = lazy(() =>
-	import("@/features/dashboard/CounsellorMentorsPage").then((module) => ({
-		default: module.CounsellorMentorsPage,
-	})),
-);
 const CounsellorStudentsPage = lazy(() =>
 	import("@/features/dashboard/CounsellorStudentsPage").then((module) => ({
 		default: module.CounsellorStudentsPage,
-	})),
-);
-const CounsellorsPage = lazy(() =>
-	import("@/features/dashboard/CounsellorsPage").then((module) => ({
-		default: module.CounsellorsPage,
 	})),
 );
 const CreateCounsellorPage = lazy(() =>
 	import("@/features/dashboard/CreateCounsellorPage").then((module) => ({
 		default: module.CreateCounsellorPage,
 	})),
-);
-const CounsellorDetailPage = lazy(() =>
-    import("@/features/dashboard/CounsellorDetailPage").then((module) => ({
-        default: module.CounsellorDetailPage,
-    })),
-);
-const MentorsPage = lazy(() =>
-	import("@/features/dashboard/MentorsPage").then((module) => ({
-		default: module.MentorsPage,
-	})),
-);
-const MentorDetailPage = lazy(() =>
-    import("@/features/dashboard/MentorDetailPage").then((module) => ({
-        default: module.MentorDetailPage,
-    })),
 );
 const CreateMentorPage = lazy(() =>
 	import("@/features/dashboard/CreateMentorPage").then((module) => ({
@@ -216,14 +191,6 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
-						path: "counsellor/mentors",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CounsellorMentorsPage />
-							</Suspense>
-						),
-					},
-					{
 						path: "counsellor/students",
 						element: (
 							<Suspense fallback={routeFallback}>
@@ -232,42 +199,10 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
-						path: "counsellors",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CounsellorsPage />
-							</Suspense>
-						),
-					},
-					{
-						path: "counsellors/:id",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CounsellorDetailPage />
-							</Suspense>
-						),
-					},
-					{
 						path: "counsellors/create",
 						element: (
 							<Suspense fallback={routeFallback}>
 								<CreateCounsellorPage />
-							</Suspense>
-						),
-					},
-					{
-						path: "mentors",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<MentorsPage />
-							</Suspense>
-						),
-					},
-					{
-						path: "mentors/:id",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<MentorDetailPage />
 							</Suspense>
 						),
 					},

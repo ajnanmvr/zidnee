@@ -68,9 +68,13 @@ export const createUserController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const existingByEmail = await UserService.findByEmail(result.data.email);
-	if (existingByEmail) {
+	const normalizedEmail = result.data.email?.trim() || undefined;
+
+	if (normalizedEmail) {
+		const existingByEmail = await UserService.findByEmail(normalizedEmail);
+		if (existingByEmail) {
 		throw new ConflictError("Email already in use");
+		}
 	}
 
 	const existingByUsername = await UserService.findByUsername(
@@ -108,7 +112,7 @@ export const createUserController = async (
 
 	const createdUser = await UserService.create({
 		username: result.data.username,
-		email: result.data.email,
+		email: normalizedEmail,
 		password,
 		name: result.data.name,
 		gender: result.data.gender,
@@ -116,7 +120,6 @@ export const createUserController = async (
 		zids,
 		// populate legacy mentorId for compatibility when generated
 		mentorId: (zids as any).mentor,
-		counsellorId: result.data.counsellorId as any,
 		isActive: true,
 	});
 
@@ -290,13 +293,15 @@ export const updateUserController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
+	const normalizedEmail = result.data.email?.trim() || undefined;
+
 	const existingUser = await UserService.findById(userId);
 	if (!existingUser) {
 		throw new NotFoundError("User");
 	}
 
-	if (result.data.email) {
-		const existingByEmail = await UserService.findByEmail(result.data.email);
+	if (normalizedEmail) {
+		const existingByEmail = await UserService.findByEmail(normalizedEmail);
 		if (existingByEmail && existingByEmail.id !== userId) {
 			throw new ConflictError("Email already in use");
 		}
@@ -358,7 +363,7 @@ export const updateUserController = async (
 
 	const updatedUser = await UserService.update(userId, {
 		username: result.data.username,
-		email: result.data.email,
+		email: normalizedEmail,
 		name: result.data.name,
 		roleIds: result.data.roleIds,
 		counsellorId: result.data.counsellorId,

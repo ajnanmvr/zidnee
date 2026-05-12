@@ -1,15 +1,22 @@
-import "../../src/config/env.js";
-import { connectDB } from "../../src/config/db.js";
-import { UserModel } from "../../src/modules/users/user.model.js";
-import { RoleModel } from "../../src/modules/roles/role.model.js";
-import { buildSequentialIdentity, USER_IDENTITY_PREFIXES } from "../../src/modules/users/user.identity.js";
+import "@/config/env.js";
+import { connectDB } from "@/config/db.js";
+import { RoleModel } from "@/modules/roles/role.model.js";
+import { UserModel } from "@/modules/users/user.model.js";
+import {
+	buildSequentialIdentity,
+	USER_IDENTITY_PREFIXES,
+} from "@/modules/users/user.identity.js";
 
 async function main() {
   await connectDB();
 
   const users = await UserModel.find().lean();
   const roles = await RoleModel.find().lean();
-  const roleMap = new Map(roles.map((r: any) => [String(r._id), r.type]));
+  const roleMap = new Map(
+	roles.map((role) => [String(role._id), role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined]),
+  );
+
+	const roleTypes = Object.keys(USER_IDENTITY_PREFIXES) as Array<keyof typeof USER_IDENTITY_PREFIXES>;
 
   for (const user of users) {
     const userRoles: string[] = (user.roleIds ?? []) as string[];
@@ -18,13 +25,12 @@ async function main() {
 
     for (const roleId of userRoles) {
       const type = roleMap.get(roleId);
-      if (!type) continue;
-      if (!(type in USER_IDENTITY_PREFIXES)) continue;
+      if (!type || !roleTypes.includes(type)) continue;
 
       if (!zids[type]) {
         // gather existing ids for this type
-        const existing = users.map((u: any) => u.zids && u.zids[type]);
-        const prefix = (USER_IDENTITY_PREFIXES as any)[type];
+        const existing = users.map((candidate) => candidate.zids?.[type]);
+        const prefix = USER_IDENTITY_PREFIXES[type];
         const next = buildSequentialIdentity(prefix, existing);
         zids[type] = next;
         if (type === "mentor" && !user.mentorId) {

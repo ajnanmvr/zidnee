@@ -9,7 +9,7 @@ import {
 	HiTrash,
 	HiUserPlus,
 } from "react-icons/hi2";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { ActionButton } from "@/components/ActionButton";
 import { ConfirmDialog, Field, Modal, Panel } from "@/components/dashboard-ui";
@@ -25,16 +25,55 @@ import { useSession } from "@/lib/session";
 const matchesRoleType = (roleType: string, expectedType: string) =>
 	roleType === expectedType;
 
+const getIdentityLabel = (roleType: string | null) => {
+	if (!roleType) {
+		return "ID";
+	}
+
+	return `${roleType.charAt(0).toUpperCase()}${roleType.slice(1)} ID`;
+};
+
+const getUserIdentity = (user: { zids?: Record<string, string>; mentorId?: string | null; counsellorId?: string | null; username?: string | null }, roleType: string | null) => {
+	if (roleType && user.zids?.[roleType]) {
+		return user.zids[roleType];
+	}
+
+	return (
+		user.zids?.admin ??
+		user.zids?.sales ??
+		user.zids?.mentor ??
+		user.zids?.counsellor ??
+		user.mentorId ??
+		user.counsellorId ??
+		user.username ??
+		"-"
+	);
+};
+
+const ROLE_FILTERS = [
+	{ value: "all", label: "All users" },
+	{ value: "admin", label: "Admins" },
+	{ value: "mentor", label: "Mentors" },
+	{ value: "counsellor", label: "Counsellors" },
+	{ value: "sales", label: "Sales" },
+] as const;
+
+type RoleFilter = (typeof ROLE_FILTERS)[number]["value"];
+
 export const UsersPage = () => {
 	const { token } = useSession();
 	const location = useLocation();
+	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
 	const usersQuery = useUsersQuery(token);
 	const deleteUserMutation = useDeleteUserMutation();
 	const setUserStatusMutation = useSetUserStatusMutation();
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
-	const pageRoleType = location.search.includes("role=")
-		? (location.search.includes("role=sales") ? "sales" : "admin")
-		: null;
+	const roleParam = searchParams.get("role");
+	const activeRole: RoleFilter = ROLE_FILTERS.some((filter) => filter.value === roleParam)
+		? (roleParam as RoleFilter)
+		: "all";
+	const isRoleFiltered = activeRole !== "all";
 	const { control, handleSubmit, reset, setError } =
 		useForm<AdminChangePasswordForm>({
 			defaultValues: { newPassword: "" },
@@ -42,6 +81,7 @@ export const UsersPage = () => {
 
 	const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
 	const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+	const [query, setQuery] = useState<string>("");
 
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
 		try {
@@ -89,11 +129,46 @@ export const UsersPage = () => {
 
 	const users = useMemo(() => {
 		const all = usersQuery.data?.users ?? [];
-		if (!pageRoleType) return all;
-		return all.filter((user) =>
-			user.roles.some((role) => matchesRoleType(role.type ?? "admin", pageRoleType)),
-		);
-	}, [pageRoleType, usersQuery.data?.users]);
+		const roleFiltered =
+			activeRole === "all"
+				? all
+				: all.filter((user) =>
+					user.roles.some((role) => matchesRoleType(role.type ?? "admin", activeRole)),
+				);
+
+		const q = query.trim().toLowerCase();
+		if (!q) {
+			return roleFiltered;
+		}
+
+		return roleFiltered.filter((user) => {
+			const identity = getUserIdentity(user, activeRole === "all" ? null : activeRole).toLowerCase();
+			const name = (user.name ?? "").toLowerCase();
+			const username = (user.username ?? "").toLowerCase();
+			const roleNames = user.roles.map((role) => role.name.toLowerCase()).join(" ");
+			return (
+				identity.includes(q) ||
+				name.includes(q) ||
+				username.includes(q) ||
+				roleNames.includes(q)
+			);
+		});
+	}, [activeRole, query, usersQuery.data?.users]);
+
+	const updateRoleFilter = (nextRole: RoleFilter) => {
+		const params = new URLSearchParams(location.search);
+		if (nextRole === "all") {
+			params.delete("role");
+		} else {
+			params.set("role", nextRole);
+		}
+		navigate({ pathname: "/users", search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
+	};
+
+	const createUserPath = isRoleFiltered ? `/users/create?role=${activeRole}` : "/users/create";
+	const pageTitle = activeRole === "sales" ? "Sales" : activeRole === "all" ? "Users" : `${activeRole.charAt(0).toUpperCase()}${activeRole.slice(1)}s`;
+	const createButtonLabel = activeRole === "sales" ? "Create sales user" : activeRole === "all" ? "Create user" : `Create ${activeRole} user`;
+	const identityHeader = activeRole === "all" ? "ID" : getIdentityLabel(activeRole);
 
 	const onSubmitPassword = async (passwordForm: AdminChangePasswordForm) => {
 		if (!passwordUserId) {
@@ -140,22 +215,54 @@ export const UsersPage = () => {
 	return (
 		<div className="grid gap-6">
 			<Panel
-				title={pageRoleType === "sales" ? "Sales" : "Users"}
+				title={pageTitle}
 				description="Team"
 				action={
 					<Link
-						to={`/users/create?role=${pageRoleType}`}
+						to={createUserPath}
 						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105"
 					>
 						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-						{pageRoleType === "sales" ? "Create sales user" : "Create user"}
+						{createButtonLabel}
 					</Link>
 				}
 			>
+				<div className="mb-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+					<Field
+						label="Search"
+						type="text"
+						value={query}
+						onChange={(value) => setQuery(value)}
+						placeholder="Search by id, name, username or role"
+					/>
+					<div className="flex flex-wrap gap-2 lg:justify-end">
+						{ROLE_FILTERS.map((filter) => {
+							const isActive = filter.value === activeRole;
+							return (
+								<button
+									key={filter.value}
+									type="button"
+									onClick={() => updateRoleFilter(filter.value)}
+									className={
+										isActive
+											? "rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+											: "rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+									}
+								>
+									{filter.label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+
 				<div className="overflow-x-auto rounded-3xl border border-gray-300">
 					<table className="min-w-full border-collapse bg-white text-left text-sm">
 						<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
 							<tr>
+								<th className="px-4 py-3 font-semibold">
+										{identityHeader}
+								</th>
 								<th className="px-4 py-3 font-semibold">Name</th>
 								<th className="px-4 py-3 font-semibold">Username</th>
 								<th className="px-4 py-3 font-semibold">Roles</th>
@@ -169,6 +276,9 @@ export const UsersPage = () => {
 									key={user.id}
 									className="border-t border-gray-300 align-top"
 								>
+									<td className="px-4 py-3 text-gray-600 font-semibold">
+										{getUserIdentity(user, activeRole === "all" ? null : activeRole)}
+									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
 									</td>
