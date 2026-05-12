@@ -23,7 +23,8 @@
 		"fix:web": "biome check --write apps/client",
 		"format": "biome format --write .",
 		"check-types": "turbo run check-types",
-		"clean": "turbo clean && rm -rf node_modules"
+		"clean": "node scripts/clean.mjs",
+		"clean:all": "node scripts/clean.mjs --all"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.11",
