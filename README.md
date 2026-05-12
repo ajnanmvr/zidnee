@@ -13,6 +13,7 @@ A small pnpm monorepo with a Vite React client, an Express API, a shared Zod sch
 
 - `pnpm dev` - run all dev tasks through Turbo
 - `pnpm build` - build all packages and apps
+- `pnpm start:prod` - build the workspace, then run the API and built client
 - `pnpm lint` - run lint tasks through Turbo
 - `pnpm format` - format the workspace with Biome
 - `pnpm check-types` - run TypeScript checks through Turbo

@@ -94,15 +94,39 @@ export const DashboardLayout = () => {
 	const { token, clearToken } = useSession();
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const { data: me, error } = useMeQuery(token);
+	const canReadLeads =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "LEAD_READ_MY" || permission.key === "LEAD_READ_ALL",
+		) ?? false;
+	const canReadAdmissions =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "LEAD_ADMISSION_REQUEST" ||
+				permission.key === "LEAD_ADMISSION_CONFIRM",
+		) ?? false;
+	const canReadStudents =
+		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
+		false;
+	const canReadTimeSlots =
+		me?.permissions?.some((permission) => permission.key === "TIMESLOT_CREATE") ??
+		false;
+	const canReadDemos =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "LEAD_DEMO_ASSIGN" ||
+				permission.key === "LEAD_DEMO_COMPLETE",
+		) ?? false;
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "all",
 		timeFilter: "all",
+		enabled: canReadLeads,
 	});
-	const admissionsQuery = useAdmissionLeadsQuery(token);
-	const studentsQuery = useStudentsQuery(token);
-	const timeSlotsQuery = useTimeSlotsQuery(token);
-	const pendingDemosQuery = usePendingDemoRequestsQuery(token);
-	const scheduledDemosQuery = useDemoRequestsQuery(token);
+	const admissionsQuery = useAdmissionLeadsQuery(token, canReadAdmissions);
+	const studentsQuery = useStudentsQuery(token, canReadStudents);
+	const timeSlotsQuery = useTimeSlotsQuery(token, canReadTimeSlots);
+	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
+	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
 	const meName = me?.name ?? "User";
 	const currentUserId = me?.id;
 
@@ -161,6 +185,9 @@ export const DashboardLayout = () => {
 		demoCancelled: "orange",
 	};
 
+	const hasPermission = (key: string): boolean =>
+		me?.permissions?.some((p) => p.key === key) ?? false;
+
 	const getLeadStageItems = (): NavigationItem[] => {
 		return leadStageDefinitions
 			.filter((stage) => stage.id !== "all")
@@ -189,89 +216,122 @@ export const DashboardLayout = () => {
 			accent: "emerald",
 			section: "Overview",
 		},
-		{
-			to: "/leads",
-			label: "Leads",
-			description: "All follow-ups",
-			icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
-			accent: "teal",
-			section: "Lead Pipeline",
-		},
-		...getLeadStageItems(),
-		{
-			to: "/admissions",
-			label: "For Admission",
-			description: "Queue",
-			icon: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
-			count: admissionsQuery.data?.leads.length ?? 0,
-			accent: "violet",
-			section: "Lead Pipeline",
-		},
-		{
-			to: "/students",
-			label: "Students",
-			description: "Enrolled",
-			icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-			count: studentsQuery.data?.students.length ?? 0,
-			accent: "cyan",
-			section: "Learners",
-		},
-						...(isCounsellor
-							? [
-								{
-									to: "/counsellor/students",
-									label: "My Students",
-									description: "Under my mentors",
-									icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-									count: currentCounsellorStudents.length,
-									accent: "cyan",
-									section: "Counsellor Workspace",
-								},
-							]
-						: []),
-		{
-			to: "/time-slots",
-			label: "Time Slots",
-			description: "Class timing",
-			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
-			count: timeSlotsQuery.data?.timeSlots.length ?? 0,
-			accent: "teal",
-			section: "Learners",
-		},
-		{
-			to: "/users",
-			label: "Users",
-			description: "All accounts",
-			icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
-			accent: "cyan",
-			section: "Management",
-		},
-		{
-			to: "/roles",
-			label: "Role Permissions",
-			description: "Access",
-			icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
-			accent: "violet",
-			section: "Management",
-		},
-		{
-			to: "/demo-management/unassigned",
-			label: "Unassigned Demos",
-			description: "Pending assignment",
-			icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
-			count: myPendingDemoCount,
-			accent: "amber",
-			section: "Demo Management",
-		},
-		{
-			to: "/demo-management/scheduled",
-			label: "Scheduled Demos",
-			description: "Assigned & due",
-			icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
-			count: myScheduledDemoCount,
-			accent: "emerald",
-			section: "Demo Management",
-		},
+		...(hasPermission("LEAD_READ_MY") || hasPermission("LEAD_READ_ALL")
+			? [
+				{
+					to: "/leads",
+					label: "Leads",
+					description: "All follow-ups",
+					icon: <HiPhone className="h-5 w-5" aria-hidden="true" />,
+					accent: "teal",
+					section: "Lead Pipeline",
+				},
+				...getLeadStageItems(),
+			]
+			: []),
+		...(hasPermission("LEAD_ADMISSION_REQUEST") ||
+			hasPermission("LEAD_ADMISSION_CONFIRM")
+			? [
+				{
+					to: "/admissions",
+					label: "For Admission",
+					description: "Queue",
+					icon: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
+					count: admissionsQuery.data?.leads.length ?? 0,
+					accent: "violet",
+					section: "Lead Pipeline",
+				},
+			]
+			: []),
+		...(hasPermission("STUDENT_READ")
+			? [
+				{
+					to: "/students",
+					label: "Students",
+					description: "Enrolled",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count: studentsQuery.data?.students.length ?? 0,
+					accent: "cyan",
+					section: "Learners",
+				},
+			]
+			: []),
+		...(isCounsellor
+			? [
+				{
+					to: "/counsellor/students",
+					label: "My Students",
+					description: "Under my mentors",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count: currentCounsellorStudents.length,
+					accent: "cyan",
+					section: "Counsellor Workspace",
+				},
+			]
+			: []),
+		...(hasPermission("TIMESLOT_CREATE")
+			? [
+				{
+					to: "/time-slots",
+					label: "Time Slots",
+					description: "Class timing",
+					icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+					count: timeSlotsQuery.data?.timeSlots.length ?? 0,
+					accent: "teal",
+					section: "Learners",
+				},
+			]
+			: []),
+		...(hasPermission("USER_READ")
+			? [
+				{
+					to: "/users",
+					label: "Users",
+					description: "All accounts",
+					icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
+					accent: "cyan",
+					section: "Management",
+				},
+			]
+			: []),
+		...(hasPermission("ROLE_READ")
+			? [
+				{
+					to: "/roles",
+					label: "Role Permissions",
+					description: "Access",
+					icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
+					accent: "violet",
+					section: "Management",
+				},
+			]
+			: []),
+		...(hasPermission("LEAD_DEMO_ASSIGN")
+			? [
+				{
+					to: "/demo-management/unassigned",
+					label: "Unassigned Demos",
+					description: "Pending assignment",
+					icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+					count: myPendingDemoCount,
+					accent: "amber",
+					section: "Demo Management",
+				},
+			]
+			: []),
+		...(hasPermission("LEAD_DEMO_COMPLETE")
+			? [
+				{
+					to: "/demo-management/scheduled",
+					label: "Scheduled Demos",
+					description: "Assigned & due",
+					icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+					count: myScheduledDemoCount,
+					accent: "emerald",
+					section: "Demo Management",
+				},
+			]
+			: []),
 		{
 			to: "/me",
 			label: "My Profile",

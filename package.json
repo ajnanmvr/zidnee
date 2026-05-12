@@ -3,6 +3,13 @@
 	"private": true,
 	"scripts": {
 		"build": "turbo run build",
+		"build:schema": "pnpm --filter @repo/schema build",
+		"build:packages": "pnpm build:schema",
+		"build:api": "pnpm --filter api build",
+		"build:web": "pnpm --filter web build",
+		"build:apps": "pnpm build:web && pnpm build:api",
+		"build:all": "pnpm build:packages && pnpm build:apps",
+		"start:prod": "pnpm build:all && pnpm --parallel --filter @repo/api start --filter @repo/web start",
 		"dev": "turbo run dev",
 		"dev:api": "pnpm --filter api dev",
 		"dev:web": "pnpm --filter web dev",

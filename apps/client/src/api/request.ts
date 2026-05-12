@@ -36,7 +36,7 @@ const isSessionFailure = (
 	status: number,
 	payload: ApiErrorResponse,
 ): boolean => {
-	if (status === 401 || status === 403) {
+	if (status === 401) {
 		return true;
 	}
 

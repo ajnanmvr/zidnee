@@ -7,7 +7,7 @@ export const timeSlotsQueryKeys = {
 		["time-slots", token ?? "public"] as const,
 };
 
-export const useTimeSlotsQuery = (token: string) => {
+export const useTimeSlotsQuery = (token: string, enabled = true) => {
 	return useQuery({
 		queryKey: timeSlotsQueryKeys.timeSlots(token),
 		queryFn: () =>
@@ -18,7 +18,7 @@ export const useTimeSlotsQuery = (token: string) => {
 				undefined,
 				token,
 			),
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };
 

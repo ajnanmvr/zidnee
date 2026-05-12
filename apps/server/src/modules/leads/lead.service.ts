@@ -14,6 +14,7 @@ import {
 import { TimeSlotModel } from "../timeslots/timeslot.model.js";
 import { ZidService } from "../zid/zid.service.js";
 import { ActivityService } from "./activity.service.js";
+import { generateLeadSerialNumber } from "./lead-sequence.model.js";
 import type { LeadDocumentExt } from "./lead.model.js";
 import { type LeadDocument, LeadModel } from "./lead.model.js";
 
@@ -368,6 +369,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	id: doc._id.toString(),
 	name: doc.name,
 	phone: doc.phone,
+	slNo: doc.slNo,
 	level: doc.level,
 	assignedTo: toObjectIdString(doc.assignedTo),
 	demoRequestAssignedTo: toObjectIdString(doc.demoRequestAssignedTo),
@@ -410,8 +412,10 @@ export const LeadService = {
 	}): Promise<Lead> => {
 		const now = new Date();
 		const effectiveNextFollowUpAt = lead.customNextFollowUpAt ?? now;
+		const slNo = await generateLeadSerialNumber();
 
 		const created = await LeadModel.create({
+			slNo,
 			phone: lead.phone,
 			name: lead.name,
 			assignedTo: lead.assignedTo

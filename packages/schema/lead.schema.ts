@@ -86,6 +86,7 @@ export type LeadDemo = z.infer<typeof LeadDemoSchema>;
 
 export const LeadSchema = z.object({
 	id: ObjectIdStringSchema,
+	slNo: z.number().int().positive().optional(),
 	name: z.string().max(255).optional(),
 	phone: PhoneNumberSchema,
 	level: z.string().max(100).optional(),

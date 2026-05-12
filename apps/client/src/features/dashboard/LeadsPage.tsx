@@ -3,6 +3,7 @@
 	CreateLeadPayloadSchema,
 	PostponeLeadFollowUpPayloadSchema,
 	RedemoLeadPayloadSchema,
+	type LeadResponse,
 } from "@repo/schema";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -78,6 +79,11 @@ export const LeadsPage = () => {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const meQuery = useMeQuery(token);
+
+	const hasPermission = (key?: string) =>
+		Boolean(
+			meQuery.data?.permissions?.some((p) => p.key === key),
+		);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -546,6 +552,10 @@ export const LeadsPage = () => {
 				activeStage,
 				userNameById,
 				getActions: () => {
+					// permission checks
+					const canManageForm = hasPermission("LEAD_FORM_MANAGE");
+					const canRequestDemo = hasPermission("LEAD_DEMO_REQUEST");
+					const canCompleteDemo = hasPermission("LEAD_DEMO_COMPLETE");
 					const baseView: LeadTableAction = {
 						key: "view",
 						label: "View",
@@ -565,36 +575,40 @@ export const LeadsPage = () => {
 									className:
 										"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
 								},
-								{
-									key: "sendForm",
-									label: "Send Form",
-									onClick: async (item) => {
-										try {
-											const result = await generateFormLinkMutation.mutateAsync(
-												item.id,
-											);
-											setFormLinkData(result);
-											setFormLinkPhone(item.phone ?? null);
-											setFormLinkOpen(true);
-										} catch (error) {
-											toast.error(
-												error instanceof Error
-													? error.message
-													: "Unable to generate form link",
-											);
-										}
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
-								},
+								...(canManageForm
+									? [
+										  {
+											  key: "sendForm",
+											  label: "Send Form",
+											  onClick: async (item: LeadResponse) => {
+												  try {
+													  const result = await generateFormLinkMutation.mutateAsync(
+														  item.id,
+													  );
+													  setFormLinkData(result);
+													  setFormLinkPhone(item.phone ?? null);
+													  setFormLinkOpen(true);
+												  } catch (error) {
+													  toast.error(
+														  error instanceof Error
+															  ? error.message
+															  : "Unable to generate form link",
+													  );
+												  }
+											  },
+											  className:
+												  "inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+										  },
+									  ]
+									: []),
 							];
 						case "formSent":
 							return [
 								baseView,
-								{
-									key: "copyFormLink",
-									label: "Copy Form Link",
-									onClick: async (item) => {
+										  {
+											  key: "copyFormLink",
+											  label: "Copy Form Link",
+											  onClick: async (item: LeadResponse) => {
 										try {
 											const result = await generateFormLinkMutation.mutateAsync(
 												item.id,
@@ -623,16 +637,20 @@ export const LeadsPage = () => {
 						case "formFilled":
 							return [
 								baseView,
-								{
-									key: "requestDemo",
-									label: "Request Demo",
-									onClick: (item) => {
-										setRequestDemoLeadId(item.id);
-										setRequestDemoOpen(true);
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
-								},
+								...(canRequestDemo
+									? [
+										  {
+											  key: "requestDemo",
+											  label: "Request Demo",
+											  onClick: (item: LeadResponse) => {
+												  setRequestDemoLeadId(item.id);
+												  setRequestDemoOpen(true);
+											  },
+											  className:
+												  "inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
+										  },
+									  ]
+									: []),
 								{
 									key: "toAdmission",
 									label: "To Admission",
@@ -675,16 +693,20 @@ export const LeadsPage = () => {
 						case "demoAssigned":
 							return [
 								baseView,
-								{
-									key: "markCompleted",
-									label: "Mark as Completed",
-									onClick: (item) => {
-										setCompleteLeadId(item.id);
-										resetComplete({ note: "" });
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
-								},
+								...(canCompleteDemo
+									? [
+										  {
+											  key: "markCompleted",
+											  label: "Mark as Completed",
+											  onClick: (item: LeadResponse) => {
+												  setCompleteLeadId(item.id);
+												  resetComplete({ note: "" });
+											  },
+											  className:
+												  "inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
+										  },
+									  ]
+									: []),
 								{
 									key: "cancel",
 									label: "Cancel",
@@ -784,14 +806,16 @@ export const LeadsPage = () => {
 						>
 							All users in stage
 						</Link>
-						<button
-							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-							onClick={() => setCreateOpen(true)}
-						>
-							<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
-							Create lead
-						</button>
+						{hasPermission("LEAD_CREATE") ? (
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+								onClick={() => setCreateOpen(true)}
+								>
+								<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
+								Create lead
+							</button>
+						) : null}
 					</div>
 				</div>
 			</div>

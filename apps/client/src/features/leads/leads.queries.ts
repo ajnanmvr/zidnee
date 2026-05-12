@@ -38,27 +38,30 @@ export const leadsQueryKeys = {
 		["leads", "activities", leadId, token] as const,
 };
 
-export const useDemoRequestsQuery = (token: string) => {
+export const useDemoRequestsQuery = (token: string, enabled = true) => {
 	return useQuery({
 		queryKey: leadsQueryKeys.demoRequests(token),
 		queryFn: () => fetchDemoRequests(token),
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };
 
-export const usePendingDemoRequestsQuery = (token: string) => {
+export const usePendingDemoRequestsQuery = (
+	token: string,
+	enabled = true,
+) => {
 	return useQuery({
 		queryKey: leadsQueryKeys.pendingDemoRequests(token),
 		queryFn: () => fetchPendingDemoRequests(token),
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };
 
-export const useAdmissionLeadsQuery = (token: string) => {
+export const useAdmissionLeadsQuery = (token: string, enabled = true) => {
 	return useQuery({
 		queryKey: leadsQueryKeys.admissions(token),
 		queryFn: () => fetchAdmissionLeads(token),
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };
 
@@ -71,6 +74,7 @@ export const useDueLeadFollowUpsQuery = (
 		page?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
+		enabled?: boolean;
 	},
 ) => {
 	const scope = options?.scope ?? "all";
@@ -79,6 +83,7 @@ export const useDueLeadFollowUpsQuery = (
 	const page = options?.page ?? 1;
 	const sortBy = options?.sortBy ?? "nextFollowUpAt";
 	const sortOrder = options?.sortOrder ?? "desc";
+	const enabled = options?.enabled ?? true;
 
 	return useQuery({
 		queryKey: leadsQueryKeys.list(
@@ -99,7 +104,7 @@ export const useDueLeadFollowUpsQuery = (
 				sortBy,
 				sortOrder,
 			}),
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };
 

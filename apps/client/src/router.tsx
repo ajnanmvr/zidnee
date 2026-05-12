@@ -1,6 +1,7 @@
 ﻿import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "@/features/auth/RequireAuth";
+import { EditUserPage } from "@/features/dashboard/EditUserPage";
 
 const LoginPage = lazy(() =>
 	import("@/features/auth/LoginPage").then((module) => ({
@@ -83,11 +84,6 @@ const UsersPage = lazy(() =>
 const CreateUserPage = lazy(() =>
 	import("@/features/dashboard/CreateUserPage").then((module) => ({
 		default: module.CreateUserPage,
-	})),
-);
-const EditUserPage = lazy(() =>
-	import("@/features/dashboard/EditUserPage").then((module) => ({
-		default: module.EditUserPage,
 	})),
 );
 const RolesPage = lazy(() =>

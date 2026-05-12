@@ -7,6 +7,7 @@ This app is a Vite + React frontend that uses the shared `LoginSchema` from `@re
 - `pnpm dev` from the repo root runs the whole workspace
 - `pnpm --filter @repo/web dev` starts this app only
 - `pnpm --filter @repo/web build` builds the app
+- `pnpm --filter @repo/web start` serves the built app locally
 - `pnpm --filter @repo/web lint` runs Biome checks
 
 ## Notes

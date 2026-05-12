@@ -5,10 +5,10 @@ export const usersQueryKeys = {
 	users: (token: string) => ["users", token] as const,
 };
 
-export const useUsersQuery = (token: string) => {
+export const useUsersQuery = (token: string, enabled = true) => {
 	return useQuery({
 		queryKey: usersQueryKeys.users(token),
 		queryFn: () => fetchUsers(token),
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };

@@ -12,7 +12,8 @@ import {
 	UpdateLeadPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
-import { AuthenticationError, NotFoundError, ValidationError } from "../../utils/errors.util.js";
+import { AuthenticationError, NotFoundError, ValidationError, AuthorizationError } from "../../utils/errors.util.js";
+import { getEffectivePermissions } from "../rbac/rbac.service.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { StudentService } from "../students/student.service.js";
 import { UserModel } from "../users/user.model.js";
@@ -105,6 +106,7 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 
 	return {
 		id: lead.id,
+		slNo: lead.slNo,
 		name: lead.name,
 		phone: lead.phone,
 		level: lead.level,
@@ -218,6 +220,20 @@ export const listLeadsController = async (
 	const sortBy =
 		typeof req.query.sortBy === "string" ? req.query.sortBy : "nextFollowUpAt";
 	const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+
+	// Enforce permission for scope: if requesting all leads, require LEAD_READ_ALL
+	// otherwise require LEAD_READ_MY or LEAD_READ_ALL
+	const effectivePermissions = await getEffectivePermissions(req.user.roleIds);
+	const hasReadAll = effectivePermissions.some((p) => p.key === "LEAD_READ_ALL");
+	const hasReadMy = effectivePermissions.some((p) => p.key === "LEAD_READ_MY");
+
+	if (scope === "all" && !hasReadAll) {
+		throw new AuthorizationError("Insufficient permissions to view all leads");
+	}
+
+	if (scope === "mine" && !(hasReadMy || hasReadAll)) {
+		throw new AuthorizationError("Insufficient permissions to view your leads");
+	}
 
 	const { leads, total, page, pageSize } = await LeadService.listLeads({
 		createdBy: req.user.userId,

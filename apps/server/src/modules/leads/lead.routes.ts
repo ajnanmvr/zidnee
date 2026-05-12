@@ -283,7 +283,7 @@ router.patch(
  */
 router.patch(
 	"/:leadId/demo/request",
-	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	requirePermissionKey("LEAD_DEMO_REQUEST" satisfies PermissionKey),
 	asyncHandler(requestLeadDemoController),
 );
 
@@ -295,7 +295,7 @@ router.patch(
 
 router.patch(
 	"/:leadId/demo/complete",
-	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	requirePermissionKey("LEAD_DEMO_COMPLETE" satisfies PermissionKey),
 	asyncHandler(markDemoCompletedController),
 );
 
@@ -319,7 +319,7 @@ router.patch(
 
 router.patch(
 	"/:leadId/demo/assign",
-	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	requirePermissionKey("LEAD_DEMO_ASSIGN" satisfies PermissionKey),
 	asyncHandler(assignDemoMentorController),
 );
 
@@ -351,13 +351,13 @@ router.patch(
  */
 router.post(
 	"/:leadId/form-link",
-	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	requirePermissionKey("LEAD_FORM_MANAGE" satisfies PermissionKey),
 	asyncHandler(generateFormLinkController),
 );
 
 router.patch(
 	"/:leadId/form/revoke",
-	requirePermissionKey("LEAD_UPDATE" satisfies PermissionKey),
+	requirePermissionKey("LEAD_FORM_MANAGE" satisfies PermissionKey),
 	asyncHandler(revokeFormLinkController),
 );
 

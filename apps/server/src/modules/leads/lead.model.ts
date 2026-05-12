@@ -6,6 +6,7 @@ export type LeadDocument = Omit<
 	"id" | "createdBy" | "assignedTo" | "demoRequestAssignedTo"
 > & {
 	_id: Types.ObjectId;
+	slNo?: number;
 	createdBy: Types.ObjectId;
 	assignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
 	demoRequestAssignedTo?: Types.ObjectId | { _id: Types.ObjectId } | null;
@@ -29,6 +30,13 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			type: String,
 			required: true,
 			trim: true,
+			index: true,
+		},
+		slNo: {
+			type: Number,
+			required: false,
+			unique: true,
+			sparse: true,
 			index: true,
 		},
 		level: {

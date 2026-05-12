@@ -112,6 +112,16 @@ export const buildLeadColumns = (options?: {
 		enableSorting: false,
 	},
 	{
+		accessorKey: "slNo",
+		header: "SL No",
+		cell: (info) => (
+			<div className="font-semibold text-gray-900">
+				{info.getValue() ? `#${String(info.getValue())}` : "-"}
+			</div>
+		),
+		enableSorting: true,
+	},
+	{
 		accessorKey: "phone",
 		header: "Phone",
 		cell: (info) => (

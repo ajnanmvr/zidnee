@@ -95,7 +95,6 @@ export const seedCoreRolesAndUsers = async (): Promise<void> => {
 					type: roleDef.type,
 					description: roleDef.description,
 					permissionIds,
-					isSystem: true,
 				},
 				$setOnInsert: { name: roleDef.name },
 			},
