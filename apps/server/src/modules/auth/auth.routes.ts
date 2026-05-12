@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { authMiddleware } from "@/middlewares/auth.middleware.js";
-import { asyncHandler } from "@/middlewares/error.middleware.js";
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { asyncHandler } from "../../middlewares/error.middleware.js";
 import { getMeController, loginController } from "./auth.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
