@@ -1,11 +1,11 @@
-import "@/config/env.js";
-import { connectDB } from "@/config/db.js";
-import { RoleModel } from "@/modules/roles/role.model.js";
-import { UserModel } from "@/modules/users/user.model.js";
+import "../src/config/env.js";
+import { connectDB } from "../src/config/db.js";
+import { RoleModel } from "../src/modules/roles/role.model.js";
+import { UserModel } from "../src/modules/users/user.model.js";
 import {
 	buildSequentialIdentity,
 	USER_IDENTITY_PREFIXES,
-} from "@/modules/users/user.identity.js";
+} from "../src/modules/users/user.identity.js";
 
 async function main() {
   await connectDB();

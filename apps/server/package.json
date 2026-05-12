@@ -6,8 +6,8 @@
 	"main": "dist/src/index.js",
 	"scripts": {
 		"dev": "tsx watch src/index.ts",
-		"build": "tsc -p tsconfig.json && tsc-alias",
-		"postbuild": "node scripts/fix-dist-aliases.mjs",
+		"build": "tsc -p tsconfig.json",
+		"postbuild": "node scripts/check-no-aliases.mjs",
 		"start": "node dist/src/index.js",
 		"seed": "tsx scripts/seed.ts",
 		"swagger:generate": "tsx scripts/generate-swagger.ts",
@@ -46,7 +46,7 @@
 		"@types/swagger-ui-express": "^4.1.8",
 		"mongodb-memory-server": "^10.1.4",
 		"supertest": "^7.1.1",
-		"tsc-alias": "^1.8.17",
+
 		"tsx": "^4.21.0",
 		"typescript": "^6.0.2",
 		"vitest": "^3.2.4"

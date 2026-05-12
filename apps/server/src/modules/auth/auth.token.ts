@@ -1,4 +1,4 @@
-import { env } from "@/config/env.js";
+import { env } from "../../config/env.js";
 import type { JWTPayload } from "@repo/schema";
 import jwt from "jsonwebtoken";
 
