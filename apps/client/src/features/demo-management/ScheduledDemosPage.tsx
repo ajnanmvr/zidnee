@@ -217,7 +217,7 @@ export const ScheduledDemosPage = () => {
 	const visibleDemos =
 		viewScope === "mine"
 			? scheduledDemos.filter(
-					(demo) => getLatestDemo(demo)?.mentorId === currentUserId,
+					(demo) => demo.demoRequestAssignedTo === currentUserId,
 				)
 			: scheduledDemos;
 	const userNameById = new Map(

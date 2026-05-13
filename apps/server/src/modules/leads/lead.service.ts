@@ -128,6 +128,21 @@ const leadFieldPatch = (
 		newValue.residingCountry = updates.residingCountry;
 	}
 
+	if (updates.email !== undefined && updates.email !== existingLead.email) {
+		patch.email = updates.email;
+		oldValue.email = existingLead.email ?? null;
+		newValue.email = updates.email;
+	}
+
+	if (
+		updates.courseType !== undefined &&
+		updates.courseType !== existingLead.courseType
+	) {
+		patch.courseType = updates.courseType;
+		oldValue.courseType = existingLead.courseType ?? null;
+		newValue.courseType = updates.courseType;
+	}
+
 	if (
 		updates.primaryWhatsappNumber !== undefined &&
 		updates.primaryWhatsappNumber !== existingLead.primaryWhatsappNumber
@@ -177,7 +192,7 @@ const leadFieldPatch = (
 	if (
 		updates.preferredDays !== undefined &&
 		JSON.stringify(updates.preferredDays) !==
-			JSON.stringify(existingLead.preferredDays ?? [])
+		JSON.stringify(existingLead.preferredDays ?? [])
 	) {
 		patch.preferredDays = updates.preferredDays;
 		oldValue.preferredDays = existingLead.preferredDays ?? null;
@@ -187,7 +202,7 @@ const leadFieldPatch = (
 	if (
 		updates.preferredTimeslots !== undefined &&
 		JSON.stringify(updates.preferredTimeslots) !==
-			JSON.stringify(existingLead.preferredTimeslots ?? [])
+		JSON.stringify(existingLead.preferredTimeslots ?? [])
 	) {
 		patch.preferredTimeslots = updates.preferredTimeslots;
 		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
@@ -379,6 +394,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	formCompleted: doc.formCompleted,
 	dateOfBirth: doc.dateOfBirth,
 	residingCountry: doc.residingCountry,
+	email: doc.email,
 	gender: doc.gender,
 	primaryWhatsappNumber: doc.primaryWhatsappNumber,
 	alternateWhatsappNumber: doc.alternateWhatsappNumber,
@@ -392,6 +408,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
 	preferredMentorGender: doc.preferredMentorGender,
+	courseType: doc.courseType,
 	nextFollowUpAt: toDateOrFallback(
 		doc.nextFollowUpAt,
 		doc.createdAt ?? new Date(),
@@ -485,10 +502,10 @@ export const LeadService = {
 						const ts = map.get(it);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: it };
 					}
 					if (it && (it as any).id) {
@@ -496,10 +513,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
@@ -507,10 +524,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					// already a snapshot
@@ -972,10 +989,10 @@ export const LeadService = {
 		const latestDemo = getLatestDemo(existingLead);
 		const demos = latestDemo
 			? setLatestDemo(existingLead, {
-					lastContactedAt: now,
-					customNextFollowUpAt,
-					nextFollowUpAt: customNextFollowUpAt,
-				})
+				lastContactedAt: now,
+				customNextFollowUpAt,
+				nextFollowUpAt: customNextFollowUpAt,
+			})
 			: (existingLead.demos ?? []);
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -1015,7 +1032,7 @@ export const LeadService = {
 			return null;
 		}
 
-		const appUrl = env.APP_URL 
+		const appUrl = env.APP_URL
 		if (existingLead.formSent && existingLead.formToken) {
 			return {
 				formLink: `${appUrl}/form/${leadId}?token=${existingLead.formToken}`,
@@ -1196,10 +1213,10 @@ export const LeadService = {
 						const ts = map.get(it);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: it };
 					}
 					if (it && (it as any).id) {
@@ -1207,10 +1224,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
@@ -1218,10 +1235,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					return it as any;
@@ -1296,9 +1313,9 @@ export const LeadService = {
 			alternateWhatsappNumber?: string;
 			studentInfo?: string;
 			preferredLanguage?:
-				| "Malayalam Only"
-				| "English Only"
-				| "Malayalam - English Mixed";
+			| "Malayalam Only"
+			| "English Only"
+			| "Malayalam - English Mixed";
 			preferredSchedule?: string;
 			preferredDays?: string[];
 			preferredTimeslots?: {

@@ -94,8 +94,11 @@ export const LeadsPage = () => {
 	)
 		? (stageParam as LeadStageId)
 		: "all";
+	const canReadAllLeads =
+		meQuery.data?.permissions?.some((permission) => permission.key === "LEAD_READ_ALL") ??
+		false;
 	const scopeParam = searchParams.get("scope");
-	const activeScope = scopeParam === "all" ? "all" : "mine";
+	const activeScope = scopeParam === "all" && canReadAllLeads ? "all" : "mine";
 
 	// Map stage to status for backend filtering
 	const stageToStatus = (stage: LeadStageId): string | undefined => {
@@ -119,16 +122,8 @@ export const LeadsPage = () => {
 		}
 	};
 
-	const allLeadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: "all",
-		timeFilter: "all",
-		status: stageToStatus(activeStage),
-		page: currentPage,
-		sortBy,
-		sortOrder,
-	});
-	const leadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: "mine",
+	const activeLeadsQuery = useDueLeadFollowUpsQuery(token, {
+		scope: activeScope,
 		timeFilter: "all",
 		status: stageToStatus(activeStage),
 		page: currentPage,
@@ -280,14 +275,8 @@ export const LeadsPage = () => {
 		[allUsers],
 	);
 	const currentUserId = meQuery.data?.id;
-	const scopeLeads =
-		activeScope === "all"
-			? (allLeadsQuery.data?.leads ?? [])
-			: (leadsQuery.data?.leads ?? []);
-	const pagination =
-		activeScope === "all"
-			? allLeadsQuery.data?.pagination
-			: leadsQuery.data?.pagination;
+	const scopeLeads = activeLeadsQuery.data?.leads ?? [];
+	const pagination = activeLeadsQuery.data?.pagination;
 	const activeStageDefinition = leadStageDefinitions.find(
 		(stage) => stage.id === activeStage,
 	);
@@ -355,7 +344,7 @@ export const LeadsPage = () => {
 		}
 	};
 
-	const leads = leadsQuery.data?.leads ?? [];
+	const leads = scopeLeads;
 
 	const onPostponeLead = async (payload: PostponeLeadFollowUpForm) => {
 		if (!postponeLeadId) {
@@ -863,9 +852,9 @@ export const LeadsPage = () => {
 					</button>
 				</div>
 
-				{leadsQuery.isLoading && allLeadsQuery.isLoading ? (
+				{activeLeadsQuery.isLoading ? (
 					<div className="py-8 text-center text-gray-600">Loading...</div>
-				) : leadsQuery.isError || allLeadsQuery.isError ? (
+				) : activeLeadsQuery.isError ? (
 					<div className="py-8 text-center text-gray-600">
 						Unable to load leads.
 					</div>

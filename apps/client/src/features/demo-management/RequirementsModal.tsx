@@ -78,16 +78,50 @@ export const RequirementsModal = ({
 			.join(", ");
 	};
 
+	const formatTimingLabel = () => {
+		if (!lead?.preferredTimeslots?.length) {
+			return "N/A";
+		}
+
+		return lead.preferredTimeslots
+			.map((timeslot) =>
+				typeof timeslot === "string"
+					? timeSlots?.find((slot) => slot.id === timeslot)?.label ?? timeslot
+					: timeslot.label,
+			)
+			.join(", ");
+	};
+
+	const formatAttemptLabel = (attemptNumber: number) => {
+		if (attemptNumber <= 0) {
+			return "N/A";
+		}
+
+		const remainder = attemptNumber % 10;
+		const tens = attemptNumber % 100;
+		const suffix =
+			remainder === 1 && tens !== 11
+				? "st"
+				: remainder === 2 && tens !== 12
+					? "nd"
+					: remainder === 3 && tens !== 13
+						? "rd"
+						: "th";
+
+		return `${attemptNumber}${suffix} attempt`;
+	};
+
 	const formatDataForWhatsApp = (): string => {
 		if (!lead) return "";
 
 		const preferredDays = lead.preferredDays?.length
 			? lead.preferredDays.join(", ")
 			: "N/A";
-		const studyPlan = lead.preferredSchedule || lead.level || "N/A";
-		const demoTime = latestDemo?.demoScheduledFor
-			? formatReadableDateTime(latestDemo.demoScheduledFor)
-			: formatReadableDateTime(lead.demoAvailability);
+		const attemptLabel = formatAttemptLabel(lead.demos?.length ?? 0);
+		const plan = lead.preferredSchedule || "N/A";
+		const timing = formatTimingLabel();
+		const classStarting = lead.startClassWhen || "N/A";
+		const demoTime = latestDemo?.demoScheduledFor || lead.demoAvailability || "N/A";
 
 		const lines = [
 			`📋 *Student Requirements*`,
@@ -95,9 +129,11 @@ export const RequirementsModal = ({
 			`*Name:* ${lead.name || "N/A"}`,
 			`*Tutor Preference:* ${formatReadableGender(lead.preferredMentorGender)}`,
 			`*Preferred Days:* ${preferredDays}`,
-			`*Study Plan:* ${studyPlan}`,
-			`*Plan:* ${formatPlanLabel()}`,
+			`*Plan:* ${plan}`,
+			`*Timing:* ${timing}`,
+			`*Class starting:* ${classStarting}`,
 			`*Demo Time:* ${demoTime}`,
+			`*Attempt:* ${attemptLabel}`,
 			latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
 		]
 			.filter(Boolean)

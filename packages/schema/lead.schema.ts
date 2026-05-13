@@ -146,6 +146,7 @@ export const UpdateLeadPayloadSchema = z
 		gender: z.enum(["male", "female"]).optional(),
 		dateOfBirth: z.coerce.date().optional(),
 		residingCountry: z.string().max(100).optional(),
+		email: z.string().email().max(255).optional(),
 		primaryWhatsappNumber: PhoneNumberSchema.optional(),
 		alternateWhatsappNumber: PhoneNumberSchema.optional(),
 		studentInfo: z.string().max(1000).optional(),

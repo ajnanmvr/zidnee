@@ -21,6 +21,8 @@ export const LeadResponseSchema = LeadSchema.extend({
 	status: LeadStatusSchema,
 	nextFollowUpAt: z.string().datetime(),
 	dateOfBirth: z.string().datetime().nullable().optional(),
+	email: z.string().email().max(255).nullable().optional(),
+	courseType: z.enum(["GROUP", "INDIVIDUAL"]).nullable().optional(),
 	price: z.number().int().nonnegative().optional(),
 	createdAt: z.string().datetime().nullable().optional(),
 	updatedAt: z.string().datetime().nullable().optional(),

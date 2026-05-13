@@ -98,6 +98,9 @@ export const DashboardLayout = () => {
 			(permission) =>
 				permission.key === "LEAD_READ_MY" || permission.key === "LEAD_READ_ALL",
 		) ?? false;
+	const canReadAllLeads =
+		me?.permissions?.some((permission) => permission.key === "LEAD_READ_ALL") ??
+		false;
 	const canReadAdmissions =
 		me?.permissions?.some(
 			(permission) =>
@@ -114,7 +117,7 @@ export const DashboardLayout = () => {
 				permission.key === "LEAD_DEMO_COMPLETE",
 		) ?? false;
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: "all",
+		scope: canReadAllLeads ? "all" : "mine",
 		timeFilter: "all",
 		enabled: canReadLeads,
 	});
