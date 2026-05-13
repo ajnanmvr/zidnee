@@ -19,10 +19,10 @@ type PublicFormValues = {
 	alternateWhatsappNumber?: string;
 	studentInfo: string;
 	preferredLanguage:
-		| ""
-		| "Malayalam Only"
-		| "English Only"
-		| "Malayalam - English Mixed";
+	| ""
+	| "Malayalam Only"
+	| "English Only"
+	| "Malayalam - English Mixed";
 	preferredDays: string[];
 	preferredSchedule: string;
 	preferredTimeslots: Array<{
@@ -807,7 +807,7 @@ const PublicFormPage = () => {
 					timeslot.label === selectedTimeslotSnapshot?.label &&
 					timeslot.timesPerWeek === selectedTimeslotSnapshot?.timesPerWeek &&
 					timeslot.durationMinutes ===
-						selectedTimeslotSnapshot?.durationMinutes,
+					selectedTimeslotSnapshot?.durationMinutes,
 			);
 			const payload = {
 				name: data.name,
@@ -823,12 +823,12 @@ const PublicFormPage = () => {
 				preferredSchedule: data.preferredSchedule,
 				preferredTimeslots: selectedTimeslot
 					? [
-							{
-								label: selectedTimeslot.label,
-								timesPerWeek: selectedTimeslot.timesPerWeek,
-								durationMinutes: selectedTimeslot.durationMinutes,
-							},
-						]
+						{
+							label: selectedTimeslot.label,
+							timesPerWeek: selectedTimeslot.timesPerWeek,
+							durationMinutes: selectedTimeslot.durationMinutes,
+						},
+					]
 					: [],
 				preferredStartTime: data.preferredStartTime,
 				startClassWhen: data.startClassWhen,
@@ -871,8 +871,8 @@ const PublicFormPage = () => {
 	const stepProgress = `${Math.round((currentStep / 3) * 100)}%`;
 	const canProceedToStep3 = Boolean(
 		watch("preferredTimeslots")?.[0] &&
-			watch("preferredLanguage") &&
-			watch("preferredDays")?.length,
+		watch("preferredLanguage") &&
+		watch("preferredDays")?.length,
 	);
 
 	if (isValidating) {
@@ -935,21 +935,10 @@ const PublicFormPage = () => {
 
 	return (
 		<div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(32,111,89,0.12),transparent_32%),linear-gradient(135deg,#f8fbfa,#eef5f9)] px-4 py-4 sm:px-6 sm:py-6">
-			<div className="mx-auto max-w-3xl">
-				<div className="mb-4 flex items-center justify-between gap-3 rounded-3xl border border-white/70 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
-					<div className="flex min-w-0 items-center gap-3">
-						<img src="/logo.png" alt="Zidnee" className="h-9 w-auto" />
-						<div className="min-w-0">
-							<p className="truncate text-sm font-semibold text-slate-900">
-								Zidnee application
-							</p>
-							<p className="truncate text-xs text-slate-500">
-								Mobile-friendly, quick to complete
-							</p>
-						</div>
-					</div>
-					<div className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-						Step {currentStep}/3
+			<div className="mx-auto max-w-2xl">
+				<div className="mb-4 flex bg-white/80 items-center justify-center gap-3 rounded-3xl border border-white/70  px-4 py-3 shadow-sm backdrop-blur">
+					<div className="flex min-w-0 justify-center items-center gap-3">
+						<img src="/zidnee-typography.png" alt="Zidnee" className="h-24 w-auto" />
 					</div>
 				</div>
 
@@ -1194,6 +1183,7 @@ const PublicFormPage = () => {
 						{currentStep === 2 ? (
 							<div className="space-y-4">
 
+
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
 										Preferred language for teaching
@@ -1259,7 +1249,7 @@ const PublicFormPage = () => {
 																		{timeslot.label}
 																	</span>
 																	<span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-																		{timeslot.timesPerWeek}x / week
+																		{timeslot.timesPerWeek * 4} / month
 																	</span>
 																</div>
 																<p className="mt-1 text-sm leading-6 text-slate-600">
@@ -1284,39 +1274,27 @@ const PublicFormPage = () => {
 										Preferred day schedule
 									</label>
 									<p className="mb-3 text-xs text-slate-500">
-										Select up to the number of days specified by the chosen
-										timeslot.
+										Select preferred days for classes.
 									</p>
 									<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
 										{formOptions.days.map((day) => {
 											const selectedDays: string[] =
 												watch("preferredDays") || [];
-											const maxAllowed =
-												selectedTimeslot?.timesPerWeek ?? Infinity;
 											const isChecked = selectedDays.includes(day);
-											const disabled =
-												!isChecked && selectedDays.length >= maxAllowed;
 
 											return (
 												<label
 													key={day}
-													className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition ${disabled ? "cursor-not-allowed border-slate-100 bg-white text-slate-400" : isChecked ? "border-brand bg-brand-soft/50 text-slate-900" : "border-slate-200 bg-white text-slate-700"}`}
+													className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition ${isChecked ? "border-brand bg-brand-soft/50 text-slate-900" : "border-slate-200 bg-white text-slate-700"}`}
 												>
 													<input
 														type="checkbox"
 														value={day}
 														checked={isChecked}
-														disabled={disabled}
 														onChange={(e) => {
 															const current: string[] =
 																watch("preferredDays") || [];
 															if (e.target.checked) {
-																if (current.length >= maxAllowed) {
-																	toast.error(
-																		`You can choose up to ${maxAllowed} day${maxAllowed === 1 ? "" : "s"} for this class slot.`,
-																	);
-																	return;
-																}
 																setValue("preferredDays", [...current, day]);
 															} else {
 																setValue(
@@ -1357,7 +1335,7 @@ const PublicFormPage = () => {
 
 									<div>
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred start time (IST)
+											Preferred class timing (Indian Time)
 										</label>
 										<input
 											type="time"
@@ -1385,28 +1363,25 @@ const PublicFormPage = () => {
 											</div>
 										</div>
 									) : null}
-									<div>
+
+									<div className="col-span-2">
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											How did you hear about us?
+											Preferred mentor gender
 										</label>
 										<select
-											{...register("hearAboutUs", {
-												required: "This field is required",
+											{...register("preferredMentorGender", {
+												required: "Preferred mentor gender is required",
 											})}
 											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
 										>
-											<option value="">Select one</option>
-											<option value="Friend or Family">Friend or Family</option>
-											<option value="WhatsApp">WhatsApp</option>
-											<option value="Facebook">Facebook</option>
-											<option value="Instagram">Instagram</option>
-											<option value="Google Search">Google Search</option>
-											<option value="YouTube">YouTube</option>
-											<option value="Other">Other</option>
+											<option value="">Select mentor</option>
+											<option value="female">Female</option>
+											<option value="male">Male</option>
+											<option value="both">Both are okay for me</option>
 										</select>
-										{errors.hearAboutUs?.message ? (
+										{errors.preferredMentorGender?.message ? (
 											<p className="mt-1 text-xs text-red-600">
-												{errors.hearAboutUs.message}
+												{errors.preferredMentorGender.message}
 											</p>
 										) : null}
 									</div>
@@ -1429,24 +1404,28 @@ const PublicFormPage = () => {
 										) : null}
 									</div>
 
-									<div className="md:col-span-2">
+									<div>
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred mentor gender
+											How did you hear about us?
 										</label>
 										<select
-											{...register("preferredMentorGender", {
-												required: "Preferred mentor gender is required",
+											{...register("hearAboutUs", {
+												required: "This field is required",
 											})}
 											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
 										>
-											<option value="">Select preferred mentor gender</option>
-											<option value="male">Male</option>
-											<option value="female">Female</option>
-											<option value="both">Both are okay for me</option>
+											<option value="">Select one</option>
+											<option value="Friend or Family">Friend or Family</option>
+											<option value="WhatsApp">WhatsApp</option>
+											<option value="Facebook">Facebook</option>
+											<option value="Instagram">Instagram</option>
+											<option value="Google Search">Google Search</option>
+											<option value="YouTube">YouTube</option>
+											<option value="Other">Other</option>
 										</select>
-										{errors.preferredMentorGender?.message ? (
+										{errors.hearAboutUs?.message ? (
 											<p className="mt-1 text-xs text-red-600">
-												{errors.preferredMentorGender.message}
+												{errors.hearAboutUs.message}
 											</p>
 										) : null}
 									</div>
