@@ -892,20 +892,9 @@ const PublicFormPage = () => {
 	return (
 		<div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(32,111,89,0.12),transparent_32%),linear-gradient(135deg,#f8fbfa,#eef5f9)] px-4 py-4 sm:px-6 sm:py-6">
 			<div className="mx-auto max-w-2xl">
-				<div className="mb-4 flex items-center justify-between gap-3 rounded-3xl border border-white/70 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
-					<div className="flex min-w-0 items-center gap-3">
-						<img src="/logo.png" alt="Zidnee" className="h-9 w-auto" />
-						<div className="min-w-0">
-							<p className="truncate text-sm font-semibold text-slate-900">
-								Zidnee application
-							</p>
-							<p className="truncate text-xs text-slate-500">
-								Mobile-friendly, quick to complete
-							</p>
-						</div>
-					</div>
-					<div className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-						Step {currentStep}/3
+				<div className="mb-4 flex bg-white/80 items-center justify-center gap-3 rounded-3xl border border-white/70  px-4 py-3 shadow-sm backdrop-blur">
+					<div className="flex min-w-0 justify-center items-center gap-3">
+						<img src="/zidnee-typography.png" alt="Zidnee" className="h-24 w-auto" />
 					</div>
 				</div>
 
@@ -1241,39 +1230,27 @@ const PublicFormPage = () => {
 										Preferred day schedule
 									</label>
 									<p className="mb-3 text-xs text-slate-500">
-										Select up to the number of days specified by the chosen
-										timeslot.
+										Select preferred days for classes.
 									</p>
 									<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 										{formOptions.days.map((day) => {
 											const selectedDays: string[] =
 												watch("preferredDays") || [];
-											const maxAllowed =
-												selectedTimeslot?.timesPerWeek ?? Infinity;
 											const isChecked = selectedDays.includes(day);
-											const disabled =
-												!isChecked && selectedDays.length >= maxAllowed;
 
 											return (
 												<label
 													key={day}
-													className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition ${disabled ? "cursor-not-allowed border-slate-100 bg-white text-slate-400" : isChecked ? "border-brand bg-brand-soft/50 text-slate-900" : "border-slate-200 bg-white text-slate-700"}`}
+													className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition ${isChecked ? "border-brand bg-brand-soft/50 text-slate-900" : "border-slate-200 bg-white text-slate-700"}`}
 												>
 													<input
 														type="checkbox"
 														value={day}
 														checked={isChecked}
-														disabled={disabled}
 														onChange={(e) => {
 															const current: string[] =
 																watch("preferredDays") || [];
 															if (e.target.checked) {
-																if (current.length >= maxAllowed) {
-																	toast.error(
-																		`You can select at most ${maxAllowed} day(s) for this timeslot`,
-																	);
-																	return;
-																}
 																setValue("preferredDays", [...current, day]);
 															} else {
 																setValue(
