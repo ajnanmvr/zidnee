@@ -58,7 +58,7 @@ type FormOptions = {
 
 type ValidateFormLinkResponse = {
 	isValid: boolean;
-	prefill?: Partial<PublicFormValues>;
+	prefill?: Partial<PublicFormValues> & { courseType?: "GROUP" | "INDIVIDUAL" };
 };
 
 // Default form options (fallback in case preload fails)
@@ -315,80 +315,47 @@ const to12HourFormat = (time24: string): string => {
 	return `${hour12.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")} ${meridiem}`;
 };
 
-const extractErrorMessage = (payload: unknown): string | null => {
-	const normalize = (message: string): string => {
-		const trimmed = message.trim();
-		const lower = trimmed.toLowerCase();
-
-		if (
-			lower.includes("invalid input") &&
-			lower.includes("received undefined")
-		) {
-			return "Some required details are missing. Please complete the highlighted fields.";
-		}
-
-		if (
-			lower.includes("failed to fetch") ||
-			lower.includes("networkerror") ||
-			lower.includes("fetch failed")
-		) {
-			return "We couldn't reach the server. Please check your internet connection and try again.";
-		}
-
-		if (
-			lower.includes("invalid form link") ||
-			lower.includes("form link has expired") ||
-			lower.includes("link has expired")
-		) {
-			return "This form link is no longer valid. Please request a new link.";
-		}
-
-		if (lower.includes("unauthorized") || lower.includes("forbidden")) {
-			return "You no longer have access to this form link.";
-		}
-
-		if (lower.includes("validation") && lower.includes("failed")) {
-			return "Please review the form and correct the highlighted fields.";
-		}
-
-		return trimmed;
-	};
-
-	if (!payload) return null;
-	if (typeof payload === "string") return normalize(payload);
-	if (payload instanceof Error) return normalize(payload.message);
-	try {
-		const obj = payload as Record<string, unknown>;
-		// Common shapes: { message: string } | { error: string } | { errors: [{ message }] } | Zod-like { issues: [{ message }] }
-		if (typeof obj.message === "string") return normalize(obj.message);
-		if (typeof obj.error === "string") return normalize(obj.error);
-		if (Array.isArray(obj.errors) && obj.errors.length > 0) {
-			const first = obj.errors[0] as Record<string, unknown> | string | null;
-			if (first && typeof first === "object" && typeof first.message === "string") {
-				return normalize(first.message);
-			}
-			if (typeof first === "string") return normalize(first);
-		}
-		if (Array.isArray(obj.issues) && obj.issues.length > 0) {
-			const first = obj.issues[0] as Record<string, unknown> | string | null;
-			if (first && typeof first === "object" && typeof first.message === "string") {
-				return normalize(first.message);
-			}
-			if (typeof first === "string") return normalize(first);
-		}
-		// Fallback: try to stringify simple object values and return the first string found
-		for (const key of Object.keys(obj)) {
-			const value = obj[key];
-			if (typeof value === "string" && value) return normalize(value);
-			if (Array.isArray(value) && value.length > 0 && typeof value[0] === "string") {
-				return normalize(value[0]);
-			}
-		}
-	} catch {
-		// ignore
+const extractReadableErrorMessage = (payload: unknown): string | null => {
+	if (!payload) {
+		return null;
 	}
+
+	if (typeof payload === "string") {
+		return payload.trim() || null;
+	}
+
+	if (payload instanceof Error) {
+		return payload.message.trim() || null;
+	}
+
+	if (typeof payload !== "object") {
+		return null;
+	}
+
+	const value = payload as Record<string, unknown>;
+	if (typeof value.message === "string" && value.message.trim()) {
+		return value.message.trim();
+	}
+
+	if (typeof value.error === "string" && value.error.trim()) {
+		return value.error.trim();
+	}
+
+	if (value.errors && typeof value.errors === "object") {
+		for (const entry of Object.values(value.errors as Record<string, unknown>)) {
+			if (Array.isArray(entry) && typeof entry[0] === "string" && entry[0].trim()) {
+				return entry[0].trim();
+			}
+			if (typeof entry === "string" && entry.trim()) {
+				return entry.trim();
+			}
+		}
+	}
+
 	return null;
 };
+
+const GROUP_ALLOWED_LEVELS = ["1", "2", "3", "4", "5"] as const;
 
 const validateFormLink = async (
 	leadId: string,
@@ -470,6 +437,7 @@ const PublicFormPage = () => {
 	const [formOptions, setFormOptions] =
 		useState<FormOptions>(DEFAULT_FORM_OPTIONS);
 	const [currentStep, setCurrentStep] = useState<StepId>(1);
+	const [courseType, setCourseType] = useState<"GROUP" | "INDIVIDUAL" | "">("");
 
 	const {
 		register,
@@ -503,6 +471,7 @@ const PublicFormPage = () => {
 	});
 
 	const selectedTimeslotSnapshot = watch("preferredTimeslots")?.[0];
+	const selectedLevel = watch("level");
 	const selectedTimeslot = useMemo(() => {
 		if (!selectedTimeslotSnapshot) {
 			return undefined;
@@ -603,20 +572,28 @@ const PublicFormPage = () => {
 				"level",
 				"gender",
 				"primaryWhatsappNumber",
+				"alternateWhatsappNumber",
+				"email",
 			]);
 		}
 
 		if (currentStep === 2) {
-			return trigger([
-				"preferredLanguage",
-				"preferredTimeslots",
-				"preferredDays",
-				"startClassWhen",
-				"preferredStartTime",
-				"hearAboutUs",
-				"demoAvailability",
-				"preferredMentorGender",
-			]);
+			const isIndividualCourse = courseType === "INDIVIDUAL";
+
+			if (isIndividualCourse) {
+				return trigger([
+					"preferredLanguage",
+					"preferredTimeslots",
+					"preferredDays",
+					"startClassWhen",
+					"preferredStartTime",
+					"hearAboutUs",
+					"demoAvailability",
+					"preferredMentorGender",
+				]);
+			} else {
+				return trigger(["preferredLanguage", "preferredStartTime", "hearAboutUs"]);
+			}
 		}
 
 		return true;
@@ -766,9 +743,25 @@ const PublicFormPage = () => {
 						demoAvailability:
 							prefill.demoAvailability ?? currentValues.demoAvailability,
 						preferredMentorGender:
-							prefill.preferredMentorGender ??
-							currentValues.preferredMentorGender,
+							String(prefill.courseType).toUpperCase() === "INDIVIDUAL"
+								? prefill.preferredMentorGender ??
+									currentValues.preferredMentorGender
+								: "",
 					}));
+
+					// Set courseType from prefill (admin-selected)
+					if (prefill.courseType) {
+						const normalizedCourseType =
+							prefill.courseType === "GROUP" ||
+							prefill.courseType === "INDIVIDUAL"
+								? prefill.courseType
+								: String(prefill.courseType).toUpperCase() === "GROUP"
+									? "GROUP"
+									: String(prefill.courseType).toUpperCase() === "INDIVIDUAL"
+										? "INDIVIDUAL"
+										: "";
+						setCourseType(normalizedCourseType);
+					}
 				}
 
 				if (!result.isValid) {
@@ -796,8 +789,9 @@ const PublicFormPage = () => {
 
 		try {
 			const baseUrl = getApiBaseUrl();
-			const primaryFull = `+91${data.primaryWhatsappNumber}`;
-			const alternateFull = `+91${data.alternateWhatsappNumber}`;
+			const toOptionalValue = (value: string) =>
+				value && value.trim().length > 0 ? value : undefined;
+			const isIndividualSubmission = courseType === "INDIVIDUAL";
 			const selectedTimeslot = formOptions.timeslots.find(
 				(timeslot) =>
 					timeslot.label === selectedTimeslotSnapshot?.label &&
@@ -812,8 +806,9 @@ const PublicFormPage = () => {
 				residingCountry: data.residingCountry,
 				level: data.level,
 				gender: data.gender,
-				primaryWhatsappNumber: primaryFull,
-					alternateWhatsappNumber: alternateFull,
+				primaryWhatsappNumber: data.primaryWhatsappNumber,
+				alternateWhatsappNumber: data.alternateWhatsappNumber,
+				courseType: courseType || undefined,
 				studentInfo: data.studentInfo ?? "",
 				preferredLanguage: data.preferredLanguage,
 				preferredDays: data.preferredDays,
@@ -827,11 +822,13 @@ const PublicFormPage = () => {
 						},
 					]
 					: [],
-				preferredStartTime: data.preferredStartTime,
-				startClassWhen: data.startClassWhen,
+				preferredStartTime: toOptionalValue(data.preferredStartTime),
+				startClassWhen: toOptionalValue(data.startClassWhen),
 				hearAboutUs: data.hearAboutUs,
-				demoAvailability: data.demoAvailability,
-				preferredMentorGender: data.preferredMentorGender,
+				demoAvailability: toOptionalValue(data.demoAvailability),
+				preferredMentorGender: isIndividualSubmission
+					? toOptionalValue(data.preferredMentorGender)
+					: undefined,
 				token,
 			};
 
@@ -844,9 +841,13 @@ const PublicFormPage = () => {
 			});
 
 			if (!response.ok) {
-				const errPayload = await response.json().catch(() => null);
-				const msg = extractErrorMessage(errPayload) || "Failed to submit form";
-				toast.error(msg);
+				const errorPayload = await response.json().catch(() => null);
+				const errorMessage =
+					extractReadableErrorMessage(errorPayload) ||
+					(response.status === 400
+						? "Please check the highlighted fields and try again."
+						: "Something went wrong. Please try again.");
+				toast.error(errorMessage);
 				return;
 			}
 
@@ -856,21 +857,41 @@ const PublicFormPage = () => {
 			setIsValid(false);
 		} catch (error) {
 			console.error("Form submission error:", error);
-			const msg =
-				extractErrorMessage(error) ||
-				(error instanceof Error ? error.message : "Failed to submit form");
-			toast.error(msg);
+			toast.error(
+				extractReadableErrorMessage(error) || "Something went wrong. Please try again.",
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
 
 	const stepProgress = `${Math.round((currentStep / 3) * 100)}%`;
-	const canProceedToStep3 = Boolean(
-		watch("preferredTimeslots")?.[0] &&
-		watch("preferredLanguage") &&
-		watch("preferredDays")?.length,
-	);
+	const isGroupCourse = courseType === "GROUP";
+	const isIndividualCourse = courseType === "INDIVIDUAL";
+	const levelOptions = isGroupCourse
+		? GROUP_ALLOWED_LEVELS
+		: formOptions.standards;
+	const canProceedToStep3 = isIndividualCourse
+		? Boolean(
+			watch("preferredTimeslots")?.[0] &&
+			watch("preferredLanguage") &&
+			watch("preferredDays")?.length,
+		)
+		: Boolean(
+			watch("preferredLanguage") &&
+			watch("preferredStartTime") &&
+			watch("hearAboutUs"),
+		);
+
+	useEffect(() => {
+		if (!isGroupCourse) {
+			return;
+		}
+
+		if (selectedLevel && !GROUP_ALLOWED_LEVELS.includes(selectedLevel as "1" | "2" | "3" | "4" | "5")) {
+			setValue("level", "", { shouldDirty: true, shouldValidate: true });
+		}
+	}, [isGroupCourse, selectedLevel, setValue]);
 
 	if (isValidating) {
 		return (
@@ -1066,12 +1087,17 @@ const PublicFormPage = () => {
 										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
 									>
 										<option value="">Select standard</option>
-										{formOptions.standards.map((standard) => (
+										{levelOptions.map((standard) => (
 											<option key={standard} value={standard}>
 												{standard}
 											</option>
 										))}
 									</select>
+									{isGroupCourse ? (
+										<p className="mt-1 text-xs text-slate-500">
+											For group courses, available standards are 1 to 5.
+										</p>
+									) : null}
 									{errors.level?.message ? (
 										<p className="mt-1 text-xs text-red-600">
 											{errors.level.message}
@@ -1098,17 +1124,17 @@ const PublicFormPage = () => {
 									) : null}
 								</div>
 
-<div className="sm:col-span-2">
-								<label className="mb-2 block text-sm font-semibold text-slate-700">
-									Primary WhatsApp number (+91)
-								</label>
-								<input
-									{...register("primaryWhatsappNumber", {
-										required: "Primary WhatsApp number is required",
-									})}
-									placeholder="9876543210"
-									className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
-								/>
+								<div className="sm:col-span-2">
+									<label className="mb-2 block text-sm font-semibold text-slate-700">
+										Primary WhatsApp number with country code
+									</label>
+									<input
+										{...register("primaryWhatsappNumber", {
+											required: "Primary WhatsApp number is required",
+										})}
+										placeholder="9876543210"
+										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+									/>
 									{errors.primaryWhatsappNumber?.message ? (
 										<p className="mt-1 text-xs text-red-600">
 											{errors.primaryWhatsappNumber.message}
@@ -1118,7 +1144,7 @@ const PublicFormPage = () => {
 
 								<div className="sm:col-span-2">
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
-										Alternate WhatsApp number (+91)
+										Alternate WhatsApp number with country code
 									</label>
 									<input
 										{...register("alternateWhatsappNumber", {
@@ -1170,7 +1196,27 @@ const PublicFormPage = () => {
 
 						{currentStep === 2 ? (
 							<div className="space-y-4">
-
+								{courseType && (
+									<div className={`rounded-2xl border p-4 ${courseType === "GROUP" ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50"}`}>
+										<div className="flex items-start gap-3">
+											<div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${courseType === "GROUP" ? "bg-emerald-500" : "bg-blue-500"}`}>
+												<svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+													<path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+												</svg>
+											</div>
+											<div>
+												<p className={`font-semibold ${courseType === "GROUP" ? "text-emerald-900" : "text-blue-900"}`}>
+													{courseType === "GROUP" ? "Group Course" : "Individual Course"}
+												</p>
+												<p className={`text-sm ${courseType === "GROUP" ? "text-emerald-700" : "text-blue-700"}`}>
+													{courseType === "GROUP"
+														? "Scheduling will be managed by our team. Just tell us your preferred language and how you heard about us."
+														: "Please provide your detailed scheduling preferences so we can find the perfect mentor and schedule for you."}
+												</p>
+											</div>
+										</div>
+									</div>
+								)}
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1198,225 +1244,248 @@ const PublicFormPage = () => {
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
-										Preferred timeslots (IST) for classes
+										Preferred class timing (Indian Time)
 									</label>
-									{formOptions.timeslots.length === 0 ? (
-										<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-sm text-slate-600">
-											No time slots available yet. Please check back later or
-											contact support.
-										</div>
-									) : (
-										<div className="grid grid-cols-1 gap-3">
-											{formOptions.timeslots.map((timeslot) => {
-												const isSelected = selectedTimeslot?.id === timeslot.id;
-												return (
-													<label
-														key={timeslot.id}
-														className={`rounded-3xl border p-4 transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white"}`}
-													>
-														<div className="flex items-start gap-3">
-															<input
-																type="radio"
-																name="preferredTimeslot"
-																value={timeslot.id}
-																checked={isSelected}
-																onChange={() =>
-																	setValue("preferredTimeslots", [
-																		{
-																			label: timeslot.label,
-																			timesPerWeek: timeslot.timesPerWeek,
-																			durationMinutes: timeslot.durationMinutes,
-																		},
-																	])
-																}
-																className="mt-1 h-4 w-4 border-slate-300 text-brand focus:ring-brand"
-															/>
-															<div className="min-w-0">
-																<div className="flex items-center gap-2">
-																	<span className="text-sm font-semibold text-slate-950">
-																		{timeslot.label}
-																	</span>
-																	<span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-																		{timeslot.timesPerWeek * 4} / month
-																	</span>
-																</div>
-																<p className="mt-1 text-sm leading-6 text-slate-600">
-																	Duration: {timeslot.durationMinutes} minutes.
-																</p>
-															</div>
-														</div>
-													</label>
-												);
-											})}
-										</div>
-									)}
-									{errors.preferredTimeslots?.message ? (
+									<select
+										{...register("preferredStartTime", {
+											required: "Preferred class timing is required",
+										})}
+										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+									>
+										<option value="">Select preferred class timing</option>
+										<option value="06:00">06 AM - 07 AM</option>
+										<option value="07:00">07 AM - 08 AM</option>
+										<option value="16:00">04 PM - 05 PM</option>
+										<option value="17:00">05 PM - 06 PM</option>
+										<option value="18:00">06 PM - 07 PM</option>
+										<option value="19:00">07 PM - 08 PM</option>
+										<option value="20:00">08 PM - 09 PM</option>
+										<option value="21:00">09 PM - 10 PM</option>
+									</select>
+									{errors.preferredStartTime?.message ? (
 										<p className="mt-1 text-xs text-red-600">
-											{errors.preferredTimeslots.message}
+											{errors.preferredStartTime.message}
 										</p>
 									) : null}
 								</div>
 
+								{courseType === "INDIVIDUAL" && (
+									<div>
+										<label className="mb-2 block text-sm font-semibold text-slate-700">
+											Preferred timeslots (IST) for classes
+										</label>
+										{formOptions.timeslots.length === 0 ? (
+											<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-sm text-slate-600">
+												No time slots available yet. Please check back later or
+												contact support.
+											</div>
+										) : (
+											<div className="grid grid-cols-1 gap-3">
+												{formOptions.timeslots.map((timeslot) => {
+													const isSelected = selectedTimeslot?.id === timeslot.id;
+													return (
+														<label
+															key={timeslot.id}
+															className={`rounded-3xl border p-4 transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white"}`}
+														>
+															<div className="flex items-start gap-3">
+																<input
+																	type="radio"
+																	name="preferredTimeslot"
+																	value={timeslot.id}
+																	checked={isSelected}
+																	onChange={() =>
+																		setValue("preferredTimeslots", [
+																			{
+																				label: timeslot.label,
+																				timesPerWeek: timeslot.timesPerWeek,
+																				durationMinutes: timeslot.durationMinutes,
+																			},
+																		])
+																	}
+																	className="mt-1 h-4 w-4 border-slate-300 text-brand focus:ring-brand"
+																/>
+																<div className="min-w-0">
+																	<div className="flex items-center gap-2">
+																		<span className="text-sm font-semibold text-slate-950">
+																			{timeslot.label}
+																		</span>
+																		<span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+																			{timeslot.timesPerWeek * 4} / month
+																		</span>
+																	</div>
+																	<p className="mt-1 text-sm leading-6 text-slate-600">
+																		Duration: {timeslot.durationMinutes} minutes.
+																	</p>
+																</div>
+															</div>
+														</label>
+													);
+												})}
+											</div>
+										)}
+										{errors.preferredTimeslots?.message ? (
+											<p className="mt-1 text-xs text-red-600">
+												{errors.preferredTimeslots.message}
+											</p>
+										) : null}
+									</div>
+								)}
+
+								{courseType === "INDIVIDUAL" && (
+									<div>
+										<label className="mb-2 block text-sm font-semibold text-slate-700">
+											Preferred day schedule
+										</label>
+										<p className="mb-3 text-xs text-slate-500">
+											Select preferred days for classes.
+										</p>
+										<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+											{formOptions.days.map((day) => {
+												const selectedDays: string[] =
+													watch("preferredDays") || [];
+												const isChecked = selectedDays.includes(day);
+
+												return (
+													<label
+														key={day}
+														className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition ${isChecked ? "border-brand bg-brand-soft/50 text-slate-900" : "border-slate-200 bg-white text-slate-700"}`}
+													>
+														<input
+															type="checkbox"
+															value={day}
+															checked={isChecked}
+															onChange={(e) => {
+																const current: string[] =
+																	watch("preferredDays") || [];
+																if (e.target.checked) {
+																	setValue("preferredDays", [...current, day]);
+																} else {
+																	setValue(
+																		"preferredDays",
+																		current.filter(
+																			(selectedDay) => selectedDay !== day,
+																		),
+																	);
+																}
+															}}
+															className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+														/>
+														<span>{day}</span>
+													</label>
+												);
+											})}
+										</div>
+									</div>
+								)}
+
+								{courseType === "INDIVIDUAL" && (
+									<div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+										<div>
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												When can we start the class?
+											</label>
+											<input
+												type="date"
+												{...register("startClassWhen", {
+													required: "Start date is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.startClassWhen?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.startClassWhen.message}
+												</p>
+											) : null}
+										</div>
+
+										{selectedStartTime && calculatedEndTime ? (
+											<div className="md:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
+												<div>
+													<p className="text-xs font-semibold text-slate-600">
+														Start time
+													</p>
+													<p className="mt-1 font-semibold text-slate-900">
+														{to12HourFormat(selectedStartTime)}
+													</p>
+												</div>
+												<div>
+													<p className="text-xs font-semibold text-slate-600">
+														End time
+													</p>
+													<p className="mt-1 font-semibold text-slate-900">
+														{to12HourFormat(calculatedEndTime)}
+													</p>
+												</div>
+											</div>
+										) : null}
+
+										<div className="col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred mentor gender
+											</label>
+											<select
+												{...register("preferredMentorGender", {
+													required: "Preferred mentor gender is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											>
+												<option value="">Select mentor</option>
+												<option value="female">Female</option>
+												<option value="male">Male</option>
+												<option value="both">Both are okay for me</option>
+											</select>
+											{errors.preferredMentorGender?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredMentorGender.message}
+												</p>
+											) : null}
+										</div>
+
+										<div>
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												When can we give a demo?
+											</label>
+											<input
+												type="datetime-local"
+												{...register("demoAvailability", {
+													required: "Demo time is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.demoAvailability?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.demoAvailability.message}
+												</p>
+											) : null}
+										</div>
+									</div>
+								)}
+
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
-										Preferred day schedule
+										How did you hear about us?
 									</label>
-									<p className="mb-3 text-xs text-slate-500">
-										Select preferred days for classes.
-									</p>
-									<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-										{formOptions.days.map((day) => {
-											const selectedDays: string[] =
-												watch("preferredDays") || [];
-											const isChecked = selectedDays.includes(day);
-
-											return (
-												<label
-													key={day}
-													className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition ${isChecked ? "border-brand bg-brand-soft/50 text-slate-900" : "border-slate-200 bg-white text-slate-700"}`}
-												>
-													<input
-														type="checkbox"
-														value={day}
-														checked={isChecked}
-														onChange={(e) => {
-															const current: string[] =
-																watch("preferredDays") || [];
-															if (e.target.checked) {
-																setValue("preferredDays", [...current, day]);
-															} else {
-																setValue(
-																	"preferredDays",
-																	current.filter(
-																		(selectedDay) => selectedDay !== day,
-																	),
-																);
-															}
-														}}
-														className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
-													/>
-													<span>{day}</span>
-												</label>
-											);
+									<select
+										{...register("hearAboutUs", {
+											required: "This field is required",
 										})}
-									</div>
-								</div>
-
-								<div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-									<div>
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											When can we start the class?
-										</label>
-										<input
-											type="date"
-											{...register("startClassWhen", {
-												required: "Start date is required",
-											})}
-											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-										/>
-										{errors.startClassWhen?.message ? (
-											<p className="mt-1 text-xs text-red-600">
-												{errors.startClassWhen.message}
-											</p>
-										) : null}
-									</div>
-
-									<div>
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred class timing (Indian Time)
-										</label>
-										<input
-											type="time"
-											{...register("preferredStartTime")}
-											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-										/>
-									</div>
-									{selectedStartTime && calculatedEndTime ? (
-										<div className="md:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
-											<div>
-												<p className="text-xs font-semibold text-slate-600">
-													Start time
-												</p>
-												<p className="mt-1 font-semibold text-slate-900">
-													{to12HourFormat(selectedStartTime)}
-												</p>
-											</div>
-											<div>
-												<p className="text-xs font-semibold text-slate-600">
-													End time
-												</p>
-												<p className="mt-1 font-semibold text-slate-900">
-													{to12HourFormat(calculatedEndTime)}
-												</p>
-											</div>
-										</div>
+										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+									>
+										<option value="">Select one</option>
+										<option value="Friend or Family">Friend or Family</option>
+										<option value="WhatsApp">WhatsApp</option>
+										<option value="Facebook">Facebook</option>
+										<option value="Instagram">Instagram</option>
+										<option value="Google Search">Google Search</option>
+										<option value="YouTube">YouTube</option>
+										<option value="Other">Other</option>
+									</select>
+									{errors.hearAboutUs?.message ? (
+										<p className="mt-1 text-xs text-red-600">
+											{errors.hearAboutUs.message}
+										</p>
 									) : null}
-
-									<div className="col-span-2">
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred mentor gender
-										</label>
-										<select
-											{...register("preferredMentorGender", {
-												required: "Preferred mentor gender is required",
-											})}
-											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-										>
-											<option value="">Select mentor</option>
-											<option value="female">Female</option>
-											<option value="male">Male</option>
-											<option value="both">Both are okay for me</option>
-										</select>
-										{errors.preferredMentorGender?.message ? (
-											<p className="mt-1 text-xs text-red-600">
-												{errors.preferredMentorGender.message}
-											</p>
-										) : null}
-									</div>
-
-									<div>
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											When can we give a demo?
-										</label>
-										<input
-											type="datetime-local"
-											{...register("demoAvailability", {
-												required: "Demo time is required",
-											})}
-											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-										/>
-										{errors.demoAvailability?.message ? (
-											<p className="mt-1 text-xs text-red-600">
-												{errors.demoAvailability.message}
-											</p>
-										) : null}
-									</div>
-
-									<div>
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											How did you hear about us?
-										</label>
-										<select
-											{...register("hearAboutUs", {
-												required: "This field is required",
-											})}
-											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-										>
-											<option value="">Select one</option>
-											<option value="Friend or Family">Friend or Family</option>
-											<option value="WhatsApp">WhatsApp</option>
-											<option value="Facebook">Facebook</option>
-											<option value="Instagram">Instagram</option>
-											<option value="Google Search">Google Search</option>
-											<option value="YouTube">YouTube</option>
-											<option value="Other">Other</option>
-										</select>
-										{errors.hearAboutUs?.message ? (
-											<p className="mt-1 text-xs text-red-600">
-												{errors.hearAboutUs.message}
-											</p>
-										) : null}
-									</div>
 								</div>
 							</div>
 						) : null}
@@ -1460,13 +1529,20 @@ const PublicFormPage = () => {
 											Schedule
 										</p>
 										<p className="mt-2 text-sm font-medium text-slate-900">
-											{watch("startClassWhen") || "No date chosen"}
+											{selectedStartTime ? to12HourFormat(selectedStartTime) : "No time chosen"}
 										</p>
-										<p className="mt-1 text-sm text-slate-600">
-											{selectedStartTime
-												? `Start ${selectedStartTime}${calculatedEndTime ? ` · End ${calculatedEndTime}` : ""}`
-												: "No start time chosen"}
-										</p>
+										{courseType === "INDIVIDUAL" && (
+											<p className="mt-1 text-sm text-slate-600">
+												{calculatedEndTime
+													? `End ${to12HourFormat(calculatedEndTime)}`
+													: "Duration to be determined"}
+											</p>
+										)}
+										{courseType === "GROUP" && (
+											<p className="mt-1 text-sm text-slate-600">
+												Scheduling to be arranged
+											</p>
+										)}
 									</div>
 									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
 										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">

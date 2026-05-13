@@ -6,7 +6,7 @@ import type {
 } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { Types } from "mongoose";
-import { ConflictError } from "../../utils/errors.util.js";
+import { ConflictError, ValidationError } from "../../utils/errors.util.js";
 import {
 	type StudentDocument,
 	StudentModel,
@@ -974,6 +974,12 @@ export const LeadService = {
 			};
 		}
 
+		if (!existingLead.courseType) {
+			throw new ValidationError({
+				courseType: ["Set course type (GROUP or INDIVIDUAL) before sending form"],
+			});
+		}
+
 		// Generate a secure random token
 		const token = randomBytes(32).toString("hex");
 
@@ -1239,6 +1245,7 @@ export const LeadService = {
 		isValid: boolean;
 		expiresAt?: string;
 		prefill?: {
+			courseType?: "GROUP" | "INDIVIDUAL";
 			name?: string;
 			dateOfBirth?: string;
 			residingCountry?: string;
@@ -1282,6 +1289,7 @@ export const LeadService = {
 		}
 
 		const prefill = {
+			courseType: existingLead.courseType,
 			name: existingLead.name,
 			dateOfBirth: existingLead.dateOfBirth?.toISOString(),
 			residingCountry: existingLead.residingCountry,

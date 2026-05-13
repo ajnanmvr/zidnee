@@ -146,6 +146,12 @@ export const LeadsPage = () => {
 		null,
 	);
 	const [formLinkPhone, setFormLinkPhone] = useState<string | null>(null);
+	const [courseTypeLead, setCourseTypeLead] = useState<LeadResponse | null>(
+		null,
+	);
+	const [courseTypeSelection, setCourseTypeSelection] = useState<
+		"GROUP" | "INDIVIDUAL" | ""
+	>("");
 	const [postponeLeadId, setPostponeLeadId] = useState<string | null>(null);
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [deleteNote, setDeleteNote] = useState("");
@@ -186,6 +192,43 @@ export const LeadsPage = () => {
 			}
 			toast.error(
 				error instanceof Error ? error.message : "Unable to request demo",
+			);
+		}
+	};
+
+	const sendFormForLead = async (lead: LeadResponse) => {
+		if (!lead.courseType) {
+			setCourseTypeLead(lead);
+			setCourseTypeSelection("");
+			return;
+		}
+
+		const result = await generateFormLinkMutation.mutateAsync(lead.id);
+		setFormLinkData(result);
+		setFormLinkPhone(lead.phone ?? null);
+		setFormLinkOpen(true);
+	};
+
+	const onConfirmCourseTypeAndSend = async () => {
+		if (!courseTypeLead || !courseTypeSelection) {
+			toast.error("Select course type to continue");
+			return;
+		}
+
+		try {
+			await updateLeadMutation.mutateAsync({
+				leadId: courseTypeLead.id,
+				payload: { courseType: courseTypeSelection },
+			});
+			const result = await generateFormLinkMutation.mutateAsync(courseTypeLead.id);
+			setFormLinkData(result);
+			setFormLinkPhone(courseTypeLead.phone ?? null);
+			setFormLinkOpen(true);
+			setCourseTypeLead(null);
+			setCourseTypeSelection("");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Unable to send form",
 			);
 		}
 	};
@@ -562,12 +605,7 @@ export const LeadsPage = () => {
 											  label: "Send Form",
 											  onClick: async (item: LeadResponse) => {
 												  try {
-													  const result = await generateFormLinkMutation.mutateAsync(
-														  item.id,
-													  );
-													  setFormLinkData(result);
-													  setFormLinkPhone(item.phone ?? null);
-													  setFormLinkOpen(true);
+													  await sendFormForLead(item);
 												  } catch (error) {
 													  toast.error(
 														  error instanceof Error
@@ -629,13 +667,6 @@ export const LeadsPage = () => {
 										  },
 									  ]
 									: []),
-								{
-									key: "toAdmission",
-									label: "To Admission",
-									onClick: (item) => setAdmissionLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
-								},
 							];
 						case "demoRequest":
 							return [
@@ -998,6 +1029,61 @@ export const LeadsPage = () => {
 						)}
 					/>
 				</form>
+			</Modal>
+
+			<Modal
+				open={Boolean(courseTypeLead)}
+				title="Select Course Type"
+				description="Choose Group or Individual before sending the form"
+				onClose={() => {
+					setCourseTypeLead(null);
+					setCourseTypeSelection("");
+				}}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => {
+								setCourseTypeLead(null);
+								setCourseTypeSelection("");
+							}}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => void onConfirmCourseTypeAndSend()}
+							disabled={
+								!courseTypeSelection ||
+								updateLeadMutation.isPending ||
+								generateFormLinkMutation.isPending
+							}
+						>
+							{updateLeadMutation.isPending || generateFormLinkMutation.isPending
+								? "Saving..."
+								: "Save & Send Form"}
+						</button>
+					</>
+				}
+			>
+				<label className="grid gap-2 text-sm font-medium text-gray-700">
+					<span>Course Type</span>
+					<select
+						className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+						value={courseTypeSelection}
+						onChange={(event) =>
+							setCourseTypeSelection(
+								event.target.value as "GROUP" | "INDIVIDUAL" | "",
+							)
+						}
+					>
+						<option value="">Select course type</option>
+						<option value="GROUP">Group</option>
+						<option value="INDIVIDUAL">Individual</option>
+					</select>
+				</label>
 			</Modal>
 
 			<Modal

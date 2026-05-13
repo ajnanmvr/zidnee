@@ -158,6 +158,10 @@ export const LeadDetailPage = () => {
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(
 		null,
 	);
+	const [courseTypePickerOpen, setCourseTypePickerOpen] = useState(false);
+	const [courseTypeSelection, setCourseTypeSelection] = useState<
+		"GROUP" | "INDIVIDUAL" | ""
+	>("");
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
@@ -656,6 +660,33 @@ export const LeadDetailPage = () => {
 		}
 	};
 
+	const onConfirmCourseTypeAndSendForm = async () => {
+		if (!lead || !leadId) {
+			return;
+		}
+
+		if (!courseTypeSelection) {
+			toast.error("Select course type to continue");
+			return;
+		}
+
+		try {
+			await updateLeadMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { courseType: courseTypeSelection },
+			});
+			const result = await generateFormLinkMutation.mutateAsync(leadId);
+			setFormLinkData(result);
+			setCourseTypePickerOpen(false);
+			setCourseTypeSelection("");
+			setFormLinkOpen(true);
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Unable to generate form link",
+			);
+		}
+	};
+
 	const onSavePrice = async () => {
 		if (!lead || !priceInput.trim()) {
 			toast.error("Please enter a valid price");
@@ -877,6 +908,11 @@ export const LeadDetailPage = () => {
 								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
 								onClick={async () => {
 									if (leadId) {
+										if (!lead?.courseType) {
+											setCourseTypePickerOpen(true);
+											setCourseTypeSelection("");
+											return;
+										}
 										try {
 											const result =
 												await generateFormLinkMutation.mutateAsync(leadId);
@@ -1476,6 +1512,61 @@ export const LeadDetailPage = () => {
 						)}
 					/>
 				</form>
+			</Modal>
+
+			<Modal
+				open={courseTypePickerOpen}
+				title="Select Course Type"
+				description="Choose Group or Individual before sending the form"
+				onClose={() => {
+					setCourseTypePickerOpen(false);
+					setCourseTypeSelection("");
+				}}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => {
+								setCourseTypePickerOpen(false);
+								setCourseTypeSelection("");
+							}}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => void onConfirmCourseTypeAndSendForm()}
+							disabled={
+								!courseTypeSelection ||
+								updateLeadMutation.isPending ||
+								generateFormLinkMutation.isPending
+							}
+						>
+							{updateLeadMutation.isPending || generateFormLinkMutation.isPending
+								? "Saving..."
+								: "Save & Send Form"}
+						</button>
+					</>
+				}
+			>
+				<label className="grid gap-2 text-sm font-medium text-gray-700">
+					<span>Course Type</span>
+					<select
+						className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+						value={courseTypeSelection}
+						onChange={(event) =>
+							setCourseTypeSelection(
+								event.target.value as "GROUP" | "INDIVIDUAL" | "",
+							)
+						}
+					>
+						<option value="">Select course type</option>
+						<option value="GROUP">Group</option>
+						<option value="INDIVIDUAL">Individual</option>
+					</select>
+				</label>
 			</Modal>
 
 			<Modal

@@ -34,7 +34,7 @@ const leadSchema = new Schema(
 		},
 		email: {
 			type: String,
-			required: true,
+			required: false,
 			trim: true,
 			maxlength: 255,
 			index: true,
