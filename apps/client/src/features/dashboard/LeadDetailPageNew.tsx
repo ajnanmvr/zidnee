@@ -842,20 +842,14 @@ export const LeadDetailPageNew = () => {
 										/>
 										<DetailRow
 											label="Counsellor"
-											value={
-												latestDemo.counsellorId
-													? (allUsers.find(
-															(u) => u.id === latestDemo.counsellorId,
-														)?.name ?? latestDemo.counsellorId)
-													: "-"
-											}
+											value="-"
 											icon={HiUser}
 										/>
-										{latestDemo.nextFollowUpAt ? (
+										{lead.nextFollowUpAt ? (
 											<DetailRow
 												label="Next Follow-up"
 												value={formatDistance(
-													new Date(latestDemo.nextFollowUpAt),
+														new Date(lead.nextFollowUpAt),
 													new Date(),
 													{ addSuffix: true },
 												)}
@@ -914,10 +908,7 @@ export const LeadDetailPageNew = () => {
 												</div>
 												<div>
 													Counsellor:{" "}
-													{demo.counsellorId
-														? (allUsers.find((u) => u.id === demo.counsellorId)
-																?.name ?? demo.counsellorId)
-														: "-"}
+													- 
 												</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
@@ -1032,21 +1023,15 @@ export const LeadDetailPageNew = () => {
 										/>
 										<DetailRow
 											label="Counsellor"
-											value={
-												latestDemo.counsellorId
-													? (allUsers.find(
-															(u) => u.id === latestDemo.counsellorId,
-														)?.name ?? latestDemo.counsellorId)
-													: "-"
-											}
+											value="-"
 											icon={HiUser}
 										/>
 										<DetailRow
 											label="Next Follow-up"
 											value={
-												latestDemo.nextFollowUpAt
+												lead.nextFollowUpAt
 													? formatDistance(
-															new Date(latestDemo.nextFollowUpAt),
+															new Date(lead.nextFollowUpAt),
 															new Date(),
 															{ addSuffix: true },
 														)

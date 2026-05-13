@@ -18,7 +18,7 @@ export interface LeadDocumentExt extends LeadDocument {
 	formToken?: string;
 	formTokenExpiresAt?: Date;
 }
-const leadSchema = new Schema<LeadDocumentExt>(
+const leadSchema = new Schema(
 	{
 		name: {
 			type: String,
@@ -162,6 +162,10 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			],
 			required: false,
 			default: [],
+			validate: {
+				validator: (value: unknown[]) => value.length <= 1,
+				message: "Only one preferred timeslot can be saved",
+			},
 		},
 		price: {
 			type: Number,
@@ -210,11 +214,6 @@ const leadSchema = new Schema<LeadDocumentExt>(
 		demos: {
 			type: [
 				{
-					counsellorId: {
-						type: Schema.Types.ObjectId,
-						ref: "User",
-						required: false,
-					},
 					mentorId: {
 						type: Schema.Types.ObjectId,
 						ref: "User",
@@ -224,28 +223,21 @@ const leadSchema = new Schema<LeadDocumentExt>(
 					assignedAt: { type: Date, required: false },
 					demoScheduledFor: { type: Date, required: false },
 					completedAt: { type: Date, required: false },
-					demoRequired: { type: Boolean, required: false },
-					lastContactedAt: { type: Date, required: false },
-					nextFollowUpAt: { type: Date, required: false },
-					customNextFollowUpAt: { type: Date, required: false },
-					admissionRequestedAt: { type: Date, required: false },
-					admissionCounsellorId: {
-						type: Schema.Types.ObjectId,
-						ref: "User",
-						required: false,
-					},
-					admissionCompletedAt: { type: Date, required: false },
-					studentId: {
-						type: Schema.Types.ObjectId,
-						ref: "Student",
-						required: false,
-					},
 					note: { type: String, required: false },
 				},
 			],
 			required: false,
 			default: [],
 		},
+ 		admissionRequestedAt: {
+ 			type: Date,
+ 			required: false,
+ 		},
+ 		studentId: {
+ 			type: Schema.Types.ObjectId,
+ 			ref: "Student",
+ 			required: false,
+ 		},
 	},
 	{
 		timestamps: true,

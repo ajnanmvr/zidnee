@@ -55,7 +55,7 @@ export const LeadFormDataSchema = z.object({
 	]),
 	preferredSchedule: z.string().min(1).max(150),
 	preferredDays: z.array(z.string().min(1)).min(1),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1),
+	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1).max(1),
 	email: z.email().max(255),
 	courseType: BatchTypeSchema.optional(),
 	price: z.number().int().nonnegative().optional(),
@@ -68,20 +68,11 @@ export const LeadFormDataSchema = z.object({
 export type LeadFormData = z.infer<typeof LeadFormDataSchema>;
 
 export const LeadDemoSchema = z.object({
-	counsellorId: ObjectIdStringSchema.optional(), // Counsellor managing this demo attempt
 	mentorId: ObjectIdStringSchema.optional(),
 	requestedAt: z.date().optional(),
 	assignedAt: z.date().optional(),
 	demoScheduledFor: z.date().optional(),
 	completedAt: z.date().optional(),
-	demoRequired: z.boolean().default(false),
-	lastContactedAt: z.date().optional(),
-	nextFollowUpAt: z.date().optional(),
-	customNextFollowUpAt: z.date().optional(),
-	admissionRequestedAt: z.date().optional(),
-	admissionCounsellorId: ObjectIdStringSchema.optional(),
-	admissionCompletedAt: z.date().optional(),
-	studentId: ObjectIdStringSchema.optional(),
 	note: z.string().max(500).optional(),
 });
 
@@ -110,7 +101,7 @@ export const LeadSchema = z.object({
 		.optional(),
 	preferredSchedule: z.string().max(150).optional(),
 	preferredDays: z.array(z.string()).default([]),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).default([]),
+	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).default([]),
 	price: z.number().int().nonnegative().optional(),
 	startClassWhen: z.string().max(100).optional(),
 	hearAboutUs: z.string().max(255).optional(),
@@ -120,6 +111,8 @@ export const LeadSchema = z.object({
 	courseType: BatchTypeSchema.optional(),
 	nextFollowUpAt: z.date(),
 	demos: z.array(LeadDemoSchema).default([]),
+	admissionRequestedAt: z.date().optional(),
+	studentId: ObjectIdStringSchema.optional(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
@@ -155,7 +148,7 @@ export const UpdateLeadPayloadSchema = z
 			.optional(),
 		preferredSchedule: z.string().max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).optional(),
-		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).optional(),
+		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).optional(),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
 		startClassWhen: z.string().max(100).optional(),
@@ -231,7 +224,7 @@ export const SubmitLeadFormPayloadSchema = z.object({
 	]),
 	preferredSchedule: z.string().min(1).max(150),
 	preferredDays: z.array(z.string().min(1)).min(1),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1),
+	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1).max(1),
 	email: z.string().email().max(255),
 	courseType: BatchTypeSchema.optional(),
 	price: z.number().int().nonnegative().optional(),

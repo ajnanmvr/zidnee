@@ -1,34 +1,15 @@
-﻿import {
-	ConfirmAdmissionPayloadSchema,
-	CreateLeadPayloadSchema,
-	PostponeLeadFollowUpPayloadSchema,
-	RedemoLeadPayloadSchema,
-	type LeadResponse,
-} from "@repo/schema";
-import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import toast from "react-hot-toast";
-import {
-	HiAcademicCap,
-	HiArrowPath,
-	HiCalendarDays,
-	HiPlusCircle,
-	HiTrash,
-} from "react-icons/hi2";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ApiError } from "@/api/request";
+﻿import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	buildLeadColumns,
-	formatUserName,
-	type LeadTableAction,
+ 	formatUserName,
 } from "@/features/dashboard/lead-table";
 import {
-	type LeadStageId,
 	leadStageDefinitions,
+	type LeadStageId,
 } from "@/features/leads/lead-stage-filters";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
@@ -52,6 +33,24 @@ import type {
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
+import {
+	ConfirmAdmissionPayloadSchema,
+	CreateLeadPayloadSchema,
+	PostponeLeadFollowUpPayloadSchema,
+	RedemoLeadPayloadSchema,
+	type LeadResponse,
+} from "@repo/schema";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+	HiAcademicCap,
+	HiArrowPath,
+	HiCalendarDays,
+	HiPlusCircle,
+	HiTrash,
+} from "react-icons/hi2";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 const toInputDateTimeLocal = (value: string | null): string => {
 	if (!value) {
@@ -545,18 +544,10 @@ export const LeadsPage = () => {
 					const canManageForm = hasPermission("LEAD_FORM_MANAGE");
 					const canRequestDemo = hasPermission("LEAD_DEMO_REQUEST");
 					const canCompleteDemo = hasPermission("LEAD_DEMO_COMPLETE");
-					const baseView: LeadTableAction = {
-						key: "view",
-						label: "View",
-						to: (item) => `/leads/${item.id}`,
-						className:
-							"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100",
-					};
 
 					switch (activeStage) {
 						case "followUp":
 							return [
-								baseView,
 								{
 									key: "postpone",
 									label: "Postpone",
@@ -593,7 +584,6 @@ export const LeadsPage = () => {
 							];
 						case "formSent":
 							return [
-								baseView,
 										  {
 											  key: "copyFormLink",
 											  label: "Copy Form Link",
@@ -625,7 +615,6 @@ export const LeadsPage = () => {
 							];
 						case "formFilled":
 							return [
-								baseView,
 								...(canRequestDemo
 									? [
 										  {
@@ -650,7 +639,6 @@ export const LeadsPage = () => {
 							];
 						case "demoRequest":
 							return [
-								baseView,
 								{
 									key: "cancelRequest",
 									label: "Cancel Request",
@@ -681,7 +669,6 @@ export const LeadsPage = () => {
 							];
 						case "demoAssigned":
 							return [
-								baseView,
 								...(canCompleteDemo
 									? [
 										  {
@@ -726,7 +713,6 @@ export const LeadsPage = () => {
 							];
 						case "demoCompleted":
 							return [
-								baseView,
 								{
 									key: "toAdmission",
 									label: "To Admission",
@@ -744,7 +730,6 @@ export const LeadsPage = () => {
 							];
 						case "demoCancelled":
 							return [
-								baseView,
 								{
 									key: "redemo",
 									label: "Request Redemo",
@@ -761,7 +746,7 @@ export const LeadsPage = () => {
 								},
 							];
 						default:
-							return [baseView];
+							return [];
 					}
 				},
 			}),
@@ -825,33 +810,6 @@ export const LeadsPage = () => {
 					})}
 				</div>
 
-				<div className="flex flex-col gap-3 rounded-3xl border border-gray-300 bg-white p-3 sm:flex-row sm:items-center">
-					<span className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-						Sort by:
-					</span>
-					<select
-						value={sortBy}
-						onChange={(e) => {
-							setSortBy(e.target.value);
-							setCurrentPage(1);
-						}}
-						className="rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-blue-600"
-					>
-						<option value="nextFollowUpAt">Next Follow-up</option>
-						<option value="createdAt">Created Date</option>
-						<option value="updatedAt">Updated Date</option>
-						<option value="name">Lead Name</option>
-						<option value="phone">Phone</option>
-					</select>
-					<button
-						type="button"
-						onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-						className="inline-flex items-center gap-1 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:border-blue-600 hover:text-blue-600"
-					>
-						{sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
-					</button>
-				</div>
-
 				{activeLeadsQuery.isLoading ? (
 					<div className="py-8 text-center text-gray-600">Loading...</div>
 				) : activeLeadsQuery.isError ? (
@@ -865,6 +823,22 @@ export const LeadsPage = () => {
 							data={scopeLeads}
 							exportFilename={`leads-${activeScope}-${activeStage}`}
 							searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
+							sortBy={sortBy}
+							onSortByChange={(value) => {
+								setSortBy(value);
+								setCurrentPage(1);
+							}}
+							sortOrder={sortOrder}
+							onSortOrderToggle={() =>
+								setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+							}
+							sortOptions={[
+								{ value: "nextFollowUpAt", label: "Next Follow-up" },
+								{ value: "createdAt", label: "Created Date" },
+								{ value: "updatedAt", label: "Updated Date" },
+								{ value: "name", label: "Lead Name" },
+								{ value: "phone", label: "Phone" },
+							]}
 						/>
 						{pagination && (
 							<div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 mt-4">

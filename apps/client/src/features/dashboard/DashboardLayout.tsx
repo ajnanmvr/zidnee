@@ -135,9 +135,7 @@ export const DashboardLayout = () => {
 		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
 		false;
 	const currentCounsellorStudents = allStudents.filter(
-		(student) =>
-			student.counsellorId === currentUserId ||
-			Boolean(student.mentorId),
+		(student) => Boolean(student.mentorId),
 	);
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,

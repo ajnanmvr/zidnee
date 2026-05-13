@@ -44,10 +44,17 @@ export const StudentsPage = () => {
 			{
 				id: "counsellor",
 				header: "Counsellor",
-				cell: (info) =>
-					info.row.original.counsellorId
-						? (userNameById.get(info.row.original.counsellorId) ?? "-")
-						: "-",
+				cell: (info) => {
+					const mentorId = info.row.original.mentorId;
+					if (!mentorId) {
+						return "-";
+					}
+
+					const mentor = allUsers.find((user) => user.id === mentorId);
+					return mentor?.counsellorId
+						? (userNameById.get(mentor.counsellorId) ?? "-")
+						: "-";
+				},
 			},
 			{
 				id: "mentor",
@@ -68,7 +75,7 @@ export const StudentsPage = () => {
 				),
 			},
 		],
-		[userNameById],
+		[allUsers, userNameById],
 	);
 
 	return (

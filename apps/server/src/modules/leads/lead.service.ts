@@ -204,9 +204,9 @@ const leadFieldPatch = (
 		JSON.stringify(updates.preferredTimeslots) !==
 		JSON.stringify(existingLead.preferredTimeslots ?? [])
 	) {
-		patch.preferredTimeslots = updates.preferredTimeslots;
+		patch.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
 		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
-		newValue.preferredTimeslots = updates.preferredTimeslots;
+		newValue.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
 	}
 
 	if (updates.price !== undefined && updates.price !== existingLead.price) {
@@ -256,39 +256,24 @@ const leadFieldPatch = (
 
 const toDemo = (
 	demo: NonNullable<LeadDocument["demos"]>[number],
-): LeadDemo => ({
+): any => ({
 	mentorId: demo.mentorId?.toString(),
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
 	demoScheduledFor: demo.demoScheduledFor,
 	completedAt: demo.completedAt,
-	demoRequired: demo.demoRequired,
-	lastContactedAt: demo.lastContactedAt,
-	nextFollowUpAt: demo.nextFollowUpAt,
-	customNextFollowUpAt: demo.customNextFollowUpAt,
-	admissionRequestedAt: demo.admissionRequestedAt,
-	admissionCounsellorId: demo.admissionCounsellorId?.toString(),
-	admissionCompletedAt: demo.admissionCompletedAt,
-	studentId: demo.studentId?.toString(),
 	note: demo.note,
 });
 
+
 const fromDemo = (
-	demo: LeadDemo,
+	demo: any,
 ): NonNullable<LeadDocument["demos"]>[number] => ({
 	mentorId: demo.mentorId,
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
 	demoScheduledFor: demo.demoScheduledFor,
 	completedAt: demo.completedAt,
-	demoRequired: demo.demoRequired,
-	lastContactedAt: demo.lastContactedAt,
-	nextFollowUpAt: demo.nextFollowUpAt,
-	customNextFollowUpAt: demo.customNextFollowUpAt,
-	admissionRequestedAt: demo.admissionRequestedAt,
-	admissionCounsellorId: demo.admissionCounsellorId,
-	admissionCompletedAt: demo.admissionCompletedAt,
-	studentId: demo.studentId,
 	note: demo.note,
 });
 
@@ -303,12 +288,8 @@ const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
 	const latestDemo = getLatestDemo(lead);
 	const hasPreviousDemo = (lead.demos?.length ?? 0) > 1;
 
-	// Check if moved to admission/converted
-	if (latestDemo?.studentId) {
-		return "CONVERTED";
-	}
-
-	if (latestDemo?.admissionCompletedAt) {
+	// Check if moved to admission/converted (top-level studentId)
+	if ((lead as any).studentId) {
 		return "CONVERTED";
 	}
 
@@ -316,7 +297,7 @@ const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
 	if (
 		latestDemo?.completedAt &&
 		latestDemo?.requestedAt &&
-		!latestDemo?.studentId
+		!(lead as any).studentId
 	) {
 		return "DEMO_COMPLETED";
 	}
@@ -365,17 +346,15 @@ const setLatestDemo = (
 ): NonNullable<LeadDocument["demos"]> => {
 	const demos = [...(lead.demos ?? [])];
 	if (demos.length === 0) {
-		demos.push({ demoRequired: false, ...patch } as NonNullable<
-			LeadDocument["demos"]
-		>[number]);
+		demos.push({ ...(patch as any) } as NonNullable<LeadDocument["demos"]>[number]);
 		return demos;
 	}
 
 	const latestDemo = demos[demos.length - 1]!;
 	demos[demos.length - 1] = {
 		...latestDemo,
+		...latestDemo,
 		...patch,
-		demoRequired: patch.demoRequired ?? latestDemo.demoRequired ?? false,
 	};
 
 	return demos;
@@ -402,7 +381,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	preferredLanguage: doc.preferredLanguage,
 	preferredSchedule: doc.preferredSchedule,
 	preferredDays: doc.preferredDays ?? [],
-	preferredTimeslots: doc.preferredTimeslots ?? [],
+	preferredTimeslots: (doc.preferredTimeslots ?? []).slice(0, 1),
 	price: doc.price,
 	startClassWhen: doc.startClassWhen,
 	hearAboutUs: doc.hearAboutUs,
@@ -461,7 +440,7 @@ export const LeadService = {
 
 		return leadObj;
 	},
-
+ 
 	update: async (
 		leadId: string,
 		updates: UpdateLeadPayload,
@@ -534,7 +513,10 @@ export const LeadService = {
 					return it as any;
 				});
 
-				effectiveUpdates = { ...updates, preferredTimeslots: normalized };
+				effectiveUpdates = {
+					...updates,
+					preferredTimeslots: normalized.slice(0, 1),
+				};
 			}
 		}
 
@@ -630,15 +612,11 @@ export const LeadService = {
 		}
 
 		const total = filtered.filter((lead) => {
-			const latestDemo = getLatestDemo(lead);
-			return !latestDemo?.studentId;
+			return !(lead as any).studentId;
 		}).length;
 
 		const paginatedLeads = filtered
-			.filter((lead) => {
-				const latestDemo = getLatestDemo(lead);
-				return !latestDemo?.studentId;
-			})
+			.filter((lead) => !(lead as any).studentId)
 			.slice(offset, offset + limit)
 			.map(mapLead);
 
@@ -669,12 +647,9 @@ export const LeadService = {
 			.sort({ createdAt: -1 })
 			.lean<LeadDocument[]>();
 		return leads
-			.filter((lead) => {
-				const latestDemo = getLatestDemo(lead);
-				return Boolean(
-					latestDemo?.admissionRequestedAt && !latestDemo?.studentId,
-				);
-			})
+				.filter((lead) => {
+					return Boolean((lead as any).admissionRequestedAt && !(lead as any).studentId);
+				})
 			.map(mapLead);
 	},
 
@@ -700,9 +675,7 @@ export const LeadService = {
 		const now = new Date();
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
-			demoRequired: true,
 			requestedAt: now,
-			nextFollowUpAt: now,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -744,7 +717,6 @@ export const LeadService = {
 		const now = new Date();
 		const demos = setLatestDemo(existingLead, {
 			completedAt: now,
-			demoRequired: false,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -791,10 +763,7 @@ export const LeadService = {
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
 			mentorId: effectiveMentorId,
-			counsellorId,
 			requestedAt: now,
-			demoRequired: true,
-			nextFollowUpAt: now,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -841,21 +810,8 @@ export const LeadService = {
 		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
-		const demos = setLatestDemo(existingLead, {
-			counsellorId,
-		});
-
-		const updatedLead = await LeadModel.findByIdAndUpdate(
-			leadId,
-			{
-				$set: {
-					demos,
-				},
-			},
-			{ returnDocument: "after" },
-		).lean<LeadDocument | null>();
-
-		if (performedBy && updatedLead) {
+		// Counsellor assignment removed from demo subdocument. No-op update.
+		if (performedBy) {
 			await ActivityService.logActivity(
 				leadId,
 				"DEMO_COUNSELLOR_ASSIGNED",
@@ -866,7 +822,7 @@ export const LeadService = {
 			);
 		}
 
-		return updatedLead ? mapLead(updatedLead) : null;
+		return mapLead(existingLead);
 	},
 
 	assignDemoMentor: async (
@@ -881,16 +837,13 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
-		const nextFollowUpAt = new Date(
-			demoScheduledFor.getTime() + 60 * 60 * 1000,
-		);
 		const demos = setLatestDemo(existingLead, {
 			mentorId,
 			assignedAt: now,
 			demoScheduledFor,
-			demoRequired: true,
-			nextFollowUpAt,
 		});
+
+		const nextFollowUpAt = existingLead.nextFollowUpAt ?? new Date();
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -928,7 +881,7 @@ export const LeadService = {
 
 	requestAdmission: async (
 		leadId: string,
-		counsellorId: string,
+		counsellorId?: string,
 		performedBy?: string,
 		note?: string,
 	): Promise<Lead | null> => {
@@ -938,16 +891,12 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
-		const demos = setLatestDemo(existingLead, {
-			admissionRequestedAt: now,
-			admissionCounsellorId: counsellorId,
-		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					demos,
+					admissionRequestedAt: now,
 				},
 			},
 			{ returnDocument: "after" },
@@ -959,14 +908,8 @@ export const LeadService = {
 				"ADMISSION_REQUESTED",
 				performedBy,
 				`Requested admission for ${existingLead.phone}`,
-				{
-					admissionCounsellorId:
-						getLatestDemo(existingLead)?.admissionCounsellorId?.toString(),
-				},
-				{
-					admissionCounsellorId: counsellorId,
-					admissionRequestedAt: now.toISOString(),
-				},
+				undefined,
+				{ admissionRequestedAt: now.toISOString() },
 				note,
 			);
 		}
@@ -987,13 +930,8 @@ export const LeadService = {
 
 		const now = new Date();
 		const latestDemo = getLatestDemo(existingLead);
-		const demos = latestDemo
-			? setLatestDemo(existingLead, {
-				lastContactedAt: now,
-				customNextFollowUpAt,
-				nextFollowUpAt: customNextFollowUpAt,
-			})
-			: (existingLead.demos ?? []);
+		// Update only top-level nextFollowUpAt; demo-level contact fields removed.
+		const demos = existingLead.demos ?? [];
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -1012,10 +950,7 @@ export const LeadService = {
 				"FOLLOW_UP_POSTPONED",
 				performedBy,
 				`Postponed follow-up to ${customNextFollowUpAt.toISOString()}`,
-				{
-					customNextFollowUpAt:
-						getLatestDemo(existingLead)?.customNextFollowUpAt?.toISOString(),
-				},
+				undefined,
 				{ customNextFollowUpAt: customNextFollowUpAt.toISOString() },
 				note,
 			);
@@ -1130,9 +1065,8 @@ export const LeadService = {
 		const latestDemo = demos[demos.length - 1];
 		if (
 			latestDemo?.completedAt ||
-			latestDemo?.admissionRequestedAt ||
-			latestDemo?.admissionCompletedAt ||
-			latestDemo?.studentId
+			(existingLead as any).admissionRequestedAt ||
+			(existingLead as any).studentId
 		) {
 			return mapLead(existingLead);
 		}
@@ -1242,9 +1176,10 @@ export const LeadService = {
 							: { label: (it as any).label ?? id };
 					}
 					return it as any;
-				});
+				}).slice(0, 1);
 			}
 		}
+		preferredTimeslots = (preferredTimeslots ?? []).slice(0, 1);
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,

@@ -54,13 +54,11 @@ export const AdmissionsPage = () => {
 				},
 			},
 			{
-				id: "counsellor",
-				header: "Counsellor",
+				id: "requestedAt",
+				header: "Requested At",
 				cell: (info) => {
-					const latestDemo = getLatestLeadDemo(info.row.original);
-					return latestDemo?.admissionCounsellorId
-						? (userNameById.get(latestDemo.admissionCounsellorId) ?? "-")
-						: "-";
+					const v = info.row.original.admissionRequestedAt;
+					return v ? new Date(v).toLocaleString() : "-";
 				},
 			},
 			{

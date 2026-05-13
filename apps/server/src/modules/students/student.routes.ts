@@ -34,7 +34,7 @@ router.use(authMiddleware);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [ACTIVE, COMPLETED, DROPPED]
+ *           enum: [ADMISSION_PROCESS, STUDENT, BREAK, DROPPED]
  *     responses:
  *       200:
  *         description: List of students with ZID, name, level, and status

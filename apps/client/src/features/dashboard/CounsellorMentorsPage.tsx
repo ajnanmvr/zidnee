@@ -41,7 +41,7 @@ export const CounsellorMentorsPage = () => {
 				(student) => student.mentorId === mentor.id,
 			);
 			const activeStudents = mentorStudents.filter(
-				(student) => student.status === "ACTIVE",
+				(student) => student.status === "STUDENT",
 			);
 			const mentorActivities = mentorStudents.flatMap(
 				(student) => activitiesByLeadId.get(student.leadId) ?? [],
@@ -186,7 +186,7 @@ export const CounsellorMentorsPage = () => {
 																	</span>
 																	<span
 																		className={
-																			student.status === "ACTIVE"
+																			student.status === "STUDENT"
 																				? "rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"
 																				: "rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700"
 																		}
