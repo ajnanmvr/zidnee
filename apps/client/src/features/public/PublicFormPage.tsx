@@ -19,10 +19,10 @@ type PublicFormValues = {
 	alternateWhatsappNumber?: string;
 	studentInfo: string;
 	preferredLanguage:
-		| ""
-		| "Malayalam Only"
-		| "English Only"
-		| "Malayalam - English Mixed";
+	| ""
+	| "Malayalam Only"
+	| "English Only"
+	| "Malayalam - English Mixed";
 	preferredDays: string[];
 	preferredSchedule: string;
 	preferredTimeslots: Array<{
@@ -763,7 +763,7 @@ const PublicFormPage = () => {
 					timeslot.label === selectedTimeslotSnapshot?.label &&
 					timeslot.timesPerWeek === selectedTimeslotSnapshot?.timesPerWeek &&
 					timeslot.durationMinutes ===
-						selectedTimeslotSnapshot?.durationMinutes,
+					selectedTimeslotSnapshot?.durationMinutes,
 			);
 			const payload = {
 				name: data.name,
@@ -779,12 +779,12 @@ const PublicFormPage = () => {
 				preferredSchedule: data.preferredSchedule,
 				preferredTimeslots: selectedTimeslot
 					? [
-							{
-								label: selectedTimeslot.label,
-								timesPerWeek: selectedTimeslot.timesPerWeek,
-								durationMinutes: selectedTimeslot.durationMinutes,
-							},
-						]
+						{
+							label: selectedTimeslot.label,
+							timesPerWeek: selectedTimeslot.timesPerWeek,
+							durationMinutes: selectedTimeslot.durationMinutes,
+						},
+					]
 					: [],
 				preferredStartTime: data.preferredStartTime,
 				startClassWhen: data.startClassWhen,
@@ -827,8 +827,8 @@ const PublicFormPage = () => {
 	const stepProgress = `${Math.round((currentStep / 3) * 100)}%`;
 	const canProceedToStep3 = Boolean(
 		watch("preferredTimeslots")?.[0] &&
-			watch("preferredLanguage") &&
-			watch("preferredDays")?.length,
+		watch("preferredLanguage") &&
+		watch("preferredDays")?.length,
 	);
 
 	if (isValidating) {
@@ -1149,15 +1149,7 @@ const PublicFormPage = () => {
 
 						{currentStep === 2 ? (
 							<div className="space-y-4">
-								<div className="rounded-2xl border border-brand/15 bg-brand-soft/40 p-4 text-sm text-slate-700">
-									<p className="font-medium text-slate-900">
-										Choose the learning rhythm that fits best.
-									</p>
-									<p className="mt-1 leading-6 text-slate-600">
-										Timeslots control how many days can be selected, and the end
-										time will be calculated automatically from the duration.
-									</p>
-								</div>
+
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1224,7 +1216,7 @@ const PublicFormPage = () => {
 																		{timeslot.label}
 																	</span>
 																	<span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-																		{timeslot.timesPerWeek}x / week
+																		{timeslot.timesPerWeek * 4} / month
 																	</span>
 																</div>
 																<p className="mt-1 text-sm leading-6 text-slate-600">
@@ -1322,7 +1314,7 @@ const PublicFormPage = () => {
 
 									<div>
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred start time (IST)
+											Preferred class timing (Indian Time)
 										</label>
 										<input
 											type="time"
@@ -1350,28 +1342,25 @@ const PublicFormPage = () => {
 											</div>
 										</div>
 									) : null}
-									<div>
+
+									<div className="col-span-2">
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											How did you hear about us?
+											Preferred mentor gender
 										</label>
 										<select
-											{...register("hearAboutUs", {
-												required: "This field is required",
+											{...register("preferredMentorGender", {
+												required: "Preferred mentor gender is required",
 											})}
 											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
 										>
-											<option value="">Select one</option>
-											<option value="Friend or Family">Friend or Family</option>
-											<option value="WhatsApp">WhatsApp</option>
-											<option value="Facebook">Facebook</option>
-											<option value="Instagram">Instagram</option>
-											<option value="Google Search">Google Search</option>
-											<option value="YouTube">YouTube</option>
-											<option value="Other">Other</option>
+											<option value="">Select mentor</option>
+											<option value="female">Female</option>
+											<option value="male">Male</option>
+											<option value="both">Both are okay for me</option>
 										</select>
-										{errors.hearAboutUs?.message ? (
+										{errors.preferredMentorGender?.message ? (
 											<p className="mt-1 text-xs text-red-600">
-												{errors.hearAboutUs.message}
+												{errors.preferredMentorGender.message}
 											</p>
 										) : null}
 									</div>
@@ -1394,24 +1383,28 @@ const PublicFormPage = () => {
 										) : null}
 									</div>
 
-									<div className="col-span-2">
+									<div>
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred mentor gender
+											How did you hear about us?
 										</label>
 										<select
-											{...register("preferredMentorGender", {
-												required: "Preferred mentor gender is required",
+											{...register("hearAboutUs", {
+												required: "This field is required",
 											})}
 											className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
 										>
-											<option value="">Select preferred mentor gender</option>
-											<option value="male">Male</option>
-											<option value="female">Female</option>
-											<option value="both">Both are okay for me</option>
+											<option value="">Select one</option>
+											<option value="Friend or Family">Friend or Family</option>
+											<option value="WhatsApp">WhatsApp</option>
+											<option value="Facebook">Facebook</option>
+											<option value="Instagram">Instagram</option>
+											<option value="Google Search">Google Search</option>
+											<option value="YouTube">YouTube</option>
+											<option value="Other">Other</option>
 										</select>
-										{errors.preferredMentorGender?.message ? (
+										{errors.hearAboutUs?.message ? (
 											<p className="mt-1 text-xs text-red-600">
-												{errors.preferredMentorGender.message}
+												{errors.hearAboutUs.message}
 											</p>
 										) : null}
 									</div>

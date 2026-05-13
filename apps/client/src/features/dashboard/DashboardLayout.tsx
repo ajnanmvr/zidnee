@@ -32,7 +32,6 @@ import {
 	usePendingDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useSession } from "@/lib/session";
 
 const titles: Record<string, string> = {
@@ -108,9 +107,6 @@ export const DashboardLayout = () => {
 	const canReadStudents =
 		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
 		false;
-	const canReadTimeSlots =
-		me?.permissions?.some((permission) => permission.key === "TIMESLOT_CREATE") ??
-		false;
 	const canReadDemos =
 		me?.permissions?.some(
 			(permission) =>
@@ -124,7 +120,6 @@ export const DashboardLayout = () => {
 	});
 	const admissionsQuery = useAdmissionLeadsQuery(token, canReadAdmissions);
 	const studentsQuery = useStudentsQuery(token, canReadStudents);
-	const timeSlotsQuery = useTimeSlotsQuery(token, canReadTimeSlots);
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
 	const meName = me?.name ?? "User";
@@ -276,7 +271,6 @@ export const DashboardLayout = () => {
 					label: "Time Slots",
 					description: "Class timing",
 					icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
-					count: timeSlotsQuery.data?.timeSlots.length ?? 0,
 					accent: "teal",
 					section: "Learners",
 				},
