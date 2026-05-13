@@ -1253,6 +1253,8 @@ export const LeadService = {
 				hearAboutUs: data.hearAboutUs,
 				demoAvailability: data.demoAvailability,
 				preferredMentorGender: data.preferredMentorGender,
+				email: (data as any).email,
+				courseType: (data as any).courseType,
 				formToken: undefined,
 				formTokenExpiresAt: new Date(),
 			},

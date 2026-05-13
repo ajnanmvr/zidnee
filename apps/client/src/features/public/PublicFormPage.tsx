@@ -9,14 +9,13 @@ type StepId = 1 | 2 | 3;
 
 type PublicFormValues = {
 	name: string;
+	email: string;
 	dateOfBirth: string;
 	residingCountry: string;
 	level: string;
 	gender: "" | "male" | "female";
-	primaryCountryCode: string;
 	primaryWhatsappNumber: string;
-	alternateCountryCode?: string;
-	alternateWhatsappNumber?: string;
+	alternateWhatsappNumber: string;
 	studentInfo: string;
 	preferredLanguage:
 	| ""
@@ -439,14 +438,13 @@ const PublicFormPage = () => {
 	} = useForm<PublicFormValues>({
 		defaultValues: {
 			name: "",
+			email: "",
 			dateOfBirth: "",
 			residingCountry: "",
 			level: "",
 			gender: "",
-			primaryCountryCode: "+91",
 			primaryWhatsappNumber: "",
-			alternateCountryCode: undefined,
-			alternateWhatsappNumber: undefined,
+			alternateWhatsappNumber: "",
 			studentInfo: "",
 			preferredSchedule: "",
 			preferredStartTime: "",
@@ -754,10 +752,8 @@ const PublicFormPage = () => {
 
 		try {
 			const baseUrl = getApiBaseUrl();
-			const primaryFull = `${data.primaryCountryCode ?? ""}${data.primaryWhatsappNumber}`;
-			const alternateFull = data.alternateWhatsappNumber
-				? `${data.alternateCountryCode ?? ""}${data.alternateWhatsappNumber}`
-				: undefined;
+			const primaryFull = `+91${data.primaryWhatsappNumber}`;
+			const alternateFull = `+91${data.alternateWhatsappNumber}`;
 			const selectedTimeslot = formOptions.timeslots.find(
 				(timeslot) =>
 					timeslot.label === selectedTimeslotSnapshot?.label &&
@@ -767,12 +763,13 @@ const PublicFormPage = () => {
 			);
 			const payload = {
 				name: data.name,
+				email: data.email,
 				dateOfBirth: data.dateOfBirth,
 				residingCountry: data.residingCountry,
 				level: data.level,
 				gender: data.gender,
 				primaryWhatsappNumber: primaryFull,
-				alternateWhatsappNumber: alternateFull,
+					alternateWhatsappNumber: alternateFull,
 				studentInfo: data.studentInfo ?? "",
 				preferredLanguage: data.preferredLanguage,
 				preferredDays: data.preferredDays,
@@ -963,6 +960,8 @@ const PublicFormPage = () => {
 									) : null}
 								</div>
 
+
+
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
 										Date of birth
@@ -1055,33 +1054,17 @@ const PublicFormPage = () => {
 									) : null}
 								</div>
 
-								<div className="flex flex-col gap-2 sm:col-span-2">
-									<label className="mb-2 block text-sm font-semibold text-slate-700">
-										Primary WhatsApp number
-									</label>
-									<div className="grid gap-2">
-										<div>
-											<select
-												{...register("primaryCountryCode")}
-												className="w-full max-w-48 rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none"
-											>
-												{formOptions.phoneCodes.map((pc) => (
-													<option key={pc.code} value={pc.code}>
-														{pc.code} {pc.name}
-													</option>
-												))}
-											</select>
-										</div>
-										<div>
-											<input
-												{...register("primaryWhatsappNumber", {
-													required: "Primary WhatsApp number is required",
-												})}
-												placeholder="9876543210"
-												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
-											/>
-										</div>
-									</div>
+<div className="sm:col-span-2">
+								<label className="mb-2 block text-sm font-semibold text-slate-700">
+									Primary WhatsApp number (+91)
+								</label>
+								<input
+									{...register("primaryWhatsappNumber", {
+										required: "Primary WhatsApp number is required",
+									})}
+									placeholder="9876543210"
+									className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+								/>
 									{errors.primaryWhatsappNumber?.message ? (
 										<p className="mt-1 text-xs text-red-600">
 											{errors.primaryWhatsappNumber.message}
@@ -1089,37 +1072,42 @@ const PublicFormPage = () => {
 									) : null}
 								</div>
 
-								<div className="flex flex-col gap-2 sm:col-span-2">
+								<div className="sm:col-span-2">
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
-										Alternate WhatsApp number{" "}
-										<span className="font-normal text-slate-400">
-											(optional)
-										</span>
+										Alternate WhatsApp number (+91)
 									</label>
-									<div className="grid gap-2">
-										<div>
-											<select
-												{...register("alternateCountryCode")}
-												className="w-full max-w-48 rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none"
-											>
-												<option value="">Code</option>
-												{formOptions.phoneCodes.map((pc) => (
-													<option key={pc.code} value={pc.code}>
-														{pc.code} {pc.name}
-													</option>
-												))}
-											</select>
-										</div>
-										<div>
-											<input
-												{...register("alternateWhatsappNumber")}
-												placeholder="Optional"
-												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
-											/>
-										</div>
-									</div>
+									<input
+										{...register("alternateWhatsappNumber", {
+											required: "Alternate WhatsApp number is required",
+										})}
+										placeholder="9876543210"
+										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+									/>
+									{errors.alternateWhatsappNumber?.message ? (
+										<p className="mt-1 text-xs text-red-600">
+											{errors.alternateWhatsappNumber.message}
+										</p>
+									) : null}
 								</div>
-
+								<div className="sm:col-span-2">
+									<label className="mb-2 block text-sm font-semibold text-slate-700">
+										Email address
+									</label>
+									<input
+										{...register("email", {
+											required: "Email is required",
+											pattern: {
+												value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+												message: "Enter a valid email address",
+											},
+										})}
+										placeholder="parent@example.com"
+										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+									/>
+									{errors.email?.message ? (
+										<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+									) : null}
+								</div>
 								<div className="sm:col-span-2">
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
 										Additional details about the student{" "}
@@ -1418,7 +1406,7 @@ const PublicFormPage = () => {
 										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
 											Phone
 										</p>
-										<p className="mt-2 text-sm font-medium text-slate-900">{`${watch("primaryCountryCode") || ""}${watch("primaryWhatsappNumber") || ""}`}</p>
+										<p className="mt-2 text-sm font-medium text-slate-900">{`+91${watch("primaryWhatsappNumber") || ""}`}</p>
 										<p className="mt-1 text-sm text-slate-600">
 											{watch("residingCountry") || "Country not selected"}
 										</p>
@@ -1458,13 +1446,6 @@ const PublicFormPage = () => {
 							>
 								Back
 							</button>
-							<div className="text-xs text-slate-500 sm:text-sm">
-								{currentStep === 1
-									? "Keep it quick and simple."
-									: currentStep === 2
-										? "Pick the class pattern."
-										: "Ready when you are."}
-							</div>
 							{currentStep < 3 ? (
 								<button
 									type="button"

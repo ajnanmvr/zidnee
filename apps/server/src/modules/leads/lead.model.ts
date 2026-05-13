@@ -32,6 +32,18 @@ const leadSchema = new Schema<LeadDocumentExt>(
 			trim: true,
 			index: true,
 		},
+		email: {
+			type: String,
+			required: true,
+			trim: true,
+			maxlength: 255,
+			index: true,
+		},
+		courseType: {
+			type: String,
+			required: false,
+			enum: ["INDIVIDUAL", "GROUP"],
+		},
 		slNo: {
 			type: Number,
 			required: false,

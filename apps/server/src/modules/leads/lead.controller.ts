@@ -108,6 +108,7 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		id: lead.id,
 		slNo: lead.slNo,
 		name: lead.name,
+		email: (lead as any).email ?? null,
 		phone: lead.phone,
 		level: lead.level,
 		assignedTo: lead.assignedTo,
@@ -132,6 +133,7 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		hearAboutUs: lead.hearAboutUs,
 		demoAvailability: lead.demoAvailability,
 		preferredMentorGender: lead.preferredMentorGender,
+		courseType: (lead as any).courseType ?? null,
 		status: lead.status ?? computeLeadStatus(lead),
 		demos,
 		createdAt: lead.createdAt?.toISOString() ?? null,
@@ -649,6 +651,7 @@ export const submitLeadFormController = async (
 
 	const result = await LeadService.submitLeadForm(leadId, payload.token, {
 		name: payload.name,
+		email: payload.email,
 		dateOfBirth: payload.dateOfBirth,
 		residingCountry: payload.residingCountry,
 		level: payload.level,
@@ -660,6 +663,7 @@ export const submitLeadFormController = async (
 		preferredSchedule: payload.preferredSchedule,
 		preferredDays: payload.preferredDays,
 		preferredTimeslots: payload.preferredTimeslots,
+		courseType: payload.courseType,
 		startClassWhen: payload.startClassWhen,
 		hearAboutUs: payload.hearAboutUs,
 		demoAvailability: payload.demoAvailability,

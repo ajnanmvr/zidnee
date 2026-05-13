@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ObjectIdStringSchema } from "./rbac.schema.js";
+import { BatchTypeSchema } from "./batch.schema.js";
 
 export const LeadStatusSchema = z.enum([
 	"FOLLOW_UP",
@@ -45,7 +46,7 @@ export const LeadFormDataSchema = z.object({
 	level: z.string().min(1).max(20),
 	gender: z.enum(["male", "female"]),
 	primaryWhatsappNumber: PhoneNumberSchema,
-	alternateWhatsappNumber: PhoneNumberSchema.optional(),
+	alternateWhatsappNumber: PhoneNumberSchema,
 	studentInfo: z.string().min(1).max(1000),
 	preferredLanguage: z.enum([
 		"Malayalam Only",
@@ -55,6 +56,8 @@ export const LeadFormDataSchema = z.object({
 	preferredSchedule: z.string().min(1).max(150),
 	preferredDays: z.array(z.string().min(1)).min(1),
 	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1),
+	email: z.email().max(255),
+	courseType: BatchTypeSchema.optional(),
 	price: z.number().int().nonnegative().optional(),
 	startClassWhen: z.string().min(1).max(100),
 	hearAboutUs: z.string().min(1).max(255),
@@ -113,6 +116,8 @@ export const LeadSchema = z.object({
 	hearAboutUs: z.string().max(255).optional(),
 	demoAvailability: z.string().max(100).optional(),
 	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
+	email: z.string().email().max(255).optional(),
+	courseType: BatchTypeSchema.optional(),
 	nextFollowUpAt: z.date(),
 	demos: z.array(LeadDemoSchema).default([]),
 	createdAt: z.date().optional(),
@@ -125,6 +130,7 @@ export const CreateLeadPayloadSchema = z.object({
 	phone: PhoneNumberSchema,
 	assignedTo: ObjectIdStringSchema.optional(),
 	name: OptionalTextSchema,
+	email: z.string().email().max(255).optional(),
 	customNextFollowUpAt: z.coerce.date().optional(),
 });
 
@@ -149,6 +155,7 @@ export const UpdateLeadPayloadSchema = z
 		preferredSchedule: z.string().max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).optional(),
 		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).optional(),
+		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
 		startClassWhen: z.string().max(100).optional(),
 		hearAboutUs: z.string().max(255).optional(),
@@ -214,7 +221,7 @@ export const SubmitLeadFormPayloadSchema = z.object({
 	level: z.string().min(1).max(20),
 	gender: z.enum(["male", "female"]),
 	primaryWhatsappNumber: PhoneNumberSchema,
-	alternateWhatsappNumber: PhoneNumberSchema.optional(),
+	alternateWhatsappNumber: PhoneNumberSchema,
 	studentInfo: z.string().max(1000).optional(),
 	preferredLanguage: z.enum([
 		"Malayalam Only",
@@ -224,6 +231,8 @@ export const SubmitLeadFormPayloadSchema = z.object({
 	preferredSchedule: z.string().min(1).max(150),
 	preferredDays: z.array(z.string().min(1)).min(1),
 	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1),
+	email: z.string().email().max(255),
+	courseType: BatchTypeSchema.optional(),
 	price: z.number().int().nonnegative().optional(),
 	startClassWhen: z.string().min(1).max(100),
 	hearAboutUs: z.string().min(1).max(255),
