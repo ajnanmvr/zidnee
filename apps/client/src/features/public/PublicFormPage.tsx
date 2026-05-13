@@ -317,31 +317,75 @@ const to12HourFormat = (time24: string): string => {
 };
 
 const extractErrorMessage = (payload: unknown): string | null => {
+	const normalize = (message: string): string => {
+		const trimmed = message.trim();
+		const lower = trimmed.toLowerCase();
+
+		if (
+			lower.includes("invalid input") &&
+			lower.includes("received undefined")
+		) {
+			return "Some required details are missing. Please complete the highlighted fields.";
+		}
+
+		if (
+			lower.includes("failed to fetch") ||
+			lower.includes("networkerror") ||
+			lower.includes("fetch failed")
+		) {
+			return "We couldn't reach the server. Please check your internet connection and try again.";
+		}
+
+		if (
+			lower.includes("invalid form link") ||
+			lower.includes("form link has expired") ||
+			lower.includes("link has expired")
+		) {
+			return "This form link is no longer valid. Please request a new link.";
+		}
+
+		if (lower.includes("unauthorized") || lower.includes("forbidden")) {
+			return "You no longer have access to this form link.";
+		}
+
+		if (lower.includes("validation") && lower.includes("failed")) {
+			return "Please review the form and correct the highlighted fields.";
+		}
+
+		return trimmed;
+	};
+
 	if (!payload) return null;
-	if (typeof payload === "string") return payload;
-	if (payload instanceof Error) return payload.message;
+	if (typeof payload === "string") return normalize(payload);
+	if (payload instanceof Error) return normalize(payload.message);
 	try {
-		const obj = payload as any;
+		const obj = payload as Record<string, unknown>;
 		// Common shapes: { message: string } | { error: string } | { errors: [{ message }] } | Zod-like { issues: [{ message }] }
-		if (typeof obj.message === "string") return obj.message;
-		if (typeof obj.error === "string") return obj.error;
+		if (typeof obj.message === "string") return normalize(obj.message);
+		if (typeof obj.error === "string") return normalize(obj.error);
 		if (Array.isArray(obj.errors) && obj.errors.length > 0) {
-			const first = obj.errors[0];
-			if (first && typeof first.message === "string") return first.message;
-			if (typeof obj.errors[0] === "string") return obj.errors[0];
+			const first = obj.errors[0] as Record<string, unknown> | string | null;
+			if (first && typeof first === "object" && typeof first.message === "string") {
+				return normalize(first.message);
+			}
+			if (typeof first === "string") return normalize(first);
 		}
 		if (Array.isArray(obj.issues) && obj.issues.length > 0) {
-			const first = obj.issues[0];
-			if (first && typeof first.message === "string") return first.message;
+			const first = obj.issues[0] as Record<string, unknown> | string | null;
+			if (first && typeof first === "object" && typeof first.message === "string") {
+				return normalize(first.message);
+			}
+			if (typeof first === "string") return normalize(first);
 		}
 		// Fallback: try to stringify simple object values and return the first string found
-		for (const k of Object.keys(obj)) {
-			const v = obj[k];
-			if (typeof v === "string" && v) return v;
-			if (Array.isArray(v) && v.length > 0 && typeof v[0] === "string")
-				return v[0];
+		for (const key of Object.keys(obj)) {
+			const value = obj[key];
+			if (typeof value === "string" && value) return normalize(value);
+			if (Array.isArray(value) && value.length > 0 && typeof value[0] === "string") {
+				return normalize(value[0]);
+			}
 		}
-	} catch (e) {
+	} catch {
 		// ignore
 	}
 	return null;
@@ -583,7 +627,7 @@ const PublicFormPage = () => {
 	const goNext = async () => {
 		const isStepValid = await validateCurrentStep();
 		if (!isStepValid) {
-			toast.error("Please complete this section before continuing.");
+			toast.error("Please fill in the missing details before continuing.");
 			return;
 		}
 
@@ -692,7 +736,7 @@ const PublicFormPage = () => {
 	useEffect(() => {
 		const runValidation = async () => {
 			if (!leadId || !token) {
-				toast.error("Invalid form link");
+				toast.error("This form link is invalid or missing. Please request a new link.");
 				setIsValid(false);
 				setIsValidating(false);
 				return;
@@ -730,11 +774,11 @@ const PublicFormPage = () => {
 				}
 
 				if (!result.isValid) {
-					toast.error("Form link has expired or is invalid");
+					toast.error("This form link has expired or is no longer active.");
 				}
 			} catch (error) {
 				console.error("Validation error:", error);
-				toast.error("Unable to validate form link");
+				toast.error("We couldn't verify the form link. Please try again.");
 				setIsValid(false);
 			} finally {
 				setIsValidating(false);
@@ -746,7 +790,7 @@ const PublicFormPage = () => {
 
 	const onSubmit = async (data: PublicFormValues) => {
 		if (!leadId || !token) {
-			toast.error("Invalid form link");
+			toast.error("This form link is invalid or missing. Please request a new link.");
 			return;
 		}
 
@@ -891,7 +935,7 @@ const PublicFormPage = () => {
 
 	return (
 		<div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(32,111,89,0.12),transparent_32%),linear-gradient(135deg,#f8fbfa,#eef5f9)] px-4 py-4 sm:px-6 sm:py-6">
-			<div className="mx-auto max-w-2xl">
+			<div className="mx-auto max-w-3xl">
 				<div className="mb-4 flex items-center justify-between gap-3 rounded-3xl border border-white/70 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
 					<div className="flex min-w-0 items-center gap-3">
 						<img src="/logo.png" alt="Zidnee" className="h-9 w-auto" />
@@ -909,14 +953,14 @@ const PublicFormPage = () => {
 					</div>
 				</div>
 
-				<div className="mb-4 flex items-center gap-2 overflow-x-auto rounded-3xl border border-white/70 bg-white/85 p-2 shadow-sm backdrop-blur">
+				<div className="mb-4 grid gap-2 rounded-3xl border border-white/70 bg-white/85 p-2 shadow-sm backdrop-blur sm:grid-cols-3">
 					{stepMeta.map((step) => {
 						const isActive = step.id === currentStep;
 						const isDone = step.id < currentStep;
 						return (
 							<div
 								key={step.id}
-								className={`flex min-w-36 items-center gap-2 rounded-2xl px-3 py-2 text-sm transition ${isActive ? "bg-brand text-white" : isDone ? "bg-brand-soft text-brand" : "bg-slate-50 text-slate-500"}`}
+								className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm transition ${isActive ? "bg-brand text-white" : isDone ? "bg-brand-soft text-brand" : "bg-slate-50 text-slate-500"}`}
 							>
 								<div
 									className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${isActive ? "bg-white/15 text-white" : isDone ? "bg-white text-brand" : "bg-white text-slate-400"}`}
@@ -939,7 +983,7 @@ const PublicFormPage = () => {
 				</div>
 
 				<div className="rounded-[1.75rem] border border-white/70 bg-white/92 p-4 shadow-[0_16px_50px_rgba(15,23,42,0.10)] backdrop-blur sm:p-5">
-					<div className="mb-4 flex items-start justify-between gap-4">
+					<div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 						<div>
 							<p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand">
 								{currentStepMeta.title}
@@ -1074,7 +1118,7 @@ const PublicFormPage = () => {
 										<div>
 											<select
 												{...register("primaryCountryCode")}
-												className="w-full max-w-48 rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none"
+												className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none sm:max-w-48"
 											>
 												{formOptions.phoneCodes.map((pc) => (
 													<option key={pc.code} value={pc.code}>
@@ -1111,7 +1155,7 @@ const PublicFormPage = () => {
 										<div>
 											<select
 												{...register("alternateCountryCode")}
-												className="w-full max-w-48 rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none"
+												className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none sm:max-w-48"
 											>
 												<option value="">Code</option>
 												{formOptions.phoneCodes.map((pc) => (
@@ -1149,15 +1193,6 @@ const PublicFormPage = () => {
 
 						{currentStep === 2 ? (
 							<div className="space-y-4">
-								<div className="rounded-2xl border border-brand/15 bg-brand-soft/40 p-4 text-sm text-slate-700">
-									<p className="font-medium text-slate-900">
-										Choose the learning rhythm that fits best.
-									</p>
-									<p className="mt-1 leading-6 text-slate-600">
-										Timeslots control how many days can be selected, and the end
-										time will be calculated automatically from the duration.
-									</p>
-								</div>
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1252,7 +1287,7 @@ const PublicFormPage = () => {
 										Select up to the number of days specified by the chosen
 										timeslot.
 									</p>
-									<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+									<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
 										{formOptions.days.map((day) => {
 											const selectedDays: string[] =
 												watch("preferredDays") || [];
@@ -1278,7 +1313,7 @@ const PublicFormPage = () => {
 															if (e.target.checked) {
 																if (current.length >= maxAllowed) {
 																	toast.error(
-																		`You can select at most ${maxAllowed} day(s) for this timeslot`,
+																		`You can choose up to ${maxAllowed} day${maxAllowed === 1 ? "" : "s"} for this class slot.`,
 																	);
 																	return;
 																}
@@ -1301,7 +1336,7 @@ const PublicFormPage = () => {
 									</div>
 								</div>
 
-								<div className="grid gap-4 sm:grid-cols-2">
+								<div className="grid gap-4 grid-cols-1 md:grid-cols-2">
 									<div>
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
 											When can we start the class?
@@ -1331,7 +1366,7 @@ const PublicFormPage = () => {
 										/>
 									</div>
 									{selectedStartTime && calculatedEndTime ? (
-										<div className="grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2 col-span-2">
+										<div className="md:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
 											<div>
 												<p className="text-xs font-semibold text-slate-600">
 													Start time
@@ -1394,7 +1429,7 @@ const PublicFormPage = () => {
 										) : null}
 									</div>
 
-									<div className="col-span-2">
+									<div className="md:col-span-2">
 										<label className="mb-2 block text-sm font-semibold text-slate-700">
 											Preferred mentor gender
 										</label>
@@ -1479,16 +1514,16 @@ const PublicFormPage = () => {
 								</div>
 							</div>
 						) : null}
-						<div className="mt-4 flex items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+						<div className="mt-4 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
 							<button
 								type="button"
 								onClick={goBack}
 								disabled={currentStep === 1}
-								className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+								className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
 							>
 								Back
 							</button>
-							<div className="text-xs text-slate-500 sm:text-sm">
+							<div className="text-center text-xs text-slate-500 sm:text-left sm:text-sm">
 								{currentStep === 1
 									? "Keep it quick and simple."
 									: currentStep === 2
@@ -1499,7 +1534,7 @@ const PublicFormPage = () => {
 								<button
 									type="button"
 									onClick={goNext}
-									className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a]"
+									className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] sm:w-auto sm:py-2.5"
 								>
 									<span>{stepButtonLabel}</span>
 									<svg
@@ -1518,7 +1553,7 @@ const PublicFormPage = () => {
 								<button
 									type="submit"
 									disabled={isSubmitting || !canProceedToStep3}
-									className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50"
+									className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
 								>
 									<svg
 										viewBox="0 0 24 24"
