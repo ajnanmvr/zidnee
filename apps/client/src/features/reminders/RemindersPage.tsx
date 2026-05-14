@@ -23,7 +23,7 @@ export const RemindersPage = () => {
 	const [sortBy, setSortBy] = useState<"date" | "createdAt">("date");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 	const [filterDone, setFilterDone] = useState<"all" | "pending" | "done">(
-		"pending",
+		"all",
 	);
 
 	const remindersQuery = useGetAllReminders({
@@ -210,9 +210,11 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users }) => {
 	};
 
 	const dueDate = new Date(reminder.date);
-	const isOverdue = dueDate < new Date() && !reminder.isDone;
-	const isToday =
-		dueDate.toDateString() === new Date().toDateString() && !reminder.isDone;
+	dueDate.setHours(0, 0, 0, 0);
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	const isOverdue = dueDate < today && !reminder.isDone;
+	const isToday = dueDate.getTime() === today.getTime() && !reminder.isDone;
 
 	return (
 		<div
@@ -237,8 +239,6 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users }) => {
 							year: "numeric",
 							month: "short",
 							day: "numeric",
-							hour: "2-digit",
-							minute: "2-digit",
 						})}
 					</span>
 

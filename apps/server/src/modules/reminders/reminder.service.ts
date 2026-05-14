@@ -7,6 +7,8 @@ import { AppError } from "../../utils/errors.util.js";
 import { type ReminderDocument, ReminderModel } from "./reminder.model.js";
 
 const toReminder = (doc: ReminderDocument): Reminder => {
+	const assignedTo = doc.assignedTo?.toString() ?? doc.createdBy.toString();
+
 	return {
 		id: doc._id.toString(),
 		studentId: doc.studentId.toString(),
@@ -14,7 +16,7 @@ const toReminder = (doc: ReminderDocument): Reminder => {
 		note: doc.note,
 		isDone: doc.isDone,
 		createdBy: doc.createdBy.toString(),
-		assignedTo: doc.assignedTo.toString(),
+		assignedTo,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,
 	};
@@ -28,7 +30,9 @@ export const ReminderService = {
 	): Promise<Reminder> => {
 		const reminder = await ReminderModel.create({
 			studentId,
-			createdBy,			assignedTo: createdBy,			date: payload.date,
+			createdBy,
+			assignedTo: createdBy,
+			date: payload.date,
 			note: payload.note,
 		});
 

@@ -4,13 +4,13 @@ import { ObjectIdStringSchema } from "./rbac.schema.js";
 export const ReminderSchema = z.object({
 	id: ObjectIdStringSchema,
 	studentId: ObjectIdStringSchema,
-	date: z.date(),
+		date: z.coerce.date(),
 	note: z.string().min(1).max(500),
 	isDone: z.boolean().default(false),
 	createdBy: ObjectIdStringSchema,
 	assignedTo: ObjectIdStringSchema,
-	createdAt: z.date(),
-	updatedAt: z.date(),
+		createdAt: z.coerce.date(),
+		updatedAt: z.coerce.date(),
 });
 
 export type Reminder = z.infer<typeof ReminderSchema>;
