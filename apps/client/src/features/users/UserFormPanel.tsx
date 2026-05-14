@@ -1,4 +1,4 @@
-import { UpdateUserPayloadSchema, CreateUserPayloadSchema } from "@repo/schema";
+import { CreateUserPayloadSchema, UpdateUserPayloadSchema } from "@repo/schema";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -72,27 +72,29 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 			? selectedRoleIds.includes(mentorRoleId)
 			: false;
 
-	const { control, handleSubmit, setError } =
-		useForm<CreateUserFormData>({
-			defaultValues: {
-				name: user?.name ?? "",
-				username: user?.username ?? "",
-				email: user?.email ?? "",
-				password: "",
-				confirmPassword: "",
-				gender: undefined,
-				roleIds: mode === "edit" && user ? user.roles.map((r) => r.id) : [],
-				counsellorId: user?.counsellorId ?? undefined,
-			},
-		});
+	const { control, handleSubmit, setError } = useForm<CreateUserFormData>({
+		defaultValues: {
+			name: user?.name ?? "",
+			username: user?.username ?? "",
+			email: user?.email ?? "",
+			password: "",
+			confirmPassword: "",
+			gender: undefined,
+			roleIds: mode === "edit" && user ? user.roles.map((r) => r.id) : [],
+			counsellorId: user?.counsellorId ?? undefined,
+		},
+	});
 
-	const roles = useMemo(() => rolesQuery.data?.roles ?? [], [rolesQuery.data?.roles]);
+	const roles = useMemo(
+		() => rolesQuery.data?.roles ?? [],
+		[rolesQuery.data?.roles],
+	);
 
 	const toggleRole = (roleId: string) => {
 		setSelectedRoleIds((prev) =>
 			prev.includes(roleId)
 				? prev.filter((id) => id !== roleId)
-				: [...prev, roleId]
+				: [...prev, roleId],
 		);
 	};
 
@@ -123,7 +125,8 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		}
 
 		// Validate form based on mode
-		const schema = mode === "create" ? CreateUserPayloadSchema : UpdateUserPayloadSchema;
+		const schema =
+			mode === "create" ? CreateUserPayloadSchema : UpdateUserPayloadSchema;
 		const payload =
 			mode === "create"
 				? {
@@ -154,7 +157,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 			if (errors.email?.[0])
 				setError("email", { type: "manual", message: errors.email[0] });
 			if (mode === "create" && (errors as any).password?.[0])
-				setError("password", { type: "manual", message: (errors as any).password[0] });
+				setError("password", {
+					type: "manual",
+					message: (errors as any).password[0],
+				});
 			if (errors.roleIds?.[0])
 				setError("roleIds", { type: "manual", message: errors.roleIds[0] });
 			return;
@@ -171,7 +177,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		<div className="grid gap-6">
 			<Panel
 				title={title ?? (mode === "create" ? "Create User" : "Edit user")}
-				description={description ?? (mode === "create" ? "Add a new user to the system" : "Update")}
+				description={
+					description ??
+					(mode === "create" ? "Add a new user to the system" : "Update")
+				}
 				action={
 					<Link
 						to="/users"
@@ -440,7 +449,8 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 								? mode === "create"
 									? "Creating..."
 									: "Saving..."
-								: submitLabel ?? (mode === "create" ? "Create User" : "Save changes")}
+								: (submitLabel ??
+									(mode === "create" ? "Create User" : "Save changes"))}
 						</button>
 						<Link
 							to="/users"

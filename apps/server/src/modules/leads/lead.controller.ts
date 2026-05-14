@@ -12,9 +12,14 @@ import {
 	UpdateLeadPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
-import { AuthenticationError, NotFoundError, ValidationError, AuthorizationError } from "../../utils/errors.util.js";
-import { getEffectivePermissions } from "../rbac/rbac.service.js";
+import {
+	AuthenticationError,
+	AuthorizationError,
+	NotFoundError,
+	ValidationError,
+} from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
+import { getEffectivePermissions } from "../rbac/rbac.service.js";
 import { StudentService } from "../students/student.service.js";
 import { UserModel } from "../users/user.model.js";
 import { LeadService } from "./lead.service.js";
@@ -124,7 +129,8 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		courseType: (lead as any).courseType ?? null,
 		status: lead.status ?? computeLeadStatus(lead),
 		demos,
-		admissionRequestedAt: (lead as any).admissionRequestedAt?.toISOString() ?? null,
+		admissionRequestedAt:
+			(lead as any).admissionRequestedAt?.toISOString() ?? null,
 		studentId: (lead as any).studentId ?? null,
 		createdAt: lead.createdAt?.toISOString() ?? null,
 		updatedAt: lead.updatedAt?.toISOString() ?? null,
@@ -216,7 +222,9 @@ export const listLeadsController = async (
 	// Enforce permission for scope: if requesting all leads, require LEAD_READ_ALL
 	// otherwise require LEAD_READ_MY or LEAD_READ_ALL
 	const effectivePermissions = await getEffectivePermissions(req.user.roleIds);
-	const hasReadAll = effectivePermissions.some((p) => p.key === "LEAD_READ_ALL");
+	const hasReadAll = effectivePermissions.some(
+		(p) => p.key === "LEAD_READ_ALL",
+	);
 	const hasReadMy = effectivePermissions.some((p) => p.key === "LEAD_READ_MY");
 
 	if (scope === "all" && !hasReadAll) {

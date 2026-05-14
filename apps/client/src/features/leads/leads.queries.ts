@@ -46,10 +46,7 @@ export const useDemoRequestsQuery = (token: string, enabled = true) => {
 	});
 };
 
-export const usePendingDemoRequestsQuery = (
-	token: string,
-	enabled = true,
-) => {
+export const usePendingDemoRequestsQuery = (token: string, enabled = true) => {
 	return useQuery({
 		queryKey: leadsQueryKeys.pendingDemoRequests(token),
 		queryFn: () => fetchPendingDemoRequests(token),

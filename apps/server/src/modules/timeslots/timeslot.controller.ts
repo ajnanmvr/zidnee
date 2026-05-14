@@ -3,8 +3,8 @@ import {
 	UpdateTimeSlotPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
-import { requireStringValue } from "../rbac/rbac.http.js";
 import { ValidationError } from "../../utils/errors.util.js";
+import { requireStringValue } from "../rbac/rbac.http.js";
 import { TimeSlotService } from "./timeslot.service.js";
 
 const toTimeSlotResponse = (

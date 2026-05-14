@@ -147,12 +147,12 @@ export const seedCoreRolesAndUsers = async (): Promise<void> => {
 			seedUser.username === "admin"
 				? adminRoleIds
 				: seedUser.roleNames.map((roleName) => {
-					const role = roleMap.get(roleName);
-					if (!role) {
-						throw new Error(`${roleName} role not found for seeded user`);
-					}
-					return role.id;
-				});
+						const role = roleMap.get(roleName);
+						if (!role) {
+							throw new Error(`${roleName} role not found for seeded user`);
+						}
+						return role.id;
+					});
 
 		await UserModel.updateOne(
 			{ username: seedUser.username },

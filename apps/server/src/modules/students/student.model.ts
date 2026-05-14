@@ -3,12 +3,7 @@ import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 export type StudentDocument = Omit<
 	Student,
-	| "id"
-	| "leadId"
-	| "processId"
-	| "admittedBy"
-	| "mentorId"
-	| "batchId"
+	"id" | "leadId" | "processId" | "admittedBy" | "mentorId" | "batchId"
 > & {
 	_id: Types.ObjectId;
 	leadId: Types.ObjectId;

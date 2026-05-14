@@ -34,7 +34,10 @@ export const fetchStudents = async (
 	);
 };
 
-export const fetchStudentActivities = async (token: string, studentId: string) => {
+export const fetchStudentActivities = async (
+	token: string,
+	studentId: string,
+) => {
 	return requestWithSchema(
 		`/students/${studentId}/activities`,
 		StudentActivitiesResponseSchema,

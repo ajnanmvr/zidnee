@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { NotFoundError, AuthenticationError } from "../../utils/errors.util.js";
+import { AuthenticationError, NotFoundError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { ActivityService } from "./activity.service.js";
 

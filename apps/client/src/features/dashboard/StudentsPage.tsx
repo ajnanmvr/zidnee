@@ -2,16 +2,16 @@
 import { useSearchParams } from "react-router-dom";
 import { DataTable } from "@/components/DataTable";
 import {
+	getStudentStageCounts,
+	type StudentStageId,
+	studentStageDefinitions,
+} from "@/features/students/student-stage-filters";
+import {
 	buildStudentColumns,
 	getStudentFollowUpState,
 	getStudentStatusColor,
 	type StudentTableRow,
 } from "@/features/students/student-table";
-import {
-	getStudentStageCounts,
-	studentStageDefinitions,
-	type StudentStageId,
-} from "@/features/students/student-stage-filters";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
@@ -27,7 +27,7 @@ export const StudentsPage = () => {
 		currentStage === "all"
 			? undefined
 			: studentStageDefinitions.find((stage) => stage.id === currentStage)
-				?.statusFilter?.[0];
+					?.statusFilter?.[0];
 
 	const allStudentsQuery = useStudentsQuery(token);
 	const studentsQuery = useStudentsQuery(token, {
@@ -76,8 +76,12 @@ export const StudentsPage = () => {
 				return leftState.priority - rightState.priority;
 			}
 
-			const leftDate = (left.customNextFollowUpAt ?? left.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-			const rightDate = (right.customNextFollowUpAt ?? right.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+			const leftDate =
+				(left.customNextFollowUpAt ?? left.nextFollowUpAt)?.getTime() ??
+				Number.MAX_SAFE_INTEGER;
+			const rightDate =
+				(right.customNextFollowUpAt ?? right.nextFollowUpAt)?.getTime() ??
+				Number.MAX_SAFE_INTEGER;
 
 			return leftDate - rightDate;
 		});
@@ -95,16 +99,12 @@ export const StudentsPage = () => {
 	// Calculate counts
 	const stageCounts = useMemo(
 		() => getStudentStageCounts(allStudentsQuery.data?.students ?? []),
-		[allStudentsQuery.data?.students]
+		[allStudentsQuery.data?.students],
 	);
 
 	const columns = useMemo(
-		() =>
-			buildStudentColumns(
-				getStudentStatusColor,
-				mentorNameById
-			),
-		[mentorNameById]
+		() => buildStudentColumns(getStudentStatusColor, mentorNameById),
+		[mentorNameById],
 	);
 
 	return (
@@ -142,7 +142,9 @@ export const StudentsPage = () => {
 							Order
 						</label>
 						<button
-							onClick={() => setQueryParam("sortOrder", sortOrder === "asc" ? "desc" : "asc")}
+							onClick={() =>
+								setQueryParam("sortOrder", sortOrder === "asc" ? "desc" : "asc")
+							}
 							className="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700"
 						>
 							{sortOrder === "asc" ? "Ascending" : "Descending"}

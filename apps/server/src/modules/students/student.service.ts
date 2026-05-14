@@ -1,16 +1,19 @@
 import type { Student } from "@repo/schema";
 import { AppError } from "../../utils/errors.util.js";
+import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
-import { LeadActivityModel } from "../leads/activity.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
+import { type StudentDocument, StudentModel } from "./student.model.js";
+import {
+	type StudentActivityDocument,
+	StudentActivityModel,
+} from "./student-activity.model.js";
 import {
 	getStudentProcessTemplate,
 	type StudentProcessDocument,
 	StudentProcessModel,
 } from "./student-process.model.js";
-import { type StudentActivityDocument, StudentActivityModel } from "./student-activity.model.js";
-import { type StudentDocument, StudentModel } from "./student.model.js";
 
 type StudentListFilters = {
 	status?: string;
@@ -36,7 +39,9 @@ const getStudentSort = (
 		"name",
 		"zid",
 	]);
-	const effectiveSortBy = allowed.has(sortBy ?? "") ? sortBy! : "nextFollowUpAt";
+	const effectiveSortBy = allowed.has(sortBy ?? "")
+		? sortBy!
+		: "nextFollowUpAt";
 	return [[effectiveSortBy, sortOrder === "asc" ? 1 : -1]];
 };
 
@@ -90,7 +95,15 @@ const nextStudentZid = async (): Promise<string> => {
 
 const logStudentActivity = async (params: {
 	studentId: string;
-	type: "CREATED" | "UPDATED" | "FOLLOW_UP_POSTPONED" | "FOLLOW_UP_RECORDED" | "STATUS_CHANGED" | "PROCESS_LINKED" | "PROCESS_UPDATED" | "DELETED";
+	type:
+		| "CREATED"
+		| "UPDATED"
+		| "FOLLOW_UP_POSTPONED"
+		| "FOLLOW_UP_RECORDED"
+		| "STATUS_CHANGED"
+		| "PROCESS_LINKED"
+		| "PROCESS_UPDATED"
+		| "DELETED";
 	performedBy: string;
 	description: string;
 	oldValue?: Record<string, unknown>;
@@ -111,7 +124,9 @@ const logStudentActivity = async (params: {
 const syncStudentProcess = async (
 	studentId: string,
 ): Promise<StudentDocument | null> => {
-	const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+	const student = await StudentModel.findById(
+		studentId,
+	).lean<StudentDocument | null>();
 	if (!student) {
 		return null;
 	}
@@ -132,7 +147,6 @@ const syncStudentProcess = async (
 		{ new: true, upsert: true },
 	).lean<StudentProcessDocument | null>();
 
-
 	if (!process) {
 		return student;
 	}
@@ -152,7 +166,9 @@ const syncStudentProcess = async (
 };
 
 export const StudentService = {
-	listStudents: async (filters: StudentListFilters = {}): Promise<Student[]> => {
+	listStudents: async (
+		filters: StudentListFilters = {},
+	): Promise<Student[]> => {
 		const query: Record<string, unknown> = {};
 
 		if (filters.status) {
@@ -172,7 +188,9 @@ export const StudentService = {
 
 		const students = await StudentModel.find(query)
 			.sort(getStudentSort(filters.sortBy, filters.sortOrder))
-			.skip(filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0)
+			.skip(
+				filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0,
+			)
 			.limit(filters.limit && filters.limit > 0 ? filters.limit : 0)
 			.lean<StudentDocument[]>();
 		return students.map(toStudent);
@@ -185,7 +203,9 @@ export const StudentService = {
 		return student ? toStudent(student) : null;
 	},
 
-	getStudentActivities: async (studentId: string): Promise<StudentActivityDocument[]> => {
+	getStudentActivities: async (
+		studentId: string,
+	): Promise<StudentActivityDocument[]> => {
 		return StudentActivityModel.find({ studentId })
 			.populate("performedBy", "name")
 			.sort({ createdAt: -1 })
@@ -197,7 +217,9 @@ export const StudentService = {
 		performedBy: string,
 		note: string,
 	): Promise<Student | null> => {
-		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+		const student = await StudentModel.findById(
+			studentId,
+		).lean<StudentDocument | null>();
 		if (!student) {
 			throw new AppError(404, "Student not found");
 		}
@@ -228,7 +250,8 @@ export const StudentService = {
 			note,
 			oldValue: {
 				nextFollowUpAt: student.nextFollowUpAt?.toISOString() ?? null,
-				customNextFollowUpAt: student.customNextFollowUpAt?.toISOString() ?? null,
+				customNextFollowUpAt:
+					student.customNextFollowUpAt?.toISOString() ?? null,
 			},
 			newValue: {
 				nextFollowUpAt: nextFollowUpAt.toISOString(),
@@ -257,12 +280,15 @@ export const StudentService = {
 			leadId,
 		}).lean<StudentDocument | null>();
 		if (existingStudent) {
-			const syncedStudent = await syncStudentProcess(existingStudent._id.toString());
+			const syncedStudent = await syncStudentProcess(
+				existingStudent._id.toString(),
+			);
 			await logStudentActivity({
 				studentId: existingStudent._id.toString(),
 				type: "UPDATED",
 				performedBy: performedBy ?? existingLead.createdBy.toString(),
-				description: "Student already exists and was revisited during admission",
+				description:
+					"Student already exists and was revisited during admission",
 			});
 			return toStudent((syncedStudent ?? existingStudent) as StudentDocument);
 		}
@@ -280,7 +306,9 @@ export const StudentService = {
 
 		const zid = await nextStudentZid();
 		const admittedAt = new Date();
-		const nextFollowUpAt = getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt);
+		const nextFollowUpAt = getDefaultStudentFollowUpAt(
+			existingLead.nextFollowUpAt,
+		);
 		const createdStudent = await StudentModel.create({
 			zid,
 			leadId: existingLead._id,
@@ -301,10 +329,9 @@ export const StudentService = {
 			preferredDays: existingLead.preferredDays ?? [],
 			timeslot: existingLead.preferredTimeslots?.[0]
 				? {
-					classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
-					durationMinutes:
-						existingLead.preferredTimeslots[0].durationMinutes,
-				}
+						classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
+						durationMinutes: existingLead.preferredTimeslots[0].durationMinutes,
+					}
 				: undefined,
 			price: existingLead.price,
 			startClassWhen: existingLead.startClassWhen,
@@ -323,14 +350,19 @@ export const StudentService = {
 			},
 		});
 
-		const syncedStudent = await syncStudentProcess(createdStudent._id.toString());
+		const syncedStudent = await syncStudentProcess(
+			createdStudent._id.toString(),
+		);
 
 		await logStudentActivity({
 			studentId: createdStudent._id.toString(),
 			type: "CREATED",
 			performedBy,
 			description: `Admission started with ZID: ${zid}`,
-			newValue: { status: "STUDENT", nextFollowUpAt: nextFollowUpAt.toISOString() },
+			newValue: {
+				status: "STUDENT",
+				nextFollowUpAt: nextFollowUpAt.toISOString(),
+			},
 			note,
 		});
 
@@ -350,7 +382,9 @@ export const StudentService = {
 			);
 		}
 
-		return toStudent((syncedStudent ?? createdStudent.toObject()) as StudentDocument);
+		return toStudent(
+			(syncedStudent ?? createdStudent.toObject()) as StudentDocument,
+		);
 	},
 
 	confirmAdmission: async (
@@ -387,7 +421,9 @@ export const StudentService = {
 				return null;
 			}
 
-			const syncedStudent = await syncStudentProcess(updatedExisting._id.toString());
+			const syncedStudent = await syncStudentProcess(
+				updatedExisting._id.toString(),
+			);
 			await logStudentActivity({
 				studentId: updatedExisting._id.toString(),
 				type: "STATUS_CHANGED",
@@ -440,10 +476,9 @@ export const StudentService = {
 			preferredDays: existingLead.preferredDays ?? [],
 			timeslot: existingLead.preferredTimeslots?.[0]
 				? {
-					classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
-					durationMinutes:
-						existingLead.preferredTimeslots[0].durationMinutes,
-				}
+						classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
+						durationMinutes: existingLead.preferredTimeslots[0].durationMinutes,
+					}
 				: undefined,
 			price: existingLead.price,
 			startClassWhen: existingLead.startClassWhen,
@@ -465,7 +500,9 @@ export const StudentService = {
 			},
 		});
 
-		const syncedStudent = await syncStudentProcess(createdStudent._id.toString());
+		const syncedStudent = await syncStudentProcess(
+			createdStudent._id.toString(),
+		);
 
 		await logStudentActivity({
 			studentId: createdStudent._id.toString(),
@@ -511,6 +548,8 @@ export const StudentService = {
 		// Delete the lead
 		await LeadModel.findByIdAndDelete(leadId);
 
-		return toStudent((syncedStudent ?? createdStudent.toObject()) as StudentDocument);
+		return toStudent(
+			(syncedStudent ?? createdStudent.toObject()) as StudentDocument,
+		);
 	},
 };

@@ -1,8 +1,8 @@
 ﻿import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { useCreateUserMutation } from "@/features/users/use-create-user-mutation";
 import { UserFormPanel } from "@/features/users/UserFormPanel";
+import { useCreateUserMutation } from "@/features/users/use-create-user-mutation";
 
 export const CreateUserPage = () => {
 	const navigate = useNavigate();
@@ -44,7 +44,7 @@ export const CreateUserPage = () => {
 			}
 
 			toast.error(
-				error instanceof Error ? error.message : "Unable to create user"
+				error instanceof Error ? error.message : "Unable to create user",
 			);
 		}
 	};

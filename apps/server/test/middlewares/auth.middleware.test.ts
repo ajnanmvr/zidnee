@@ -76,14 +76,14 @@ describe("auth middleware", () => {
 		});
 
 		const req = createRequest({
-				user: {
-					userId: randomUUID(),
-					username: "permission-user",
-					roleIds: [randomUUID()],
-					permissionIds: [permission.id],
-					iat: 0,
-					exp: 0,
-				},
+			user: {
+				userId: randomUUID(),
+				username: "permission-user",
+				roleIds: [randomUUID()],
+				permissionIds: [permission.id],
+				iat: 0,
+				exp: 0,
+			},
 		});
 		const next = vi.fn();
 
@@ -99,14 +99,14 @@ describe("auth middleware", () => {
 		});
 
 		const req = createRequest({
-				user: {
-					userId: randomUUID(),
-					username: "no-permission",
-					roleIds: [randomUUID()],
-					permissionIds: [],
-					iat: 0,
-					exp: 0,
-				},
+			user: {
+				userId: randomUUID(),
+				username: "no-permission",
+				roleIds: [randomUUID()],
+				permissionIds: [],
+				iat: 0,
+				exp: 0,
+			},
 		});
 		const next = vi.fn();
 
@@ -120,14 +120,14 @@ describe("auth middleware", () => {
 		const roleId = randomUUID();
 		const middleware = requireRole([roleId]);
 		const req = createRequest({
-				user: {
-					userId: randomUUID(),
-					username: "role-user",
-					roleIds: [roleId],
-					permissionIds: [],
-					iat: 0,
-					exp: 0,
-				},
+			user: {
+				userId: randomUUID(),
+				username: "role-user",
+				roleIds: [roleId],
+				permissionIds: [],
+				iat: 0,
+				exp: 0,
+			},
 		});
 		const next = vi.fn();
 

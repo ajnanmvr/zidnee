@@ -1,8 +1,8 @@
 import { StudentActivitiesResponseSchema } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
-import { type StudentActivityDocument } from "./student-activity.model.js";
 import { StudentService } from "./student.service.js";
+import type { StudentActivityDocument } from "./student-activity.model.js";
 
 const toActivityResponse = (activity: StudentActivityDocument) => {
 	const performedByName = (activity.performedBy as any)?.name || "Unknown";

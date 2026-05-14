@@ -199,10 +199,10 @@ export const EditRolePage = () => {
 						render={({ field, fieldState }) => (
 							<SelectField
 								label="Role Type"
-							value={field.value ?? "admin"}
-							onChange={field.onChange}
-							options={[
-								{ value: "admin", label: "Admin" },
+								value={field.value ?? "admin"}
+								onChange={field.onChange}
+								options={[
+									{ value: "admin", label: "Admin" },
 									{ value: "mentor", label: "Mentor" },
 									{ value: "counsellor", label: "Counsellor" },
 									{ value: "sales", label: "Sales" },

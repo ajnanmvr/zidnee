@@ -1,15 +1,23 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { HiArrowLeft } from "react-icons/hi2";
-import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
-import { ActivityTimeline } from "@/components/ActivityTimeline";
-import { getStudentStatusColor, getStudentStatusLabel } from "@/features/students/student-table";
-import { useRecordStudentFollowUpMutation } from "@/features/students/students.mutations";
-import { useStudentActivitiesQuery, useStudentsQuery } from "@/features/students/students.queries";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { HiArrowLeft } from "react-icons/hi2";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { CreateReminderModal } from "@/features/reminders/CreateReminderModal";
+import { RemindersList } from "@/features/reminders/RemindersList";
+import { useGetStudentReminders } from "@/features/reminders/reminders.mutations";
+import {
+	getStudentStatusColor,
+	getStudentStatusLabel,
+} from "@/features/students/student-table";
+import { useRecordStudentFollowUpMutation } from "@/features/students/students.mutations";
+import {
+	useStudentActivitiesQuery,
+	useStudentsQuery,
+} from "@/features/students/students.queries";
+import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
 export const StudentDetailPage = () => {
@@ -20,14 +28,18 @@ export const StudentDetailPage = () => {
 	const studentActivitiesQuery = useStudentActivitiesQuery(token, studentId);
 	const usersQuery = useUsersQuery(token);
 	const recordFollowUpMutation = useRecordStudentFollowUpMutation();
-	const [activeTab, setActiveTab] = useState<"follow-up" | "profile">("follow-up");
+	const [activeTab, setActiveTab] = useState<"follow-up" | "profile">(
+		"follow-up",
+	);
 	const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
 	const [followUpNote, setFollowUpNote] = useState("");
 	const [followUpError, setFollowUpError] = useState<string | undefined>();
+	const [remindersModalOpen, setRemindersModalOpen] = useState(false);
+	const remindersQuery = useGetStudentReminders(studentId ?? "");
 
 	const student = useMemo(
 		() => studentsQuery.data?.students.find((s) => s.id === studentId),
-		[studentsQuery.data?.students, studentId]
+		[studentsQuery.data?.students, studentId],
 	);
 
 	const mentorName = useMemo(() => {
@@ -38,18 +50,25 @@ export const StudentDetailPage = () => {
 
 	const admittedByName = useMemo(() => {
 		if (!student?.admittedBy) return "—";
-		const user = usersQuery.data?.users.find((u) => u.id === student.admittedBy);
+		const user = usersQuery.data?.users.find(
+			(u) => u.id === student.admittedBy,
+		);
 		return user?.name ?? user?.username ?? "Unknown";
 	}, [student?.admittedBy, usersQuery.data?.users]);
 
 	const followUpDate = useMemo(
 		() => student?.customNextFollowUpAt ?? student?.nextFollowUpAt ?? null,
-		[student?.customNextFollowUpAt, student?.nextFollowUpAt]
+		[student?.customNextFollowUpAt, student?.nextFollowUpAt],
 	);
 
 	const followUpMeta = useMemo(() => {
 		if (!followUpDate) {
-			return { label: "No follow-up set", tone: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200" };
+			return {
+				label: "No follow-up set",
+				tone: "text-gray-600",
+				bg: "bg-gray-50",
+				border: "border-gray-200",
+			};
 		}
 
 		const date = new Date(followUpDate);
@@ -127,29 +146,34 @@ export const StudentDetailPage = () => {
 			<div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 					<div className="flex items-start gap-3">
-					<button
-						onClick={() => navigate(-1)}
-						className="mt-1 text-gray-600 hover:text-gray-900"
-					>
-						<HiArrowLeft className="h-5 w-5" />
-					</button>
-					<div>
-						<div className="flex items-center gap-2">
-							<h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
-							<span
-								className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(
-									student.status
-								)}`}
-							>
-								{getStudentStatusLabel(student.status)}
-							</span>
+						<button
+							onClick={() => navigate(-1)}
+							className="mt-1 text-gray-600 hover:text-gray-900"
+						>
+							<HiArrowLeft className="h-5 w-5" />
+						</button>
+						<div>
+							<div className="flex items-center gap-2">
+								<h1 className="text-2xl font-bold text-gray-900">
+									{student.name}
+								</h1>
+								<span
+									className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(
+										student.status,
+									)}`}
+								>
+									{getStudentStatusLabel(student.status)}
+								</span>
+							</div>
+							<p className="text-sm text-gray-600 mt-1">
+								ZID:{" "}
+								<span className="font-mono font-semibold">{student.zid}</span>
+							</p>
 						</div>
-						<p className="text-sm text-gray-600 mt-1">
-							ZID: <span className="font-mono font-semibold">{student.zid}</span>
-						</p>
 					</div>
-					</div>
-					<div className={`rounded-2xl border px-4 py-3 ${followUpMeta.bg} ${followUpMeta.border}`}>
+					<div
+						className={`rounded-2xl border px-4 py-3 ${followUpMeta.bg} ${followUpMeta.border}`}
+					>
 						<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
 							Follow-up state
 						</p>
@@ -159,12 +183,12 @@ export const StudentDetailPage = () => {
 						<p className="mt-1 text-sm text-gray-700">
 							{followUpDate
 								? new Date(followUpDate).toLocaleString("en-IN", {
-									year: "numeric",
-									month: "short",
-									day: "numeric",
-									hour: "2-digit",
-									minute: "2-digit",
-								})
+										year: "numeric",
+										month: "short",
+										day: "numeric",
+										hour: "2-digit",
+										minute: "2-digit",
+									})
 								: "Set a follow-up date to surface this student in the worklist"}
 						</p>
 					</div>
@@ -180,24 +204,25 @@ export const StudentDetailPage = () => {
 					<p className="text-lg font-semibold text-gray-900 mt-1">
 						{followUpDate
 							? new Date(followUpDate).toLocaleDateString("en-IN", {
-								year: "numeric",
-								month: "short",
-								day: "numeric",
-							})
+									year: "numeric",
+									month: "short",
+									day: "numeric",
+								})
 							: "—"}
 					</p>
 					<p className="mt-2 text-xs text-gray-500">
-						This is the date that determines whether the student appears in the follow-up queue.
+						This is the date that determines whether the student appears in the
+						follow-up queue.
 					</p>
 				</div>
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">
-						Owner
-					</p>
+					<p className="text-xs text-gray-600 uppercase tracking-wide">Owner</p>
 					<p className="text-lg font-semibold text-gray-900 mt-1">
 						{mentorName}
 					</p>
-					<p className="mt-2 text-xs text-gray-500">Primary mentor / counsellor in charge.</p>
+					<p className="mt-2 text-xs text-gray-500">
+						Primary mentor / counsellor in charge.
+					</p>
 				</div>
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
 					<p className="text-xs text-gray-600 uppercase tracking-wide">
@@ -205,7 +230,7 @@ export const StudentDetailPage = () => {
 					</p>
 					<p
 						className={`mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(
-							student.status
+							student.status,
 						)}`}
 					>
 						{getStudentStatusLabel(student.status)}
@@ -218,7 +243,9 @@ export const StudentDetailPage = () => {
 					<p className="text-lg font-semibold text-gray-900 mt-1">
 						{student.processLabel ?? "—"}
 					</p>
-					<p className="mt-2 text-xs text-gray-500">Linked process for this student.</p>
+					<p className="mt-2 text-xs text-gray-500">
+						Linked process for this student.
+					</p>
 				</div>
 			</div>
 
@@ -255,13 +282,13 @@ export const StudentDetailPage = () => {
 						<Panel
 							title="Follow-up focus"
 							action={
-							<button
-								type="button"
-								onClick={openFollowUpModal}
-								className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
-							>
-								Record follow-up
-							</button>
+								<button
+									type="button"
+									onClick={openFollowUpModal}
+									className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+								>
+									Record follow-up
+								</button>
 							}
 						>
 							<div className="grid gap-4 sm:grid-cols-2">
@@ -269,15 +296,21 @@ export const StudentDetailPage = () => {
 									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
 										Contact
 									</p>
-									<p className="mt-1 text-lg font-semibold text-gray-900">{student.phone}</p>
+									<p className="mt-1 text-lg font-semibold text-gray-900">
+										{student.phone}
+									</p>
 									<p className="text-sm text-gray-600">{student.email}</p>
 								</div>
 								<div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
 									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
 										Coach / Mentor
 									</p>
-									<p className="mt-1 text-lg font-semibold text-gray-900">{mentorName}</p>
-									<p className="text-sm text-gray-600">{student.courseType ?? "—"} · {student.level ?? "—"}</p>
+									<p className="mt-1 text-lg font-semibold text-gray-900">
+										{mentorName}
+									</p>
+									<p className="text-sm text-gray-600">
+										{student.courseType ?? "—"} · {student.level ?? "—"}
+									</p>
 								</div>
 							</div>
 						</Panel>
@@ -285,31 +318,43 @@ export const StudentDetailPage = () => {
 						<Panel title="Current follow-up state">
 							<div className="grid gap-4 sm:grid-cols-3">
 								<div>
-									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
-									<p className="mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white" style={{ backgroundColor: "#14b8a6" }}>
+									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+										Status
+									</p>
+									<p
+										className="mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white"
+										style={{ backgroundColor: "#14b8a6" }}
+									>
 										{getStudentStatusLabel(student.status)}
 									</p>
 								</div>
 								<div>
-							<p className="mt-4 text-sm text-gray-600">
-								Use this action after a call, WhatsApp chat, or meeting to keep the follow-up queue accurate.
-							</p>
-									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Next follow-up</p>
+									<p className="mt-4 text-sm text-gray-600">
+										Use this action after a call, WhatsApp chat, or meeting to
+										keep the follow-up queue accurate.
+									</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+										Next follow-up
+									</p>
 									<p className="mt-1 text-base font-semibold text-gray-900">
 										{followUpDate
 											? new Date(followUpDate).toLocaleString("en-IN", {
-												year: "numeric",
-												month: "short",
-												day: "numeric",
-												hour: "2-digit",
-												minute: "2-digit",
-											})
+													year: "numeric",
+													month: "short",
+													day: "numeric",
+													hour: "2-digit",
+													minute: "2-digit",
+												})
 											: "—"}
 									</p>
 								</div>
 								<div>
-									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Linked process</p>
-									<p className="mt-1 text-base font-semibold text-gray-900">{student.processLabel ?? "—"}</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+										Linked process
+									</p>
+									<p className="mt-1 text-base font-semibold text-gray-900">
+										{student.processLabel ?? "—"}
+									</p>
 								</div>
 							</div>
 						</Panel>
@@ -320,17 +365,44 @@ export const StudentDetailPage = () => {
 								emptyMessage="No student history yet. All follow-up changes will appear here."
 							/>
 						</Panel>
+
+						<Panel
+							title="Reminders"
+							action={
+								<button
+									type="button"
+									onClick={() => setRemindersModalOpen(true)}
+									className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+								>
+									Add Reminder
+								</button>
+							}
+						>
+							<RemindersList
+								studentId={studentId ?? ""}
+								reminders={remindersQuery.data ?? []}
+								isLoading={remindersQuery.isLoading}
+								onAddNew={() => setRemindersModalOpen(true)}
+								users={usersQuery.data?.users ?? []}
+							/>
+						</Panel>
 					</div>
 
 					<div className="space-y-4">
 						<Panel title="Quick profile">
 							<dl className="space-y-4">
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Admitted By</dt>
-									<dd className="text-sm font-medium text-gray-900 mt-1">{admittedByName}</dd>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Admitted By
+									</dt>
+									<dd className="text-sm font-medium text-gray-900 mt-1">
+										{admittedByName}
+									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Admitted On</dt>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Admitted On
+									</dt>
 									<dd className="text-sm font-medium text-gray-900 mt-1">
 										{new Date(student.admittedAt).toLocaleDateString("en-IN", {
 											year: "numeric",
@@ -340,12 +412,20 @@ export const StudentDetailPage = () => {
 									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Primary WhatsApp</dt>
-									<dd className="text-sm font-medium text-gray-900 mt-1">{student.primaryWhatsappNumber ?? "—"}</dd>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Primary WhatsApp
+									</dt>
+									<dd className="text-sm font-medium text-gray-900 mt-1">
+										{student.primaryWhatsappNumber ?? "—"}
+									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Alternate WhatsApp</dt>
-									<dd className="text-sm font-medium text-gray-900 mt-1">{student.alternateWhatsappNumber ?? "—"}</dd>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Alternate WhatsApp
+									</dt>
+									<dd className="text-sm font-medium text-gray-900 mt-1">
+										{student.alternateWhatsappNumber ?? "—"}
+									</dd>
 								</div>
 							</dl>
 						</Panel>
@@ -353,16 +433,28 @@ export const StudentDetailPage = () => {
 						<Panel title="Student info">
 							<dl className="space-y-4">
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Background</dt>
-									<dd className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{student.studentInfo ?? "—"}</dd>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Background
+									</dt>
+									<dd className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
+										{student.studentInfo ?? "—"}
+									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Schedule preference</dt>
-									<dd className="text-sm font-medium text-gray-900 mt-1">{student.preferredSchedule ?? "—"}</dd>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Schedule preference
+									</dt>
+									<dd className="text-sm font-medium text-gray-900 mt-1">
+										{student.preferredSchedule ?? "—"}
+									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-gray-600 uppercase tracking-wide">Language</dt>
-									<dd className="text-sm font-medium text-gray-900 mt-1">{student.preferredLanguage ?? "—"}</dd>
+									<dt className="text-xs text-gray-600 uppercase tracking-wide">
+										Language
+									</dt>
+									<dd className="text-sm font-medium text-gray-900 mt-1">
+										{student.preferredLanguage ?? "—"}
+									</dd>
 								</div>
 							</dl>
 						</Panel>
@@ -375,21 +467,37 @@ export const StudentDetailPage = () => {
 					<Panel title="Academic profile">
 						<dl className="space-y-4">
 							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Course Type</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.courseType ?? "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Level</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.level ?? "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Classes per week</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.timeslot?.classesPerWeek ?? "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Duration</dt>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Course Type
+								</dt>
 								<dd className="text-sm font-medium text-gray-900 mt-1">
-									{student.timeslot?.durationMinutes ? `${student.timeslot.durationMinutes} minutes` : "—"}
+									{student.courseType ?? "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Level
+								</dt>
+								<dd className="text-sm font-medium text-gray-900 mt-1">
+									{student.level ?? "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Classes per week
+								</dt>
+								<dd className="text-sm font-medium text-gray-900 mt-1">
+									{student.timeslot?.classesPerWeek ?? "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Duration
+								</dt>
+								<dd className="text-sm font-medium text-gray-900 mt-1">
+									{student.timeslot?.durationMinutes
+										? `${student.timeslot.durationMinutes} minutes`
+										: "—"}
 								</dd>
 							</div>
 						</dl>
@@ -398,22 +506,38 @@ export const StudentDetailPage = () => {
 					<Panel title="Personal details">
 						<dl className="space-y-4">
 							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Date of Birth</dt>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Date of Birth
+								</dt>
 								<dd className="text-sm font-medium text-gray-900 mt-1">
-									{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString("en-IN") : "—"}
+									{student.dateOfBirth
+										? new Date(student.dateOfBirth).toLocaleDateString("en-IN")
+										: "—"}
 								</dd>
 							</div>
 							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Gender</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.gender ?? "—"}</dd>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Gender
+								</dt>
+								<dd className="text-sm font-medium text-gray-900 mt-1">
+									{student.gender ?? "—"}
+								</dd>
 							</div>
 							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Country</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.residingCountry ?? "—"}</dd>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									Country
+								</dt>
+								<dd className="text-sm font-medium text-gray-900 mt-1">
+									{student.residingCountry ?? "—"}
+								</dd>
 							</div>
 							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">How they heard about us</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.hearAboutUs ?? "—"}</dd>
+								<dt className="text-xs text-gray-600 uppercase tracking-wide">
+									How they heard about us
+								</dt>
+								<dd className="text-sm font-medium text-gray-900 mt-1">
+									{student.hearAboutUs ?? "—"}
+								</dd>
 							</div>
 						</dl>
 					</Panel>
@@ -450,7 +574,9 @@ export const StudentDetailPage = () => {
 							disabled={recordFollowUpMutation.isPending}
 							className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
 						>
-							{recordFollowUpMutation.isPending ? "Saving..." : "Record follow-up"}
+							{recordFollowUpMutation.isPending
+								? "Saving..."
+								: "Record follow-up"}
 						</button>
 					</>
 				}
@@ -470,6 +596,12 @@ export const StudentDetailPage = () => {
 					/>
 				</div>
 			</Modal>
+
+			<CreateReminderModal
+				studentId={studentId ?? ""}
+				isOpen={remindersModalOpen}
+				onClose={() => setRemindersModalOpen(false)}
+			/>
 		</div>
 	);
 };

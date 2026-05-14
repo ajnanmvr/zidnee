@@ -179,107 +179,79 @@ export const Sidebar = ({
 	currentLocation,
 }: SidebarProps) => {
 	const isActiveItem = (item: NavigationItem) => currentLocation === item.to;
-	const groupedItems = items.reduce<
-		Array<{ section: string; items: NavigationItem[] }>
-	>((groups, item) => {
+
+	// Filter valid items
+	const validItems = items.filter(
+		(item): item is NavigationItem =>
+			Boolean(item?.icon && item.to && item.label),
+	);
+
+	// Group the valid items
+	type GroupType = { section: string; items: NavigationItem[] };
+	const groupedItems: GroupType[] = [];
+
+	for (const item of validItems) {
 		const section = item.section ?? "General";
-		const existingGroup = groups.find((group) => group.section === section);
+		const existingGroup = groupedItems.find((g) => g.section === section);
 		if (existingGroup) {
 			existingGroup.items.push(item);
-			return groups;
+		} else {
+			groupedItems.push({ section, items: [item] });
 		}
+	}
 
-		groups.push({ section, items: [item] });
-		return groups;
-	}, []);
+	try {
 
-	return (
-		<aside
-			className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-300 bg-white transition-[width] duration-300 ease-out lg:flex lg:flex-col"
-			style={{ width: open ? "16rem" : "4.75rem" }}
-		>
+	const SidebarContent = () => (
+		<>
 			<div className="flex items-center justify-between gap-3 border-b border-gray-300 px-4 py-4">
-				<div
-					className={
-						open
-							? "flex items-center gap-3 overflow-hidden"
-							: "flex items-center justify-center overflow-hidden"
-					}
-				>
+				<div className="flex items-center gap-3 overflow-hidden">
 					<img
 						src="/logo.png"
 						alt="Zidnee logo"
 						className="h-10 w-10 shrink-0 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
 					/>
-					{open ? (
-						<div>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-								Zidnee ERP
-							</p>
-							<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
-						</div>
-					) : null}
+					<div>
+						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
+							Zidnee ERP
+						</p>
+						<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
+					</div>
 				</div>
-				<button
-					type="button"
-					className="grid h-9 w-9 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
-					onClick={onToggle}
-					aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-				>
-					<HiChevronRight
-						className={
-							open
-								? "h-5 w-5 transition-transform duration-300"
-								: "h-5 w-5 rotate-180 transition-transform duration-300"
-						}
-						aria-hidden="true"
-					/>
-				</button>
 			</div>
 
-			<nav
-				className="flex-1 overflow-y-auto px-3 py-4"
-				aria-label="Dashboard sections"
-			>
+			<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
 				<div className="grid gap-4">
 					{groupedItems.map((group) => (
 						<div key={group.section} className="grid gap-1">
-							{open ? (
-								<p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
-									{group.section}
-								</p>
-							) : null}
+							<p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+								{group.section}
+							</p>
 							{group.items.map((item) => {
 								const accent = accentStyles[item.accent ?? "emerald"];
 								const isActive = isActiveItem(item);
-
 								return (
 									<Link
 										key={item.to}
 										to={item.to}
+										onClick={() => onToggle()}
 										className={
 											isActive
-												? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center"}`
-												: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center"}`
+												? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active}`
+												: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900`
 										}
 									>
 										<span className={accent.icon}>{item.icon}</span>
-										{open ? (
-											<div className="min-w-0 flex-1">
-												<div className="flex items-center justify-between gap-2">
-													<span className="block truncate text-sm font-semibold">
-														{item.label}
+										<div className="min-w-0 flex-1">
+											<div className="flex items-center justify-between gap-2">
+												<span className="block truncate text-sm font-semibold">{item.label}</span>
+												{typeof item.count === "number" && item.count > 0 ? (
+													<span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}>
+														{item.count}
 													</span>
-													{typeof item.count === "number" && item.count > 0 ? (
-														<span
-															className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}
-														>
-															{item.count}
-														</span>
-													) : null}
-												</div>
+												) : null}
 											</div>
-										) : null}
+										</div>
 									</Link>
 								);
 							})}
@@ -290,15 +262,159 @@ export const Sidebar = ({
 				<div className="mt-4 px-1">
 					<button
 						type="button"
-						className={`w-full rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700 ${open ? "justify-start" : "justify-center"}`}
+						className="w-full rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
 						onClick={onLogout}
 					>
 						Log out
 					</button>
 				</div>
 			</nav>
-		</aside>
+		</>
 	);
+
+	return (
+		<>
+			{/* Desktop Sidebar */}
+			<aside
+				className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-300 bg-white transition-[width] duration-300 ease-out lg:flex lg:flex-col"
+				style={{ width: open ? "16rem" : "4.75rem" }}
+			>
+				<div className="flex items-center justify-between gap-3 border-b border-gray-300 px-4 py-4">
+					<div
+						className={
+							open
+								? "flex items-center gap-3 overflow-hidden"
+								: "flex items-center justify-center overflow-hidden"
+						}
+					>
+						<img
+							src="/logo.png"
+							alt="Zidnee logo"
+							className="h-10 w-10 shrink-0 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
+						/>
+						{open ? (
+							<div>
+								<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
+									Zidnee ERP
+								</p>
+								<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
+							</div>
+						) : null}
+					</div>
+					<button
+						type="button"
+						className="grid h-9 w-9 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
+						onClick={onToggle}
+						aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+					>
+						<HiChevronRight
+							className={
+								open
+									? "h-5 w-5 transition-transform duration-300"
+									: "h-5 w-5 rotate-180 transition-transform duration-300"
+							}
+							aria-hidden="true"
+						/>
+					</button>
+				</div>
+
+				<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
+					<div className="grid gap-4">
+						{groupedItems.map((group) => (
+							<div key={group.section} className="grid gap-1">
+								{open ? (
+									<p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+										{group.section}
+									</p>
+								) : null}
+								{group.items
+									.filter(
+										(item) =>
+											item &&
+											typeof item === "object" &&
+											item.icon &&
+											item.to &&
+											item.label,
+									)
+									.map((item) => {
+										if (!item || !item.icon || !item.to || !item.label) {
+											return null;
+										}
+
+										const accent = accentStyles[item.accent ?? "emerald"];
+										const isActive = isActiveItem(item);
+
+										return (
+											<Link
+												key={item.to}
+												to={item.to}
+												className={
+													isActive
+														? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center"}`
+														: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center"}`
+												}
+											>
+												<span className={accent.icon}>{item.icon}</span>
+											{open ? (
+												<div className="min-w-0 flex-1">
+													<div className="flex items-center justify-between gap-2">
+														<span className="block truncate text-sm font-semibold">
+															{item.label}
+														</span>
+														{typeof item.count === "number" && item.count > 0 ? (
+															<span
+																className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}
+															>
+																{item.count}
+															</span>
+														) : null}
+													</div>
+												</div>
+											) : null}
+										</Link>
+									);
+									})}
+							</div>
+						))}
+					</div>
+
+					<div className="mt-4 px-1">
+						<button
+							type="button"
+							className={`w-full rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700 ${open ? "justify-start" : "justify-center"}`}
+							onClick={onLogout}
+						>
+							Log out
+						</button>
+					</div>
+				</nav>
+			</aside>
+
+			{/* Mobile Sidebar Drawer */}
+			{open && (
+				<>
+					{/* Overlay */}
+					<div
+						className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden"
+						onClick={onToggle}
+						aria-hidden="true"
+					/>
+					{/* Drawer */}
+					<aside className="fixed inset-y-0 left-0 z-40 w-64 overflow-y-auto border-r border-gray-300 bg-white lg:hidden">
+						<SidebarContent />
+					</aside>
+				</>
+			)}
+		</>
+	);
+	} catch (error) {
+		console.error("Sidebar render error:", error);
+		return (
+			<aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-300 bg-white lg:flex lg:flex-col p-4">
+				<p className="text-sm text-red-600">Sidebar error - please refresh the page</p>
+			</aside>
+		);
+	}
 };
 
 export const DashboardHeader = ({

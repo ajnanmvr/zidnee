@@ -79,8 +79,13 @@ const studentProcessSchema = new Schema<StudentProcessDocument>(
 );
 
 export const StudentProcessModel =
-	(mongoose.models.StudentProcess as Model<StudentProcessDocument> | undefined) ??
-	mongoose.model<StudentProcessDocument>("StudentProcess", studentProcessSchema);
+	(mongoose.models.StudentProcess as
+		| Model<StudentProcessDocument>
+		| undefined) ??
+	mongoose.model<StudentProcessDocument>(
+		"StudentProcess",
+		studentProcessSchema,
+	);
 
 export const getStudentProcessTemplate = (status: StudentStatus) => {
 	switch (status) {
@@ -88,18 +93,42 @@ export const getStudentProcessTemplate = (status: StudentStatus) => {
 			return {
 				label: "Break Process",
 				tasks: [
-					{ key: "break-reason", label: "Capture break reason", completed: false },
-					{ key: "break-duration", label: "Set break duration", completed: false },
-					{ key: "resume-follow-up", label: "Plan resume follow-up", completed: false },
+					{
+						key: "break-reason",
+						label: "Capture break reason",
+						completed: false,
+					},
+					{
+						key: "break-duration",
+						label: "Set break duration",
+						completed: false,
+					},
+					{
+						key: "resume-follow-up",
+						label: "Plan resume follow-up",
+						completed: false,
+					},
 				],
 			};
 		case "DROPPED":
 			return {
 				label: "Drop Process",
 				tasks: [
-					{ key: "drop-reason", label: "Capture dropout reason", completed: false },
-					{ key: "close-loop", label: "Close pending follow-ups", completed: false },
-					{ key: "archive-student", label: "Archive student record", completed: false },
+					{
+						key: "drop-reason",
+						label: "Capture dropout reason",
+						completed: false,
+					},
+					{
+						key: "close-loop",
+						label: "Close pending follow-ups",
+						completed: false,
+					},
+					{
+						key: "archive-student",
+						label: "Archive student record",
+						completed: false,
+					},
 				],
 			};
 		case "STUDENT":
@@ -108,7 +137,11 @@ export const getStudentProcessTemplate = (status: StudentStatus) => {
 				label: "Student Process",
 				tasks: [
 					{ key: "onboarding", label: "Complete onboarding", completed: false },
-					{ key: "batch-allocation", label: "Confirm batch allocation", completed: false },
+					{
+						key: "batch-allocation",
+						label: "Confirm batch allocation",
+						completed: false,
+					},
 					{ key: "first-class", label: "Attend first class", completed: false },
 				],
 			};

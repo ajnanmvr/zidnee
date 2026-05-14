@@ -246,127 +246,123 @@ export const AdmissionDetailPageEnhanced = () => {
 						Online School Setup
 					</h3>
 
-						{/* Mentor Selection */}
-						<Controller
-							name="mentorId"
-							control={control}
-							render={({ field, fieldState }) => (
-								<label className="grid gap-2 text-sm font-medium text-gray-600">
-									<span>Select Mentor</span>
-									<select
-										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-										value={field.value ?? ""}
-										onChange={(e) =>
-											field.onChange(e.target.value || undefined)
-										}
-									>
-										<option value="">Choose a mentor...</option>
-										{mentors.map((mentor) => (
-											<option key={mentor.id} value={mentor.id}>
-												{formatUserName(mentor.name ?? mentor.username)}
-											</option>
-										))}
-									</select>
-									{fieldState.error?.message && (
-										<span className="text-xs text-red-600">
-											{fieldState.error.message}
-										</span>
-									)}
-								</label>
-							)}
-						/>
-
-						{selectedMentorId && (
-							<>
-								{/* Batch Type Selection */}
-								<div className="grid gap-2">
-									<span className="text-sm font-medium text-gray-600">
-										Batch Type
+					{/* Mentor Selection */}
+					<Controller
+						name="mentorId"
+						control={control}
+						render={({ field, fieldState }) => (
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
+								<span>Select Mentor</span>
+								<select
+									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+									value={field.value ?? ""}
+									onChange={(e) => field.onChange(e.target.value || undefined)}
+								>
+									<option value="">Choose a mentor...</option>
+									{mentors.map((mentor) => (
+										<option key={mentor.id} value={mentor.id}>
+											{formatUserName(mentor.name ?? mentor.username)}
+										</option>
+									))}
+								</select>
+								{fieldState.error?.message && (
+									<span className="text-xs text-red-600">
+										{fieldState.error.message}
 									</span>
-									<div className="grid gap-2 md:grid-cols-2">
-										<Controller
-											name="batchType"
-											control={control}
-											render={({ field }) => (
-												<button
-													type="button"
-													onClick={() => field.onChange("1_TO_1")}
-													className={`rounded-2xl border-2 p-3 text-left transition ${
-														field.value === "1_TO_1"
-															? "border-blue-600 bg-blue-50"
-															: "border-gray-300 bg-white"
-													}`}
-												>
-													<div className="font-semibold text-gray-900">
-														1-to-1
-													</div>
-													<div className="text-xs text-gray-600">
-														Personal tutoring
-													</div>
-												</button>
-											)}
-										/>
-										<Controller
-											name="batchType"
-											control={control}
-											render={({ field }) => (
-												<button
-													type="button"
-													onClick={() => field.onChange("GROUP")}
-													className={`rounded-2xl border-2 p-3 text-left transition ${
-														field.value === "GROUP"
-															? "border-blue-600 bg-blue-50"
-															: "border-gray-300 bg-white"
-													}`}
-												>
-													<div className="font-semibold text-gray-900">
-														Group
-													</div>
-													<div className="text-xs text-gray-600">
-														Group learning
-													</div>
-												</button>
-											)}
-										/>
-									</div>
-								</div>
+								)}
+							</label>
+						)}
+					/>
 
-								{/* Batch Selection for Group */}
-								{selectedBatchType === "GROUP" && (
+					{selectedMentorId && (
+						<>
+							{/* Batch Type Selection */}
+							<div className="grid gap-2">
+								<span className="text-sm font-medium text-gray-600">
+									Batch Type
+								</span>
+								<div className="grid gap-2 md:grid-cols-2">
 									<Controller
-										name="batchId"
+										name="batchType"
 										control={control}
-										render={({ field, fieldState }) => (
-											<label className="grid gap-2 text-sm font-medium text-gray-600">
-												<span>Select or Create Group</span>
-												<select
-													className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-													value={field.value ?? ""}
-													onChange={(e) =>
-														field.onChange(e.target.value || undefined)
-													}
-												>
-													<option value="">Choose a group...</option>
-													{batchesQuery.data?.batches
-														?.filter((b) => b.type === "GROUP")
-														?.map((batch) => (
-															<option key={batch.id} value={batch.id}>
-																{batch.name}
-															</option>
-														))}
-												</select>
-												{fieldState.error?.message && (
-													<span className="text-xs text-red-600">
-														{fieldState.error.message}
-													</span>
-												)}
-											</label>
+										render={({ field }) => (
+											<button
+												type="button"
+												onClick={() => field.onChange("1_TO_1")}
+												className={`rounded-2xl border-2 p-3 text-left transition ${
+													field.value === "1_TO_1"
+														? "border-blue-600 bg-blue-50"
+														: "border-gray-300 bg-white"
+												}`}
+											>
+												<div className="font-semibold text-gray-900">
+													1-to-1
+												</div>
+												<div className="text-xs text-gray-600">
+													Personal tutoring
+												</div>
+											</button>
 										)}
 									/>
-								)}
-							</>
-						)}
-					</div>
+									<Controller
+										name="batchType"
+										control={control}
+										render={({ field }) => (
+											<button
+												type="button"
+												onClick={() => field.onChange("GROUP")}
+												className={`rounded-2xl border-2 p-3 text-left transition ${
+													field.value === "GROUP"
+														? "border-blue-600 bg-blue-50"
+														: "border-gray-300 bg-white"
+												}`}
+											>
+												<div className="font-semibold text-gray-900">Group</div>
+												<div className="text-xs text-gray-600">
+													Group learning
+												</div>
+											</button>
+										)}
+									/>
+								</div>
+							</div>
+
+							{/* Batch Selection for Group */}
+							{selectedBatchType === "GROUP" && (
+								<Controller
+									name="batchId"
+									control={control}
+									render={({ field, fieldState }) => (
+										<label className="grid gap-2 text-sm font-medium text-gray-600">
+											<span>Select or Create Group</span>
+											<select
+												className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+												value={field.value ?? ""}
+												onChange={(e) =>
+													field.onChange(e.target.value || undefined)
+												}
+											>
+												<option value="">Choose a group...</option>
+												{batchesQuery.data?.batches
+													?.filter((b) => b.type === "GROUP")
+													?.map((batch) => (
+														<option key={batch.id} value={batch.id}>
+															{batch.name}
+														</option>
+													))}
+											</select>
+											{fieldState.error?.message && (
+												<span className="text-xs text-red-600">
+													{fieldState.error.message}
+												</span>
+											)}
+										</label>
+									)}
+								/>
+							)}
+						</>
+					)}
+				</div>
 
 				{/* Counsellor Selection */}
 				<div className="rounded-2xl border border-gray-300 bg-white p-6">
@@ -380,7 +376,8 @@ export const AdmissionDetailPageEnhanced = () => {
 									<div className="flex flex-col gap-2">
 										<div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
 											<span className="font-medium text-gray-900">
-												Auto-assigned: {userNameById.get(mentorCounsellorId ?? "") ?? "-"}
+												Auto-assigned:{" "}
+												{userNameById.get(mentorCounsellorId ?? "") ?? "-"}
 											</span>
 											<p className="mt-1 text-xs text-gray-600">
 												The selected mentor already has a counsellor assigned

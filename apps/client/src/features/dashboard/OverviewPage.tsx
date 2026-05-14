@@ -52,7 +52,9 @@ export const OverviewPage = () => {
 		}
 
 		if (page.to === "/counsellor/students") {
-			return meQuery.data?.roles?.some((role) => role.name === "Counsellor") ?? false;
+			return (
+				meQuery.data?.roles?.some((role) => role.name === "Counsellor") ?? false
+			);
 		}
 
 		if (page.to === "/time-slots") {
@@ -97,8 +99,12 @@ export const OverviewPage = () => {
 						to={page.to}
 						className="rounded-3xl border border-gray-300 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
 					>
-						<p className="text-base font-semibold text-gray-900">{page.label}</p>
-						<p className="mt-1 text-sm leading-6 text-gray-600">{page.description}</p>
+						<p className="text-base font-semibold text-gray-900">
+							{page.label}
+						</p>
+						<p className="mt-1 text-sm leading-6 text-gray-600">
+							{page.description}
+						</p>
 					</Link>
 				))}
 			</section>

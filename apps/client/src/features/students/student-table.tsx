@@ -1,7 +1,7 @@
-import { type ColumnDef } from "@tanstack/react-table";
+import type { Student } from "@repo/schema";
+import type { ColumnDef } from "@tanstack/react-table";
 import { HiCog6Tooth } from "react-icons/hi2";
 import { Link } from "react-router-dom";
-import type { Student } from "@repo/schema";
 
 export type StudentTableRow = Student;
 
@@ -122,12 +122,14 @@ export const buildStudentColumns = (
 			header: "Status",
 			size: 130,
 			cell: ({ row }) => {
-				const hasProcess = Boolean(row.original.processId || row.original.processLabel);
+				const hasProcess = Boolean(
+					row.original.processId || row.original.processLabel,
+				);
 
 				return (
 					<span
 						className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white ${getColorByStatus(
-							row.original.status
+							row.original.status,
 						)}`}
 					>
 						{hasProcess ? (
@@ -147,7 +149,8 @@ export const buildStudentColumns = (
 			header: "Next Follow-up",
 			size: 200,
 			cell: ({ row }) => {
-				const followUpDate = row.original.customNextFollowUpAt ?? row.original.nextFollowUpAt;
+				const followUpDate =
+					row.original.customNextFollowUpAt ?? row.original.nextFollowUpAt;
 				const state = getStudentFollowUpState(
 					row.original.customNextFollowUpAt,
 					row.original.nextFollowUpAt,
@@ -158,10 +161,10 @@ export const buildStudentColumns = (
 						<p>
 							{followUpDate
 								? new Date(followUpDate).toLocaleDateString("en-IN", {
-									year: "numeric",
-									month: "short",
-									day: "numeric",
-								})
+										year: "numeric",
+										month: "short",
+										day: "numeric",
+									})
 								: "—"}
 						</p>
 						<span
@@ -176,7 +179,11 @@ export const buildStudentColumns = (
 	];
 };
 
-export const formatUserName = (user: { firstName?: string; lastName?: string; name?: string }): string => {
+export const formatUserName = (user: {
+	firstName?: string;
+	lastName?: string;
+	name?: string;
+}): string => {
 	if (user.name) return user.name;
 	const parts = [];
 	if (user.firstName) parts.push(user.firstName);
