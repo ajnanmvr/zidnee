@@ -1,31 +1,48 @@
 import type { Student } from "@repo/schema";
+import { AppError } from "../../utils/errors.util.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
-import { UserModel } from "../users/user.model.js";
+import { LeadActivityModel } from "../leads/activity.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
+import {
+	getStudentProcessTemplate,
+	type StudentProcessDocument,
+	StudentProcessModel,
+} from "./student-process.model.js";
+import { type StudentActivityDocument, StudentActivityModel } from "./student-activity.model.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
+
+type StudentListFilters = {
+	status?: string;
+	search?: string;
+	sortBy?: string;
+	sortOrder?: "asc" | "desc";
+	page?: number;
+	limit?: number;
+};
+
+const getDefaultStudentFollowUpAt = (source?: Date | null): Date => {
+	return source ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+};
+
+const getStudentSort = (
+	sortBy?: string,
+	sortOrder: "asc" | "desc" = "asc",
+): Array<[string, 1 | -1]> => {
+	const allowed = new Set([
+		"nextFollowUpAt",
+		"admittedAt",
+		"createdAt",
+		"name",
+		"zid",
+	]);
+	const effectiveSortBy = allowed.has(sortBy ?? "") ? sortBy! : "nextFollowUpAt";
+	return [[effectiveSortBy, sortOrder === "asc" ? 1 : -1]];
+};
 
 const getLatestLeadDemo = (lead: LeadDocument) => {
 	const demos = lead.demos ?? [];
 	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
-};
-
-const setLatestLeadDemo = (
-	lead: LeadDocument,
-	patch: Record<string, unknown>,
-) => {
-	const demos = [...(lead.demos ?? [])];
-	if (demos.length === 0) {
-		demos.push(patch as NonNullable<LeadDocument["demos"]>[number]);
-		return demos;
-	}
-
-	demos[demos.length - 1] = {
-		...demos[demos.length - 1],
-		...patch,
-	} as NonNullable<LeadDocument["demos"]>[number];
-
-	return demos;
 };
 
 const toStudent = (doc: StudentDocument): Student => {
@@ -35,10 +52,29 @@ const toStudent = (doc: StudentDocument): Student => {
 		leadId: doc.leadId.toString(),
 		name: doc.name,
 		phone: doc.phone,
+		email: doc.email,
+		courseType: doc.courseType,
+		level: doc.level,
+		admittedBy: doc.admittedBy.toString(),
+		dateOfBirth: doc.dateOfBirth,
+		residingCountry: doc.residingCountry,
+		gender: doc.gender,
+		primaryWhatsappNumber: doc.primaryWhatsappNumber,
+		alternateWhatsappNumber: doc.alternateWhatsappNumber,
+		studentInfo: doc.studentInfo,
+		preferredLanguage: doc.preferredLanguage,
+		preferredSchedule: doc.preferredSchedule,
+		preferredDays: doc.preferredDays ?? [],
+		timeslot: doc.timeslot,
+		price: doc.price,
+		startClassWhen: doc.startClassWhen,
+		hearAboutUs: doc.hearAboutUs,
 		mentorId: doc.mentorId?.toString(),
-		counsellorId: doc.counsellorId?.toString(),
 		batchId: doc.batchId?.toString(),
-		batchType: doc.batchType,
+		processId: doc.processId?.toString(),
+		processLabel: doc.processLabel,
+		nextFollowUpAt: doc.nextFollowUpAt,
+		customNextFollowUpAt: doc.customNextFollowUpAt,
 		status: doc.status,
 		admittedAt: doc.admittedAt,
 		createdAt: doc.createdAt,
@@ -52,10 +88,92 @@ const nextStudentZid = async (): Promise<string> => {
 	return buildStudentIdentity(students.map((student) => student.zid));
 };
 
+const logStudentActivity = async (params: {
+	studentId: string;
+	type: "CREATED" | "UPDATED" | "FOLLOW_UP_POSTPONED" | "FOLLOW_UP_RECORDED" | "STATUS_CHANGED" | "PROCESS_LINKED" | "PROCESS_UPDATED" | "DELETED";
+	performedBy: string;
+	description: string;
+	oldValue?: Record<string, unknown>;
+	newValue?: Record<string, unknown>;
+	note?: string;
+}) => {
+	return StudentActivityModel.create({
+		studentId: params.studentId,
+		type: params.type,
+		performedBy: params.performedBy,
+		description: params.description,
+		oldValue: params.oldValue,
+		newValue: params.newValue,
+		note: params.note,
+	});
+};
+
+const syncStudentProcess = async (
+	studentId: string,
+): Promise<StudentDocument | null> => {
+	const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+	if (!student) {
+		return null;
+	}
+
+	const template = getStudentProcessTemplate(student.status);
+	const process = await StudentProcessModel.findOneAndUpdate(
+		{ studentId: student._id },
+		{
+			$set: {
+				status: student.status,
+				label: template.label,
+				tasks: template.tasks,
+			},
+			$setOnInsert: {
+				studentId: student._id,
+			},
+		},
+		{ new: true, upsert: true },
+	).lean<StudentProcessDocument | null>();
+
+
+	if (!process) {
+		return student;
+	}
+
+	const updatedStudent = await StudentModel.findByIdAndUpdate(
+		student._id,
+		{
+			$set: {
+				processId: process._id,
+				processLabel: process.label,
+			},
+		},
+		{ returnDocument: "after" },
+	).lean<StudentDocument | null>();
+
+	return updatedStudent ?? student;
+};
+
 export const StudentService = {
-	listStudents: async (): Promise<Student[]> => {
-		const students = await StudentModel.find()
-			.sort({ admittedAt: -1 })
+	listStudents: async (filters: StudentListFilters = {}): Promise<Student[]> => {
+		const query: Record<string, unknown> = {};
+
+		if (filters.status) {
+			query.status = filters.status;
+		}
+
+		if (filters.search?.trim()) {
+			const search = filters.search.trim();
+			query.$or = [
+				{ name: { $regex: search, $options: "i" } },
+				{ phone: { $regex: search, $options: "i" } },
+				{ email: { $regex: search, $options: "i" } },
+				{ zid: { $regex: search, $options: "i" } },
+				{ processLabel: { $regex: search, $options: "i" } },
+			];
+		}
+
+		const students = await StudentModel.find(query)
+			.sort(getStudentSort(filters.sortBy, filters.sortOrder))
+			.skip(filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0)
+			.limit(filters.limit && filters.limit > 0 ? filters.limit : 0)
 			.lean<StudentDocument[]>();
 		return students.map(toStudent);
 	},
@@ -67,12 +185,64 @@ export const StudentService = {
 		return student ? toStudent(student) : null;
 	},
 
-	confirmAdmission: async (
+	getStudentActivities: async (studentId: string): Promise<StudentActivityDocument[]> => {
+		return StudentActivityModel.find({ studentId })
+			.populate("performedBy", "name")
+			.sort({ createdAt: -1 })
+			.exec();
+	},
+
+	recordFollowUp: async (
+		studentId: string,
+		performedBy: string,
+		note: string,
+	): Promise<Student | null> => {
+		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+		if (!student) {
+			throw new AppError(404, "Student not found");
+		}
+
+		const nextFollowUpAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+		const updatedStudent = await StudentModel.findByIdAndUpdate(
+			student._id,
+			{
+				$set: {
+					nextFollowUpAt,
+				},
+				$unset: {
+					customNextFollowUpAt: 1,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<StudentDocument | null>();
+
+		if (!updatedStudent) {
+			return null;
+		}
+
+		await logStudentActivity({
+			studentId: student._id.toString(),
+			type: "FOLLOW_UP_RECORDED",
+			performedBy,
+			description: note,
+			note,
+			oldValue: {
+				nextFollowUpAt: student.nextFollowUpAt?.toISOString() ?? null,
+				customNextFollowUpAt: student.customNextFollowUpAt?.toISOString() ?? null,
+			},
+			newValue: {
+				nextFollowUpAt: nextFollowUpAt.toISOString(),
+				customNextFollowUpAt: null,
+			},
+		});
+
+		return toStudent(updatedStudent);
+	},
+
+	startAdmission: async (
 		leadId: string,
-		counsellorId?: string,
 		mentorId?: string,
 		batchId?: string,
-		batchType?: "1_TO_1" | "GROUP",
 		performedBy?: string,
 		note?: string,
 	): Promise<Student | null> => {
@@ -87,20 +257,165 @@ export const StudentService = {
 			leadId,
 		}).lean<StudentDocument | null>();
 		if (existingStudent) {
-			return toStudent(existingStudent);
+			const syncedStudent = await syncStudentProcess(existingStudent._id.toString());
+			await logStudentActivity({
+				studentId: existingStudent._id.toString(),
+				type: "UPDATED",
+				performedBy: performedBy ?? existingLead.createdBy.toString(),
+				description: "Student already exists and was revisited during admission",
+			});
+			return toStudent((syncedStudent ?? existingStudent) as StudentDocument);
 		}
 
 		const latestDemo = getLatestLeadDemo(existingLead);
-		let resolvedCounsellorId = counsellorId;
 		const resolvedMentorId = mentorId ?? latestDemo?.mentorId?.toString();
 
-		if (!resolvedCounsellorId && resolvedMentorId) {
-			const mentor = await UserModel.findById(resolvedMentorId).lean();
-			resolvedCounsellorId = mentor?.counsellorId?.toString();
+		if (!existingLead.email) {
+			throw new Error("Lead email is required before admission");
 		}
 
-		if (!resolvedCounsellorId) {
-			throw new Error("Counsellor ID is required for admission");
+		if (!performedBy) {
+			throw new Error("admittedBy user is required");
+		}
+
+		const zid = await nextStudentZid();
+		const admittedAt = new Date();
+		const nextFollowUpAt = getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt);
+		const createdStudent = await StudentModel.create({
+			zid,
+			leadId: existingLead._id,
+			name: existingLead.name,
+			phone: existingLead.phone,
+			email: existingLead.email,
+			courseType: existingLead.courseType,
+			level: existingLead.level,
+			admittedBy: performedBy,
+			dateOfBirth: existingLead.dateOfBirth,
+			residingCountry: existingLead.residingCountry,
+			gender: existingLead.gender,
+			primaryWhatsappNumber: existingLead.primaryWhatsappNumber,
+			alternateWhatsappNumber: existingLead.alternateWhatsappNumber,
+			studentInfo: existingLead.studentInfo,
+			preferredLanguage: existingLead.preferredLanguage,
+			preferredSchedule: existingLead.preferredSchedule,
+			preferredDays: existingLead.preferredDays ?? [],
+			timeslot: existingLead.preferredTimeslots?.[0]
+				? {
+					classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
+					durationMinutes:
+						existingLead.preferredTimeslots[0].durationMinutes,
+				}
+				: undefined,
+			price: existingLead.price,
+			startClassWhen: existingLead.startClassWhen,
+			hearAboutUs: existingLead.hearAboutUs,
+			mentorId: resolvedMentorId,
+			batchId,
+			status: "STUDENT",
+			nextFollowUpAt,
+			admittedAt,
+		});
+
+		await LeadModel.findByIdAndUpdate(leadId, {
+			$set: {
+				admissionRequestedAt: admittedAt,
+				studentId: createdStudent._id.toString(),
+			},
+		});
+
+		const syncedStudent = await syncStudentProcess(createdStudent._id.toString());
+
+		await logStudentActivity({
+			studentId: createdStudent._id.toString(),
+			type: "CREATED",
+			performedBy,
+			description: `Admission started with ZID: ${zid}`,
+			newValue: { status: "STUDENT", nextFollowUpAt: nextFollowUpAt.toISOString() },
+			note,
+		});
+
+		if (performedBy) {
+			await ActivityService.logActivity(
+				leadId,
+				"STUDENT_CREATED",
+				performedBy,
+				`Admission started with ZID: ${zid}`,
+				undefined,
+				{
+					zid,
+					studentId: createdStudent._id.toString(),
+					status: "STUDENT",
+				},
+				note,
+			);
+		}
+
+		return toStudent((syncedStudent ?? createdStudent.toObject()) as StudentDocument);
+	},
+
+	confirmAdmission: async (
+		leadId: string,
+		mentorId?: string,
+		batchId?: string,
+		performedBy?: string,
+		note?: string,
+	): Promise<Student | null> => {
+		const existingLead = await LeadModel.findById(
+			leadId,
+		).lean<LeadDocument | null>();
+		if (!existingLead) {
+			return null;
+		}
+
+		const existingStudent = await StudentModel.findOne({
+			leadId,
+		}).lean<StudentDocument | null>();
+		if (existingStudent) {
+			const updatedExisting = await StudentModel.findByIdAndUpdate(
+				existingStudent._id,
+				{
+					$set: {
+						status: "STUDENT",
+						mentorId: mentorId ?? existingStudent.mentorId,
+						batchId: batchId ?? existingStudent.batchId,
+					},
+				},
+				{ returnDocument: "after" },
+			).lean<StudentDocument | null>();
+
+			if (!updatedExisting) {
+				return null;
+			}
+
+			const syncedStudent = await syncStudentProcess(updatedExisting._id.toString());
+			await logStudentActivity({
+				studentId: updatedExisting._id.toString(),
+				type: "STATUS_CHANGED",
+				performedBy: performedBy ?? existingLead.createdBy.toString(),
+				description: "Student confirmed from admission workflow",
+				oldValue: { status: existingStudent.status },
+				newValue: { status: "STUDENT" },
+				note,
+			});
+
+			// Delete all activities for this lead
+			await LeadActivityModel.deleteMany({ leadId });
+
+			// Delete the lead
+			await LeadModel.findByIdAndDelete(leadId);
+
+			return toStudent((syncedStudent ?? updatedExisting) as StudentDocument);
+		}
+
+		const latestDemo = getLatestLeadDemo(existingLead);
+		const resolvedMentorId = mentorId ?? latestDemo?.mentorId?.toString();
+
+		if (!existingLead.email) {
+			throw new Error("Lead email is required before admission");
+		}
+
+		if (!performedBy) {
+			throw new Error("admittedBy user is required");
 		}
 
 		const zid = await nextStudentZid();
@@ -108,29 +423,57 @@ export const StudentService = {
 		const createdStudent = await StudentModel.create({
 			zid,
 			leadId: existingLead._id,
-			name: existingLead.name ?? existingLead.phone,
+			name: existingLead.name,
 			phone: existingLead.phone,
+			email: existingLead.email,
+			courseType: existingLead.courseType,
+			level: existingLead.level,
+			admittedBy: performedBy,
+			dateOfBirth: existingLead.dateOfBirth,
+			residingCountry: existingLead.residingCountry,
+			gender: existingLead.gender,
+			primaryWhatsappNumber: existingLead.primaryWhatsappNumber,
+			alternateWhatsappNumber: existingLead.alternateWhatsappNumber,
+			studentInfo: existingLead.studentInfo,
+			preferredLanguage: existingLead.preferredLanguage,
+			preferredSchedule: existingLead.preferredSchedule,
+			preferredDays: existingLead.preferredDays ?? [],
+			timeslot: existingLead.preferredTimeslots?.[0]
+				? {
+					classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
+					durationMinutes:
+						existingLead.preferredTimeslots[0].durationMinutes,
+				}
+				: undefined,
+			price: existingLead.price,
+			startClassWhen: existingLead.startClassWhen,
+			hearAboutUs: existingLead.hearAboutUs,
 			mentorId: resolvedMentorId,
-			counsellorId: resolvedCounsellorId,
 			batchId,
-			batchType,
-			status: "ACTIVE",
+			status: "STUDENT",
+			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
 			admittedAt,
 		});
 
-		const updatedDemos = setLatestLeadDemo(existingLead, {
-			admissionRequestedAt: admittedAt,
-			admissionCounsellorId: resolvedCounsellorId,
-			admissionCompletedAt: admittedAt,
-			studentId: createdStudent._id.toString(),
-		});
-
+		// Move admission info to top-level lead fields
 		await LeadModel.findByIdAndUpdate(leadId, {
 			$set: {
 				formSent: true,
 				formCompleted: true,
-				demos: updatedDemos,
+				admissionRequestedAt: admittedAt,
+				studentId: createdStudent._id.toString(),
 			},
+		});
+
+		const syncedStudent = await syncStudentProcess(createdStudent._id.toString());
+
+		await logStudentActivity({
+			studentId: createdStudent._id.toString(),
+			type: "CREATED",
+			performedBy,
+			description: `Student created with ZID: ${zid}`,
+			newValue: { status: "STUDENT" },
+			note,
 		});
 
 		if (performedBy) {
@@ -139,10 +482,9 @@ export const StudentService = {
 				"ADMISSION_CONFIRMED",
 				performedBy,
 				`Confirmed admission for ${existingLead.phone}`,
-				{ studentId: latestDemo?.studentId },
+				undefined,
 				{
 					studentId: createdStudent._id.toString(),
-					counsellorId: resolvedCounsellorId,
 					mentorId: resolvedMentorId,
 					batchId,
 				},
@@ -158,12 +500,17 @@ export const StudentService = {
 				{
 					zid,
 					studentId: createdStudent._id.toString(),
-					counsellorId: resolvedCounsellorId,
 				},
 				note,
 			);
 		}
 
-		return toStudent(createdStudent.toObject() as StudentDocument);
+		// Delete all activities for this lead
+		await LeadActivityModel.deleteMany({ leadId });
+
+		// Delete the lead
+		await LeadModel.findByIdAndDelete(leadId);
+
+		return toStudent((syncedStudent ?? createdStudent.toObject()) as StudentDocument);
 	},
 };

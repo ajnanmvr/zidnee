@@ -82,21 +82,14 @@ const getWhatsappNumber = (phone?: string | null) =>
 const getStatusTone = (lead: LeadResponse | null | undefined) => {
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 
-	if (latestDemo?.studentId) {
+	if (lead?.studentId) {
 		return {
 			className: "bg-emerald-500/10 text-emerald-700",
 			label: "Converted to student",
 		};
 	}
 
-	if (latestDemo?.admissionCompletedAt) {
-		return {
-			className: "bg-teal-500/10 text-teal-700",
-			label: "Admission completed",
-		};
-	}
-
-	if (latestDemo?.admissionRequestedAt) {
+	if (lead?.admissionRequestedAt) {
 		return {
 			className: "bg-amber-500/15 text-amber-800",
 			label: "Admission requested",
@@ -165,6 +158,10 @@ export const LeadDetailPage = () => {
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(
 		null,
 	);
+	const [courseTypePickerOpen, setCourseTypePickerOpen] = useState(false);
+	const [courseTypeSelection, setCourseTypeSelection] = useState<
+		"GROUP" | "INDIVIDUAL" | ""
+	>("");
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
@@ -663,6 +660,33 @@ export const LeadDetailPage = () => {
 		}
 	};
 
+	const onConfirmCourseTypeAndSendForm = async () => {
+		if (!lead || !leadId) {
+			return;
+		}
+
+		if (!courseTypeSelection) {
+			toast.error("Select course type to continue");
+			return;
+		}
+
+		try {
+			await updateLeadMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { courseType: courseTypeSelection },
+			});
+			const result = await generateFormLinkMutation.mutateAsync(leadId);
+			setFormLinkData(result);
+			setCourseTypePickerOpen(false);
+			setCourseTypeSelection("");
+			setFormLinkOpen(true);
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Unable to generate form link",
+			);
+		}
+	};
+
 	const onSavePrice = async () => {
 		if (!lead || !priceInput.trim()) {
 			toast.error("Please enter a valid price");
@@ -710,8 +734,8 @@ export const LeadDetailPage = () => {
 				leadId: lead.id,
 				note: deleteNote.trim(),
 			});
-			toast.success("Lead deleted successfully.");
-			navigate("/leads");
+			toast.success("Lead closed successfully.");
+			navigate("/leads?stage=closed");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");
@@ -724,19 +748,17 @@ export const LeadDetailPage = () => {
 		}
 	};
 
-	const statusSummary = latestDemo?.studentId
-		? "Converted to student"
-		: latestDemo?.admissionCompletedAt
-			? "Admission completed"
-			: latestDemo?.admissionRequestedAt
-				? "Admission requested"
-				: latestDemo?.completedAt
-					? "Demo completed"
-					: latestDemo?.assignedAt
-						? "Demo assigned"
-						: latestDemo?.requestedAt
-							? "Demo requested"
-							: "Lead follow-up";
+	const statusSummary = lead?.studentId
+		? `Converted to student`
+		: lead?.admissionRequestedAt
+		? `Admission requested`
+		: latestDemo?.completedAt
+		? `Demo completed`
+		: latestDemo?.assignedAt
+		? `Demo assigned`
+		: latestDemo?.requestedAt
+		? `Demo requested`
+		: `Follow-up`;
 	const statusTone = getStatusTone(lead);
 
 	return (
@@ -886,6 +908,11 @@ export const LeadDetailPage = () => {
 								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
 								onClick={async () => {
 									if (leadId) {
+										if (!lead?.courseType) {
+											setCourseTypePickerOpen(true);
+											setCourseTypeSelection("");
+											return;
+										}
 										try {
 											const result =
 												await generateFormLinkMutation.mutateAsync(leadId);
@@ -1206,21 +1233,22 @@ export const LeadDetailPage = () => {
 				{lead?.demos?.length ? (
 					<div className="grid gap-4 md:grid-cols-2">
 						{lead.demos.map((demo, index) => {
+							const isLatest = index === (lead.demos?.length ?? 0) - 1;
 							const demoStatus = demo.completedAt
 								? "Completed"
-								: demo.admissionCompletedAt
+								: isLatest && lead?.studentId
 									? "Admission completed"
-									: demo.admissionRequestedAt
-										? "Admission requested"
-										: demo.assignedAt
-											? "Assigned"
-											: demo.requestedAt
-												? "Requested"
-												: "Pending";
+								: isLatest && lead?.admissionRequestedAt
+									? "Admission requested"
+								: demo.assignedAt
+									? "Assigned"
+								: demo.requestedAt
+									? "Requested"
+								: "Pending";
 
 							const statusColor = demo.completedAt
 								? "from-emerald-50 to-emerald-100/50 border-emerald-200"
-								: demo.admissionCompletedAt
+								: isLatest && lead?.studentId
 									? "from-teal-50 to-teal-100/50 border-teal-200"
 									: demo.assignedAt
 										? "from-blue-50 to-blue-100/50 border-blue-200"
@@ -1228,7 +1256,7 @@ export const LeadDetailPage = () => {
 
 							const statusBgColor = demo.completedAt
 								? "bg-emerald-100"
-								: demo.admissionCompletedAt
+								: isLatest && lead?.studentId
 									? "bg-teal-100"
 									: demo.assignedAt
 										? "bg-blue-100"
@@ -1236,7 +1264,7 @@ export const LeadDetailPage = () => {
 
 							const statusTextColor = demo.completedAt
 								? "text-emerald-700"
-								: demo.admissionCompletedAt
+								: isLatest && lead?.studentId
 									? "text-teal-700"
 									: demo.assignedAt
 										? "text-blue-700"
@@ -1273,7 +1301,7 @@ export const LeadDetailPage = () => {
 													<div className="h-2 w-2 rounded-full bg-blue-500 mt-1.5" />
 													{(demo.assignedAt ||
 														demo.completedAt ||
-														demo.admissionRequestedAt) && (
+														(isLatest && lead?.admissionRequestedAt)) && (
 														<div className="h-6 w-0.5 bg-blue-200" />
 													)}
 												</div>
@@ -1292,7 +1320,7 @@ export const LeadDetailPage = () => {
 											<div className="flex gap-3">
 												<div className="flex flex-col items-center">
 													<div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5" />
-													{(demo.completedAt || demo.admissionRequestedAt) && (
+													{(demo.completedAt || (isLatest && lead?.admissionRequestedAt)) && (
 														<div className="h-6 w-0.5 bg-blue-200" />
 													)}
 												</div>
@@ -1324,7 +1352,7 @@ export const LeadDetailPage = () => {
 											<div className="flex gap-3">
 												<div className="flex flex-col items-center">
 													<div className="h-2 w-2 rounded-full bg-emerald-600 mt-1.5" />
-													{demo.admissionRequestedAt && (
+													{isLatest && lead?.admissionRequestedAt && (
 														<div className="h-6 w-0.5 bg-emerald-200" />
 													)}
 												</div>
@@ -1339,11 +1367,11 @@ export const LeadDetailPage = () => {
 											</div>
 										)}
 
-										{demo.admissionRequestedAt && (
+										{isLatest && lead?.admissionRequestedAt && (
 											<div className="flex gap-3">
 												<div className="flex flex-col items-center">
 													<div className="h-2 w-2 rounded-full bg-teal-600 mt-1.5" />
-													{demo.admissionCompletedAt && (
+													{isLatest && lead?.studentId && (
 														<div className="h-6 w-0.5 bg-teal-200" />
 													)}
 												</div>
@@ -1352,15 +1380,13 @@ export const LeadDetailPage = () => {
 														Admission Requested
 													</p>
 													<p className="text-sm text-gray-900 font-medium">
-														{new Date(
-															demo.admissionRequestedAt,
-														).toLocaleString()}
+														{new Date(lead?.admissionRequestedAt).toLocaleString()}
 													</p>
 												</div>
 											</div>
 										)}
 
-										{demo.admissionCompletedAt && (
+										{isLatest && lead?.studentId && (
 											<div className="flex gap-3">
 												<div className="flex flex-col items-center">
 													<div className="h-2 w-2 rounded-full bg-teal-600 mt-1.5" />
@@ -1370,9 +1396,9 @@ export const LeadDetailPage = () => {
 														Admission Completed
 													</p>
 													<p className="text-sm text-gray-900 font-medium">
-														{new Date(
-															demo.admissionCompletedAt,
-														).toLocaleString()}
+														{lead?.admissionRequestedAt
+															? new Date(lead.admissionRequestedAt).toLocaleString()
+															: "-"}
 													</p>
 												</div>
 											</div>
@@ -1486,6 +1512,61 @@ export const LeadDetailPage = () => {
 						)}
 					/>
 				</form>
+			</Modal>
+
+			<Modal
+				open={courseTypePickerOpen}
+				title="Select Course Type"
+				description="Choose Group or Individual before sending the form"
+				onClose={() => {
+					setCourseTypePickerOpen(false);
+					setCourseTypeSelection("");
+				}}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => {
+								setCourseTypePickerOpen(false);
+								setCourseTypeSelection("");
+							}}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => void onConfirmCourseTypeAndSendForm()}
+							disabled={
+								!courseTypeSelection ||
+								updateLeadMutation.isPending ||
+								generateFormLinkMutation.isPending
+							}
+						>
+							{updateLeadMutation.isPending || generateFormLinkMutation.isPending
+								? "Saving..."
+								: "Save & Send Form"}
+						</button>
+					</>
+				}
+			>
+				<label className="grid gap-2 text-sm font-medium text-gray-700">
+					<span>Course Type</span>
+					<select
+						className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+						value={courseTypeSelection}
+						onChange={(event) =>
+							setCourseTypeSelection(
+								event.target.value as "GROUP" | "INDIVIDUAL" | "",
+							)
+						}
+					>
+						<option value="">Select course type</option>
+						<option value="GROUP">Group</option>
+						<option value="INDIVIDUAL">Individual</option>
+					</select>
+				</label>
 			</Modal>
 
 			<Modal

@@ -189,6 +189,13 @@ export const useMarkDemoCompletedMutation = () => {
 			await queryClient.invalidateQueries({
 				queryKey: studentsQueryKeys.list(token),
 			});
+			// Invalidate demo query caches so demo pages refresh
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.demoRequests(token),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.pendingDemoRequests(token),
+			});
 		},
 	});
 };
@@ -219,6 +226,13 @@ export const useRequestRedemoMutation = () => {
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
 			await queryClient.invalidateQueries({
 				queryKey: studentsQueryKeys.list(token),
+			});
+			// Invalidate demo query caches so demo pages refresh
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.demoRequests(token),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.pendingDemoRequests(token),
 			});
 		},
 	});
@@ -310,6 +324,13 @@ export const useAssignDemoMentorMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
+			// Invalidate demo query caches so both UnassignedDemosPage and ScheduledDemosPage refresh
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.demoRequests(token),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.pendingDemoRequests(token),
+			});
 		},
 	});
 };
@@ -376,6 +397,13 @@ export const useCancelLeadDemoMutation = () => {
 			}
 
 			await invalidateLeadQueries(queryClient, token, leadId);
+			// Invalidate demo query caches so demo pages refresh
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.demoRequests(token),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: leadsQueryKeys.pendingDemoRequests(token),
+			});
 		},
 	});
 };

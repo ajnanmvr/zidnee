@@ -49,10 +49,9 @@ export const AdmissionDetailPage = () => {
 	const lead = leadQuery.data?.lead;
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 	const defaultCounsellorId =
-		latestDemo?.admissionCounsellorId ??
-		(latestDemo?.mentorId
+		latestDemo?.mentorId
 			? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
-			: undefined);
+			: undefined;
 
 	useEffect(() => {
 		if (defaultCounsellorId) {
@@ -133,10 +132,10 @@ export const AdmissionDetailPage = () => {
 		>
 			<div className="mb-4 flex flex-wrap gap-2">
 				<Link
-					to="/admissions"
+					to="/leads?stage=converted"
 					className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 				>
-					Back to for admission
+					Back to converted leads
 				</Link>
 			</div>
 

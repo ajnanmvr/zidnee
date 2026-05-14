@@ -1,4 +1,3 @@
-import type { LeadActivityResponse } from "@repo/schema";
 import {
 	HiCalendarDays,
 	HiCheckCircle,
@@ -11,8 +10,19 @@ import {
 } from "react-icons/hi2";
 import { formatActivityDateTime, getDateLabel } from "@/lib/utils/date";
 
+type ActivityTimelineEntry = {
+	id: string;
+	type: string;
+	performedByName: string;
+	description: string;
+	oldValue?: Record<string, unknown>;
+	newValue?: Record<string, unknown>;
+	note?: string;
+	createdAt: string;
+};
+
 type ActivityTimelineProps = {
-	activities: LeadActivityResponse[];
+	activities: ActivityTimelineEntry[];
 	emptyMessage?: string;
 };
 
@@ -24,6 +34,8 @@ const getActivityIcon = (type: string) => {
 			return <HiGlobeAlt className="h-4 w-4" />;
 		case "FOLLOW_UP_POSTPONED":
 			return <HiCalendarDays className="h-4 w-4" />;
+		case "FOLLOW_UP_RECORDED":
+			return <HiClock className="h-4 w-4" />;
 		case "STATUS_CHANGED":
 			return <HiEye className="h-4 w-4" />;
 		case "ASSIGNED":
@@ -61,6 +73,13 @@ const getActivityColor = (type: string) => {
 				border: "border-amber-200",
 				badge: "bg-amber-100",
 				text: "text-amber-700",
+			};
+		case "FOLLOW_UP_RECORDED":
+			return {
+				gradient: "from-teal-50 to-teal-100/50",
+				border: "border-teal-200",
+				badge: "bg-teal-100",
+				text: "text-teal-700",
 			};
 		case "STATUS_CHANGED":
 			return {
@@ -112,6 +131,7 @@ const getActivityTypeLabel = (type: string): string => {
 		CREATED: "Created",
 		FORM_SENT: "Form Sent",
 		FOLLOW_UP_POSTPONED: "Follow-up Postponed",
+		FOLLOW_UP_RECORDED: "Follow-up Recorded",
 		STATUS_CHANGED: "Status Changed",
 		ASSIGNED: "Assigned",
 		FORM_REVOKED: "Form Revoked",
@@ -122,7 +142,7 @@ const getActivityTypeLabel = (type: string): string => {
 	return labels[type] || type.replace(/_/g, " ");
 };
 
-const getActivityDescription = (activity: LeadActivityResponse): string => {
+const getActivityDescription = (activity: ActivityTimelineEntry): string => {
 	if (
 		activity.type === "DEMO_SCHEDULED" &&
 		activity.newValue?.demoScheduledFor

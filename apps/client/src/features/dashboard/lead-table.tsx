@@ -39,6 +39,14 @@ export const getLeadUrgency = (lead: LeadResponse) => {
 };
 
 const getLeadStatusTone = (lead: LeadResponse) => {
+	if (lead.status === "CLOSED") {
+		return { className: "bg-gray-100 text-gray-700", label: "Closed" };
+	}
+
+	if (lead.status === "CONVERTED") {
+		return { className: "bg-green-100 text-green-700", label: "Converted" };
+	}
+
 	if (lead.status === "DEMO_COMPLETED") {
 		return { className: "bg-blue-100 text-blue-600", label: "Demo Completed" };
 	}
@@ -125,9 +133,12 @@ export const buildLeadColumns = (options?: {
 		accessorKey: "phone",
 		header: "Phone",
 		cell: (info) => (
-			<div className="font-semibold text-gray-900">
+			<Link
+				className="font-semibold text-blue-600 hover:text-blue-600/80"
+				to={`/leads/${info.row.original.id}`}
+			>
 				{String(info.getValue())}
-			</div>
+			</Link>
 		),
 		enableSorting: true,
 	},
@@ -135,12 +146,9 @@ export const buildLeadColumns = (options?: {
 		accessorKey: "name",
 		header: "Name",
 		cell: (info) => (
-			<Link
-				className="font-semibold text-blue-600 hover:text-blue-600/80"
-				to={`/leads/${info.row.original.id}`}
-			>
+			<div className="font-semibold text-gray-900">
 				{(info.getValue() as string) ?? "-"}
-			</Link>
+			</div>
 		),
 		enableSorting: true,
 	},
@@ -197,13 +205,6 @@ export const buildLeadColumns = (options?: {
 		cell: (info) => {
 			const lead = info.row.original;
 			const defaultActions: LeadTableAction[] = [
-				{
-					key: "view",
-					label: "View",
-					to: (item) => `/leads/${item.id}`,
-					className:
-						"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100",
-				},
 				{
 					key: "postpone",
 					label: "Postpone",

@@ -158,6 +158,10 @@ export const LeadDetailPageNew = () => {
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(
 		null,
 	);
+	const [courseTypePickerOpen, setCourseTypePickerOpen] = useState(false);
+	const [courseTypeSelection, setCourseTypeSelection] = useState<
+		"GROUP" | "INDIVIDUAL" | ""
+	>("");
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
 
@@ -272,11 +276,11 @@ export const LeadDetailPageNew = () => {
 
 		try {
 			await deleteMutation.mutateAsync({ leadId: lead.id, note: noteToSend });
-			toast.success("Lead deleted successfully.");
+			toast.success("Lead closed successfully.");
 			setDeleteOpen(false);
 			setDeleteNote("");
 			setDeleteReason(null);
-			navigate("/leads");
+			navigate("/leads?stage=closed");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");
@@ -301,9 +305,39 @@ export const LeadDetailPageNew = () => {
 
 	const onGenerateFormLink = async () => {
 		if (!leadId) return;
+		if (!lead?.formSent && !lead?.courseType) {
+			setCourseTypePickerOpen(true);
+			setCourseTypeSelection("");
+			return;
+		}
 		try {
 			const result = await generateFormLinkMutation.mutateAsync(leadId);
 			setFormLinkData(result);
+			setFormLinkOpen(true);
+		} catch {
+			toast.error("Failed to generate form link");
+		}
+	};
+
+	const onConfirmCourseTypeAndSendForm = async () => {
+		if (!lead || !leadId) {
+			return;
+		}
+
+		if (!courseTypeSelection) {
+			toast.error("Select course type to continue");
+			return;
+		}
+
+		try {
+			await updateMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { courseType: courseTypeSelection },
+			});
+			const result = await generateFormLinkMutation.mutateAsync(leadId);
+			setFormLinkData(result);
+			setCourseTypePickerOpen(false);
+			setCourseTypeSelection("");
 			setFormLinkOpen(true);
 		} catch {
 			toast.error("Failed to generate form link");
@@ -533,6 +567,12 @@ export const LeadDetailPageNew = () => {
 								accent="amber"
 							/>
 							<StatCard
+								icon={HiUsers}
+								label="Course Type"
+								value={lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "Not specified"}
+								accent="emerald"
+							/>
+							<StatCard
 								icon={HiUser}
 								label="Price"
 								value={
@@ -626,6 +666,11 @@ export const LeadDetailPageNew = () => {
 										label="Level"
 										value={lead.level ?? "-"}
 										icon={HiAcademicCap}
+									/>
+									<DetailRow
+										label="Course Type"
+										value={lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "-"}
+										icon={HiUsers}
 									/>
 									<DetailRow
 										label="Created On"
@@ -842,20 +887,14 @@ export const LeadDetailPageNew = () => {
 										/>
 										<DetailRow
 											label="Counsellor"
-											value={
-												latestDemo.counsellorId
-													? (allUsers.find(
-															(u) => u.id === latestDemo.counsellorId,
-														)?.name ?? latestDemo.counsellorId)
-													: "-"
-											}
+											value="-"
 											icon={HiUser}
 										/>
-										{latestDemo.nextFollowUpAt ? (
+										{lead.nextFollowUpAt ? (
 											<DetailRow
 												label="Next Follow-up"
 												value={formatDistance(
-													new Date(latestDemo.nextFollowUpAt),
+														new Date(lead.nextFollowUpAt),
 													new Date(),
 													{ addSuffix: true },
 												)}
@@ -914,10 +953,7 @@ export const LeadDetailPageNew = () => {
 												</div>
 												<div>
 													Counsellor:{" "}
-													{demo.counsellorId
-														? (allUsers.find((u) => u.id === demo.counsellorId)
-																?.name ?? demo.counsellorId)
-														: "-"}
+													- 
 												</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
@@ -1032,21 +1068,15 @@ export const LeadDetailPageNew = () => {
 										/>
 										<DetailRow
 											label="Counsellor"
-											value={
-												latestDemo.counsellorId
-													? (allUsers.find(
-															(u) => u.id === latestDemo.counsellorId,
-														)?.name ?? latestDemo.counsellorId)
-													: "-"
-											}
+											value="-"
 											icon={HiUser}
 										/>
 										<DetailRow
 											label="Next Follow-up"
 											value={
-												latestDemo.nextFollowUpAt
+												lead.nextFollowUpAt
 													? formatDistance(
-															new Date(latestDemo.nextFollowUpAt),
+															new Date(lead.nextFollowUpAt),
 															new Date(),
 															{ addSuffix: true },
 														)
@@ -1342,6 +1372,63 @@ export const LeadDetailPageNew = () => {
 							placeholder="Add a brief note (optional)..."
 						/>
 					</label>
+				</div>
+			</Modal>
+
+			<Modal
+				open={courseTypePickerOpen}
+				onClose={() => {
+					setCourseTypePickerOpen(false);
+					setCourseTypeSelection("");
+				}}
+				title="Select Course Type"
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setCourseTypePickerOpen(false);
+								setCourseTypeSelection("");
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void onConfirmCourseTypeAndSendForm()}
+							disabled={
+								!courseTypeSelection ||
+								updateMutation.isPending ||
+								generateFormLinkMutation.isPending
+							}
+							className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+						>
+							{updateMutation.isPending || generateFormLinkMutation.isPending
+								? "Saving..."
+								: "Save & Send Form"}
+						</button>
+					</>
+				}
+			>
+				<div className="grid gap-2">
+					<label className="text-sm font-semibold text-gray-700" htmlFor="course-type-picker-new">
+						Course Type
+					</label>
+					<select
+						id="course-type-picker-new"
+						value={courseTypeSelection}
+						onChange={(event) =>
+							setCourseTypeSelection(
+								event.target.value as "GROUP" | "INDIVIDUAL" | "",
+							)
+						}
+						className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+					>
+						<option value="">Select course type</option>
+						<option value="GROUP">Group</option>
+						<option value="INDIVIDUAL">Individual</option>
+					</select>
 				</div>
 			</Modal>
 

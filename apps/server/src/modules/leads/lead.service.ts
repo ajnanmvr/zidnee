@@ -6,7 +6,7 @@ import type {
 } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { Types } from "mongoose";
-import { ConflictError } from "../../utils/errors.util.js";
+import { ConflictError, ValidationError } from "../../utils/errors.util.js";
 import {
 	type StudentDocument,
 	StudentModel,
@@ -128,6 +128,21 @@ const leadFieldPatch = (
 		newValue.residingCountry = updates.residingCountry;
 	}
 
+	if (updates.email !== undefined && updates.email !== existingLead.email) {
+		patch.email = updates.email;
+		oldValue.email = existingLead.email ?? null;
+		newValue.email = updates.email;
+	}
+
+	if (
+		updates.courseType !== undefined &&
+		updates.courseType !== existingLead.courseType
+	) {
+		patch.courseType = updates.courseType;
+		oldValue.courseType = existingLead.courseType ?? null;
+		newValue.courseType = updates.courseType;
+	}
+
 	if (
 		updates.primaryWhatsappNumber !== undefined &&
 		updates.primaryWhatsappNumber !== existingLead.primaryWhatsappNumber
@@ -177,7 +192,7 @@ const leadFieldPatch = (
 	if (
 		updates.preferredDays !== undefined &&
 		JSON.stringify(updates.preferredDays) !==
-			JSON.stringify(existingLead.preferredDays ?? [])
+		JSON.stringify(existingLead.preferredDays ?? [])
 	) {
 		patch.preferredDays = updates.preferredDays;
 		oldValue.preferredDays = existingLead.preferredDays ?? null;
@@ -187,11 +202,11 @@ const leadFieldPatch = (
 	if (
 		updates.preferredTimeslots !== undefined &&
 		JSON.stringify(updates.preferredTimeslots) !==
-			JSON.stringify(existingLead.preferredTimeslots ?? [])
+		JSON.stringify(existingLead.preferredTimeslots ?? [])
 	) {
-		patch.preferredTimeslots = updates.preferredTimeslots;
+		patch.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
 		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
-		newValue.preferredTimeslots = updates.preferredTimeslots;
+		newValue.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
 	}
 
 	if (updates.price !== undefined && updates.price !== existingLead.price) {
@@ -241,39 +256,24 @@ const leadFieldPatch = (
 
 const toDemo = (
 	demo: NonNullable<LeadDocument["demos"]>[number],
-): LeadDemo => ({
+): any => ({
 	mentorId: demo.mentorId?.toString(),
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
 	demoScheduledFor: demo.demoScheduledFor,
 	completedAt: demo.completedAt,
-	demoRequired: demo.demoRequired,
-	lastContactedAt: demo.lastContactedAt,
-	nextFollowUpAt: demo.nextFollowUpAt,
-	customNextFollowUpAt: demo.customNextFollowUpAt,
-	admissionRequestedAt: demo.admissionRequestedAt,
-	admissionCounsellorId: demo.admissionCounsellorId?.toString(),
-	admissionCompletedAt: demo.admissionCompletedAt,
-	studentId: demo.studentId?.toString(),
 	note: demo.note,
 });
 
+
 const fromDemo = (
-	demo: LeadDemo,
+	demo: any,
 ): NonNullable<LeadDocument["demos"]>[number] => ({
 	mentorId: demo.mentorId,
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
 	demoScheduledFor: demo.demoScheduledFor,
 	completedAt: demo.completedAt,
-	demoRequired: demo.demoRequired,
-	lastContactedAt: demo.lastContactedAt,
-	nextFollowUpAt: demo.nextFollowUpAt,
-	customNextFollowUpAt: demo.customNextFollowUpAt,
-	admissionRequestedAt: demo.admissionRequestedAt,
-	admissionCounsellorId: demo.admissionCounsellorId,
-	admissionCompletedAt: demo.admissionCompletedAt,
-	studentId: demo.studentId,
 	note: demo.note,
 });
 
@@ -288,12 +288,8 @@ const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
 	const latestDemo = getLatestDemo(lead);
 	const hasPreviousDemo = (lead.demos?.length ?? 0) > 1;
 
-	// Check if moved to admission/converted
-	if (latestDemo?.studentId) {
-		return "CONVERTED";
-	}
-
-	if (latestDemo?.admissionCompletedAt) {
+	// Check if moved to admission/converted (top-level studentId)
+	if ((lead as any).studentId) {
 		return "CONVERTED";
 	}
 
@@ -301,7 +297,7 @@ const computeLeadStatus = (lead: LeadDocument): LeadStatus => {
 	if (
 		latestDemo?.completedAt &&
 		latestDemo?.requestedAt &&
-		!latestDemo?.studentId
+		!(lead as any).studentId
 	) {
 		return "DEMO_COMPLETED";
 	}
@@ -350,17 +346,15 @@ const setLatestDemo = (
 ): NonNullable<LeadDocument["demos"]> => {
 	const demos = [...(lead.demos ?? [])];
 	if (demos.length === 0) {
-		demos.push({ demoRequired: false, ...patch } as NonNullable<
-			LeadDocument["demos"]
-		>[number]);
+		demos.push({ ...(patch as any) } as NonNullable<LeadDocument["demos"]>[number]);
 		return demos;
 	}
 
 	const latestDemo = demos[demos.length - 1]!;
 	demos[demos.length - 1] = {
 		...latestDemo,
+		...latestDemo,
 		...patch,
-		demoRequired: patch.demoRequired ?? latestDemo.demoRequired ?? false,
 	};
 
 	return demos;
@@ -379,6 +373,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	formCompleted: doc.formCompleted,
 	dateOfBirth: doc.dateOfBirth,
 	residingCountry: doc.residingCountry,
+	email: doc.email,
 	gender: doc.gender,
 	primaryWhatsappNumber: doc.primaryWhatsappNumber,
 	alternateWhatsappNumber: doc.alternateWhatsappNumber,
@@ -386,12 +381,13 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	preferredLanguage: doc.preferredLanguage,
 	preferredSchedule: doc.preferredSchedule,
 	preferredDays: doc.preferredDays ?? [],
-	preferredTimeslots: doc.preferredTimeslots ?? [],
+	preferredTimeslots: (doc.preferredTimeslots ?? []).slice(0, 1),
 	price: doc.price,
 	startClassWhen: doc.startClassWhen,
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
 	preferredMentorGender: doc.preferredMentorGender,
+	courseType: doc.courseType,
 	nextFollowUpAt: toDateOrFallback(
 		doc.nextFollowUpAt,
 		doc.createdAt ?? new Date(),
@@ -444,7 +440,7 @@ export const LeadService = {
 
 		return leadObj;
 	},
-
+ 
 	update: async (
 		leadId: string,
 		updates: UpdateLeadPayload,
@@ -485,10 +481,10 @@ export const LeadService = {
 						const ts = map.get(it);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: it };
 					}
 					if (it && (it as any).id) {
@@ -496,10 +492,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
@@ -507,17 +503,20 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					// already a snapshot
 					return it as any;
 				});
 
-				effectiveUpdates = { ...updates, preferredTimeslots: normalized };
+				effectiveUpdates = {
+					...updates,
+					preferredTimeslots: normalized.slice(0, 1),
+				};
 			}
 		}
 
@@ -613,15 +612,11 @@ export const LeadService = {
 		}
 
 		const total = filtered.filter((lead) => {
-			const latestDemo = getLatestDemo(lead);
-			return !latestDemo?.studentId;
+			return !(lead as any).studentId;
 		}).length;
 
 		const paginatedLeads = filtered
-			.filter((lead) => {
-				const latestDemo = getLatestDemo(lead);
-				return !latestDemo?.studentId;
-			})
+			.filter((lead) => !(lead as any).studentId)
 			.slice(offset, offset + limit)
 			.map(mapLead);
 
@@ -652,12 +647,9 @@ export const LeadService = {
 			.sort({ createdAt: -1 })
 			.lean<LeadDocument[]>();
 		return leads
-			.filter((lead) => {
-				const latestDemo = getLatestDemo(lead);
-				return Boolean(
-					latestDemo?.admissionRequestedAt && !latestDemo?.studentId,
-				);
-			})
+				.filter((lead) => {
+					return Boolean((lead as any).admissionRequestedAt && !(lead as any).studentId);
+				})
 			.map(mapLead);
 	},
 
@@ -683,9 +675,7 @@ export const LeadService = {
 		const now = new Date();
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
-			demoRequired: true,
 			requestedAt: now,
-			nextFollowUpAt: now,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -727,7 +717,6 @@ export const LeadService = {
 		const now = new Date();
 		const demos = setLatestDemo(existingLead, {
 			completedAt: now,
-			demoRequired: false,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -774,10 +763,7 @@ export const LeadService = {
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
 			mentorId: effectiveMentorId,
-			counsellorId,
 			requestedAt: now,
-			demoRequired: true,
-			nextFollowUpAt: now,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -824,21 +810,8 @@ export const LeadService = {
 		).lean<LeadDocument | null>();
 		if (!existingLead) return null;
 
-		const demos = setLatestDemo(existingLead, {
-			counsellorId,
-		});
-
-		const updatedLead = await LeadModel.findByIdAndUpdate(
-			leadId,
-			{
-				$set: {
-					demos,
-				},
-			},
-			{ returnDocument: "after" },
-		).lean<LeadDocument | null>();
-
-		if (performedBy && updatedLead) {
+		// Counsellor assignment removed from demo subdocument. No-op update.
+		if (performedBy) {
 			await ActivityService.logActivity(
 				leadId,
 				"DEMO_COUNSELLOR_ASSIGNED",
@@ -849,7 +822,7 @@ export const LeadService = {
 			);
 		}
 
-		return updatedLead ? mapLead(updatedLead) : null;
+		return mapLead(existingLead);
 	},
 
 	assignDemoMentor: async (
@@ -864,16 +837,13 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
-		const nextFollowUpAt = new Date(
-			demoScheduledFor.getTime() + 60 * 60 * 1000,
-		);
 		const demos = setLatestDemo(existingLead, {
 			mentorId,
 			assignedAt: now,
 			demoScheduledFor,
-			demoRequired: true,
-			nextFollowUpAt,
 		});
+
+		const nextFollowUpAt = existingLead.nextFollowUpAt ?? new Date();
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -911,7 +881,7 @@ export const LeadService = {
 
 	requestAdmission: async (
 		leadId: string,
-		counsellorId: string,
+		counsellorId?: string,
 		performedBy?: string,
 		note?: string,
 	): Promise<Lead | null> => {
@@ -921,16 +891,13 @@ export const LeadService = {
 		if (!existingLead) return null;
 
 		const now = new Date();
-		const demos = setLatestDemo(existingLead, {
-			admissionRequestedAt: now,
-			admissionCounsellorId: counsellorId,
-		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
 				$set: {
-					demos,
+					admissionRequestedAt: now,
+					status: "CONVERTED",
 				},
 			},
 			{ returnDocument: "after" },
@@ -942,14 +909,8 @@ export const LeadService = {
 				"ADMISSION_REQUESTED",
 				performedBy,
 				`Requested admission for ${existingLead.phone}`,
-				{
-					admissionCounsellorId:
-						getLatestDemo(existingLead)?.admissionCounsellorId?.toString(),
-				},
-				{
-					admissionCounsellorId: counsellorId,
-					admissionRequestedAt: now.toISOString(),
-				},
+				undefined,
+				{ admissionRequestedAt: now.toISOString() },
 				note,
 			);
 		}
@@ -970,13 +931,8 @@ export const LeadService = {
 
 		const now = new Date();
 		const latestDemo = getLatestDemo(existingLead);
-		const demos = latestDemo
-			? setLatestDemo(existingLead, {
-					lastContactedAt: now,
-					customNextFollowUpAt,
-					nextFollowUpAt: customNextFollowUpAt,
-				})
-			: (existingLead.demos ?? []);
+		// Update only top-level nextFollowUpAt; demo-level contact fields removed.
+		const demos = existingLead.demos ?? [];
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -995,10 +951,7 @@ export const LeadService = {
 				"FOLLOW_UP_POSTPONED",
 				performedBy,
 				`Postponed follow-up to ${customNextFollowUpAt.toISOString()}`,
-				{
-					customNextFollowUpAt:
-						getLatestDemo(existingLead)?.customNextFollowUpAt?.toISOString(),
-				},
+				undefined,
 				{ customNextFollowUpAt: customNextFollowUpAt.toISOString() },
 				note,
 			);
@@ -1015,11 +968,17 @@ export const LeadService = {
 			return null;
 		}
 
-		const appUrl = env.APP_URL 
+		const appUrl = env.APP_URL
 		if (existingLead.formSent && existingLead.formToken) {
 			return {
 				formLink: `${appUrl}/form/${leadId}?token=${existingLead.formToken}`,
 			};
+		}
+
+		if (!existingLead.courseType) {
+			throw new ValidationError({
+				courseType: ["Set course type (GROUP or INDIVIDUAL) before sending form"],
+			});
 		}
 
 		// Generate a secure random token
@@ -1113,9 +1072,8 @@ export const LeadService = {
 		const latestDemo = demos[demos.length - 1];
 		if (
 			latestDemo?.completedAt ||
-			latestDemo?.admissionRequestedAt ||
-			latestDemo?.admissionCompletedAt ||
-			latestDemo?.studentId
+			(existingLead as any).admissionRequestedAt ||
+			(existingLead as any).studentId
 		) {
 			return mapLead(existingLead);
 		}
@@ -1196,10 +1154,10 @@ export const LeadService = {
 						const ts = map.get(it);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: it };
 					}
 					if (it && (it as any).id) {
@@ -1207,10 +1165,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
@@ -1218,16 +1176,17 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
+								label: ts.label,
+								durationMinutes: ts.durationMinutes,
+								timesPerWeek: ts.timesPerWeek,
+							}
 							: { label: (it as any).label ?? id };
 					}
 					return it as any;
-				});
+				}).slice(0, 1);
 			}
 		}
+		preferredTimeslots = (preferredTimeslots ?? []).slice(0, 1);
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -1253,6 +1212,8 @@ export const LeadService = {
 				hearAboutUs: data.hearAboutUs,
 				demoAvailability: data.demoAvailability,
 				preferredMentorGender: data.preferredMentorGender,
+				email: (data as any).email,
+				courseType: (data as any).courseType,
 				formToken: undefined,
 				formTokenExpiresAt: new Date(),
 			},
@@ -1285,6 +1246,7 @@ export const LeadService = {
 		isValid: boolean;
 		expiresAt?: string;
 		prefill?: {
+			courseType?: "GROUP" | "INDIVIDUAL";
 			name?: string;
 			dateOfBirth?: string;
 			residingCountry?: string;
@@ -1294,9 +1256,9 @@ export const LeadService = {
 			alternateWhatsappNumber?: string;
 			studentInfo?: string;
 			preferredLanguage?:
-				| "Malayalam Only"
-				| "English Only"
-				| "Malayalam - English Mixed";
+			| "Malayalam Only"
+			| "English Only"
+			| "Malayalam - English Mixed";
 			preferredSchedule?: string;
 			preferredDays?: string[];
 			preferredTimeslots?: {
@@ -1328,6 +1290,7 @@ export const LeadService = {
 		}
 
 		const prefill = {
+			courseType: existingLead.courseType,
 			name: existingLead.name,
 			dateOfBirth: existingLead.dateOfBirth?.toISOString(),
 			residingCountry: existingLead.residingCountry,
@@ -1363,7 +1326,19 @@ export const LeadService = {
 		const existingLead = await LeadModel.findById(
 			leadId,
 		).lean<LeadDocument | null>();
-		const result = await LeadModel.findByIdAndDelete(leadId);
+		const result = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{
+				$set: {
+					status: "CLOSED",
+					formSent: false,
+					formCompleted: false,
+					formToken: undefined,
+					formTokenExpiresAt: undefined,
+				},
+			},
+			{ returnDocument: "after" },
+		);
 
 		if (performedBy && existingLead) {
 			await ActivityService.logActivity(

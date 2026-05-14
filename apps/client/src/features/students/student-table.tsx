@@ -1,0 +1,211 @@
+import { type ColumnDef } from "@tanstack/react-table";
+import { HiCog6Tooth } from "react-icons/hi2";
+import { Link } from "react-router-dom";
+import type { Student } from "@repo/schema";
+
+export type StudentTableRow = Student;
+
+type FollowUpState = {
+	label: "Today" | "Past Due" | "Valid" | "No Follow-up";
+	className: string;
+	priority: number;
+};
+
+const isSameDay = (left: Date, right: Date) => {
+	return (
+		left.getFullYear() === right.getFullYear() &&
+		left.getMonth() === right.getMonth() &&
+		left.getDate() === right.getDate()
+	);
+};
+
+export const getStudentFollowUpState = (
+	customNextFollowUpAt?: Date,
+	nextFollowUpAt?: Date,
+): FollowUpState => {
+	const followUpDate = customNextFollowUpAt ?? nextFollowUpAt;
+	if (!followUpDate) {
+		return {
+			label: "No Follow-up",
+			className: "bg-gray-100 text-gray-700",
+			priority: 3,
+		};
+	}
+
+	const now = new Date();
+	if (isSameDay(followUpDate, now)) {
+		return {
+			label: "Today",
+			className: "bg-amber-100 text-amber-800",
+			priority: 0,
+		};
+	}
+
+	if (followUpDate.getTime() < now.getTime()) {
+		return {
+			label: "Past Due",
+			className: "bg-red-100 text-red-800",
+			priority: 1,
+		};
+	}
+
+	return {
+		label: "Valid",
+		className: "bg-emerald-100 text-emerald-800",
+		priority: 2,
+	};
+};
+
+export const buildStudentColumns = (
+	getColorByStatus: (status: string) => string,
+	mentorNameById: Record<string, string>,
+): ColumnDef<StudentTableRow>[] => {
+	return [
+		{
+			accessorKey: "zid",
+			header: "ZID",
+			size: 100,
+			cell: ({ row }) => (
+				<Link
+					to={`/students/${row.original.id}`}
+					className="font-mono font-semibold text-teal-600 hover:underline"
+				>
+					{row.original.zid}
+				</Link>
+			),
+		},
+		{
+			accessorKey: "name",
+			header: "Name",
+			size: 150,
+		},
+		{
+			accessorKey: "phone",
+			header: "Phone",
+			size: 120,
+		},
+		{
+			accessorKey: "courseType",
+			header: "Course",
+			size: 100,
+			cell: ({ row }) =>
+				row.original.courseType ? (
+					<span
+						className={`rounded-full px-2 py-1 text-xs font-semibold ${
+							row.original.courseType === "INDIVIDUAL"
+								? "bg-amber-100 text-amber-800"
+								: "bg-blue-100 text-blue-800"
+						}`}
+					>
+						{row.original.courseType}
+					</span>
+				) : (
+					<span className="text-gray-400">—</span>
+				),
+		},
+		{
+			accessorKey: "level",
+			header: "Level",
+			size: 100,
+		},
+		{
+			accessorKey: "mentorId",
+			header: "Mentor",
+			size: 140,
+			cell: ({ row }) =>
+				row.original.mentorId
+					? mentorNameById[row.original.mentorId] || "Unassigned"
+					: "—",
+		},
+		{
+			accessorKey: "status",
+			header: "Status",
+			size: 130,
+			cell: ({ row }) => {
+				const hasProcess = Boolean(row.original.processId || row.original.processLabel);
+
+				return (
+					<span
+						className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white ${getColorByStatus(
+							row.original.status
+						)}`}
+					>
+						{hasProcess ? (
+							<HiCog6Tooth
+								className="h-3.5 w-3.5"
+								title={row.original.processLabel ?? "Process linked"}
+								aria-label="Process linked"
+							/>
+						) : null}
+						{row.original.status}
+					</span>
+				);
+			},
+		},
+		{
+			accessorKey: "nextFollowUpAt",
+			header: "Next Follow-up",
+			size: 200,
+			cell: ({ row }) => {
+				const followUpDate = row.original.customNextFollowUpAt ?? row.original.nextFollowUpAt;
+				const state = getStudentFollowUpState(
+					row.original.customNextFollowUpAt,
+					row.original.nextFollowUpAt,
+				);
+
+				return (
+					<div className="space-y-1">
+						<p>
+							{followUpDate
+								? new Date(followUpDate).toLocaleDateString("en-IN", {
+									year: "numeric",
+									month: "short",
+									day: "numeric",
+								})
+								: "—"}
+						</p>
+						<span
+							className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${state.className}`}
+						>
+							{state.label}
+						</span>
+					</div>
+				);
+			},
+		},
+	];
+};
+
+export const formatUserName = (user: { firstName?: string; lastName?: string; name?: string }): string => {
+	if (user.name) return user.name;
+	const parts = [];
+	if (user.firstName) parts.push(user.firstName);
+	if (user.lastName) parts.push(user.lastName);
+	return parts.join(" ") || "Unknown";
+};
+
+export const getStudentStatusColor = (status: string): string => {
+	switch (status) {
+		case "STUDENT":
+			return "bg-emerald-500";
+		case "BREAK":
+			return "bg-orange-500";
+		case "DROPPED":
+			return "bg-gray-500";
+		default:
+			return "bg-gray-500";
+	}
+};
+
+export const getStudentStatusLabel = (status: string): string => {
+	switch (status) {
+		case "STUDENT":
+			return "Active";
+		case "BREAK":
+			return "On Break";
+		case "DROPPED":
+			return "Dropped";
+		default:
+			return status;
+	}
+};

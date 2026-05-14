@@ -29,12 +29,8 @@ const computeLeadStatus = (lead: Lead): LeadStatus => {
 	const latestDemo = getLatestDemo(lead);
 	const hasPreviousDemo = (lead.demos?.length ?? 0) > 1;
 
-	// Check if moved to admission/converted
-	if (latestDemo?.studentId) {
-		return "CONVERTED";
-	}
-
-	if (latestDemo?.admissionCompletedAt) {
+	// Check if moved to admission/converted (top-level)
+	if ((lead as any).studentId) {
 		return "CONVERTED";
 	}
 
@@ -42,7 +38,7 @@ const computeLeadStatus = (lead: Lead): LeadStatus => {
 	if (
 		latestDemo?.completedAt &&
 		latestDemo?.requestedAt &&
-		!latestDemo?.studentId
+		!(lead as any).studentId
 	) {
 		return "DEMO_COMPLETED";
 	}
@@ -93,14 +89,6 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 			assignedAt: demo.assignedAt?.toISOString() ?? null,
 			demoScheduledFor: demo.demoScheduledFor?.toISOString() ?? null,
 			completedAt: demo.completedAt?.toISOString() ?? null,
-			demoRequired: demo.demoRequired,
-			lastContactedAt: demo.lastContactedAt?.toISOString() ?? null,
-			nextFollowUpAt: demo.nextFollowUpAt?.toISOString() ?? null,
-			customNextFollowUpAt: demo.customNextFollowUpAt?.toISOString() ?? null,
-			admissionRequestedAt: demo.admissionRequestedAt?.toISOString() ?? null,
-			admissionCounsellorId: demo.admissionCounsellorId ?? null,
-			admissionCompletedAt: demo.admissionCompletedAt?.toISOString() ?? null,
-			studentId: demo.studentId ?? null,
 			note: demo.note ?? null,
 		})) ?? [];
 
@@ -108,6 +96,7 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		id: lead.id,
 		slNo: lead.slNo,
 		name: lead.name,
+		email: (lead as any).email ?? null,
 		phone: lead.phone,
 		level: lead.level,
 		assignedTo: lead.assignedTo,
@@ -126,14 +115,17 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		preferredLanguage: lead.preferredLanguage,
 		preferredSchedule: lead.preferredSchedule,
 		preferredDays: lead.preferredDays ?? [],
-		preferredTimeslots: lead.preferredTimeslots ?? [],
+		preferredTimeslots: lead.preferredTimeslots?.slice(0, 1) ?? [],
 		price: lead.price,
 		startClassWhen: lead.startClassWhen,
 		hearAboutUs: lead.hearAboutUs,
 		demoAvailability: lead.demoAvailability,
 		preferredMentorGender: lead.preferredMentorGender,
+		courseType: (lead as any).courseType ?? null,
 		status: lead.status ?? computeLeadStatus(lead),
 		demos,
+		admissionRequestedAt: (lead as any).admissionRequestedAt?.toISOString() ?? null,
+		studentId: (lead as any).studentId ?? null,
 		createdAt: lead.createdAt?.toISOString() ?? null,
 		updatedAt: lead.updatedAt?.toISOString() ?? null,
 	};
@@ -455,25 +447,10 @@ export const confirmAdmissionController = async (
 		throw new NotFoundError("Lead");
 	}
 
-	let counsellorId = result.data.counsellorId;
-	const latestDemo = getLatestDemo(lead);
-	if (!counsellorId && latestDemo?.mentorId) {
-		const mentor = await UserModel.findById(latestDemo.mentorId).lean();
-		counsellorId = mentor?.counsellorId;
-	}
-
-	if (!counsellorId && !result.data.mentorId) {
-		throw new ValidationError({
-			counsellorId: ["Select a counsellor or mentor for admission"],
-		});
-	}
-
 	const student = await StudentService.confirmAdmission(
 		leadId,
-		counsellorId,
 		result.data.mentorId,
 		result.data.batchId,
-		result.data.batchType,
 		req.user.userId,
 		result.data.note,
 	);
@@ -486,6 +463,7 @@ export const confirmAdmissionController = async (
 		ok: true,
 		student: {
 			...student,
+			dateOfBirth: student.dateOfBirth?.toISOString() ?? null,
 			admittedAt: student.admittedAt.toISOString(),
 			createdAt: student.createdAt?.toISOString() ?? null,
 			updatedAt: student.updatedAt?.toISOString() ?? null,
@@ -512,22 +490,17 @@ export const requestAdmissionController = async (
 		throw new NotFoundError("Lead");
 	}
 
-	let counsellorId = result.data.counsellorId;
-	const latestDemo = getLatestDemo(lead);
-	if (!counsellorId && latestDemo?.mentorId) {
-		const mentor = await UserModel.findById(latestDemo.mentorId).lean();
-		counsellorId = mentor?.counsellorId;
-	}
-
-	if (!counsellorId) {
-		throw new ValidationError({
-			counsellorId: ["Select a counsellor for admission"],
-		});
-	}
+	await StudentService.startAdmission(
+		leadId,
+		result.data.mentorId,
+		result.data.batchId,
+		req.user.userId,
+		result.data.note,
+	);
 
 	const updatedLead = await LeadService.requestAdmission(
 		leadId,
-		counsellorId,
+		undefined,
 		req.user.userId,
 		result.data.note,
 	);
@@ -649,6 +622,7 @@ export const submitLeadFormController = async (
 
 	const result = await LeadService.submitLeadForm(leadId, payload.token, {
 		name: payload.name,
+		email: payload.email,
 		dateOfBirth: payload.dateOfBirth,
 		residingCountry: payload.residingCountry,
 		level: payload.level,
@@ -660,6 +634,7 @@ export const submitLeadFormController = async (
 		preferredSchedule: payload.preferredSchedule,
 		preferredDays: payload.preferredDays,
 		preferredTimeslots: payload.preferredTimeslots,
+		courseType: payload.courseType,
 		startClassWhen: payload.startClassWhen,
 		hearAboutUs: payload.hearAboutUs,
 		demoAvailability: payload.demoAvailability,

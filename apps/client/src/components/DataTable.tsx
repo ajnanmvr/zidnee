@@ -22,7 +22,14 @@ interface DataTableProps<T> {
 	data: T[];
 	exportFilename?: string;
 	searchPlaceholder?: string;
+	enableGlobalFilter?: boolean;
+	enableTableSorting?: boolean;
 	initialSorting?: SortingState;
+	sortBy?: string;
+	onSortByChange?: (value: string) => void;
+	sortOrder?: "asc" | "desc";
+	onSortOrderToggle?: () => void;
+	sortOptions?: Array<{ value: string; label: string }>;
 }
 
 export function DataTable<T>({
@@ -30,7 +37,14 @@ export function DataTable<T>({
 	data,
 	exportFilename = "export",
 	searchPlaceholder = "Search...",
+	enableGlobalFilter = true,
+	enableTableSorting = true,
 	initialSorting = [],
+	sortBy,
+	onSortByChange,
+	sortOrder,
+	onSortOrderToggle,
+	sortOptions,
 }: DataTableProps<T>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -39,6 +53,7 @@ export function DataTable<T>({
 	const table = useReactTable({
 		data,
 		columns,
+		enableSorting: enableTableSorting,
 		state: {
 			sorting,
 			columnFilters,
@@ -48,7 +63,7 @@ export function DataTable<T>({
 		onColumnFiltersChange: setColumnFilters,
 		onGlobalFilterChange: setGlobalFilter,
 		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
+		getSortedRowModel: enableTableSorting ? getSortedRowModel() : undefined,
 		getFilteredRowModel: getFilteredRowModel(),
 	});
 
@@ -87,14 +102,47 @@ export function DataTable<T>({
 	return (
 		<div className="space-y-4">
 			{/* Toolbar */}
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<input
-					type="text"
-					placeholder={searchPlaceholder}
-					value={globalFilter}
-					onChange={(e) => setGlobalFilter(e.target.value)}
-					className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
-				/>
+			<div className="flex flex-col gap-4 bg-white mt-3 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:w-full sm:items-center">
+					{enableGlobalFilter ? (
+						<input
+							type="text"
+							placeholder={searchPlaceholder}
+							value={globalFilter}
+							onChange={(e) => setGlobalFilter(e.target.value)}
+							className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
+						/>
+					) : null}
+					{sortOptions && onSortByChange && sortBy !== undefined ? (
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+							<span className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+								Sort by:
+							</span>
+							<select
+								value={sortBy}
+								onChange={(e) => {
+									onSortByChange(e.target.value);
+								}}
+								className="rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-blue-600"
+							>
+								{sortOptions.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+							{onSortOrderToggle && sortOrder ? (
+								<button
+									type="button"
+									onClick={onSortOrderToggle}
+									className="inline-flex items-center gap-1 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:border-blue-600 hover:text-blue-600"
+								>
+									{sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
+								</button>
+							) : null}
+						</div>
+					) : null}
+				</div>
 
 				<div className="relative">
 					<ExportMenu onExport={handleExport} />

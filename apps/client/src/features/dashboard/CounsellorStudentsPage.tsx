@@ -45,9 +45,7 @@ export const CounsellorStudentsPage = () => {
 
 	const rows = useMemo(() => {
 		return allStudents.filter(
-			(student) =>
-				student.counsellorId === currentUserId ||
-				(student.mentorId ? mentorIds.has(student.mentorId) : false),
+			(student) => (student.mentorId ? mentorIds.has(student.mentorId) : false),
 		);
 	}, [allStudents, currentUserId, mentorIds]);
 
@@ -132,7 +130,7 @@ export const CounsellorStudentsPage = () => {
 										</div>
 										<span
 											className={
-												student.status === "ACTIVE"
+												student.status === "STUDENT"
 													? "rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"
 													: "rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700"
 											}

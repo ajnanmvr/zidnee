@@ -1,34 +1,15 @@
-﻿import {
-	ConfirmAdmissionPayloadSchema,
-	CreateLeadPayloadSchema,
-	PostponeLeadFollowUpPayloadSchema,
-	RedemoLeadPayloadSchema,
-	type LeadResponse,
-} from "@repo/schema";
-import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import toast from "react-hot-toast";
-import {
-	HiAcademicCap,
-	HiArrowPath,
-	HiCalendarDays,
-	HiPlusCircle,
-	HiTrash,
-} from "react-icons/hi2";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ApiError } from "@/api/request";
+﻿import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	buildLeadColumns,
-	formatUserName,
-	type LeadTableAction,
+ 	formatUserName,
 } from "@/features/dashboard/lead-table";
 import {
-	type LeadStageId,
 	leadStageDefinitions,
+	type LeadStageId,
 } from "@/features/leads/lead-stage-filters";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
@@ -52,6 +33,24 @@ import type {
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
+import {
+	ConfirmAdmissionPayloadSchema,
+	CreateLeadPayloadSchema,
+	PostponeLeadFollowUpPayloadSchema,
+	RedemoLeadPayloadSchema,
+	type LeadResponse,
+} from "@repo/schema";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+	HiAcademicCap,
+	HiArrowPath,
+	HiCalendarDays,
+	HiPlusCircle,
+	HiTrash,
+} from "react-icons/hi2";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 const toInputDateTimeLocal = (value: string | null): string => {
 	if (!value) {
@@ -94,8 +93,11 @@ export const LeadsPage = () => {
 	)
 		? (stageParam as LeadStageId)
 		: "all";
+	const canReadAllLeads =
+		meQuery.data?.permissions?.some((permission) => permission.key === "LEAD_READ_ALL") ??
+		false;
 	const scopeParam = searchParams.get("scope");
-	const activeScope = scopeParam === "all" ? "all" : "mine";
+	const activeScope = scopeParam === "all" && canReadAllLeads ? "all" : "mine";
 
 	// Map stage to status for backend filtering
 	const stageToStatus = (stage: LeadStageId): string | undefined => {
@@ -114,21 +116,17 @@ export const LeadsPage = () => {
 				return "DEMO_COMPLETED";
 			case "demoCancelled":
 				return "DEMO_CANCELLED";
+			case "converted":
+				return "CONVERTED";
+			case "closed":
+				return "CLOSED";
 			default:
 				return undefined;
 		}
 	};
 
-	const allLeadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: "all",
-		timeFilter: "all",
-		status: stageToStatus(activeStage),
-		page: currentPage,
-		sortBy,
-		sortOrder,
-	});
-	const leadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: "mine",
+	const activeLeadsQuery = useDueLeadFollowUpsQuery(token, {
+		scope: activeScope,
 		timeFilter: "all",
 		status: stageToStatus(activeStage),
 		page: currentPage,
@@ -152,6 +150,12 @@ export const LeadsPage = () => {
 		null,
 	);
 	const [formLinkPhone, setFormLinkPhone] = useState<string | null>(null);
+	const [courseTypeLead, setCourseTypeLead] = useState<LeadResponse | null>(
+		null,
+	);
+	const [courseTypeSelection, setCourseTypeSelection] = useState<
+		"GROUP" | "INDIVIDUAL" | ""
+	>("");
 	const [postponeLeadId, setPostponeLeadId] = useState<string | null>(null);
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [deleteNote, setDeleteNote] = useState("");
@@ -192,6 +196,43 @@ export const LeadsPage = () => {
 			}
 			toast.error(
 				error instanceof Error ? error.message : "Unable to request demo",
+			);
+		}
+	};
+
+	const sendFormForLead = async (lead: LeadResponse) => {
+		if (!lead.courseType) {
+			setCourseTypeLead(lead);
+			setCourseTypeSelection("");
+			return;
+		}
+
+		const result = await generateFormLinkMutation.mutateAsync(lead.id);
+		setFormLinkData(result);
+		setFormLinkPhone(lead.phone ?? null);
+		setFormLinkOpen(true);
+	};
+
+	const onConfirmCourseTypeAndSend = async () => {
+		if (!courseTypeLead || !courseTypeSelection) {
+			toast.error("Select course type to continue");
+			return;
+		}
+
+		try {
+			await updateLeadMutation.mutateAsync({
+				leadId: courseTypeLead.id,
+				payload: { courseType: courseTypeSelection },
+			});
+			const result = await generateFormLinkMutation.mutateAsync(courseTypeLead.id);
+			setFormLinkData(result);
+			setFormLinkPhone(courseTypeLead.phone ?? null);
+			setFormLinkOpen(true);
+			setCourseTypeLead(null);
+			setCourseTypeSelection("");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Unable to send form",
 			);
 		}
 	};
@@ -280,14 +321,8 @@ export const LeadsPage = () => {
 		[allUsers],
 	);
 	const currentUserId = meQuery.data?.id;
-	const scopeLeads =
-		activeScope === "all"
-			? (allLeadsQuery.data?.leads ?? [])
-			: (leadsQuery.data?.leads ?? []);
-	const pagination =
-		activeScope === "all"
-			? allLeadsQuery.data?.pagination
-			: leadsQuery.data?.pagination;
+	const scopeLeads = activeLeadsQuery.data?.leads ?? [];
+	const pagination = activeLeadsQuery.data?.pagination;
 	const activeStageDefinition = leadStageDefinitions.find(
 		(stage) => stage.id === activeStage,
 	);
@@ -355,7 +390,7 @@ export const LeadsPage = () => {
 		}
 	};
 
-	const leads = leadsQuery.data?.leads ?? [];
+	const leads = scopeLeads;
 
 	const onPostponeLead = async (payload: PostponeLeadFollowUpForm) => {
 		if (!postponeLeadId) {
@@ -416,9 +451,10 @@ export const LeadsPage = () => {
 				leadId: deleteLeadId,
 				note: deleteNote.trim(),
 			});
-			toast.success("Lead deleted successfully.");
+			toast.success("Lead closed successfully.");
 			setDeleteLeadId(null);
 			setDeleteNote("");
+			navigate("/leads?stage=closed");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");
@@ -512,7 +548,7 @@ export const LeadsPage = () => {
 			toast.success("Lead moved to for admission.");
 			setAdmissionLeadId(null);
 			resetAdmission({ counsellorId: undefined, note: "" });
-			navigate("/admissions");
+			navigate("/leads?stage=converted");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const counsellorError = error.payload.errors?.counsellorId?.[0];
@@ -556,18 +592,10 @@ export const LeadsPage = () => {
 					const canManageForm = hasPermission("LEAD_FORM_MANAGE");
 					const canRequestDemo = hasPermission("LEAD_DEMO_REQUEST");
 					const canCompleteDemo = hasPermission("LEAD_DEMO_COMPLETE");
-					const baseView: LeadTableAction = {
-						key: "view",
-						label: "View",
-						to: (item) => `/leads/${item.id}`,
-						className:
-							"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100",
-					};
 
 					switch (activeStage) {
 						case "followUp":
 							return [
-								baseView,
 								{
 									key: "postpone",
 									label: "Postpone",
@@ -582,12 +610,7 @@ export const LeadsPage = () => {
 											  label: "Send Form",
 											  onClick: async (item: LeadResponse) => {
 												  try {
-													  const result = await generateFormLinkMutation.mutateAsync(
-														  item.id,
-													  );
-													  setFormLinkData(result);
-													  setFormLinkPhone(item.phone ?? null);
-													  setFormLinkOpen(true);
+													  await sendFormForLead(item);
 												  } catch (error) {
 													  toast.error(
 														  error instanceof Error
@@ -604,7 +627,6 @@ export const LeadsPage = () => {
 							];
 						case "formSent":
 							return [
-								baseView,
 										  {
 											  key: "copyFormLink",
 											  label: "Copy Form Link",
@@ -636,7 +658,6 @@ export const LeadsPage = () => {
 							];
 						case "formFilled":
 							return [
-								baseView,
 								...(canRequestDemo
 									? [
 										  {
@@ -651,17 +672,9 @@ export const LeadsPage = () => {
 										  },
 									  ]
 									: []),
-								{
-									key: "toAdmission",
-									label: "To Admission",
-									onClick: (item) => setAdmissionLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
-								},
 							];
 						case "demoRequest":
 							return [
-								baseView,
 								{
 									key: "cancelRequest",
 									label: "Cancel Request",
@@ -692,7 +705,6 @@ export const LeadsPage = () => {
 							];
 						case "demoAssigned":
 							return [
-								baseView,
 								...(canCompleteDemo
 									? [
 										  {
@@ -737,7 +749,6 @@ export const LeadsPage = () => {
 							];
 						case "demoCompleted":
 							return [
-								baseView,
 								{
 									key: "toAdmission",
 									label: "To Admission",
@@ -755,7 +766,6 @@ export const LeadsPage = () => {
 							];
 						case "demoCancelled":
 							return [
-								baseView,
 								{
 									key: "redemo",
 									label: "Request Redemo",
@@ -772,7 +782,7 @@ export const LeadsPage = () => {
 								},
 							];
 						default:
-							return [baseView];
+							return [];
 					}
 				},
 			}),
@@ -836,36 +846,9 @@ export const LeadsPage = () => {
 					})}
 				</div>
 
-				<div className="flex flex-col gap-3 rounded-3xl border border-gray-300 bg-white p-3 sm:flex-row sm:items-center">
-					<span className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-						Sort by:
-					</span>
-					<select
-						value={sortBy}
-						onChange={(e) => {
-							setSortBy(e.target.value);
-							setCurrentPage(1);
-						}}
-						className="rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-blue-600"
-					>
-						<option value="nextFollowUpAt">Next Follow-up</option>
-						<option value="createdAt">Created Date</option>
-						<option value="updatedAt">Updated Date</option>
-						<option value="name">Lead Name</option>
-						<option value="phone">Phone</option>
-					</select>
-					<button
-						type="button"
-						onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-						className="inline-flex items-center gap-1 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:border-blue-600 hover:text-blue-600"
-					>
-						{sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
-					</button>
-				</div>
-
-				{leadsQuery.isLoading && allLeadsQuery.isLoading ? (
+				{activeLeadsQuery.isLoading ? (
 					<div className="py-8 text-center text-gray-600">Loading...</div>
-				) : leadsQuery.isError || allLeadsQuery.isError ? (
+				) : activeLeadsQuery.isError ? (
 					<div className="py-8 text-center text-gray-600">
 						Unable to load leads.
 					</div>
@@ -876,6 +859,22 @@ export const LeadsPage = () => {
 							data={scopeLeads}
 							exportFilename={`leads-${activeScope}-${activeStage}`}
 							searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
+							sortBy={sortBy}
+							onSortByChange={(value) => {
+								setSortBy(value);
+								setCurrentPage(1);
+							}}
+							sortOrder={sortOrder}
+							onSortOrderToggle={() =>
+								setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+							}
+							sortOptions={[
+								{ value: "nextFollowUpAt", label: "Next Follow-up" },
+								{ value: "createdAt", label: "Created Date" },
+								{ value: "updatedAt", label: "Updated Date" },
+								{ value: "name", label: "Lead Name" },
+								{ value: "phone", label: "Phone" },
+							]}
 						/>
 						{pagination && (
 							<div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 mt-4">
@@ -1035,6 +1034,61 @@ export const LeadsPage = () => {
 						)}
 					/>
 				</form>
+			</Modal>
+
+			<Modal
+				open={Boolean(courseTypeLead)}
+				title="Select Course Type"
+				description="Choose Group or Individual before sending the form"
+				onClose={() => {
+					setCourseTypeLead(null);
+					setCourseTypeSelection("");
+				}}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => {
+								setCourseTypeLead(null);
+								setCourseTypeSelection("");
+							}}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => void onConfirmCourseTypeAndSend()}
+							disabled={
+								!courseTypeSelection ||
+								updateLeadMutation.isPending ||
+								generateFormLinkMutation.isPending
+							}
+						>
+							{updateLeadMutation.isPending || generateFormLinkMutation.isPending
+								? "Saving..."
+								: "Save & Send Form"}
+						</button>
+					</>
+				}
+			>
+				<label className="grid gap-2 text-sm font-medium text-gray-700">
+					<span>Course Type</span>
+					<select
+						className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+						value={courseTypeSelection}
+						onChange={(event) =>
+							setCourseTypeSelection(
+								event.target.value as "GROUP" | "INDIVIDUAL" | "",
+							)
+						}
+					>
+						<option value="">Select course type</option>
+						<option value="GROUP">Group</option>
+						<option value="INDIVIDUAL">Individual</option>
+					</select>
+				</label>
 			</Modal>
 
 			<Modal

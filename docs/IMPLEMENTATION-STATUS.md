@@ -84,8 +84,10 @@ Features Added (Active Work):
 - **Activity API**: GET /leads/:leadId/activities returns full audit trail sorted by date
 - **Frontend Activity UI**: ActivityFeed component displays timeline with relative dates and change details
 - **Audit Fields**: All changes tracked with who, what, when, old vs new values
-- **Demo History Array**: Lead demo/admission state now lives in `demos[]` so multiple demos and admissions are tracked in a single history trail
-- **Admission Handoff**: Student creation now derives mentor and counsellor context from the latest demo entry
+- **Demo History Array**: Lead `demos[]` now stores demo lifecycle only (mentor/request/schedule/complete/note), while admission state is tracked at lead top-level.
+- **Admission Snapshot**: On admission request, the system creates a student snapshot from lead data, auto-generates ZID, and stores a copied timeslot snapshot (`classesPerWeek`, `durationMinutes`) on student.
+- **Student Lifecycle Statuses**: Student status now uses `ADMISSION_PROCESS | STUDENT | BREAK | DROPPED`.
+- **Student Follow-up Action**: Student detail now includes a mandatory-note follow-up modal that records student history and advances the next follow-up date.
 - **Lead Detail Redesign**: Detailed lead profile now surfaces identity, contact, form, schedule, ownership, and demo history sections in a light UI
 - **Lead Response Timestamps**: Shared lead response schema now includes `createdAt` and `updatedAt` for history-aware screens
 
@@ -129,8 +131,8 @@ Scope:
 
 Checklist:
 - [ ] Add form submission schema and endpoint (/form/:leadId)
-- [ ] Add student schemas and model
-- [ ] Add conversion service lead -> student
+- [x] Add student schemas and model
+- [x] Add conversion service lead -> student
 - [ ] Implement ZID generator (prefix sequence starts at 11)
 - [ ] Ensure ZID is immutable and never reused
 - [ ] Add conversion and ZID concurrency tests

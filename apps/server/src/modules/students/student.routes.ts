@@ -5,7 +5,11 @@ import {
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
-import { listStudentsController } from "./student.controller.js";
+import { getStudentActivitiesController } from "./student-activity.controller.js";
+import {
+	recordStudentFollowUpController,
+	listStudentsController,
+} from "./student.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -34,7 +38,7 @@ router.use(authMiddleware);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [ACTIVE, COMPLETED, DROPPED]
+	 *           enum: [STUDENT, BREAK, DROPPED]
  *     responses:
  *       200:
  *         description: List of students with ZID, name, level, and status
@@ -52,6 +56,18 @@ router.get(
 	"/",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(listStudentsController),
+);
+
+router.get(
+	"/:studentId/activities",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(getStudentActivitiesController),
+);
+
+router.patch(
+	"/:studentId/follow-up",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(recordStudentFollowUpController),
 );
 
 export default router;

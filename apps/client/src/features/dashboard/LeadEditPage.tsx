@@ -15,10 +15,12 @@ import { useSession } from "@/lib/session";
 type LeadEditFormState = {
 	name: string;
 	phone: string;
+	email: string;
 	level: string;
 	gender: string;
 	dateOfBirth: string;
 	residingCountry: string;
+	courseType: string;
 	primaryWhatsappNumber: string;
 	alternateWhatsappNumber: string;
 	studentInfo: string;
@@ -62,10 +64,12 @@ export const LeadEditPage = () => {
 			defaultValues: {
 				name: "",
 				phone: "",
+				email: "",
 				level: "",
 				gender: "",
 				dateOfBirth: "",
 				residingCountry: "",
+				courseType: "",
 				primaryWhatsappNumber: "",
 				alternateWhatsappNumber: "",
 				studentInfo: "",
@@ -90,12 +94,14 @@ export const LeadEditPage = () => {
 		reset({
 			name: lead.name ?? "",
 			phone: lead.phone ?? "",
+			email: lead.email ?? "",
 			level: lead.level ?? "",
 			gender: lead.gender ?? "",
 			dateOfBirth: lead.dateOfBirth
 				? format(new Date(lead.dateOfBirth), "yyyy-MM-dd")
 				: "",
 			residingCountry: lead.residingCountry ?? "",
+			courseType: lead.courseType ?? "",
 			primaryWhatsappNumber: lead.primaryWhatsappNumber ?? "",
 			alternateWhatsappNumber: lead.alternateWhatsappNumber ?? "",
 			studentInfo: lead.studentInfo ?? "",
@@ -122,12 +128,14 @@ export const LeadEditPage = () => {
 		const updates: Record<string, unknown> = {
 			name: payload.name || undefined,
 			phone: payload.phone || undefined,
+			email: payload.email || undefined,
 			level: payload.level || undefined,
 			gender: payload.gender || undefined,
 			dateOfBirth: payload.dateOfBirth
 				? new Date(payload.dateOfBirth)
 				: undefined,
 			residingCountry: payload.residingCountry || undefined,
+			courseType: payload.courseType || undefined,
 			primaryWhatsappNumber: payload.primaryWhatsappNumber || undefined,
 			alternateWhatsappNumber: payload.alternateWhatsappNumber || undefined,
 			studentInfo: payload.studentInfo || undefined,
@@ -255,6 +263,21 @@ export const LeadEditPage = () => {
 							)}
 						/>
 
+								<Controller
+									name="email"
+									control={control}
+									render={({ field, fieldState }) => (
+										<Field
+											label="Email"
+											type="email"
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="student@example.com"
+											error={fieldState.error?.message}
+										/>
+									)}
+								/>
+
 						<Controller
 							name="level"
 							control={control}
@@ -310,6 +333,24 @@ export const LeadEditPage = () => {
 									value={field.value}
 									onChange={field.onChange}
 									placeholder="Country"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+
+						<Controller
+							name="courseType"
+							control={control}
+							render={({ field, fieldState }) => (
+								<SelectField
+									label="Course Type"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="Select course type"
+									options={[
+										{ value: "INDIVIDUAL", label: "Individual" },
+										{ value: "GROUP", label: "Group" },
+									]}
 									error={fieldState.error?.message}
 								/>
 							)}
