@@ -22,6 +22,8 @@ interface DataTableProps<T> {
 	data: T[];
 	exportFilename?: string;
 	searchPlaceholder?: string;
+	enableGlobalFilter?: boolean;
+	enableTableSorting?: boolean;
 	initialSorting?: SortingState;
 	sortBy?: string;
 	onSortByChange?: (value: string) => void;
@@ -35,6 +37,8 @@ export function DataTable<T>({
 	data,
 	exportFilename = "export",
 	searchPlaceholder = "Search...",
+	enableGlobalFilter = true,
+	enableTableSorting = true,
 	initialSorting = [],
 	sortBy,
 	onSortByChange,
@@ -49,6 +53,7 @@ export function DataTable<T>({
 	const table = useReactTable({
 		data,
 		columns,
+		enableSorting: enableTableSorting,
 		state: {
 			sorting,
 			columnFilters,
@@ -58,7 +63,7 @@ export function DataTable<T>({
 		onColumnFiltersChange: setColumnFilters,
 		onGlobalFilterChange: setGlobalFilter,
 		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
+		getSortedRowModel: enableTableSorting ? getSortedRowModel() : undefined,
 		getFilteredRowModel: getFilteredRowModel(),
 	});
 
@@ -99,13 +104,15 @@ export function DataTable<T>({
 			{/* Toolbar */}
 			<div className="flex flex-col gap-4 bg-white mt-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:w-full sm:items-center">
-					<input
-						type="text"
-						placeholder={searchPlaceholder}
-						value={globalFilter}
-						onChange={(e) => setGlobalFilter(e.target.value)}
-						className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
-					/>
+					{enableGlobalFilter ? (
+						<input
+							type="text"
+							placeholder={searchPlaceholder}
+							value={globalFilter}
+							onChange={(e) => setGlobalFilter(e.target.value)}
+							className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
+						/>
+					) : null}
 					{sortOptions && onSortByChange && sortBy !== undefined ? (
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
 							<span className="text-xs font-semibold uppercase tracking-wide text-gray-600">

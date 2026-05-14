@@ -3,12 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import { DataTable } from "@/components/DataTable";
 import {
 	buildStudentColumns,
+	getStudentFollowUpState,
 	getStudentStatusColor,
 	type StudentTableRow,
 } from "@/features/students/student-table";
 import {
 	getStudentStageCounts,
-	getStudentStatusFilterByStage,
 	studentStageDefinitions,
 	type StudentStageId,
 } from "@/features/students/student-stage-filters";
@@ -19,30 +19,69 @@ import { useSession } from "@/lib/session";
 export const StudentsPage = () => {
 	const { token } = useSession();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const studentsQuery = useStudentsQuery(token);
+	const currentStage = (searchParams.get("stage") ?? "all") as StudentStageId;
+	const searchTerm = searchParams.get("search") ?? "";
+	const sortBy = searchParams.get("sortBy") ?? "nextFollowUpAt";
+	const sortOrder = searchParams.get("sortOrder") === "desc" ? "desc" : "asc";
+	const selectedStatus =
+		currentStage === "all"
+			? undefined
+			: studentStageDefinitions.find((stage) => stage.id === currentStage)
+				?.statusFilter?.[0];
+
+	const allStudentsQuery = useStudentsQuery(token);
+	const studentsQuery = useStudentsQuery(token, {
+		status: selectedStatus,
+		search: searchTerm || undefined,
+		sortBy,
+		sortOrder,
+	});
 	const usersQuery = useUsersQuery(token);
 
-	const currentStage = (searchParams.get("stage") ?? "all") as StudentStageId;
+	const setQueryParam = (key: string, value?: string) => {
+		const next = new URLSearchParams(searchParams);
+		if (value) {
+			next.set(key, value);
+		} else {
+			next.delete(key);
+		}
+		setSearchParams(next);
+	};
 
-	// Filter students by stage
 	const filteredStudents = useMemo(() => {
 		if (!studentsQuery.data?.students) return [];
 
-		const statusFilter = getStudentStatusFilterByStage(currentStage);
-		const students = statusFilter === null
-			? studentsQuery.data.students
-			: studentsQuery.data.students.filter((s) =>
-			statusFilter.includes(s.status)
-		);
-
-		// Convert string dates to Date objects
-		return students.map((s) => ({
+		const transformed = studentsQuery.data.students.map((s) => ({
 			...s,
 			admittedAt: s.admittedAt ? new Date(s.admittedAt) : new Date(),
 			createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
 			updatedAt: s.updatedAt ? new Date(s.updatedAt) : undefined,
+			nextFollowUpAt: s.nextFollowUpAt ? new Date(s.nextFollowUpAt) : undefined,
+			customNextFollowUpAt: s.customNextFollowUpAt
+				? new Date(s.customNextFollowUpAt)
+				: undefined,
 		})) as unknown as StudentTableRow[];
-	}, [studentsQuery.data?.students, currentStage]);
+
+		return transformed.sort((left, right) => {
+			const leftState = getStudentFollowUpState(
+				left.customNextFollowUpAt,
+				left.nextFollowUpAt,
+			);
+			const rightState = getStudentFollowUpState(
+				right.customNextFollowUpAt,
+				right.nextFollowUpAt,
+			);
+
+			if (leftState.priority !== rightState.priority) {
+				return leftState.priority - rightState.priority;
+			}
+
+			const leftDate = (left.customNextFollowUpAt ?? left.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+			const rightDate = (right.customNextFollowUpAt ?? right.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+
+			return leftDate - rightDate;
+		});
+	}, [studentsQuery.data?.students]);
 
 	// Build name lookup tables
 	const mentorNameById = useMemo(() => {
@@ -55,8 +94,8 @@ export const StudentsPage = () => {
 
 	// Calculate counts
 	const stageCounts = useMemo(
-		() => getStudentStageCounts(studentsQuery.data?.students ?? []),
-		[studentsQuery.data?.students]
+		() => getStudentStageCounts(allStudentsQuery.data?.students ?? []),
+		[allStudentsQuery.data?.students]
 	);
 
 	const columns = useMemo(
@@ -70,12 +109,58 @@ export const StudentsPage = () => {
 
 	return (
 		<div className="space-y-4">
+			<div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
+				<div className="flex-1">
+					<label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+						Search students
+					</label>
+					<input
+						value={searchTerm}
+						onChange={(event) => setQueryParam("search", event.target.value)}
+						placeholder="Search by name, phone, email, ZID, process"
+						className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500"
+					/>
+				</div>
+				<div className="flex items-end gap-3">
+					<div>
+						<label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+							Sort by
+						</label>
+						<select
+							value={sortBy}
+							onChange={(event) => setQueryParam("sortBy", event.target.value)}
+							className="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500"
+						>
+							<option value="nextFollowUpAt">Next follow-up</option>
+							<option value="admittedAt">Admitted date</option>
+							<option value="name">Name</option>
+							<option value="zid">ZID</option>
+						</select>
+					</div>
+					<div>
+						<label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+							Order
+						</label>
+						<button
+							onClick={() => setQueryParam("sortOrder", sortOrder === "asc" ? "desc" : "asc")}
+							className="mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700"
+						>
+							{sortOrder === "asc" ? "Ascending" : "Descending"}
+						</button>
+					</div>
+				</div>
+			</div>
+
 			{/* Stage Filter Tabs */}
 			<div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
 				{studentStageDefinitions.map((stage) => (
 					<button
 						key={stage.id}
-						onClick={() => setSearchParams({ stage: stage.id })}
+						onClick={() => {
+							const next = new URLSearchParams(searchParams);
+							next.set("stage", stage.id);
+							setSearchParams(next);
+						}}
 						className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
 							currentStage === stage.id
 								? "border-teal-600 text-teal-600"
@@ -97,6 +182,8 @@ export const StudentsPage = () => {
 				<DataTable
 					data={filteredStudents}
 					columns={columns}
+					enableGlobalFilter={false}
+					enableTableSorting={false}
 				/>
 			</div>
 

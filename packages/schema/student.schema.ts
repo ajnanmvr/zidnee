@@ -23,6 +23,10 @@ export const StudentSchema = z.object({
 	id: ObjectIdStringSchema,
 	zid: z.string().min(1).max(20),
 	leadId: ObjectIdStringSchema,
+	processId: ObjectIdStringSchema.optional(),
+	processLabel: z.string().max(150).optional(),
+	nextFollowUpAt: z.date().optional(),
+	customNextFollowUpAt: z.date().optional(),
 	name: z.string().max(255).optional(),
 	phone: z.string().min(8).max(20),
 	email: z.string().email().max(255),
@@ -66,12 +70,20 @@ export type ConfirmAdmissionPayload = z.infer<
 	typeof ConfirmAdmissionPayloadSchema
 >;
 
+export const StudentFollowUpPayloadSchema = z.object({
+	note: z.string().min(1).max(500),
+});
+
+export type StudentFollowUpPayload = z.infer<typeof StudentFollowUpPayloadSchema>;
+
 export const StudentResponseSchema = StudentSchema.omit({
 	dateOfBirth: true,
 	admittedAt: true,
 	createdAt: true,
 	updatedAt: true,
 }).extend({
+	nextFollowUpAt: z.string().datetime().nullable().optional(),
+	customNextFollowUpAt: z.string().datetime().nullable().optional(),
 	dateOfBirth: z.string().datetime().nullable(),
 	admittedAt: z.string().datetime(),
 	createdAt: z.string().datetime().nullable(),

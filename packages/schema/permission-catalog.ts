@@ -161,6 +161,12 @@ export const PERMISSION_CATALOG = {
 		resource: "students",
 		action: "read",
 	},
+	STUDENT_UPDATE: {
+		name: "Update Student",
+		description: "Update student information and follow-ups",
+		resource: "students",
+		action: "update",
+	},
 	ORDER_DELETE: {
 		name: "Delete Order",
 		description: "Delete order records",

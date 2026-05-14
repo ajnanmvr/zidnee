@@ -5,15 +5,19 @@ export type StudentDocument = Omit<
 	Student,
 	| "id"
 	| "leadId"
+	| "processId"
 	| "admittedBy"
 	| "mentorId"
 	| "batchId"
 > & {
 	_id: Types.ObjectId;
 	leadId: Types.ObjectId;
+	processId?: Types.ObjectId;
 	admittedBy: Types.ObjectId;
 	mentorId?: Types.ObjectId;
 	batchId?: Types.ObjectId;
+	nextFollowUpAt?: Date;
+	customNextFollowUpAt?: Date;
 	admittedAt: Date;
 };
 
@@ -30,6 +34,12 @@ const studentSchema = new Schema<StudentDocument>(
 			ref: "Lead",
 			required: true,
 			unique: true,
+			index: true,
+		},
+		processId: {
+			type: Schema.Types.ObjectId,
+			ref: "StudentProcess",
+			required: false,
 			index: true,
 		},
 		name: {
@@ -154,6 +164,23 @@ const studentSchema = new Schema<StudentDocument>(
 			type: Schema.Types.ObjectId,
 			ref: "Batch",
 			required: false,
+		},
+		processLabel: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 150,
+		},
+		nextFollowUpAt: {
+			type: Date,
+			required: false,
+			default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+			index: true,
+		},
+		customNextFollowUpAt: {
+			type: Date,
+			required: false,
+			index: true,
 		},
 		status: {
 			type: String,
