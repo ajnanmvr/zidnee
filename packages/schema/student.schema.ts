@@ -3,7 +3,6 @@ import { ObjectIdStringSchema } from "./rbac.schema.js";
 import { BatchTypeSchema } from "./batch.schema.js";
 
 export const StudentStatusSchema = z.enum([
-	"ADMISSION_PROCESS",
 	"STUDENT",
 	"BREAK",
 	"DROPPED",

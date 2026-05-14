@@ -1,6 +1,7 @@
 import type { Student } from "@repo/schema";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
+import { LeadActivityModel } from "../leads/activity.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
 
@@ -191,11 +192,11 @@ export const StudentService = {
 				return null;
 			}
 
-			await LeadModel.findByIdAndUpdate(leadId, {
-				$set: {
-					studentId: updatedExisting._id.toString(),
-				},
-			});
+			// Delete all activities for this lead
+			await LeadActivityModel.deleteMany({ leadId });
+
+			// Delete the lead
+			await LeadModel.findByIdAndDelete(leadId);
 
 			return toStudent(updatedExisting);
 		}
@@ -285,6 +286,12 @@ export const StudentService = {
 				note,
 			);
 		}
+
+		// Delete all activities for this lead
+		await LeadActivityModel.deleteMany({ leadId });
+
+		// Delete the lead
+		await LeadModel.findByIdAndDelete(leadId);
 
 		return toStudent(createdStudent.toObject() as StudentDocument);
 	},

@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { isPast, isToday } from "date-fns";
 import {
 	HiAcademicCap,
 	HiArchiveBox,
@@ -139,7 +140,13 @@ export const DashboardLayout = () => {
 				return false;
 			}
 
-			return Boolean(latestDemo.mentorId) && !latestDemo.completedAt;
+			if (latestDemo.completedAt) {
+				return false;
+			}
+
+			// Only count demos that are today or overdue (scheduled in the past)
+			const scheduledDate = new Date(latestDemo.demoScheduledFor);
+			return isToday(scheduledDate) || isPast(scheduledDate);
 		},
 	).length;
 	const currentLocation = `${location.pathname}${location.search}`;
