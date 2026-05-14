@@ -40,8 +40,10 @@ export const CreateReminderModal: React.FC<CreateReminderModalProps> = ({
 		}
 
 		try {
-			const reminderDate = new Date(`${date}T12:00:00`);
-			if (reminderDate < new Date()) {
+			const reminderDate = new Date(`${date}T00:00:00`);
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			if (reminderDate < today) {
 				toast.error("Reminder date must be today or later");
 				return;
 			}

@@ -114,6 +114,11 @@ const RemindersPage = lazy(() =>
 		default: module.RemindersPage,
 	})),
 );
+const ClosedRemindersPage = lazy(() =>
+	import("@/features/reminders/ClosedRemindersPage").then((module) => ({
+		default: module.ClosedRemindersPage,
+	})),
+);
 
 const routeFallback = (
 	<div className="p-6 text-sm text-slate-500">Loading...</div>
@@ -319,6 +324,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<RemindersPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "reminders/closed",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<ClosedRemindersPage />
 							</Suspense>
 						),
 					},

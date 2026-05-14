@@ -35,6 +35,7 @@ export const StudentDetailPage = () => {
 	const [followUpNote, setFollowUpNote] = useState("");
 	const [followUpError, setFollowUpError] = useState<string | undefined>();
 	const [remindersModalOpen, setRemindersModalOpen] = useState(false);
+	const [showCompletedReminders, setShowCompletedReminders] = useState(false);
 	const remindersQuery = useGetStudentReminders(studentId ?? "");
 
 	const student = useMemo(
@@ -369,13 +370,24 @@ export const StudentDetailPage = () => {
 						<Panel
 							title="Reminders"
 							action={
-								<button
-									type="button"
-									onClick={() => setRemindersModalOpen(true)}
-									className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-								>
-									Add Reminder
-								</button>
+								<div className="flex flex-wrap items-center gap-3">
+									<label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+										<input
+											type="checkbox"
+											checked={showCompletedReminders}
+											onChange={(event) => setShowCompletedReminders(event.target.checked)}
+											className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+										/>
+										Show completed
+									</label>
+									<button
+										type="button"
+										onClick={() => setRemindersModalOpen(true)}
+										className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+									>
+										Add Reminder
+									</button>
+								</div>
 							}
 						>
 							<RemindersList
@@ -384,6 +396,7 @@ export const StudentDetailPage = () => {
 								isLoading={remindersQuery.isLoading}
 								onAddNew={() => setRemindersModalOpen(true)}
 								users={usersQuery.data?.users ?? []}
+								showCompleted={showCompletedReminders}
 							/>
 						</Panel>
 					</div>

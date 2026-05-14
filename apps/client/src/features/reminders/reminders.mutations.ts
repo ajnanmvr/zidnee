@@ -36,8 +36,10 @@ export const useGetAllReminders = (filters?: {
 	isDone?: boolean;
 	sortBy?: "date" | "createdAt";
 	sortOrder?: "asc" | "desc";
+	enabled?: boolean;
 }) => {
 	const { token } = useSession();
+	const enabled = filters?.enabled ?? true;
 
 	return useQuery({
 		queryKey: [...reminderQueryKeys.allReminders(), filters],
@@ -45,7 +47,7 @@ export const useGetAllReminders = (filters?: {
 			if (!token) return [];
 			return getAllReminders(token, filters);
 		},
-		enabled: Boolean(token),
+		enabled: Boolean(token) && enabled,
 	});
 };
 
