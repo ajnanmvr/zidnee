@@ -16,27 +16,30 @@ export const studentsQueryKeys = {
 			limit?: number;
 		},
 	) => ["students", token, options ?? {}] as const,
-	activities: (token: string, studentId: string) => ["students", token, studentId, "activities"] as const,
+	activities: (token: string, studentId: string) =>
+		["students", token, studentId, "activities"] as const,
 };
 
 export const useStudentsQuery = (
 	token: string,
 	optionsOrEnabled?:
 		| {
-			status?: string;
-			search?: string;
-			sortBy?: string;
-			sortOrder?: "asc" | "desc";
-			page?: number;
-			limit?: number;
-		}
+				status?: string;
+				search?: string;
+				sortBy?: string;
+				sortOrder?: "asc" | "desc";
+				page?: number;
+				limit?: number;
+		  }
 		| boolean,
 	enabled = true,
 ) => {
 	const options =
 		typeof optionsOrEnabled === "boolean" ? undefined : optionsOrEnabled;
 	const queryEnabled =
-		typeof optionsOrEnabled === "boolean" ? optionsOrEnabled && enabled : enabled;
+		typeof optionsOrEnabled === "boolean"
+			? optionsOrEnabled && enabled
+			: enabled;
 
 	return useQuery({
 		queryKey: studentsQueryKeys.list(token, options),

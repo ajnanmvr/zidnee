@@ -8,7 +8,13 @@ export const useRecordStudentFollowUpMutation = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ studentId, note }: { studentId: string; note: string }) => {
+		mutationFn: async ({
+			studentId,
+			note,
+		}: {
+			studentId: string;
+			note: string;
+		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}

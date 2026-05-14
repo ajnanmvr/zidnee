@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ObjectIdStringSchema } from "./rbac.schema.js";
 import { BatchTypeSchema } from "./batch.schema.js";
+import { ObjectIdStringSchema } from "./rbac.schema.js";
 
 export const LeadStatusSchema = z.enum([
 	"FOLLOW_UP",
@@ -39,52 +39,58 @@ export const LeadTimeslotSnapshotSchema = z.object({
 
 export type LeadTimeslotSnapshot = z.infer<typeof LeadTimeslotSnapshotSchema>;
 
-export const LeadFormDataSchema = z.object({
-	name: z.string().min(1).max(255),
-	dateOfBirth: z.coerce.date(),
-	residingCountry: z.string().min(1).max(100),
-	level: z.string().min(1).max(20),
-	gender: z.enum(["male", "female"]),
-	primaryWhatsappNumber: PhoneNumberSchema,
-	alternateWhatsappNumber: PhoneNumberSchema,
-	studentInfo: z.string().min(1).max(1000),
-	preferredLanguage: z.enum([
-		"Malayalam Only",
-		"English Only",
-		"Malayalam - English Mixed",
-	]),
-	preferredSchedule: z.string().min(1).max(150).optional(),
-	preferredDays: z.array(z.string().min(1)).min(1).optional(),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).min(1).max(1).optional(),
-	email: z.email().max(255),
-	courseType: BatchTypeSchema.optional(),
-	price: z.number().int().nonnegative().optional(),
-	startClassWhen: z.string().min(1).max(100).optional(),
-	hearAboutUs: z.string().min(1).max(255),
-	demoAvailability: z.string().min(1).max(100).optional(),
-	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
-}).refine(
-	(data) => {
-		// If GROUP course, only require language and hearAboutUs (already required)
-		if (data.courseType === "GROUP") {
-			return true;
-		}
-		// If INDIVIDUAL or not specified, require scheduling fields
-		return (
-			data.preferredDays &&
-			data.preferredDays.length > 0 &&
-			data.preferredTimeslots &&
-			data.preferredTimeslots.length > 0 &&
-			data.startClassWhen &&
-			data.demoAvailability &&
-			data.preferredMentorGender
-		);
-	},
-	{
-		message:
-			"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, start date, demo availability, and mentor preference)",
-	},
-);
+export const LeadFormDataSchema = z
+	.object({
+		name: z.string().min(1).max(255),
+		dateOfBirth: z.coerce.date(),
+		residingCountry: z.string().min(1).max(100),
+		level: z.string().min(1).max(20),
+		gender: z.enum(["male", "female"]),
+		primaryWhatsappNumber: PhoneNumberSchema,
+		alternateWhatsappNumber: PhoneNumberSchema,
+		studentInfo: z.string().min(1).max(1000),
+		preferredLanguage: z.enum([
+			"Malayalam Only",
+			"English Only",
+			"Malayalam - English Mixed",
+		]),
+		preferredSchedule: z.string().min(1).max(150).optional(),
+		preferredDays: z.array(z.string().min(1)).min(1).optional(),
+		preferredTimeslots: z
+			.array(LeadTimeslotSnapshotSchema)
+			.min(1)
+			.max(1)
+			.optional(),
+		email: z.email().max(255),
+		courseType: BatchTypeSchema.optional(),
+		price: z.number().int().nonnegative().optional(),
+		startClassWhen: z.string().min(1).max(100).optional(),
+		hearAboutUs: z.string().min(1).max(255),
+		demoAvailability: z.string().min(1).max(100).optional(),
+		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
+	})
+	.refine(
+		(data) => {
+			// If GROUP course, only require language and hearAboutUs (already required)
+			if (data.courseType === "GROUP") {
+				return true;
+			}
+			// If INDIVIDUAL or not specified, require scheduling fields
+			return (
+				data.preferredDays &&
+				data.preferredDays.length > 0 &&
+				data.preferredTimeslots &&
+				data.preferredTimeslots.length > 0 &&
+				data.startClassWhen &&
+				data.demoAvailability &&
+				data.preferredMentorGender
+			);
+		},
+		{
+			message:
+				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, start date, demo availability, and mentor preference)",
+		},
+	);
 
 export type LeadFormData = z.infer<typeof LeadFormDataSchema>;
 
@@ -229,52 +235,54 @@ export type GenerateFormLinkResponse = z.infer<
 	typeof GenerateFormLinkResponseSchema
 >;
 
-export const SubmitLeadFormPayloadSchema = z.object({
-	name: z.string().min(1).max(255),
-	dateOfBirth: z.coerce.date(),
-	residingCountry: z.string().min(1).max(100),
-	level: z.string().min(1).max(20),
-	gender: z.enum(["male", "female"]),
-	primaryWhatsappNumber: PhoneNumberSchema,
-	alternateWhatsappNumber: PhoneNumberSchema,
-	studentInfo: z.string().max(1000).optional(),
-	preferredLanguage: z.enum([
-		"Malayalam Only",
-		"English Only",
-		"Malayalam - English Mixed",
-	]),
-	preferredSchedule: z.string().max(150).optional(),
-	preferredDays: z.array(z.string().min(1)).optional(),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).optional(),
-	email: z.string().email().max(255),
-	courseType: BatchTypeSchema.optional(),
-	price: z.number().int().nonnegative().optional(),
-	startClassWhen: z.string().max(100).optional(),
-	hearAboutUs: z.string().min(1).max(255),
-	demoAvailability: z.string().max(100).optional(),
-	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
-	token: z.string().min(1),
-}).refine(
-	(data) => {
-		// If GROUP course, only require language and hearAboutUs (already required)
-		if (data.courseType === "GROUP") {
-			return true;
-		}
-		// If INDIVIDUAL or not specified, require scheduling fields
-		return (
-			data.preferredDays &&
-			data.preferredDays.length > 0 &&
-			data.preferredTimeslots &&
-			data.preferredTimeslots.length > 0 &&
-			data.startClassWhen &&
-			data.demoAvailability &&
-			data.preferredMentorGender
-		);
-	},
-	{
-		message:
-			"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, start date, demo availability, and mentor preference)",
-	},
-);
+export const SubmitLeadFormPayloadSchema = z
+	.object({
+		name: z.string().min(1).max(255),
+		dateOfBirth: z.coerce.date(),
+		residingCountry: z.string().min(1).max(100),
+		level: z.string().min(1).max(20),
+		gender: z.enum(["male", "female"]),
+		primaryWhatsappNumber: PhoneNumberSchema,
+		alternateWhatsappNumber: PhoneNumberSchema,
+		studentInfo: z.string().max(1000).optional(),
+		preferredLanguage: z.enum([
+			"Malayalam Only",
+			"English Only",
+			"Malayalam - English Mixed",
+		]),
+		preferredSchedule: z.string().max(150).optional(),
+		preferredDays: z.array(z.string().min(1)).optional(),
+		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).optional(),
+		email: z.string().email().max(255),
+		courseType: BatchTypeSchema.optional(),
+		price: z.number().int().nonnegative().optional(),
+		startClassWhen: z.string().max(100).optional(),
+		hearAboutUs: z.string().min(1).max(255),
+		demoAvailability: z.string().max(100).optional(),
+		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
+		token: z.string().min(1),
+	})
+	.refine(
+		(data) => {
+			// If GROUP course, only require language and hearAboutUs (already required)
+			if (data.courseType === "GROUP") {
+				return true;
+			}
+			// If INDIVIDUAL or not specified, require scheduling fields
+			return (
+				data.preferredDays &&
+				data.preferredDays.length > 0 &&
+				data.preferredTimeslots &&
+				data.preferredTimeslots.length > 0 &&
+				data.startClassWhen &&
+				data.demoAvailability &&
+				data.preferredMentorGender
+			);
+		},
+		{
+			message:
+				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, start date, demo availability, and mentor preference)",
+		},
+	);
 
 export type SubmitLeadFormPayload = z.infer<typeof SubmitLeadFormPayloadSchema>;

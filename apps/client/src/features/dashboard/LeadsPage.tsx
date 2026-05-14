@@ -1,15 +1,33 @@
-﻿import { ApiError } from "@/api/request";
+﻿import {
+	ConfirmAdmissionPayloadSchema,
+	CreateLeadPayloadSchema,
+	type LeadResponse,
+	PostponeLeadFollowUpPayloadSchema,
+	RedemoLeadPayloadSchema,
+} from "@repo/schema";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+	HiAcademicCap,
+	HiArrowPath,
+	HiCalendarDays,
+	HiPlusCircle,
+	HiTrash,
+} from "react-icons/hi2";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	buildLeadColumns,
- 	formatUserName,
+	formatUserName,
 } from "@/features/dashboard/lead-table";
 import {
-	leadStageDefinitions,
 	type LeadStageId,
+	leadStageDefinitions,
 } from "@/features/leads/lead-stage-filters";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import {
@@ -33,24 +51,6 @@ import type {
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
-import {
-	ConfirmAdmissionPayloadSchema,
-	CreateLeadPayloadSchema,
-	PostponeLeadFollowUpPayloadSchema,
-	RedemoLeadPayloadSchema,
-	type LeadResponse,
-} from "@repo/schema";
-import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import toast from "react-hot-toast";
-import {
-	HiAcademicCap,
-	HiArrowPath,
-	HiCalendarDays,
-	HiPlusCircle,
-	HiTrash,
-} from "react-icons/hi2";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 const toInputDateTimeLocal = (value: string | null): string => {
 	if (!value) {
@@ -80,12 +80,11 @@ export const LeadsPage = () => {
 	const meQuery = useMeQuery(token);
 
 	const hasPermission = (key?: string) =>
-		Boolean(
-			meQuery.data?.permissions?.some((p) => p.key === key),
-		);
+		Boolean(meQuery.data?.permissions?.some((p) => p.key === key));
 	const [currentPage, setCurrentPage] = useState(1);
 	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
-	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+	// Default sort: past → future (ascending)
+	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
 	const stageParam = searchParams.get("stage");
 	const activeStage: LeadStageId = leadStageDefinitions.some(
@@ -94,8 +93,9 @@ export const LeadsPage = () => {
 		? (stageParam as LeadStageId)
 		: "all";
 	const canReadAllLeads =
-		meQuery.data?.permissions?.some((permission) => permission.key === "LEAD_READ_ALL") ??
-		false;
+		meQuery.data?.permissions?.some(
+			(permission) => permission.key === "LEAD_READ_ALL",
+		) ?? false;
 	const scopeParam = searchParams.get("scope");
 	const activeScope = scopeParam === "all" && canReadAllLeads ? "all" : "mine";
 
@@ -224,7 +224,9 @@ export const LeadsPage = () => {
 				leadId: courseTypeLead.id,
 				payload: { courseType: courseTypeSelection },
 			});
-			const result = await generateFormLinkMutation.mutateAsync(courseTypeLead.id);
+			const result = await generateFormLinkMutation.mutateAsync(
+				courseTypeLead.id,
+			);
 			setFormLinkData(result);
 			setFormLinkPhone(courseTypeLead.phone ?? null);
 			setFormLinkOpen(true);
@@ -605,32 +607,32 @@ export const LeadsPage = () => {
 								},
 								...(canManageForm
 									? [
-										  {
-											  key: "sendForm",
-											  label: "Send Form",
-											  onClick: async (item: LeadResponse) => {
-												  try {
-													  await sendFormForLead(item);
-												  } catch (error) {
-													  toast.error(
-														  error instanceof Error
-															  ? error.message
-															  : "Unable to generate form link",
-													  );
-												  }
-											  },
-											  className:
-												  "inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
-										  },
-									  ]
+											{
+												key: "sendForm",
+												label: "Send Form",
+												onClick: async (item: LeadResponse) => {
+													try {
+														await sendFormForLead(item);
+													} catch (error) {
+														toast.error(
+															error instanceof Error
+																? error.message
+																: "Unable to generate form link",
+														);
+													}
+												},
+												className:
+													"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+											},
+										]
 									: []),
 							];
 						case "formSent":
 							return [
-										  {
-											  key: "copyFormLink",
-											  label: "Copy Form Link",
-											  onClick: async (item: LeadResponse) => {
+								{
+									key: "copyFormLink",
+									label: "Copy Form Link",
+									onClick: async (item: LeadResponse) => {
 										try {
 											const result = await generateFormLinkMutation.mutateAsync(
 												item.id,
@@ -660,17 +662,17 @@ export const LeadsPage = () => {
 							return [
 								...(canRequestDemo
 									? [
-										  {
-											  key: "requestDemo",
-											  label: "Request Demo",
-											  onClick: (item: LeadResponse) => {
-												  setRequestDemoLeadId(item.id);
-												  setRequestDemoOpen(true);
-											  },
-											  className:
-												  "inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
-										  },
-									  ]
+											{
+												key: "requestDemo",
+												label: "Request Demo",
+												onClick: (item: LeadResponse) => {
+													setRequestDemoLeadId(item.id);
+													setRequestDemoOpen(true);
+												},
+												className:
+													"inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
+											},
+										]
 									: []),
 							];
 						case "demoRequest":
@@ -707,17 +709,17 @@ export const LeadsPage = () => {
 							return [
 								...(canCompleteDemo
 									? [
-										  {
-											  key: "markCompleted",
-											  label: "Mark as Completed",
-											  onClick: (item: LeadResponse) => {
-												  setCompleteLeadId(item.id);
-												  resetComplete({ note: "" });
-											  },
-											  className:
-												  "inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
-										  },
-									  ]
+											{
+												key: "markCompleted",
+												label: "Mark as Completed",
+												onClick: (item: LeadResponse) => {
+													setCompleteLeadId(item.id);
+													resetComplete({ note: "" });
+												},
+												className:
+													"inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
+											},
+										]
 									: []),
 								{
 									key: "cancel",
@@ -821,7 +823,7 @@ export const LeadsPage = () => {
 								type="button"
 								className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
 								onClick={() => setCreateOpen(true)}
-								>
+							>
 								<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
 								Create lead
 							</button>
@@ -1066,7 +1068,8 @@ export const LeadsPage = () => {
 								generateFormLinkMutation.isPending
 							}
 						>
-							{updateLeadMutation.isPending || generateFormLinkMutation.isPending
+							{updateLeadMutation.isPending ||
+							generateFormLinkMutation.isPending
 								? "Saving..."
 								: "Save & Send Form"}
 						</button>

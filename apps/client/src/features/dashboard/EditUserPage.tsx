@@ -1,13 +1,12 @@
 ﻿import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Panel } from "@/components/dashboard-ui";
-import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { UserFormPanel } from "@/features/users/UserFormPanel";
+import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
-import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
 
 export const EditUserPage = () => {
 	const { userId = "" } = useParams();
@@ -17,8 +16,7 @@ export const EditUserPage = () => {
 	const updateUserMutation = useUpdateUserMutation();
 
 	const user = useMemo(
-		() =>
-			usersQuery.data?.users.find((row) => row.id === userId) ?? null,
+		() => usersQuery.data?.users.find((row) => row.id === userId) ?? null,
 		[userId, usersQuery.data?.users],
 	);
 
@@ -65,7 +63,7 @@ export const EditUserPage = () => {
 			}
 
 			toast.error(
-				error instanceof Error ? error.message : "Unable to update user"
+				error instanceof Error ? error.message : "Unable to update user",
 			);
 		}
 	};

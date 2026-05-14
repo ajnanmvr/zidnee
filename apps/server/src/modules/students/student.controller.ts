@@ -54,8 +54,14 @@ export const listStudentsController = async (
 		search: typeof req.query.search === "string" ? req.query.search : undefined,
 		sortBy: typeof req.query.sortBy === "string" ? req.query.sortBy : undefined,
 		sortOrder: req.query.sortOrder === "desc" ? "desc" : "asc",
-		page: typeof req.query.page === "string" ? parseInt(req.query.page, 10) : undefined,
-		limit: typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : undefined,
+		page:
+			typeof req.query.page === "string"
+				? parseInt(req.query.page, 10)
+				: undefined,
+		limit:
+			typeof req.query.limit === "string"
+				? parseInt(req.query.limit, 10)
+				: undefined,
 	});
 	res.json(
 		StudentsResponseSchema.parse({

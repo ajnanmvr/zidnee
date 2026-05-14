@@ -229,15 +229,15 @@ const leadSchema = new Schema(
 			required: false,
 			default: [],
 		},
- 		admissionRequestedAt: {
- 			type: Date,
- 			required: false,
- 		},
- 		studentId: {
- 			type: Schema.Types.ObjectId,
- 			ref: "Student",
- 			required: false,
- 		},
+		admissionRequestedAt: {
+			type: Date,
+			required: false,
+		},
+		studentId: {
+			type: Schema.Types.ObjectId,
+			ref: "Student",
+			required: false,
+		},
 	},
 	{
 		timestamps: true,

@@ -38,7 +38,7 @@ export const studentStageDefinitions: StudentStageDefinition[] = [
  * Convert stage ID to backend status filter
  */
 export const getStudentStatusFilterByStage = (
-	stageId: StudentStageId
+	stageId: StudentStageId,
 ): string[] | null => {
 	const stage = studentStageDefinitions.find((s) => s.id === stageId);
 	return stage?.statusFilter ?? null;
@@ -50,7 +50,7 @@ export const getStudentStatusFilterByStage = (
 export type StudentStageCounts = Record<StudentStageId, number>;
 
 export const getStudentStageCounts = (
-	students: Array<{ status: string }>
+	students: Array<{ status: string }>,
 ): StudentStageCounts => {
 	const counts: StudentStageCounts = {
 		all: students.length,
@@ -77,10 +77,22 @@ export const getStudentStageCounts = (
 };
 
 export const studentQueryKeys = {
-	list: (token: string, stage?: StudentStageId) =>
-		["students", "list", token, stage],
-	detail: (token: string, studentId: string) =>
-		["students", "detail", token, studentId],
-	activities: (token: string, studentId: string) =>
-		["students", "activities", token, studentId],
+	list: (token: string, stage?: StudentStageId) => [
+		"students",
+		"list",
+		token,
+		stage,
+	],
+	detail: (token: string, studentId: string) => [
+		"students",
+		"detail",
+		token,
+		studentId,
+	],
+	activities: (token: string, studentId: string) => [
+		"students",
+		"activities",
+		token,
+		studentId,
+	],
 } as const;

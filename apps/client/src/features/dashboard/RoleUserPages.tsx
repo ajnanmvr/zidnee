@@ -1,4 +1,17 @@
-﻿import { ApiError } from "@/api/request";
+﻿import { AdminChangePasswordPayloadSchema } from "@repo/schema";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+	HiEye,
+	HiLockClosed,
+	HiPencilSquare,
+	HiPower,
+	HiTrash,
+	HiUserPlus,
+} from "react-icons/hi2";
+import { Link, useNavigate } from "react-router-dom";
+import { ApiError } from "@/api/request";
 import { ActionButton } from "@/components/ActionButton";
 import { ConfirmDialog, Field, Modal, Panel } from "@/components/dashboard-ui";
 import {
@@ -8,21 +21,6 @@ import {
 } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
-import {
-	AdminChangePasswordPayloadSchema
-} from "@repo/schema";
-import { useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import {
-	HiLockClosed,
-	HiPencilSquare,
-	HiPower,
-	HiTrash,
-	HiUserPlus,
-	HiEye
-} from "react-icons/hi2";
-import { Link, useNavigate } from "react-router-dom";
 
 type RoleUsersPageProps = {
 	title: string;
@@ -84,26 +82,46 @@ export const RoleUsersPage = ({
 
 	const users = useMemo(() => {
 		const filtered = allUsers.filter((user) =>
-			user.roles.some((role) => matchesRoleType(role.type ?? "admin", roleType)),
+			user.roles.some((role) =>
+				matchesRoleType(role.type ?? "admin", roleType),
+			),
 		);
 
 		const q = query.trim().toLowerCase();
 		const searched = q
 			? filtered.filter((user) => {
 					const identity =
-						(user.zids && (user.zids as any)[roleType]) ?? user.mentorId ?? user.counsellorId ?? user.username ?? "";
-					const counsellorName = getCounsellorName(user.counsellorId).toLowerCase();
+						(user.zids && (user.zids as any)[roleType]) ??
+						user.mentorId ??
+						user.counsellorId ??
+						user.username ??
+						"";
+					const counsellorName = getCounsellorName(
+						user.counsellorId,
+					).toLowerCase();
 					return (
 						identity.toLowerCase().includes(q) ||
 						(user.name ?? "").toLowerCase().includes(q) ||
 						counsellorName.includes(q)
 					);
-			  })
+				})
 			: filtered;
 
 		const sorted = searched.slice().sort((a, b) => {
-			const aIdentity = ((a.zids && (a.zids as any)[roleType]) ?? a.mentorId ?? a.counsellorId ?? a.username ?? "").toLowerCase();
-			const bIdentity = ((b.zids && (b.zids as any)[roleType]) ?? b.mentorId ?? b.counsellorId ?? b.username ?? "").toLowerCase();
+			const aIdentity = (
+				(a.zids && (a.zids as any)[roleType]) ??
+				a.mentorId ??
+				a.counsellorId ??
+				a.username ??
+				""
+			).toLowerCase();
+			const bIdentity = (
+				(b.zids && (b.zids as any)[roleType]) ??
+				b.mentorId ??
+				b.counsellorId ??
+				b.username ??
+				""
+			).toLowerCase();
 			const aName = (a.name ?? "").toLowerCase();
 			const bName = (b.name ?? "").toLowerCase();
 			const aCounsellor = getCounsellorName(a.counsellorId).toLowerCase();
@@ -124,21 +142,23 @@ export const RoleUsersPage = ({
 	const handleToggleStatus = async (userId: string, isActive: boolean) => {
 		// clear any existing banner state
 
-			try {
-				await setUserStatusMutation.mutateAsync({ userId, isActive: !isActive });
-				toast.success(
-					!isActive
-						? "User activated successfully."
-						: "User deactivated successfully.",
-				);
-			} catch (error) {
-				if (error instanceof ApiError) {
-					toast.error(error.payload.message ?? "Unable to update status");
-					return;
-				}
-
-				toast.error(error instanceof Error ? error.message : "Unable to update status");
+		try {
+			await setUserStatusMutation.mutateAsync({ userId, isActive: !isActive });
+			toast.success(
+				!isActive
+					? "User activated successfully."
+					: "User deactivated successfully.",
+			);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to update status");
+				return;
 			}
+
+			toast.error(
+				error instanceof Error ? error.message : "Unable to update status",
+			);
+		}
 	};
 
 	const handleDeleteUser = async () => {
@@ -158,7 +178,9 @@ export const RoleUsersPage = ({
 				return;
 			}
 
-			toast.error(error instanceof Error ? error.message : "Unable to delete user");
+			toast.error(
+				error instanceof Error ? error.message : "Unable to delete user",
+			);
 		}
 	};
 
@@ -199,7 +221,9 @@ export const RoleUsersPage = ({
 				return;
 			}
 
-			toast.error(error instanceof Error ? error.message : "Unable to update password");
+			toast.error(
+				error instanceof Error ? error.message : "Unable to update password",
+			);
 		}
 	};
 
@@ -267,7 +291,11 @@ export const RoleUsersPage = ({
 									className="border-t border-gray-300 align-top"
 								>
 									<td className="px-4 py-3 text-gray-600 font-semibold">
-										{(user.zids && (user.zids as any)[roleType]) ?? (roleType === "mentor" ? user.mentorId : user.counsellorId) ?? "-"}
+										{(user.zids && (user.zids as any)[roleType]) ??
+											(roleType === "mentor"
+												? user.mentorId
+												: user.counsellorId) ??
+											"-"}
 									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
@@ -275,7 +303,11 @@ export const RoleUsersPage = ({
 									{roleType === "mentor" && (
 										<td className="px-4 py-3 text-gray-600">
 											<Link
-												to={user.counsellorId ? `/users/${user.counsellorId}/edit` : "#"}
+												to={
+													user.counsellorId
+														? `/users/${user.counsellorId}/edit`
+														: "#"
+												}
 												className="text-indigo-600 hover:underline"
 											>
 												{getCounsellorName(user.counsellorId)}

@@ -16,7 +16,11 @@ import {
 import { hashPassword, verifyPassword } from "./auth.password.js";
 import { createToken } from "./auth.token.js";
 
-const createAuthToken = (userId: string, username: string, roleIds: string[]) => {
+const createAuthToken = (
+	userId: string,
+	username: string,
+	roleIds: string[],
+) => {
 	const create = async (): Promise<string> => {
 		return createToken({
 			userId,
@@ -113,7 +117,11 @@ export const registerController = async (
 		isActive: true,
 	});
 
-	const token = await createAuthToken(newUser.id, newUser.username, newUser.roleIds);
+	const token = await createAuthToken(
+		newUser.id,
+		newUser.username,
+		newUser.roleIds,
+	);
 
 	res.status(201).json({
 		ok: true,

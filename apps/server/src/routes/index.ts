@@ -3,6 +3,7 @@ import authRoutes from "../modules/auth/auth.routes.js";
 import exportRoutes from "../modules/export/export.routes.js";
 import leadRoutes from "../modules/leads/lead.routes.js";
 import permissionRoutes from "../modules/permissions/permission.routes.js";
+import reminderRoutes from "../modules/reminders/reminder.routes.js";
 import roleRoutes from "../modules/roles/role.routes.js";
 import studentRoutes from "../modules/students/student.routes.js";
 import timeSlotRoutes from "../modules/timeslots/timeslot.routes.js";
@@ -16,6 +17,7 @@ router.use("/permissions", permissionRoutes);
 router.use("/users", userRoutes);
 router.use("/leads", leadRoutes);
 router.use("/students", studentRoutes);
+router.use("/reminders", reminderRoutes);
 router.use("/time-slots", timeSlotRoutes);
 router.use("/export", exportRoutes);
 

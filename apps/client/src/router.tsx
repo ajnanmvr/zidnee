@@ -8,9 +8,7 @@ const LoginPage = lazy(() =>
 		default: module.LoginPage,
 	})),
 );
-const PublicFormPage = lazy(() =>
-	import("@/features/public/PublicFormPage"),
-);
+const PublicFormPage = lazy(() => import("@/features/public/PublicFormPage"));
 const DashboardLayout = lazy(() =>
 	import("@/features/dashboard/DashboardLayout").then((module) => ({
 		default: module.DashboardLayout,
@@ -111,8 +109,15 @@ const ScheduledDemosPage = lazy(() =>
 		default: module.ScheduledDemosPage,
 	})),
 );
+const RemindersPage = lazy(() =>
+	import("@/features/reminders/RemindersPage").then((module) => ({
+		default: module.RemindersPage,
+	})),
+);
 
-const routeFallback = <div className="p-6 text-sm text-slate-500">Loading...</div>;
+const routeFallback = (
+	<div className="p-6 text-sm text-slate-500">Loading...</div>
+);
 
 export const router = createBrowserRouter([
 	{
@@ -159,15 +164,11 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "admissions",
-						element: (
-							<Navigate to="/leads?stage=converted" replace />
-						),
+						element: <Navigate to="/leads?stage=converted" replace />,
 					},
 					{
 						path: "admissions/:leadId",
-						element: (
-							<Navigate to="/leads?stage=converted" replace />
-						),
+						element: <Navigate to="/leads?stage=converted" replace />,
 					},
 					{
 						path: "students",
@@ -310,6 +311,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<ScheduledDemosPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "reminders",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<RemindersPage />
 							</Suspense>
 						),
 					},

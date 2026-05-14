@@ -86,7 +86,7 @@ export const RequirementsModal = ({
 		return lead.preferredTimeslots
 			.map((timeslot) =>
 				typeof timeslot === "string"
-					? timeSlots?.find((slot) => slot.id === timeslot)?.label ?? timeslot
+					? (timeSlots?.find((slot) => slot.id === timeslot)?.label ?? timeslot)
 					: timeslot.label,
 			)
 			.join(", ");
@@ -121,7 +121,8 @@ export const RequirementsModal = ({
 		const plan = lead.preferredSchedule || "N/A";
 		const timing = formatTimingLabel();
 		const classStarting = lead.startClassWhen || "N/A";
-		const demoTime = latestDemo?.demoScheduledFor || lead.demoAvailability || "N/A";
+		const demoTime =
+			latestDemo?.demoScheduledFor || lead.demoAvailability || "N/A";
 
 		const lines = [
 			`📋 *Student Requirements*`,

@@ -1,9 +1,9 @@
-import { requestWithSchema } from "@/api/request";
 import { TimeSlotsResponseSchema } from "@repo/schema";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useParams, useSearchParams } from "react-router-dom";
+import { requestWithSchema } from "@/api/request";
 
 type StepId = 1 | 2 | 3;
 
@@ -18,10 +18,10 @@ type PublicFormValues = {
 	alternateWhatsappNumber: string;
 	studentInfo: string;
 	preferredLanguage:
-	| ""
-	| "Malayalam Only"
-	| "English Only"
-	| "Malayalam - English Mixed";
+		| ""
+		| "Malayalam Only"
+		| "English Only"
+		| "Malayalam - English Mixed";
 	preferredDays: string[];
 	preferredSchedule: string;
 	preferredTimeslots: Array<{
@@ -342,8 +342,14 @@ const extractReadableErrorMessage = (payload: unknown): string | null => {
 	}
 
 	if (value.errors && typeof value.errors === "object") {
-		for (const entry of Object.values(value.errors as Record<string, unknown>)) {
-			if (Array.isArray(entry) && typeof entry[0] === "string" && entry[0].trim()) {
+		for (const entry of Object.values(
+			value.errors as Record<string, unknown>,
+		)) {
+			if (
+				Array.isArray(entry) &&
+				typeof entry[0] === "string" &&
+				entry[0].trim()
+			) {
 				return entry[0].trim();
 			}
 			if (typeof entry === "string" && entry.trim()) {
@@ -565,23 +571,41 @@ const PublicFormPage = () => {
 
 	const validateCurrentStep = async () => {
 		if (currentStep === 1) {
-			return trigger([
+			const fieldsToValidate = [
 				"name",
 				"dateOfBirth",
 				"residingCountry",
 				"level",
 				"gender",
 				"primaryWhatsappNumber",
-				"alternateWhatsappNumber",
 				"email",
-			]);
+			] as const;
+			const isValid = await trigger(fieldsToValidate);
+			if (!isValid) {
+				const errorFields = fieldsToValidate.filter((field) => {
+					const err = errors[field as keyof typeof errors];
+					return err?.message;
+				});
+				if (errorFields.length > 0) {
+					toast.error(`Please fill in all required fields. Missing: ${errorFields.join(", ")}`);
+				} else {
+					toast.error("Please fill in all required fields.");
+				}
+				return false;
+			}
+			return true;
 		}
 
 		if (currentStep === 2) {
 			const isIndividualCourse = courseType === "INDIVIDUAL";
+			let fieldsToValidate: (keyof PublicFormValues)[] = [
+				"preferredLanguage",
+				"preferredStartTime",
+				"hearAboutUs",
+			];
 
 			if (isIndividualCourse) {
-				return trigger([
+				fieldsToValidate = [
 					"preferredLanguage",
 					"preferredTimeslots",
 					"preferredDays",
@@ -590,10 +614,23 @@ const PublicFormPage = () => {
 					"hearAboutUs",
 					"demoAvailability",
 					"preferredMentorGender",
-				]);
-			} else {
-				return trigger(["preferredLanguage", "preferredStartTime", "hearAboutUs"]);
+				];
 			}
+
+			const isValid = await trigger(fieldsToValidate);
+			if (!isValid) {
+				const errorFields = fieldsToValidate.filter((field) => {
+					const err = errors[field as keyof typeof errors];
+					return err?.message;
+				});
+				if (errorFields.length > 0) {
+					toast.error(`Please complete the learning plan. Missing: ${errorFields.join(", ")}`);
+				} else {
+					toast.error("Please complete all fields in the learning plan.");
+				}
+				return false;
+			}
+			return true;
 		}
 
 		return true;
@@ -602,7 +639,6 @@ const PublicFormPage = () => {
 	const goNext = async () => {
 		const isStepValid = await validateCurrentStep();
 		if (!isStepValid) {
-			toast.error("Please fill in the missing details before continuing.");
 			return;
 		}
 
@@ -711,7 +747,9 @@ const PublicFormPage = () => {
 	useEffect(() => {
 		const runValidation = async () => {
 			if (!leadId || !token) {
-				toast.error("This form link is invalid or missing. Please request a new link.");
+				toast.error(
+					"This form link is invalid or missing. Please request a new link.",
+				);
 				setIsValid(false);
 				setIsValidating(false);
 				return;
@@ -744,8 +782,8 @@ const PublicFormPage = () => {
 							prefill.demoAvailability ?? currentValues.demoAvailability,
 						preferredMentorGender:
 							String(prefill.courseType).toUpperCase() === "INDIVIDUAL"
-								? prefill.preferredMentorGender ??
-									currentValues.preferredMentorGender
+								? (prefill.preferredMentorGender ??
+									currentValues.preferredMentorGender)
 								: "",
 					}));
 
@@ -781,7 +819,9 @@ const PublicFormPage = () => {
 
 	const onSubmit = async (data: PublicFormValues) => {
 		if (!leadId || !token) {
-			toast.error("This form link is invalid or missing. Please request a new link.");
+			toast.error(
+				"This form link is invalid or missing. Please request a new link.",
+			);
 			return;
 		}
 
@@ -797,7 +837,7 @@ const PublicFormPage = () => {
 					timeslot.label === selectedTimeslotSnapshot?.label &&
 					timeslot.timesPerWeek === selectedTimeslotSnapshot?.timesPerWeek &&
 					timeslot.durationMinutes ===
-					selectedTimeslotSnapshot?.durationMinutes,
+						selectedTimeslotSnapshot?.durationMinutes,
 			);
 			const payload = {
 				name: data.name,
@@ -815,12 +855,12 @@ const PublicFormPage = () => {
 				preferredSchedule: data.preferredSchedule,
 				preferredTimeslots: selectedTimeslot
 					? [
-						{
-							label: selectedTimeslot.label,
-							timesPerWeek: selectedTimeslot.timesPerWeek,
-							durationMinutes: selectedTimeslot.durationMinutes,
-						},
-					]
+							{
+								label: selectedTimeslot.label,
+								timesPerWeek: selectedTimeslot.timesPerWeek,
+								durationMinutes: selectedTimeslot.durationMinutes,
+							},
+						]
 					: [],
 				preferredStartTime: toOptionalValue(data.preferredStartTime),
 				startClassWhen: toOptionalValue(data.startClassWhen),
@@ -858,7 +898,8 @@ const PublicFormPage = () => {
 		} catch (error) {
 			console.error("Form submission error:", error);
 			toast.error(
-				extractReadableErrorMessage(error) || "Something went wrong. Please try again.",
+				extractReadableErrorMessage(error) ||
+					"Something went wrong. Please try again.",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -867,28 +908,21 @@ const PublicFormPage = () => {
 
 	const stepProgress = `${Math.round((currentStep / 3) * 100)}%`;
 	const isGroupCourse = courseType === "GROUP";
-	const isIndividualCourse = courseType === "INDIVIDUAL";
 	const levelOptions = isGroupCourse
 		? GROUP_ALLOWED_LEVELS
 		: formOptions.standards;
-	const canProceedToStep3 = isIndividualCourse
-		? Boolean(
-			watch("preferredTimeslots")?.[0] &&
-			watch("preferredLanguage") &&
-			watch("preferredDays")?.length,
-		)
-		: Boolean(
-			watch("preferredLanguage") &&
-			watch("preferredStartTime") &&
-			watch("hearAboutUs"),
-		);
 
 	useEffect(() => {
 		if (!isGroupCourse) {
 			return;
 		}
 
-		if (selectedLevel && !GROUP_ALLOWED_LEVELS.includes(selectedLevel as "1" | "2" | "3" | "4" | "5")) {
+		if (
+			selectedLevel &&
+			!GROUP_ALLOWED_LEVELS.includes(
+				selectedLevel as "1" | "2" | "3" | "4" | "5",
+			)
+		) {
 			setValue("level", "", { shouldDirty: true, shouldValidate: true });
 		}
 	}, [isGroupCourse, selectedLevel, setValue]);
@@ -956,7 +990,11 @@ const PublicFormPage = () => {
 			<div className="mx-auto max-w-2xl">
 				<div className="mb-4 flex bg-white/80 items-center justify-center gap-3 rounded-3xl border border-white/70  px-4 py-3 shadow-sm backdrop-blur">
 					<div className="flex min-w-0 justify-center items-center gap-3">
-						<img src="/zidnee-typography.png" alt="Zidnee" className="h-24 w-auto" />
+						<img
+							src="/zidnee-typography.png"
+							alt="Zidnee"
+							className="h-24 w-auto"
+						/>
 					</div>
 				</div>
 
@@ -1024,8 +1062,6 @@ const PublicFormPage = () => {
 										</p>
 									) : null}
 								</div>
-
-
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1175,7 +1211,9 @@ const PublicFormPage = () => {
 										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
 									/>
 									{errors.email?.message ? (
-										<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+										<p className="mt-1 text-xs text-red-600">
+											{errors.email.message}
+										</p>
 									) : null}
 								</div>
 								<div className="sm:col-span-2">
@@ -1197,18 +1235,36 @@ const PublicFormPage = () => {
 						{currentStep === 2 ? (
 							<div className="space-y-4">
 								{courseType && (
-									<div className={`rounded-2xl border p-4 ${courseType === "GROUP" ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50"}`}>
+									<div
+										className={`rounded-2xl border p-4 ${courseType === "GROUP" ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50"}`}
+									>
 										<div className="flex items-start gap-3">
-											<div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${courseType === "GROUP" ? "bg-emerald-500" : "bg-blue-500"}`}>
-												<svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-													<path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+											<div
+												className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${courseType === "GROUP" ? "bg-emerald-500" : "bg-blue-500"}`}
+											>
+												<svg
+													className="h-3 w-3 text-white"
+													fill="currentColor"
+													viewBox="0 0 20 20"
+												>
+													<path
+														fillRule="evenodd"
+														d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+														clipRule="evenodd"
+													/>
 												</svg>
 											</div>
 											<div>
-												<p className={`font-semibold ${courseType === "GROUP" ? "text-emerald-900" : "text-blue-900"}`}>
-													{courseType === "GROUP" ? "Group Course" : "Individual Course"}
+												<p
+													className={`font-semibold ${courseType === "GROUP" ? "text-emerald-900" : "text-blue-900"}`}
+												>
+													{courseType === "GROUP"
+														? "Group Course"
+														: "Individual Course"}
 												</p>
-												<p className={`text-sm ${courseType === "GROUP" ? "text-emerald-700" : "text-blue-700"}`}>
+												<p
+													className={`text-sm ${courseType === "GROUP" ? "text-emerald-700" : "text-blue-700"}`}
+												>
 													{courseType === "GROUP"
 														? "Scheduling will be managed by our team. Just tell us your preferred language and how you heard about us."
 														: "Please provide your detailed scheduling preferences so we can find the perfect mentor and schedule for you."}
@@ -1282,7 +1338,8 @@ const PublicFormPage = () => {
 										) : (
 											<div className="grid grid-cols-1 gap-3">
 												{formOptions.timeslots.map((timeslot) => {
-													const isSelected = selectedTimeslot?.id === timeslot.id;
+													const isSelected =
+														selectedTimeslot?.id === timeslot.id;
 													return (
 														<label
 															key={timeslot.id}
@@ -1299,7 +1356,8 @@ const PublicFormPage = () => {
 																			{
 																				label: timeslot.label,
 																				timesPerWeek: timeslot.timesPerWeek,
-																				durationMinutes: timeslot.durationMinutes,
+																				durationMinutes:
+																					timeslot.durationMinutes,
 																			},
 																		])
 																	}
@@ -1315,7 +1373,8 @@ const PublicFormPage = () => {
 																		</span>
 																	</div>
 																	<p className="mt-1 text-sm leading-6 text-slate-600">
-																		Duration: {timeslot.durationMinutes} minutes.
+																		Duration: {timeslot.durationMinutes}{" "}
+																		minutes.
 																	</p>
 																</div>
 															</div>
@@ -1529,7 +1588,9 @@ const PublicFormPage = () => {
 											Schedule
 										</p>
 										<p className="mt-2 text-sm font-medium text-slate-900">
-											{selectedStartTime ? to12HourFormat(selectedStartTime) : "No time chosen"}
+											{selectedStartTime
+												? to12HourFormat(selectedStartTime)
+												: "No time chosen"}
 										</p>
 										{courseType === "INDIVIDUAL" && (
 											<p className="mt-1 text-sm text-slate-600">
@@ -1588,7 +1649,7 @@ const PublicFormPage = () => {
 							) : (
 								<button
 									type="submit"
-									disabled={isSubmitting || !canProceedToStep3}
+									disabled={isSubmitting}
 									className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
 								>
 									<svg

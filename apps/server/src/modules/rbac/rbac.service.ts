@@ -400,7 +400,9 @@ export const UserService = {
 			return null;
 		}
 
-		const user = await UserModel.findOne({ email: normalizedEmail }).lean<UserDocument | null>();
+		const user = await UserModel.findOne({
+			email: normalizedEmail,
+		}).lean<UserDocument | null>();
 		return user ? toUser(user) : null;
 	},
 

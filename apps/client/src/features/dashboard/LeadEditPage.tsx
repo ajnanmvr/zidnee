@@ -263,20 +263,20 @@ export const LeadEditPage = () => {
 							)}
 						/>
 
-								<Controller
-									name="email"
-									control={control}
-									render={({ field, fieldState }) => (
-										<Field
-											label="Email"
-											type="email"
-											value={field.value}
-											onChange={field.onChange}
-											placeholder="student@example.com"
-											error={fieldState.error?.message}
-										/>
-									)}
+						<Controller
+							name="email"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Email"
+									type="email"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="student@example.com"
+									error={fieldState.error?.message}
 								/>
+							)}
+						/>
 
 						<Controller
 							name="level"

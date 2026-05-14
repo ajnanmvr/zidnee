@@ -751,14 +751,14 @@ export const LeadDetailPage = () => {
 	const statusSummary = lead?.studentId
 		? `Converted to student`
 		: lead?.admissionRequestedAt
-		? `Admission requested`
-		: latestDemo?.completedAt
-		? `Demo completed`
-		: latestDemo?.assignedAt
-		? `Demo assigned`
-		: latestDemo?.requestedAt
-		? `Demo requested`
-		: `Follow-up`;
+			? `Admission requested`
+			: latestDemo?.completedAt
+				? `Demo completed`
+				: latestDemo?.assignedAt
+					? `Demo assigned`
+					: latestDemo?.requestedAt
+						? `Demo requested`
+						: `Follow-up`;
 	const statusTone = getStatusTone(lead);
 
 	return (
@@ -770,9 +770,7 @@ export const LeadDetailPage = () => {
 				title={lead?.price ? "Edit Price" : "Add Price"}
 			>
 				<div className="space-y-4">
-					<p className="text-sm text-slate-600">
-						Enter the price (in INR).
-					</p>
+					<p className="text-sm text-slate-600">Enter the price (in INR).</p>
 					<input
 						type="number"
 						min="0"
@@ -1238,13 +1236,13 @@ export const LeadDetailPage = () => {
 								? "Completed"
 								: isLatest && lead?.studentId
 									? "Admission completed"
-								: isLatest && lead?.admissionRequestedAt
-									? "Admission requested"
-								: demo.assignedAt
-									? "Assigned"
-								: demo.requestedAt
-									? "Requested"
-								: "Pending";
+									: isLatest && lead?.admissionRequestedAt
+										? "Admission requested"
+										: demo.assignedAt
+											? "Assigned"
+											: demo.requestedAt
+												? "Requested"
+												: "Pending";
 
 							const statusColor = demo.completedAt
 								? "from-emerald-50 to-emerald-100/50 border-emerald-200"
@@ -1320,7 +1318,8 @@ export const LeadDetailPage = () => {
 											<div className="flex gap-3">
 												<div className="flex flex-col items-center">
 													<div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5" />
-													{(demo.completedAt || (isLatest && lead?.admissionRequestedAt)) && (
+													{(demo.completedAt ||
+														(isLatest && lead?.admissionRequestedAt)) && (
 														<div className="h-6 w-0.5 bg-blue-200" />
 													)}
 												</div>
@@ -1380,7 +1379,9 @@ export const LeadDetailPage = () => {
 														Admission Requested
 													</p>
 													<p className="text-sm text-gray-900 font-medium">
-														{new Date(lead?.admissionRequestedAt).toLocaleString()}
+														{new Date(
+															lead?.admissionRequestedAt,
+														).toLocaleString()}
 													</p>
 												</div>
 											</div>
@@ -1397,7 +1398,9 @@ export const LeadDetailPage = () => {
 													</p>
 													<p className="text-sm text-gray-900 font-medium">
 														{lead?.admissionRequestedAt
-															? new Date(lead.admissionRequestedAt).toLocaleString()
+															? new Date(
+																	lead.admissionRequestedAt,
+																).toLocaleString()
 															: "-"}
 													</p>
 												</div>
@@ -1544,7 +1547,8 @@ export const LeadDetailPage = () => {
 								generateFormLinkMutation.isPending
 							}
 						>
-							{updateLeadMutation.isPending || generateFormLinkMutation.isPending
+							{updateLeadMutation.isPending ||
+							generateFormLinkMutation.isPending
 								? "Saving..."
 								: "Save & Send Form"}
 						</button>

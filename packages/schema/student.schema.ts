@@ -1,12 +1,8 @@
 import { z } from "zod";
-import { ObjectIdStringSchema } from "./rbac.schema.js";
 import { BatchTypeSchema } from "./batch.schema.js";
+import { ObjectIdStringSchema } from "./rbac.schema.js";
 
-export const StudentStatusSchema = z.enum([
-	"STUDENT",
-	"BREAK",
-	"DROPPED",
-]);
+export const StudentStatusSchema = z.enum(["STUDENT", "BREAK", "DROPPED"]);
 
 export type StudentStatus = z.infer<typeof StudentStatusSchema>;
 
@@ -74,7 +70,9 @@ export const StudentFollowUpPayloadSchema = z.object({
 	note: z.string().min(1).max(500),
 });
 
-export type StudentFollowUpPayload = z.infer<typeof StudentFollowUpPayloadSchema>;
+export type StudentFollowUpPayload = z.infer<
+	typeof StudentFollowUpPayloadSchema
+>;
 
 export const StudentResponseSchema = StudentSchema.omit({
 	dateOfBirth: true,

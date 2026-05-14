@@ -569,7 +569,13 @@ export const LeadDetailPageNew = () => {
 							<StatCard
 								icon={HiUsers}
 								label="Course Type"
-								value={lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "Not specified"}
+								value={
+									lead.courseType
+										? lead.courseType === "GROUP"
+											? "Group"
+											: "Individual"
+										: "Not specified"
+								}
 								accent="emerald"
 							/>
 							<StatCard
@@ -669,7 +675,13 @@ export const LeadDetailPageNew = () => {
 									/>
 									<DetailRow
 										label="Course Type"
-										value={lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "-"}
+										value={
+											lead.courseType
+												? lead.courseType === "GROUP"
+													? "Group"
+													: "Individual"
+												: "-"
+										}
 										icon={HiUsers}
 									/>
 									<DetailRow
@@ -885,16 +897,12 @@ export const LeadDetailPageNew = () => {
 											}
 											icon={HiUser}
 										/>
-										<DetailRow
-											label="Counsellor"
-											value="-"
-											icon={HiUser}
-										/>
+										<DetailRow label="Counsellor" value="-" icon={HiUser} />
 										{lead.nextFollowUpAt ? (
 											<DetailRow
 												label="Next Follow-up"
 												value={formatDistance(
-														new Date(lead.nextFollowUpAt),
+													new Date(lead.nextFollowUpAt),
 													new Date(),
 													{ addSuffix: true },
 												)}
@@ -951,10 +959,7 @@ export const LeadDetailPageNew = () => {
 																?.name ?? demo.mentorId)
 														: "-"}
 												</div>
-												<div>
-													Counsellor:{" "}
-													- 
-												</div>
+												<div>Counsellor: -</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
 												<div>
@@ -1066,11 +1071,7 @@ export const LeadDetailPageNew = () => {
 											}
 											icon={HiUser}
 										/>
-										<DetailRow
-											label="Counsellor"
-											value="-"
-											icon={HiUser}
-										/>
+										<DetailRow label="Counsellor" value="-" icon={HiUser} />
 										<DetailRow
 											label="Next Follow-up"
 											value={
@@ -1412,7 +1413,10 @@ export const LeadDetailPageNew = () => {
 				}
 			>
 				<div className="grid gap-2">
-					<label className="text-sm font-semibold text-gray-700" htmlFor="course-type-picker-new">
+					<label
+						className="text-sm font-semibold text-gray-700"
+						htmlFor="course-type-picker-new"
+					>
 						Course Type
 					</label>
 					<select

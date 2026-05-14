@@ -23,11 +23,7 @@ import type {
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
-export type CreateAccountRoleType =
-	| "admin"
-	| "sales"
-	| "mentor"
-	| "counsellor";
+export type CreateAccountRoleType = "admin" | "sales" | "mentor" | "counsellor";
 
 type CreateAccountPageProps = {
 	defaultRoleType?: CreateAccountRoleType;

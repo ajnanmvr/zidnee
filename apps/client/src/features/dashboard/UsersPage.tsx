@@ -9,7 +9,12 @@ import {
 	HiTrash,
 	HiUserPlus,
 } from "react-icons/hi2";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+	Link,
+	useLocation,
+	useNavigate,
+	useSearchParams,
+} from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { ActionButton } from "@/components/ActionButton";
 import { ConfirmDialog, Field, Modal, Panel } from "@/components/dashboard-ui";
@@ -33,7 +38,15 @@ const getIdentityLabel = (roleType: string | null) => {
 	return `${roleType.charAt(0).toUpperCase()}${roleType.slice(1)} ID`;
 };
 
-const getUserIdentity = (user: { zids?: Record<string, string>; mentorId?: string | null; counsellorId?: string | null; username?: string | null }, roleType: string | null) => {
+const getUserIdentity = (
+	user: {
+		zids?: Record<string, string>;
+		mentorId?: string | null;
+		counsellorId?: string | null;
+		username?: string | null;
+	},
+	roleType: string | null,
+) => {
 	if (roleType && user.zids?.[roleType]) {
 		return user.zids[roleType];
 	}
@@ -70,7 +83,9 @@ export const UsersPage = () => {
 	const setUserStatusMutation = useSetUserStatusMutation();
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
 	const roleParam = searchParams.get("role");
-	const activeRole: RoleFilter = ROLE_FILTERS.some((filter) => filter.value === roleParam)
+	const activeRole: RoleFilter = ROLE_FILTERS.some(
+		(filter) => filter.value === roleParam,
+	)
 		? (roleParam as RoleFilter)
 		: "all";
 	const isRoleFiltered = activeRole !== "all";
@@ -133,8 +148,10 @@ export const UsersPage = () => {
 			activeRole === "all"
 				? all
 				: all.filter((user) =>
-					user.roles.some((role) => matchesRoleType(role.type ?? "admin", activeRole)),
-				);
+						user.roles.some((role) =>
+							matchesRoleType(role.type ?? "admin", activeRole),
+						),
+					);
 
 		const q = query.trim().toLowerCase();
 		if (!q) {
@@ -142,10 +159,15 @@ export const UsersPage = () => {
 		}
 
 		return roleFiltered.filter((user) => {
-			const identity = getUserIdentity(user, activeRole === "all" ? null : activeRole).toLowerCase();
+			const identity = getUserIdentity(
+				user,
+				activeRole === "all" ? null : activeRole,
+			).toLowerCase();
 			const name = (user.name ?? "").toLowerCase();
 			const username = (user.username ?? "").toLowerCase();
-			const roleNames = user.roles.map((role) => role.name.toLowerCase()).join(" ");
+			const roleNames = user.roles
+				.map((role) => role.name.toLowerCase())
+				.join(" ");
 			return (
 				identity.includes(q) ||
 				name.includes(q) ||
@@ -162,13 +184,32 @@ export const UsersPage = () => {
 		} else {
 			params.set("role", nextRole);
 		}
-		navigate({ pathname: "/users", search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
+		navigate(
+			{
+				pathname: "/users",
+				search: params.toString() ? `?${params.toString()}` : "",
+			},
+			{ replace: true },
+		);
 	};
 
-	const createUserPath = isRoleFiltered ? `/users/create?role=${activeRole}` : "/users/create";
-	const pageTitle = activeRole === "sales" ? "Sales" : activeRole === "all" ? "Users" : `${activeRole.charAt(0).toUpperCase()}${activeRole.slice(1)}s`;
-	const createButtonLabel = activeRole === "sales" ? "Create sales user" : activeRole === "all" ? "Create user" : `Create ${activeRole} user`;
-	const identityHeader = activeRole === "all" ? "ID" : getIdentityLabel(activeRole);
+	const createUserPath = isRoleFiltered
+		? `/users/create?role=${activeRole}`
+		: "/users/create";
+	const pageTitle =
+		activeRole === "sales"
+			? "Sales"
+			: activeRole === "all"
+				? "Users"
+				: `${activeRole.charAt(0).toUpperCase()}${activeRole.slice(1)}s`;
+	const createButtonLabel =
+		activeRole === "sales"
+			? "Create sales user"
+			: activeRole === "all"
+				? "Create user"
+				: `Create ${activeRole} user`;
+	const identityHeader =
+		activeRole === "all" ? "ID" : getIdentityLabel(activeRole);
 
 	const onSubmitPassword = async (passwordForm: AdminChangePasswordForm) => {
 		if (!passwordUserId) {
@@ -260,9 +301,7 @@ export const UsersPage = () => {
 					<table className="min-w-full border-collapse bg-white text-left text-sm">
 						<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
 							<tr>
-								<th className="px-4 py-3 font-semibold">
-										{identityHeader}
-								</th>
+								<th className="px-4 py-3 font-semibold">{identityHeader}</th>
 								<th className="px-4 py-3 font-semibold">Name</th>
 								<th className="px-4 py-3 font-semibold">Username</th>
 								<th className="px-4 py-3 font-semibold">Roles</th>
@@ -277,7 +316,10 @@ export const UsersPage = () => {
 									className="border-t border-gray-300 align-top"
 								>
 									<td className="px-4 py-3 text-gray-600 font-semibold">
-										{getUserIdentity(user, activeRole === "all" ? null : activeRole)}
+										{getUserIdentity(
+											user,
+											activeRole === "all" ? null : activeRole,
+										)}
 									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}

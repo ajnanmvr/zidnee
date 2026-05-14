@@ -6,6 +6,7 @@ import type {
 } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { Types } from "mongoose";
+import { env } from "process";
 import { ConflictError, ValidationError } from "../../utils/errors.util.js";
 import {
 	type StudentDocument,
@@ -14,10 +15,9 @@ import {
 import { TimeSlotModel } from "../timeslots/timeslot.model.js";
 import { ZidService } from "../zid/zid.service.js";
 import { ActivityService } from "./activity.service.js";
-import { generateLeadSerialNumber } from "./lead-sequence.model.js";
 import type { LeadDocumentExt } from "./lead.model.js";
 import { type LeadDocument, LeadModel } from "./lead.model.js";
-import { env } from "process";
+import { generateLeadSerialNumber } from "./lead-sequence.model.js";
 
 type LeadDemo = NonNullable<Lead["demos"]>[number];
 
@@ -192,7 +192,7 @@ const leadFieldPatch = (
 	if (
 		updates.preferredDays !== undefined &&
 		JSON.stringify(updates.preferredDays) !==
-		JSON.stringify(existingLead.preferredDays ?? [])
+			JSON.stringify(existingLead.preferredDays ?? [])
 	) {
 		patch.preferredDays = updates.preferredDays;
 		oldValue.preferredDays = existingLead.preferredDays ?? null;
@@ -202,11 +202,14 @@ const leadFieldPatch = (
 	if (
 		updates.preferredTimeslots !== undefined &&
 		JSON.stringify(updates.preferredTimeslots) !==
-		JSON.stringify(existingLead.preferredTimeslots ?? [])
+			JSON.stringify(existingLead.preferredTimeslots ?? [])
 	) {
 		patch.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
 		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
-		newValue.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
+		newValue.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(
+			0,
+			1,
+		);
 	}
 
 	if (updates.price !== undefined && updates.price !== existingLead.price) {
@@ -254,9 +257,7 @@ const leadFieldPatch = (
 	return { patch, oldValue, newValue };
 };
 
-const toDemo = (
-	demo: NonNullable<LeadDocument["demos"]>[number],
-): any => ({
+const toDemo = (demo: NonNullable<LeadDocument["demos"]>[number]): any => ({
 	mentorId: demo.mentorId?.toString(),
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
@@ -265,10 +266,7 @@ const toDemo = (
 	note: demo.note,
 });
 
-
-const fromDemo = (
-	demo: any,
-): NonNullable<LeadDocument["demos"]>[number] => ({
+const fromDemo = (demo: any): NonNullable<LeadDocument["demos"]>[number] => ({
 	mentorId: demo.mentorId,
 	requestedAt: demo.requestedAt,
 	assignedAt: demo.assignedAt,
@@ -346,7 +344,9 @@ const setLatestDemo = (
 ): NonNullable<LeadDocument["demos"]> => {
 	const demos = [...(lead.demos ?? [])];
 	if (demos.length === 0) {
-		demos.push({ ...(patch as any) } as NonNullable<LeadDocument["demos"]>[number]);
+		demos.push({ ...(patch as any) } as NonNullable<
+			LeadDocument["demos"]
+		>[number]);
 		return demos;
 	}
 
@@ -440,7 +440,7 @@ export const LeadService = {
 
 		return leadObj;
 	},
- 
+
 	update: async (
 		leadId: string,
 		updates: UpdateLeadPayload,
@@ -481,10 +481,10 @@ export const LeadService = {
 						const ts = map.get(it);
 						return ts
 							? {
-								label: ts.label,
-								durationMinutes: ts.durationMinutes,
-								timesPerWeek: ts.timesPerWeek,
-							}
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
 							: { label: it };
 					}
 					if (it && (it as any).id) {
@@ -492,10 +492,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-								label: ts.label,
-								durationMinutes: ts.durationMinutes,
-								timesPerWeek: ts.timesPerWeek,
-							}
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
 							: { label: (it as any).label ?? id };
 					}
 					if (it && (it as any)._id) {
@@ -503,10 +503,10 @@ export const LeadService = {
 						const ts = map.get(id);
 						return ts
 							? {
-								label: ts.label,
-								durationMinutes: ts.durationMinutes,
-								timesPerWeek: ts.timesPerWeek,
-							}
+									label: ts.label,
+									durationMinutes: ts.durationMinutes,
+									timesPerWeek: ts.timesPerWeek,
+								}
 							: { label: (it as any).label ?? id };
 					}
 					// already a snapshot
@@ -647,9 +647,11 @@ export const LeadService = {
 			.sort({ createdAt: -1 })
 			.lean<LeadDocument[]>();
 		return leads
-				.filter((lead) => {
-					return Boolean((lead as any).admissionRequestedAt && !(lead as any).studentId);
-				})
+			.filter((lead) => {
+				return Boolean(
+					(lead as any).admissionRequestedAt && !(lead as any).studentId,
+				);
+			})
 			.map(mapLead);
 	},
 
@@ -968,7 +970,7 @@ export const LeadService = {
 			return null;
 		}
 
-		const appUrl = env.APP_URL
+		const appUrl = env.APP_URL;
 		if (existingLead.formSent && existingLead.formToken) {
 			return {
 				formLink: `${appUrl}/form/${leadId}?token=${existingLead.formToken}`,
@@ -977,7 +979,9 @@ export const LeadService = {
 
 		if (!existingLead.courseType) {
 			throw new ValidationError({
-				courseType: ["Set course type (GROUP or INDIVIDUAL) before sending form"],
+				courseType: [
+					"Set course type (GROUP or INDIVIDUAL) before sending form",
+				],
 			});
 		}
 
@@ -1149,41 +1153,43 @@ export const LeadService = {
 					.lean()
 					.exec();
 				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
-				preferredTimeslots = items.map((it) => {
-					if (typeof it === "string") {
-						const ts = map.get(it);
-						return ts
-							? {
-								label: ts.label,
-								durationMinutes: ts.durationMinutes,
-								timesPerWeek: ts.timesPerWeek,
-							}
-							: { label: it };
-					}
-					if (it && (it as any).id) {
-						const id = String((it as any).id);
-						const ts = map.get(id);
-						return ts
-							? {
-								label: ts.label,
-								durationMinutes: ts.durationMinutes,
-								timesPerWeek: ts.timesPerWeek,
-							}
-							: { label: (it as any).label ?? id };
-					}
-					if (it && (it as any)._id) {
-						const id = String((it as any)._id);
-						const ts = map.get(id);
-						return ts
-							? {
-								label: ts.label,
-								durationMinutes: ts.durationMinutes,
-								timesPerWeek: ts.timesPerWeek,
-							}
-							: { label: (it as any).label ?? id };
-					}
-					return it as any;
-				}).slice(0, 1);
+				preferredTimeslots = items
+					.map((it) => {
+						if (typeof it === "string") {
+							const ts = map.get(it);
+							return ts
+								? {
+										label: ts.label,
+										durationMinutes: ts.durationMinutes,
+										timesPerWeek: ts.timesPerWeek,
+									}
+								: { label: it };
+						}
+						if (it && (it as any).id) {
+							const id = String((it as any).id);
+							const ts = map.get(id);
+							return ts
+								? {
+										label: ts.label,
+										durationMinutes: ts.durationMinutes,
+										timesPerWeek: ts.timesPerWeek,
+									}
+								: { label: (it as any).label ?? id };
+						}
+						if (it && (it as any)._id) {
+							const id = String((it as any)._id);
+							const ts = map.get(id);
+							return ts
+								? {
+										label: ts.label,
+										durationMinutes: ts.durationMinutes,
+										timesPerWeek: ts.timesPerWeek,
+									}
+								: { label: (it as any).label ?? id };
+						}
+						return it as any;
+					})
+					.slice(0, 1);
 			}
 		}
 		preferredTimeslots = (preferredTimeslots ?? []).slice(0, 1);
@@ -1256,9 +1262,9 @@ export const LeadService = {
 			alternateWhatsappNumber?: string;
 			studentInfo?: string;
 			preferredLanguage?:
-			| "Malayalam Only"
-			| "English Only"
-			| "Malayalam - English Mixed";
+				| "Malayalam Only"
+				| "English Only"
+				| "Malayalam - English Mixed";
 			preferredSchedule?: string;
 			preferredDays?: string[];
 			preferredTimeslots?: {

@@ -67,4 +67,7 @@ const studentActivitySchema = new Schema<StudentActivityDocument>(
 );
 
 export const StudentActivityModel: Model<StudentActivityDocument> =
-	mongoose.model("StudentActivity", studentActivitySchema) as Model<StudentActivityDocument>;
+	mongoose.model(
+		"StudentActivity",
+		studentActivitySchema,
+	) as Model<StudentActivityDocument>;

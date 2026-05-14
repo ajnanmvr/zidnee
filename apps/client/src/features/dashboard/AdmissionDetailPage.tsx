@@ -48,10 +48,9 @@ export const AdmissionDetailPage = () => {
 
 	const lead = leadQuery.data?.lead;
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
-	const defaultCounsellorId =
-		latestDemo?.mentorId
-			? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
-			: undefined;
+	const defaultCounsellorId = latestDemo?.mentorId
+		? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
+		: undefined;
 
 	useEffect(() => {
 		if (defaultCounsellorId) {

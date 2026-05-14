@@ -19,7 +19,6 @@ import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
 import {
 	useAssignDemoMentorMutation,
 	useMarkDemoCompletedMutation,
-	useRequestRedemoMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -36,7 +35,6 @@ export const ScheduledDemosPage = () => {
 	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const reassignDemoMutation = useAssignDemoMentorMutation();
-	const redemoMutation = useRequestRedemoMutation();
 	const currentUserId = meQuery.data?.id ?? "";
 
 	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
@@ -92,25 +90,6 @@ export const ScheduledDemosPage = () => {
 				throw error;
 			}
 			throw new Error("Failed to mark demo as completed");
-		}
-	};
-
-	const handleOutcomeRedemo = async (payload: { note?: string }) => {
-		if (!outcomeDemoForAction) {
-			toast.error("Demo not selected");
-			return;
-		}
-
-		try {
-			await redemoMutation.mutateAsync({
-				leadId: outcomeDemoForAction.id,
-				payload,
-			});
-		} catch (error) {
-			if (error instanceof Error) {
-				throw error;
-			}
-			throw new Error("Failed to schedule re-demo");
 		}
 	};
 
@@ -885,7 +864,6 @@ export const ScheduledDemosPage = () => {
 					setOutcomeDemoForAction(null);
 				}}
 				onProceed={handleOutcomeProceed}
-				onRedemo={handleOutcomeRedemo}
 			/>
 		</div>
 	);

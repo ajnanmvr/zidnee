@@ -34,9 +34,8 @@ export const CounsellorStudentsPage = () => {
 				allUsers
 					.filter(
 						(user) =>
-							user.roles.some(
-								(role) => (role.type ?? "admin") === "mentor",
-							) && user.counsellorId === currentUserId,
+							user.roles.some((role) => (role.type ?? "admin") === "mentor") &&
+							user.counsellorId === currentUserId,
 					)
 					.map((mentor) => mentor.id),
 			),
@@ -44,8 +43,8 @@ export const CounsellorStudentsPage = () => {
 	);
 
 	const rows = useMemo(() => {
-		return allStudents.filter(
-			(student) => (student.mentorId ? mentorIds.has(student.mentorId) : false),
+		return allStudents.filter((student) =>
+			student.mentorId ? mentorIds.has(student.mentorId) : false,
 		);
 	}, [allStudents, currentUserId, mentorIds]);
 

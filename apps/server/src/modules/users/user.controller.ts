@@ -73,7 +73,7 @@ export const createUserController = async (
 	if (normalizedEmail) {
 		const existingByEmail = await UserService.findByEmail(normalizedEmail);
 		if (existingByEmail) {
-		throw new ConflictError("Email already in use");
+			throw new ConflictError("Email already in use");
 		}
 	}
 
@@ -350,7 +350,7 @@ export const updateUserController = async (
 	}
 
 	// If roles were provided, ensure missing ZIDs are generated for newly added role types
-	let zidsToSet = (existingUser as any).zids ?? {};
+	const zidsToSet = (existingUser as any).zids ?? {};
 	if (result.data.roleIds) {
 		const incomingRoles = await RoleService.findByIds(result.data.roleIds);
 		for (const role of incomingRoles) {
@@ -544,7 +544,8 @@ export const assignRoleController = async (
 			// keep legacy top-level field for mentor
 			const legacy: any = {};
 			if (roleType === "mentor") legacy.mentorId = currentZids[roleType];
-			if (roleType === "counsellor") legacy.counsellorId = currentZids[roleType];
+			if (roleType === "counsellor")
+				legacy.counsellorId = currentZids[roleType];
 			const final = await UserService.update(userId, {
 				...(legacy as any),
 				zids: currentZids,

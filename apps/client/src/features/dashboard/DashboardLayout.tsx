@@ -13,6 +13,7 @@ import {
 	HiSquares2X2,
 	HiLockClosed,
 	HiUsers,
+	HiOutlineBellAlert,
 } from "react-icons/hi2";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
@@ -49,6 +50,7 @@ const titles: Record<string, string> = {
 	"/me": "Me",
 	"/demo-management/unassigned": "Unassigned Demos",
 	"/demo-management/scheduled": "Scheduled Demos",
+	"/reminders": "Reminders",
 };
 
 const resolveTitle = (pathname: string, search: string): string => {
@@ -232,6 +234,14 @@ export const DashboardLayout = () => {
 					description: "Enrolled",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 					count: studentsQuery.data?.students.length ?? 0,
+					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/reminders",
+					label: "Reminders",
+					description: "All reminders",
+					icon: <HiOutlineBellAlert className="h-5 w-5" aria-hidden="true" />,
 					accent: "cyan",
 					section: "Learners",
 				},

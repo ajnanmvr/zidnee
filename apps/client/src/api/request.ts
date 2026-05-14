@@ -1,9 +1,9 @@
 import { type ApiErrorResponse, ApiErrorResponseSchema } from "@repo/schema";
 import axios from "axios";
+import toast from "react-hot-toast";
 import { api } from "@/api/client";
 import { queryClient } from "@/lib/query-client";
 import { useSessionStore } from "@/lib/stores/session.store";
-import toast from "react-hot-toast";
 
 type Validator<T> = {
 	safeParse: (
