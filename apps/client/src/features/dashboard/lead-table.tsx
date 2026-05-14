@@ -39,6 +39,14 @@ export const getLeadUrgency = (lead: LeadResponse) => {
 };
 
 const getLeadStatusTone = (lead: LeadResponse) => {
+	if (lead.status === "CLOSED") {
+		return { className: "bg-gray-100 text-gray-700", label: "Closed" };
+	}
+
+	if (lead.status === "CONVERTED") {
+		return { className: "bg-green-100 text-green-700", label: "Converted" };
+	}
+
 	if (lead.status === "DEMO_COMPLETED") {
 		return { className: "bg-blue-100 text-blue-600", label: "Demo Completed" };
 	}

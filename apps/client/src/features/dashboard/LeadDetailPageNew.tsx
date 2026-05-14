@@ -276,11 +276,11 @@ export const LeadDetailPageNew = () => {
 
 		try {
 			await deleteMutation.mutateAsync({ leadId: lead.id, note: noteToSend });
-			toast.success("Lead deleted successfully.");
+			toast.success("Lead closed successfully.");
 			setDeleteOpen(false);
 			setDeleteNote("");
 			setDeleteReason(null);
-			navigate("/leads");
+			navigate("/leads?stage=closed");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");

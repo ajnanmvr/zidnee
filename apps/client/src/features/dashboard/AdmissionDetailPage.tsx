@@ -132,10 +132,10 @@ export const AdmissionDetailPage = () => {
 		>
 			<div className="mb-4 flex flex-wrap gap-2">
 				<Link
-					to="/admissions"
+					to="/leads?stage=converted"
 					className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 				>
-					Back to for admission
+					Back to converted leads
 				</Link>
 			</div>
 

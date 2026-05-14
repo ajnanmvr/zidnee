@@ -897,6 +897,7 @@ export const LeadService = {
 			{
 				$set: {
 					admissionRequestedAt: now,
+					status: "CONVERTED",
 				},
 			},
 			{ returnDocument: "after" },
@@ -1325,7 +1326,19 @@ export const LeadService = {
 		const existingLead = await LeadModel.findById(
 			leadId,
 		).lean<LeadDocument | null>();
-		const result = await LeadModel.findByIdAndDelete(leadId);
+		const result = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{
+				$set: {
+					status: "CLOSED",
+					formSent: false,
+					formCompleted: false,
+					formToken: undefined,
+					formTokenExpiresAt: undefined,
+				},
+			},
+			{ returnDocument: "after" },
+		);
 
 		if (performedBy && existingLead) {
 			await ActivityService.logActivity(

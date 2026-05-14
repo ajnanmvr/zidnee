@@ -734,8 +734,8 @@ export const LeadDetailPage = () => {
 				leadId: lead.id,
 				note: deleteNote.trim(),
 			});
-			toast.success("Lead deleted successfully.");
-			navigate("/leads");
+			toast.success("Lead closed successfully.");
+			navigate("/leads?stage=closed");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");

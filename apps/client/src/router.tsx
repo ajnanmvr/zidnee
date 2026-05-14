@@ -26,16 +26,6 @@ const LeadsPage = lazy(() =>
 		default: module.LeadsPage,
 	})),
 );
-const AdmissionsPage = lazy(() =>
-	import("@/features/dashboard/AdmissionsPage").then((module) => ({
-		default: module.AdmissionsPage,
-	})),
-);
-const AdmissionDetailPageEnhanced = lazy(() =>
-	import("@/features/dashboard/AdmissionDetailPageEnhanced").then((module) => ({
-		default: module.AdmissionDetailPageEnhanced,
-	})),
-);
 const StudentsPage = lazy(() =>
 	import("@/features/dashboard/StudentsPage").then((module) => ({
 		default: module.StudentsPage,
@@ -165,17 +155,13 @@ export const router = createBrowserRouter([
 					{
 						path: "admissions",
 						element: (
-							<Suspense fallback={routeFallback}>
-								<AdmissionsPage />
-							</Suspense>
+							<Navigate to="/leads?stage=converted" replace />
 						),
 					},
 					{
 						path: "admissions/:leadId",
 						element: (
-							<Suspense fallback={routeFallback}>
-								<AdmissionDetailPageEnhanced />
-							</Suspense>
+							<Navigate to="/leads?stage=converted" replace />
 						),
 					},
 					{

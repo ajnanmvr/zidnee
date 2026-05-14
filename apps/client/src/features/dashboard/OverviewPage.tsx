@@ -15,11 +15,6 @@ export const OverviewPage = () => {
 	const availablePages = [
 		{ to: "/leads", label: "Leads", description: "Follow-up pipeline" },
 		{
-			to: "/admissions",
-			label: "For Admission",
-			description: "Admission queue",
-		},
-		{
 			to: "/students",
 			label: "Students",
 			description: "Enrolled learners",
@@ -50,13 +45,6 @@ export const OverviewPage = () => {
 	].filter((page) => {
 		if (page.to === "/leads") {
 			return hasPermission("LEAD_READ_MY") || hasPermission("LEAD_READ_ALL");
-		}
-
-		if (page.to === "/admissions") {
-			return (
-				hasPermission("LEAD_ADMISSION_REQUEST") ||
-				hasPermission("LEAD_ADMISSION_CONFIRM")
-			);
 		}
 
 		if (page.to === "/students") {

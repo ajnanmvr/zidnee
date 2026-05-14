@@ -116,6 +116,10 @@ export const LeadsPage = () => {
 				return "DEMO_COMPLETED";
 			case "demoCancelled":
 				return "DEMO_CANCELLED";
+			case "converted":
+				return "CONVERTED";
+			case "closed":
+				return "CLOSED";
 			default:
 				return undefined;
 		}
@@ -447,9 +451,10 @@ export const LeadsPage = () => {
 				leadId: deleteLeadId,
 				note: deleteNote.trim(),
 			});
-			toast.success("Lead deleted successfully.");
+			toast.success("Lead closed successfully.");
 			setDeleteLeadId(null);
 			setDeleteNote("");
+			navigate("/leads?stage=closed");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");
@@ -543,7 +548,7 @@ export const LeadsPage = () => {
 			toast.success("Lead moved to for admission.");
 			setAdmissionLeadId(null);
 			resetAdmission({ counsellorId: undefined, note: "" });
-			navigate("/admissions");
+			navigate("/leads?stage=converted");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const counsellorError = error.payload.errors?.counsellorId?.[0];

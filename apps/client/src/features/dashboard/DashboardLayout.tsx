@@ -10,6 +10,7 @@ import {
 	HiPhone,
 	HiPresentationChartLine,
 	HiSquares2X2,
+	HiLockClosed,
 	HiUsers,
 } from "react-icons/hi2";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -26,7 +27,6 @@ import {
 	leadStageDefinitions,
 } from "@/features/leads/lead-stage-filters";
 import {
-	useAdmissionLeadsQuery,
 	useDemoRequestsQuery,
 	useDueLeadFollowUpsQuery,
 	usePendingDemoRequestsQuery,
@@ -37,7 +37,6 @@ import { useSession } from "@/lib/session";
 const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
-	"/admissions": "For Admission",
 	"/students": "Students",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/counsellor/students": "Counsellor Students",
@@ -76,10 +75,6 @@ const resolveTitle = (pathname: string, search: string): string => {
 		return "Edit Role";
 	}
 
-	if (/^\/admissions\/[^/]+$/.test(pathname)) {
-		return "Admission Details";
-	}
-
 	if (pathname === "/users" && search.includes("role=sales")) {
 		return "Sales";
 	}
@@ -101,12 +96,6 @@ export const DashboardLayout = () => {
 	const canReadAllLeads =
 		me?.permissions?.some((permission) => permission.key === "LEAD_READ_ALL") ??
 		false;
-	const canReadAdmissions =
-		me?.permissions?.some(
-			(permission) =>
-				permission.key === "LEAD_ADMISSION_REQUEST" ||
-				permission.key === "LEAD_ADMISSION_CONFIRM",
-		) ?? false;
 	const canReadStudents =
 		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
 		false;
@@ -121,7 +110,6 @@ export const DashboardLayout = () => {
 		timeFilter: "all",
 		enabled: canReadLeads,
 	});
-	const admissionsQuery = useAdmissionLeadsQuery(token, canReadAdmissions);
 	const studentsQuery = useStudentsQuery(token, canReadStudents);
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
@@ -166,6 +154,8 @@ export const DashboardLayout = () => {
 		demoAssigned: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 		demoCompleted: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 		demoCancelled: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
+		converted: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+		closed: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
 	} as const;
 	const leadStageAccents: Record<
 		LeadStageId,
@@ -179,6 +169,8 @@ export const DashboardLayout = () => {
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
 		demoCancelled: "orange",
+		converted: "emerald",
+		closed: "teal",
 	};
 
 	const hasPermission = (key: string): boolean =>
@@ -223,20 +215,6 @@ export const DashboardLayout = () => {
 					section: "Lead Pipeline",
 				},
 				...getLeadStageItems(),
-			]
-			: []),
-		...(hasPermission("LEAD_ADMISSION_REQUEST") ||
-			hasPermission("LEAD_ADMISSION_CONFIRM")
-			? [
-				{
-					to: "/admissions",
-					label: "For Admission",
-					description: "Queue",
-					icon: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
-					count: admissionsQuery.data?.leads.length ?? 0,
-					accent: "violet",
-					section: "Lead Pipeline",
-				},
 			]
 			: []),
 		...(hasPermission("STUDENT_READ")
