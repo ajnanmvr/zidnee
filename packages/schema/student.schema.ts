@@ -21,6 +21,9 @@ export const StudentSchema = z.object({
 	leadId: ObjectIdStringSchema,
 	processId: ObjectIdStringSchema.optional(),
 	processLabel: z.string().max(150).optional(),
+	oralAssessmentDone: z.boolean().default(false),
+	writtenAssessmentDone: z.boolean().default(false),
+	levelAssessmentDone: z.boolean().default(false),
 	nextFollowUpAt: z.date().optional(),
 	customNextFollowUpAt: z.date().optional(),
 	name: z.string().max(255).optional(),
@@ -61,6 +64,26 @@ export const ConfirmAdmissionPayloadSchema = z.object({
 	batchId: ObjectIdStringSchema.optional(), // For ONLINE_SCHOOL GROUP
 	note: z.string().max(500).optional(),
 });
+
+export const StudentAssessmentTypeSchema = z.enum([
+	"oral",
+	"written",
+	"level",
+]);
+
+export type StudentAssessmentType = z.infer<
+	typeof StudentAssessmentTypeSchema
+>;
+
+export const UpdateStudentAssessmentPayloadSchema = z.object({
+	assessmentType: StudentAssessmentTypeSchema,
+	isDone: z.boolean(),
+	note: z.string().max(500).optional(),
+});
+
+export type UpdateStudentAssessmentPayload = z.infer<
+	typeof UpdateStudentAssessmentPayloadSchema
+>;
 
 export type ConfirmAdmissionPayload = z.infer<
 	typeof ConfirmAdmissionPayloadSchema

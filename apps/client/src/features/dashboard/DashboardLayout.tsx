@@ -260,7 +260,6 @@ export const DashboardLayout = () => {
 						label: "Closed Tasks",
 						description: "Completed reminders",
 						icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-						count: allReminders.filter((reminder) => reminder.isDone).length,
 						accent: "rose",
 						section: "Learners",
 					},

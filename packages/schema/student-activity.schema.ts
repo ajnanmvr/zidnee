@@ -4,6 +4,7 @@ import { ObjectIdStringSchema } from "./rbac.schema.js";
 export const StudentActivityTypeSchema = z.enum([
 	"CREATED",
 	"UPDATED",
+	"ASSESSMENT_UPDATED",
 	"FOLLOW_UP_POSTPONED",
 	"FOLLOW_UP_RECORDED",
 	"STATUS_CHANGED",

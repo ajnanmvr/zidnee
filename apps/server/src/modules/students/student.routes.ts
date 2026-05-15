@@ -8,6 +8,7 @@ import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	listStudentsController,
 	recordStudentFollowUpController,
+	updateStudentAssessmentController,
 } from "./student.controller.js";
 import { getStudentActivitiesController } from "./student-activity.controller.js";
 
@@ -68,6 +69,12 @@ router.patch(
 	"/:studentId/follow-up",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(recordStudentFollowUpController),
+);
+
+router.patch(
+	"/:studentId/assessments",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(updateStudentAssessmentController),
 );
 
 export default router;

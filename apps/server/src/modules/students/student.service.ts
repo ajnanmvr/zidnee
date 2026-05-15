@@ -15,6 +15,10 @@ import {
 	StudentProcessModel,
 } from "./student-process.model.js";
 
+const resolveStudentZidPrefix = (courseType?: LeadDocument["courseType"]): string => {
+	return courseType === "GROUP" ? "zig" : "zid";
+};
+
 type StudentListFilters = {
 	status?: string;
 	search?: string;
@@ -50,6 +54,14 @@ const getLatestLeadDemo = (lead: LeadDocument) => {
 	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
 };
 
+const assessmentFieldByType = {
+	oral: "oralAssessmentDone",
+	written: "writtenAssessmentDone",
+	level: "levelAssessmentDone",
+} as const;
+
+type AssessmentType = keyof typeof assessmentFieldByType;
+
 const toStudent = (doc: StudentDocument): Student => {
 	return {
 		id: doc._id.toString(),
@@ -78,6 +90,9 @@ const toStudent = (doc: StudentDocument): Student => {
 		batchId: doc.batchId?.toString(),
 		processId: doc.processId?.toString(),
 		processLabel: doc.processLabel,
+		oralAssessmentDone: doc.oralAssessmentDone ?? false,
+		writtenAssessmentDone: doc.writtenAssessmentDone ?? false,
+		levelAssessmentDone: doc.levelAssessmentDone ?? false,
 		nextFollowUpAt: doc.nextFollowUpAt,
 		customNextFollowUpAt: doc.customNextFollowUpAt,
 		status: doc.status,
@@ -87,10 +102,13 @@ const toStudent = (doc: StudentDocument): Student => {
 	};
 };
 
-const nextStudentZid = async (): Promise<string> => {
+const nextStudentZid = async (prefix: string): Promise<string> => {
 	const students =
 		await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
-	return buildStudentIdentity(students.map((student) => student.zid));
+	return buildStudentIdentity(
+		students.map((student) => student.zid),
+		prefix,
+	);
 };
 
 const logStudentActivity = async (params: {
@@ -98,6 +116,7 @@ const logStudentActivity = async (params: {
 	type:
 		| "CREATED"
 		| "UPDATED"
+		| "ASSESSMENT_UPDATED"
 		| "FOLLOW_UP_POSTPONED"
 		| "FOLLOW_UP_RECORDED"
 		| "STATUS_CHANGED"
@@ -212,6 +231,56 @@ export const StudentService = {
 			.exec();
 	},
 
+	updateAssessment: async (
+		studentId: string,
+		assessmentType: AssessmentType,
+		isDone: boolean,
+		performedBy: string,
+		note?: string,
+	): Promise<Student | null> => {
+		const student = await StudentModel.findById(
+			studentId,
+		).lean<StudentDocument | null>();
+		if (!student) {
+			throw new AppError(404, "Student not found");
+		}
+
+		const fieldName = assessmentFieldByType[assessmentType];
+		const oldValue = {
+			oralAssessmentDone: student.oralAssessmentDone ?? false,
+			writtenAssessmentDone: student.writtenAssessmentDone ?? false,
+			levelAssessmentDone: student.levelAssessmentDone ?? false,
+		};
+		const updatedStudent = await StudentModel.findByIdAndUpdate(
+			student._id,
+			{
+				$set: {
+					[fieldName]: isDone,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<StudentDocument | null>();
+
+		if (!updatedStudent) {
+			return null;
+		}
+
+		await logStudentActivity({
+			studentId: student._id.toString(),
+			type: "ASSESSMENT_UPDATED",
+			performedBy,
+			description: `${assessmentType} assessment marked ${isDone ? "done" : "undone"}`,
+			note,
+			oldValue,
+			newValue: {
+				[fieldName]: isDone,
+			},
+		});
+
+		return toStudent(updatedStudent);
+	},
+
+
 	recordFollowUp: async (
 		studentId: string,
 		performedBy: string,
@@ -304,7 +373,7 @@ export const StudentService = {
 			throw new Error("admittedBy user is required");
 		}
 
-		const zid = await nextStudentZid();
+		const zid = await nextStudentZid(resolveStudentZidPrefix(existingLead.courseType));
 		const admittedAt = new Date();
 		const nextFollowUpAt = getDefaultStudentFollowUpAt(
 			existingLead.nextFollowUpAt,
@@ -454,7 +523,7 @@ export const StudentService = {
 			throw new Error("admittedBy user is required");
 		}
 
-		const zid = await nextStudentZid();
+		const zid = await nextStudentZid(resolveStudentZidPrefix(existingLead.courseType));
 		const admittedAt = new Date();
 		const createdStudent = await StudentModel.create({
 			zid,

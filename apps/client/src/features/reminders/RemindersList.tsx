@@ -1,5 +1,6 @@
 import type { Reminder } from "@repo/schema";
 import type React from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiOutlineCalendarDays, HiTrash } from "react-icons/hi2";
 import {
@@ -11,6 +12,7 @@ import {
 	getReminderDueStatus,
 	getReminderDueToneClasses,
 } from "./reminders.utils.js";
+import { Modal } from "@/components/dashboard-ui";
 
 interface RemindersListProps {
 	studentId: string;
@@ -31,6 +33,8 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 }) => {
 	const updateMutation = useUpdateReminderMutation(studentId);
 	const deleteMutation = useDeleteReminderMutation(studentId);
+	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+	const [deletingReminder, setDeletingReminder] = useState<Reminder | null>(null);
 
 	const handleToggleDone = async (reminder: Reminder) => {
 		try {
@@ -52,6 +56,8 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 		try {
 			await deleteMutation.mutateAsync(reminderId);
 			toast.success("Reminder deleted");
+			setConfirmDeleteOpen(false);
+			setDeletingReminder(null);
 		} catch {
 			toast.error("Failed to delete reminder");
 		}
@@ -166,7 +172,10 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 							<HiCheckCircle className="h-5 w-5" />
 						</button>
 						<button
-							onClick={() => handleDelete(reminder.id)}
+							onClick={() => {
+								setDeletingReminder(reminder);
+								setConfirmDeleteOpen(true);
+							}}
 							disabled={deleteMutation.isPending}
 							className="rounded-md p-2 text-red-500 transition hover:bg-red-50"
 							title="Delete reminder"
@@ -175,6 +184,46 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 						</button>
 					</div>
 				</div>
+
+				<Modal
+					open={confirmDeleteOpen}
+					title="Delete reminder"
+					description="This will permanently delete the reminder. This action cannot be undone."
+					onClose={() => {
+						setConfirmDeleteOpen(false);
+						setDeletingReminder(null);
+					}}
+					footer={
+						<>
+							<button
+								type="button"
+								className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+								onClick={() => {
+									setConfirmDeleteOpen(false);
+									setDeletingReminder(null);
+								}}
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+								onClick={() => {
+									if (deletingReminder) {
+										void handleDelete(deletingReminder.id);
+									}
+								}}
+								disabled={deleteMutation.isPending || deletingReminder === null}
+							>
+								Delete reminder
+							</button>
+						</>
+					}
+				>
+					<div className="py-4 text-sm text-gray-700">
+						Are you sure you want to delete this reminder?
+					</div>
+				</Modal>
 			</div>
 		);
 	};

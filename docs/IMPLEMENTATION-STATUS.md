@@ -88,6 +88,7 @@ Features Added (Active Work):
 - **Admission Snapshot**: On admission request, the system creates a student snapshot from lead data, auto-generates ZID, and stores a copied timeslot snapshot (`classesPerWeek`, `durationMinutes`) on student.
 - **Student Lifecycle Statuses**: Student status now uses `ADMISSION_PROCESS | STUDENT | BREAK | DROPPED`.
 - **Student Follow-up Action**: Student detail now includes a mandatory-note follow-up modal that records student history and advances the next follow-up date.
+- **Student Assessments Tracking**: Student detail now shows Oral/Written/Level assessment status and supports confirmation-based done/undone toggles via `PATCH /students/:studentId/assessments`.
 - **Lead Detail Redesign**: Detailed lead profile now surfaces identity, contact, form, schedule, ownership, and demo history sections in a light UI
 - **Lead Response Timestamps**: Shared lead response schema now includes `createdAt` and `updatedAt` for history-aware screens
 
@@ -133,7 +134,7 @@ Checklist:
 - [ ] Add form submission schema and endpoint (/form/:leadId)
 - [x] Add student schemas and model
 - [x] Add conversion service lead -> student
-- [ ] Implement ZID generator (prefix sequence starts at 11)
+- [x] Implement ZID generator (prefix sequence starts at 001 and uses course-type prefixes)
 - [ ] Ensure ZID is immutable and never reused
 - [ ] Add conversion and ZID concurrency tests
 - [ ] Add frontend public form flow

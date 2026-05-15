@@ -1,6 +1,7 @@
 import {
 	StudentFollowUpPayloadSchema,
 	StudentsResponseSchema,
+	UpdateStudentAssessmentPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
@@ -36,6 +37,9 @@ const toStudentResponse = (
 		batchId: student.batchId,
 		processId: student.processId,
 		processLabel: student.processLabel,
+		oralAssessmentDone: student.oralAssessmentDone,
+		writtenAssessmentDone: student.writtenAssessmentDone,
+		levelAssessmentDone: student.levelAssessmentDone,
 		nextFollowUpAt: student.nextFollowUpAt?.toISOString() ?? null,
 		customNextFollowUpAt: student.customNextFollowUpAt?.toISOString() ?? null,
 		status: student.status,
@@ -80,6 +84,27 @@ export const recordStudentFollowUpController = async (
 	const performedBy = requireStringValue(req.user?.userId, "userId");
 	const student = await StudentService.recordFollowUp(
 		studentId,
+		performedBy,
+		payload.note,
+	);
+
+	res.json({
+		ok: true,
+		student: student ? toStudentResponse(student) : null,
+	});
+};
+
+export const updateStudentAssessmentController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const studentId = requireStringValue(req.params.studentId, "studentId");
+	const payload = UpdateStudentAssessmentPayloadSchema.parse(req.body);
+	const performedBy = requireStringValue(req.user?.userId, "userId");
+	const student = await StudentService.updateAssessment(
+		studentId,
+		payload.assessmentType,
+		payload.isDone,
 		performedBy,
 		payload.note,
 	);

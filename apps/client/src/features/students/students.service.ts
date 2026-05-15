@@ -3,6 +3,7 @@ import {
 	StudentFollowUpPayloadSchema,
 	StudentResponseEnvelopeSchema,
 	StudentsResponseSchema,
+	UpdateStudentAssessmentPayloadSchema,
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
@@ -55,6 +56,21 @@ export const recordStudentFollowUp = async (
 	const validatedPayload = StudentFollowUpPayloadSchema.parse(payload);
 	return requestWithSchema(
 		`/students/${studentId}/follow-up`,
+		StudentResponseEnvelopeSchema,
+		"PATCH",
+		validatedPayload,
+		token,
+	);
+};
+
+export const updateStudentAssessment = async (
+	token: string,
+	studentId: string,
+	payload: { assessmentType: "oral" | "written" | "level"; isDone: boolean; note?: string },
+) => {
+	const validatedPayload = UpdateStudentAssessmentPayloadSchema.parse(payload);
+	return requestWithSchema(
+		`/students/${studentId}/assessments`,
 		StudentResponseEnvelopeSchema,
 		"PATCH",
 		validatedPayload,

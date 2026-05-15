@@ -166,6 +166,21 @@ const studentSchema = new Schema<StudentDocument>(
 			trim: true,
 			maxlength: 150,
 		},
+		oralAssessmentDone: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
+		writtenAssessmentDone: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
+		levelAssessmentDone: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
 		nextFollowUpAt: {
 			type: Date,
 			required: false,

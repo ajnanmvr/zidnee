@@ -12,7 +12,10 @@ import {
 	getStudentStatusColor,
 	getStudentStatusLabel,
 } from "@/features/students/student-table";
-import { useRecordStudentFollowUpMutation } from "@/features/students/students.mutations";
+import {
+	useRecordStudentFollowUpMutation,
+	useUpdateStudentAssessmentMutation,
+} from "@/features/students/students.mutations";
 import {
 	useStudentActivitiesQuery,
 	useStudentsQuery,
@@ -28,6 +31,7 @@ export const StudentDetailPage = () => {
 	const studentActivitiesQuery = useStudentActivitiesQuery(token, studentId);
 	const usersQuery = useUsersQuery(token);
 	const recordFollowUpMutation = useRecordStudentFollowUpMutation();
+	const updateAssessmentMutation = useUpdateStudentAssessmentMutation();
 	const [activeTab, setActiveTab] = useState<"follow-up" | "profile">(
 		"follow-up",
 	);
@@ -36,6 +40,11 @@ export const StudentDetailPage = () => {
 	const [followUpError, setFollowUpError] = useState<string | undefined>();
 	const [remindersModalOpen, setRemindersModalOpen] = useState(false);
 	const [showCompletedReminders, setShowCompletedReminders] = useState(false);
+	const [assessmentConfirmOpen, setAssessmentConfirmOpen] = useState(false);
+	const [pendingAssessment, setPendingAssessment] = useState<{
+		assessmentType: "oral" | "written" | "level";
+		nextDone: boolean;
+	} | null>(null);
 	const remindersQuery = useGetStudentReminders(studentId ?? "");
 
 	const student = useMemo(
@@ -119,6 +128,58 @@ export const StudentDetailPage = () => {
 		}
 	};
 
+	const assessmentConfig = [
+		{
+			assessmentType: "oral" as const,
+			label: "Oral Assessment",
+			value: student?.oralAssessmentDone ?? false,
+			description: "Speaking and pronunciation check",
+		},
+		{
+			assessmentType: "written" as const,
+			label: "Written Assessment",
+			value: student?.writtenAssessmentDone ?? false,
+			description: "Reading and writing check",
+		},
+		{
+			assessmentType: "level" as const,
+			label: "Level Assessment",
+			value: student?.levelAssessmentDone ?? false,
+			description: "Final placement and level check",
+		},
+	];
+
+	const openAssessmentConfirm = (
+		assessmentType: "oral" | "written" | "level",
+		nextDone: boolean,
+	) => {
+		setPendingAssessment({ assessmentType, nextDone });
+		setAssessmentConfirmOpen(true);
+	};
+
+	const submitAssessmentUpdate = async () => {
+		if (!studentId || !pendingAssessment) {
+			return;
+		}
+
+		try {
+			await updateAssessmentMutation.mutateAsync({
+				studentId,
+				assessmentType: pendingAssessment.assessmentType,
+				isDone: pendingAssessment.nextDone,
+			});
+			toast.success("Assessment updated");
+			setAssessmentConfirmOpen(false);
+			setPendingAssessment(null);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Failed to update assessment");
+				return;
+			}
+
+			toast.error("Failed to update assessment");
+		}
+	};
 	if (studentsQuery.isLoading) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -516,6 +577,47 @@ export const StudentDetailPage = () => {
 						</dl>
 					</Panel>
 
+					<Panel title="Assessments">
+						<div className="space-y-4">
+							{assessmentConfig.map((assessment) => {
+								const nextDone = !assessment.value;
+								return (
+									<div
+										key={assessment.assessmentType}
+										className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+									>
+										<div className="flex items-start justify-between gap-4">
+											<div>
+												<p className="text-sm font-semibold text-gray-900">
+													{assessment.label}
+												</p>
+												<p className="mt-1 text-sm text-gray-600">
+													{assessment.description}
+												</p>
+											</div>
+											<span
+												className={`rounded-full px-3 py-1 text-xs font-semibold ${
+													assessment.value
+														? "bg-emerald-100 text-emerald-700"
+														: "bg-amber-100 text-amber-700"
+												}`}
+											>
+												{assessment.value ? "Done" : "Not done"}
+											</span>
+										</div>
+										<button
+											type="button"
+											onClick={() => openAssessmentConfirm(assessment.assessmentType, nextDone)}
+											className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
+										>
+											{assessment.value ? "Mark undone" : "Mark done"}
+										</button>
+									</div>
+								);
+							})}
+						</div>
+					</Panel>
+
 					<Panel title="Personal details">
 						<dl className="space-y-4">
 							<div>
@@ -608,6 +710,46 @@ export const StudentDetailPage = () => {
 						error={followUpError}
 					/>
 				</div>
+			</Modal>
+
+			<Modal
+				open={assessmentConfirmOpen}
+				onClose={() => {
+					setAssessmentConfirmOpen(false);
+					setPendingAssessment(null);
+				}}
+				title="Confirm assessment update"
+				description={
+					pendingAssessment
+						? `Mark ${pendingAssessment.assessmentType} assessment as ${pendingAssessment.nextDone ? "done" : "undone"}?`
+						: "Confirm the assessment change."
+				}
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setAssessmentConfirmOpen(false);
+								setPendingAssessment(null);
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void submitAssessmentUpdate()}
+							disabled={updateAssessmentMutation.isPending || !pendingAssessment}
+							className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{updateAssessmentMutation.isPending ? "Saving..." : "Confirm"}
+						</button>
+					</>
+				}
+			>
+				<p className="text-sm text-gray-700">
+					This will update the assessment status and add an activity log entry.
+				</p>
 			</Modal>
 
 			<CreateReminderModal
