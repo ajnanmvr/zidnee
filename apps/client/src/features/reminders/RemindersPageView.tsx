@@ -284,6 +284,7 @@ export const RemindersPageView = ({
                                 reminder={reminder}
                                 users={usersQuery.data?.users ?? []}
                                 students={studentsQuery.data?.students ?? []}
+                                showDueStatus={mode !== "closed"}
                             />
                         ))}
                     </div>
@@ -325,11 +326,18 @@ interface ReminderRowProps {
     reminder: Reminder;
     users: Array<{ id: string; name: string; username: string }>;
     students: Array<{ id: string; name?: string; zid: string }>;
+    showDueStatus?: boolean;
 }
 
-const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users, students }) => {
+const ReminderRow: React.FC<ReminderRowProps> = ({
+    reminder,
+    users,
+    students,
+    showDueStatus = true,
+}) => {
     const updateMutation = useUpdateReminderMutation(reminder.studentId);
     const deleteMutation = useDeleteReminderMutation(reminder.studentId);
+    const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
     const createdByUser = useMemo(() => {
@@ -358,6 +366,15 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users, students }) 
         } catch {
             toast.error("Failed to update reminder");
         }
+    };
+
+    const requestToggleDone = () => {
+        if (!reminder.isDone) {
+            setConfirmDoneOpen(true);
+            return;
+        }
+
+        void handleToggleDone();
     };
 
     const handleDelete = async () => {
@@ -392,7 +409,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users, students }) 
                         {formatReminderDate(dueDate)}
                     </span>
 
-                    {!reminder.isDone ? (
+                    {showDueStatus && !reminder.isDone ? (
                         <span
                             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${dueTone.badge}`}
                         >
@@ -438,7 +455,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users, students }) 
 
             <div className="flex items-center gap-2">
                 <button
-                    onClick={handleToggleDone}
+                    onClick={requestToggleDone}
                     disabled={updateMutation.isPending}
                     className={`rounded-md p-2 transition ${
                         reminder.isDone
@@ -460,6 +477,43 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, users, students }) 
                     <HiTrash className="h-5 w-5" />
                 </button>
             </div>
+
+            <Modal
+                open={confirmDoneOpen}
+                title="Mark reminder as done"
+                description="This reminder will be moved to closed tasks."
+                onClose={() => {
+                    setConfirmDoneOpen(false);
+                }}
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+                            onClick={() => {
+                                setConfirmDoneOpen(false);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="inline-flex items-center gap-2 rounded-2xl bg-green-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                            onClick={() => {
+                                void handleToggleDone();
+                                setConfirmDoneOpen(false);
+                            }}
+                            disabled={updateMutation.isPending}
+                        >
+                            Mark done
+                        </button>
+                    </>
+                }
+            >
+                <div className="py-4 text-sm text-gray-700">
+                    Are you sure you want to mark this reminder as done?
+                </div>
+            </Modal>
 
             <Modal
                 open={confirmDeleteOpen}

@@ -33,6 +33,8 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 }) => {
 	const updateMutation = useUpdateReminderMutation(studentId);
 	const deleteMutation = useDeleteReminderMutation(studentId);
+	const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
+	const [togglingReminder, setTogglingReminder] = useState<Reminder | null>(null);
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 	const [deletingReminder, setDeletingReminder] = useState<Reminder | null>(null);
 
@@ -50,6 +52,16 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 		} catch {
 			toast.error("Failed to update reminder");
 		}
+	};
+
+	const requestToggleDone = (reminder: Reminder) => {
+		if (!reminder.isDone) {
+			setTogglingReminder(reminder);
+			setConfirmDoneOpen(true);
+			return;
+		}
+
+		void handleToggleDone(reminder);
 	};
 
 	const handleDelete = async (reminderId: string) => {
@@ -160,7 +172,7 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 
 					<div className="flex items-center gap-2">
 						<button
-							onClick={() => handleToggleDone(reminder)}
+							onClick={() => requestToggleDone(reminder)}
 							disabled={updateMutation.isPending}
 							className={`rounded-md p-2 transition ${
 								reminder.isDone
@@ -184,6 +196,48 @@ export const RemindersList: React.FC<RemindersListProps> = ({
 						</button>
 					</div>
 				</div>
+
+				<Modal
+					open={confirmDoneOpen}
+					title="Mark reminder as done"
+					description="This reminder will be moved to closed tasks."
+					onClose={() => {
+						setConfirmDoneOpen(false);
+						setTogglingReminder(null);
+					}}
+					footer={
+						<>
+							<button
+								type="button"
+								className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+								onClick={() => {
+									setConfirmDoneOpen(false);
+									setTogglingReminder(null);
+								}}
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-green-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+								onClick={() => {
+									if (togglingReminder) {
+										void handleToggleDone(togglingReminder);
+										setConfirmDoneOpen(false);
+										setTogglingReminder(null);
+									}
+								}}
+								disabled={updateMutation.isPending || togglingReminder === null}
+							>
+								Mark done
+							</button>
+						</>
+					}
+				>
+					<div className="py-4 text-sm text-gray-700">
+						Are you sure you want to mark this reminder as done?
+					</div>
+				</Modal>
 
 				<Modal
 					open={confirmDeleteOpen}

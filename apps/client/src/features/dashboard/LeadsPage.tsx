@@ -116,8 +116,6 @@ export const LeadsPage = () => {
 				return "DEMO_COMPLETED";
 			case "demoCancelled":
 				return "DEMO_CANCELLED";
-			case "converted":
-				return "CONVERTED";
 			case "closed":
 				return "CLOSED";
 			default:

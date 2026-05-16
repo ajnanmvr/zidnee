@@ -187,7 +187,6 @@ export const DashboardLayout = () => {
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
 		demoCancelled: "orange",
-		converted: "emerald",
 		closed: "teal",
 	};
 
