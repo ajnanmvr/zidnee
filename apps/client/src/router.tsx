@@ -49,6 +49,11 @@ const CreateMentorPage = lazy(() =>
 		default: module.CreateMentorPage,
 	})),
 );
+const MentorsPage = lazy(() =>
+	import("@/features/dashboard/MentorsPage").then((module) => ({
+		default: module.MentorsPage,
+	})),
+);
 const GroupsPage = lazy(() =>
 	import("@/features/dashboard/GroupsPage").then((module) => ({
 		default: module.GroupsPage,
@@ -212,6 +217,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<CreateMentorPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "mentors",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MentorsPage />
 							</Suspense>
 						),
 					},

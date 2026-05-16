@@ -49,8 +49,6 @@ const userSchema = new Schema<UserDocument>(
 		counsellorId: {
 			type: String,
 			required: false,
-			unique: true,
-			sparse: true,
 			index: true,
 		},
 		roleIds: {

@@ -43,6 +43,7 @@ const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
 	"/students": "Students",
+	"/mentors": "Mentors",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/counsellor/students": "Counsellor Students",
 	"/time-slots": "Time Slots",
@@ -307,6 +308,14 @@ export const DashboardLayout = () => {
 					description: "All accounts",
 					icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
 					accent: "cyan",
+					section: "Management",
+				},
+				{
+					to: "/mentors",
+					label: "Mentors",
+					description: "Mentor directory",
+					icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+					accent: "emerald",
 					section: "Management",
 				},
 			]

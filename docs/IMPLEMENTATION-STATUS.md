@@ -157,6 +157,7 @@ Checklist:
 - [ ] Ensure inactive entities are hidden in queues
 - [ ] Ensure reappearance when inactiveUntil <= now
 - [x] Add counsellor dashboards and actions on frontend
+- [x] Add mentor directory page with mentor/counsellor mapping
 - [ ] Add tests for inactive visibility transitions
 
 Definition of done:
