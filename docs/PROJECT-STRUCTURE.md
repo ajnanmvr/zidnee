@@ -138,7 +138,7 @@ zidnee/
 - [apps/client/src/components](apps/client/src/components) contains reusable dashboard UI pieces such as the sidebar, header, panels, and form fields.
 - [apps/client/src/features](apps/client/src/features) contains route-level pages plus auth and domain data hooks.
 - [apps/client/src/features/time-slots](apps/client/src/features/time-slots) contains the admin time-slot catalog service, queries, and mutation hooks.
-- Route-level dashboard pages now include [apps/client/src/features/dashboard/CreateUserPage.tsx](apps/client/src/features/dashboard/CreateUserPage.tsx), [apps/client/src/features/dashboard/CreateMentorPage.tsx](apps/client/src/features/dashboard/CreateMentorPage.tsx), [apps/client/src/features/dashboard/CreateCounsellorPage.tsx](apps/client/src/features/dashboard/CreateCounsellorPage.tsx), [apps/client/src/features/dashboard/CounsellorMentorsPage.tsx](apps/client/src/features/dashboard/CounsellorMentorsPage.tsx), [apps/client/src/features/dashboard/CounsellorStudentsPage.tsx](apps/client/src/features/dashboard/CounsellorStudentsPage.tsx), [apps/client/src/features/dashboard/UsersPage.tsx](apps/client/src/features/dashboard/UsersPage.tsx), [apps/client/src/features/dashboard/RolesPage.tsx](apps/client/src/features/dashboard/RolesPage.tsx), and [apps/client/src/features/dashboard/MePage.tsx](apps/client/src/features/dashboard/MePage.tsx) with table-based management actions.
+- Route-level dashboard pages now include [apps/client/src/features/dashboard/CreateUserPage.tsx](apps/client/src/features/dashboard/CreateUserPage.tsx), [apps/client/src/features/dashboard/CreateMentorPage.tsx](apps/client/src/features/dashboard/CreateMentorPage.tsx), [apps/client/src/features/dashboard/CreateCounsellorPage.tsx](apps/client/src/features/dashboard/CreateCounsellorPage.tsx), [apps/client/src/features/dashboard/CounsellorMentorsPage.tsx](apps/client/src/features/dashboard/CounsellorMentorsPage.tsx), [apps/client/src/features/dashboard/CounsellorStudentsPage.tsx](apps/client/src/features/dashboard/CounsellorStudentsPage.tsx), [apps/client/src/features/dashboard/GroupsPage.tsx](apps/client/src/features/dashboard/GroupsPage.tsx), [apps/client/src/features/dashboard/UsersPage.tsx](apps/client/src/features/dashboard/UsersPage.tsx), [apps/client/src/features/dashboard/RolesPage.tsx](apps/client/src/features/dashboard/RolesPage.tsx), and [apps/client/src/features/dashboard/MePage.tsx](apps/client/src/features/dashboard/MePage.tsx) with table-based management actions.
 - Feature-local services and hooks are organized under [apps/client/src/features/auth](apps/client/src/features/auth), [apps/client/src/features/users](apps/client/src/features/users), [apps/client/src/features/roles](apps/client/src/features/roles), [apps/client/src/features/permissions](apps/client/src/features/permissions), [apps/client/src/features/leads](apps/client/src/features/leads), and [apps/client/src/features/students](apps/client/src/features/students), including the new follow-up mutation hook.
 - [apps/client/src/api/client.ts](apps/client/src/api/client.ts) defines a shared axios instance with `baseURL` and request `timeout`.
 - [apps/client/src/api/request.ts](apps/client/src/api/request.ts) provides shared typed request + API error handling utilities.
@@ -172,14 +172,16 @@ zidnee/
 - [apps/server/src/index.ts](apps/server/src/index.ts) starts the Express app.
 - It exposes:
   - `GET /health`
-  - API routes mounted under `/api` (auth, roles, permissions, users, leads)
+  - API routes mounted under `/api` (auth, roles, permissions, users, leads, batches)
 - User management routes now include user update/delete, activate/deactivate, admin password reset, and current-user password change endpoints under `/api/users`.
 - User management routes now also include role-specific create endpoints under `/api/users/mentors` and `/api/users/counsellors`, each generating stable identity IDs.
 - Lead routes now include create-lead, due follow-up listing, and follow-up postpone endpoints under `/api/leads`.
+- Batch routes now expose list/create endpoints under `/api/batches`, and group batches generate stable `zg001`-style codes.
 - [apps/server/src/config/env.ts](apps/server/src/config/env.ts) loads dotenv and exports runtime env values.
 - A public time-slot options route is now mounted under `/form/options/time-slots` so the public form can read admin-managed timing choices.
 - Server includes implemented middleware, module, route, and utils layers for RBAC/auth flows.
 - Time-slot catalog routes and models now live under [apps/server/src/modules/timeslots](apps/server/src/modules/timeslots).
+- Batch/group routes and models now live under [apps/server/src/modules/students](apps/server/src/modules/students).
 - RBAC persistence is now split into module-scoped Mongoose model files under [apps/server/src/modules/rbac](apps/server/src/modules/rbac): `permission.model.ts`, `role.model.ts`, and `user.model.ts`.
 - [apps/server/scripts/seed.ts](apps/server/scripts/seed.ts) seeds the initial `admin` user as `SuperAdmin` with password `123456`.
 

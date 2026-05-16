@@ -28,6 +28,7 @@ import {
 	type LeadStageId,
 	leadStageDefinitions,
 } from "@/features/leads/lead-stage-filters";
+import { useBatchesQuery } from "@/features/batches/batches.queries";
 import {
 	useDemoRequestsQuery,
 	useDueLeadFollowUpsQuery,
@@ -124,9 +125,11 @@ export const DashboardLayout = () => {
 	const currentUserId = me?.id;
 
 	const allStudents = studentsQuery.data?.students ?? [];
+	const allBatches = useBatchesQuery(token).data?.batches ?? [];
 	const allReminders = remindersQuery.data ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
+	const groupCount = allBatches.filter((batch) => batch.type === "GROUP").length;
 	const isCounsellor =
 		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
 		false;
@@ -171,7 +174,6 @@ export const DashboardLayout = () => {
 		demoRequest: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
 		demoAssigned: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 		demoCompleted: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-		demoCancelled: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
 		converted: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
 		closed: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
 	} as const;
@@ -186,7 +188,6 @@ export const DashboardLayout = () => {
 		demoRequest: "orange",
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
-		demoCancelled: "orange",
 		closed: "teal",
 	};
 
@@ -205,7 +206,7 @@ export const DashboardLayout = () => {
 					icon: leadStageIcons[id] || (
 						<HiPhone className="h-5 w-5" aria-hidden="true" />
 					),
-					count: leadStageCounts[id] ?? 0,
+					count: id === "closed" ? undefined : leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
 				};
@@ -243,6 +244,15 @@ export const DashboardLayout = () => {
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 					count: studentsQuery.data?.students.length ?? 0,
 					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/groups",
+					label: "Groups",
+					description: "Mentor groups",
+					icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+					count: groupCount,
+					accent: "emerald",
 					section: "Learners",
 				},
 				{

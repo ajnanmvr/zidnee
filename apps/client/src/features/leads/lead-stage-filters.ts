@@ -8,7 +8,6 @@ export type LeadStageId =
 	| "demoRequest"
 	| "demoAssigned"
 	| "demoCompleted"
-	| "demoCancelled"
 	| "closed";
 
 export type LeadStageDefinition = {
@@ -37,11 +36,6 @@ export const leadStageDefinitions: LeadStageDefinition[] = [
 		label: "Demo Completed",
 		description: "Demo completed",
 	},
-	{
-		id: "demoCancelled",
-		label: "Demo Cancelled",
-		description: "Demo cancelled",
-	},
 	{ id: "closed", label: "Closed", description: "Closed or unpublished" },
 ];
 
@@ -67,8 +61,6 @@ export const getLeadStagePredicate = (
 				return status === "DEMO_ASSIGNED";
 			case "demoCompleted":
 				return status === "DEMO_COMPLETED";
-			case "demoCancelled":
-				return status === "DEMO_CANCELLED";
 			case "closed":
 				return status === "CLOSED";
 			default:
@@ -95,7 +87,6 @@ export const getLeadStageCounts = (
 			demoRequest: 0,
 			demoAssigned: 0,
 			demoCompleted: 0,
-			demoCancelled: 0,
 			closed: 0,
 		},
 	);

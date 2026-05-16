@@ -6,6 +6,7 @@ export type BatchType = z.infer<typeof BatchTypeSchema>;
 
 export const BatchSchema = z.object({
 	id: ObjectIdStringSchema,
+	groupId: z.string().min(1).max(20).optional(),
 	name: z.string().min(1).max(255),
 	type: BatchTypeSchema, // GROUP or INDIVIDUAL
 	level: z.string().min(1).max(100),

@@ -114,8 +114,6 @@ export const LeadsPage = () => {
 				return "DEMO_ASSIGNED";
 			case "demoCompleted":
 				return "DEMO_COMPLETED";
-			case "demoCancelled":
-				return "DEMO_CANCELLED";
 			case "closed":
 				return "CLOSED";
 			default:
@@ -762,23 +760,6 @@ export const LeadsPage = () => {
 									onClick: (item) => setRedemoLeadId(item.id),
 									className:
 										"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
-								},
-							];
-						case "demoCancelled":
-							return [
-								{
-									key: "redemo",
-									label: "Request Redemo",
-									onClick: (item) => setRedemoLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
-								},
-								{
-									key: "toAdmission",
-									label: "Direct Admission",
-									onClick: (item) => setAdmissionLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
 								},
 							];
 						default:

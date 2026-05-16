@@ -126,4 +126,46 @@ describe("app routes", () => {
 			),
 		).toBe(false);
 	});
+
+	it("creates and lists a group with a generated groupId", async () => {
+		const loginResponse = await request(app).post("/api/auth/login").send({
+			username: "admin",
+			password: "123456",
+		});
+
+		expect(loginResponse.status).toBe(200);
+
+		const meResponse = await request(app)
+			.get("/api/auth/me")
+			.set("Authorization", `Bearer ${loginResponse.body.token}`);
+
+		expect(meResponse.status).toBe(200);
+
+		const createResponse = await request(app)
+			.post("/api/batches")
+			.set("Authorization", `Bearer ${loginResponse.body.token}`)
+			.send({
+				name: "Alpha Group",
+				type: "GROUP",
+				level: "Beginner",
+				mentorId: meResponse.body.id,
+				description: "Test group",
+			});
+
+		expect(createResponse.status).toBe(201);
+		expect(createResponse.body.ok).toBe(true);
+		expect(createResponse.body.batch.groupId).toBe("zg001");
+
+		const listResponse = await request(app)
+			.get("/api/batches")
+			.set("Authorization", `Bearer ${loginResponse.body.token}`);
+
+		expect(listResponse.status).toBe(200);
+		expect(listResponse.body.ok).toBe(true);
+		expect(
+			listResponse.body.batches.some(
+				(batch: { groupId?: string }) => batch.groupId === "zg001",
+			),
+		).toBe(true);
+	});
 });

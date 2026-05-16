@@ -4,10 +4,12 @@ import type {
 	UpdateBatchPayload,
 } from "@repo/schema";
 import { type BatchDocument, BatchModel } from "./batch.model.js";
+import { BatchIdentityService } from "./batch.identity.js";
 
 const toBatch = (doc: BatchDocument): Batch => {
 	return {
 		id: doc._id.toString(),
+		groupId: doc.groupId,
 		name: doc.name,
 		type: doc.type,
 		level: doc.level,
@@ -21,7 +23,12 @@ const toBatch = (doc: BatchDocument): Batch => {
 
 export const BatchService = {
 	create: async (payload: CreateBatchPayload): Promise<Batch> => {
+		const groupId =
+			payload.type === "GROUP"
+				? await BatchIdentityService.generateGroupId()
+				: undefined;
 		const batch = await BatchModel.create({
+			groupId,
 			name: payload.name,
 			type: payload.type,
 			level: payload.level,

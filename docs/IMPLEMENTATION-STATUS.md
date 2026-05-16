@@ -1,6 +1,6 @@
 # Zidnee Implementation Tracker
 
-Last updated: 2026-05-03
+Last updated: 2026-05-16
 Reference: [docs/ZIDNEE-MASTER-PLAN.md](docs/ZIDNEE-MASTER-PLAN.md)
 
 ## How To Use This File
@@ -168,7 +168,7 @@ Notes:
 
 ## Step 6 - Batch + Group/Individual Progress
 
-Step status: Not Started
+Step status: In Progress
 
 Scope:
 - Batch structure
@@ -176,7 +176,10 @@ Scope:
 - Optional individual progress simplicity
 
 Checklist:
-- [ ] Add batch schema/model with type and checkpoints
+- [x] Add batch schema/model with type and checkpoints
+- [x] Add group ID generation with zg001-style codes
+- [x] Add batches API routes and controller
+- [x] Add frontend groups page with mentor and student membership display
 - [ ] Implement batch-level progress updates
 - [ ] Keep follow-up responsibilities on student entity
 - [ ] Add frontend batch/enrollment pages
@@ -184,6 +187,9 @@ Checklist:
 
 Definition of done:
 - Progress and follow-up responsibilities are clearly separated
+
+Notes:
+- Current group records are backed by the batch module and now expose a human-readable `groupId` code.
 
 ## Step 7 - Tickets + Payment Tracking
 
