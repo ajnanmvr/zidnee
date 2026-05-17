@@ -47,7 +47,7 @@ Test coverage status:
 - Frontend tests still missing
 
 ## Features Added (Active Work):
- - **Public Form Timing**: Public admission form now reads admin-created time slots and removes the old freeform schedule selector
+ - **Public Form Timing**: Public admission form now saves multiple preferred class timings as nested start/end tiles under the selected plan
  - **Timing Visibility**: Demo scheduling and admission confirmation screens now surface submitted start time, demo availability, and preferred time slots
 Notes:
 - This step is functionally present and ready for domain expansion.

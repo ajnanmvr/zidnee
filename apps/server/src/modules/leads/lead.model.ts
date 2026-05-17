@@ -149,34 +149,33 @@ const leadSchema = new Schema(
 			required: false,
 			default: [],
 		},
+		preferredPlan: {
+			type: new Schema(
+				{
+					timesPerWeek: { type: Number, required: true },
+					durationMinutes: { type: Number, required: true },
+				},
+				{ _id: false },
+			),
+			required: false,
+		},
 		preferredTimeslots: {
 			type: [
 				new Schema(
 					{
-						label: { type: String, required: true, trim: true, maxlength: 120 },
-						timesPerWeek: { type: Number, required: true },
-						durationMinutes: { type: Number, required: true },
+						startTime: { type: String, required: true },
+						endTime: { type: String, required: true },
 					},
 					{ _id: false },
 				),
 			],
 			required: false,
 			default: [],
-			validate: {
-				validator: (value: unknown[]) => value.length <= 1,
-				message: "Only one preferred timeslot can be saved",
-			},
 		},
 		price: {
 			type: Number,
 			required: false,
 			min: 0,
-		},
-		startClassWhen: {
-			type: String,
-			required: false,
-			trim: true,
-			maxlength: 100,
 		},
 		hearAboutUs: {
 			type: String,

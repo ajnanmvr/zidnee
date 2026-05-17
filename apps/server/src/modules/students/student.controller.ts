@@ -31,7 +31,6 @@ const toStudentResponse = (
 		preferredDays: student.preferredDays,
 		timeslot: student.timeslot,
 		price: student.price,
-		startClassWhen: student.startClassWhen,
 		hearAboutUs: student.hearAboutUs,
 		mentorId: student.mentorId,
 		batchId: student.batchId,

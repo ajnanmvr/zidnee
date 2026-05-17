@@ -12,7 +12,6 @@ import {
 	type StudentDocument,
 	StudentModel,
 } from "../students/student.model.js";
-import { TimeSlotModel } from "../timeslots/timeslot.model.js";
 import { ZidService } from "../zid/zid.service.js";
 import { ActivityService } from "./activity.service.js";
 import type { LeadDocumentExt } from "./lead.model.js";
@@ -200,31 +199,29 @@ const leadFieldPatch = (
 	}
 
 	if (
+		updates.preferredPlan !== undefined &&
+		JSON.stringify(updates.preferredPlan) !==
+			JSON.stringify(existingLead.preferredPlan ?? null)
+	) {
+		patch.preferredPlan = updates.preferredPlan;
+		oldValue.preferredPlan = existingLead.preferredPlan ?? null;
+		newValue.preferredPlan = updates.preferredPlan;
+	}
+
+	if (
 		updates.preferredTimeslots !== undefined &&
 		JSON.stringify(updates.preferredTimeslots) !==
 			JSON.stringify(existingLead.preferredTimeslots ?? [])
 	) {
-		patch.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(0, 1);
-		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? null;
-		newValue.preferredTimeslots = (updates.preferredTimeslots ?? []).slice(
-			0,
-			1,
-		);
+		patch.preferredTimeslots = updates.preferredTimeslots;
+		oldValue.preferredTimeslots = existingLead.preferredTimeslots ?? [];
+		newValue.preferredTimeslots = updates.preferredTimeslots;
 	}
 
 	if (updates.price !== undefined && updates.price !== existingLead.price) {
 		patch.price = updates.price;
 		oldValue.price = existingLead.price ?? null;
 		newValue.price = updates.price;
-	}
-
-	if (
-		updates.startClassWhen !== undefined &&
-		updates.startClassWhen !== existingLead.startClassWhen
-	) {
-		patch.startClassWhen = updates.startClassWhen;
-		oldValue.startClassWhen = existingLead.startClassWhen ?? null;
-		newValue.startClassWhen = updates.startClassWhen;
 	}
 
 	if (
@@ -381,9 +378,9 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	preferredLanguage: doc.preferredLanguage,
 	preferredSchedule: doc.preferredSchedule,
 	preferredDays: doc.preferredDays ?? [],
-	preferredTimeslots: (doc.preferredTimeslots ?? []).slice(0, 1),
+	preferredPlan: doc.preferredPlan,
+	preferredTimeslots: doc.preferredTimeslots ?? [],
 	price: doc.price,
-	startClassWhen: doc.startClassWhen,
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
 	preferredMentorGender: doc.preferredMentorGender,
@@ -453,72 +450,7 @@ export const LeadService = {
 			return null;
 		}
 
-		let effectiveUpdates: UpdateLeadPayload = updates;
-		if (updates.preferredTimeslots !== undefined) {
-			const items = updates.preferredTimeslots as unknown[];
-			const needsFetch = items.some(
-				(it) =>
-					typeof it === "string" ||
-					(it && (it as any).id) ||
-					(it && (it as any)._id),
-			);
-			if (needsFetch) {
-				const ids = items
-					.map((it) =>
-						typeof it === "string"
-							? it
-							: it && ((it as any).id ?? (it as any)._id),
-					)
-					.filter(Boolean)
-					.map(String);
-
-				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } })
-					.lean()
-					.exec();
-				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
-				const normalized = items.map((it) => {
-					if (typeof it === "string") {
-						const ts = map.get(it);
-						return ts
-							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
-							: { label: it };
-					}
-					if (it && (it as any).id) {
-						const id = String((it as any).id);
-						const ts = map.get(id);
-						return ts
-							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
-							: { label: (it as any).label ?? id };
-					}
-					if (it && (it as any)._id) {
-						const id = String((it as any)._id);
-						const ts = map.get(id);
-						return ts
-							? {
-									label: ts.label,
-									durationMinutes: ts.durationMinutes,
-									timesPerWeek: ts.timesPerWeek,
-								}
-							: { label: (it as any).label ?? id };
-					}
-					// already a snapshot
-					return it as any;
-				});
-
-				effectiveUpdates = {
-					...updates,
-					preferredTimeslots: normalized.slice(0, 1),
-				};
-			}
-		}
+		const effectiveUpdates: UpdateLeadPayload = updates;
 
 		const { patch, oldValue, newValue } = leadFieldPatch(
 			existingLead,
@@ -1127,72 +1059,8 @@ export const LeadService = {
 
 		// Update lead: mark form as completed, fill in form data, clear token
 		// ZID will be generated later during admission confirmation
-		let preferredTimeslots = data.preferredTimeslots;
-		if (
-			Array.isArray(data.preferredTimeslots) &&
-			data.preferredTimeslots.length > 0
-		) {
-			const items = data.preferredTimeslots as unknown[];
-			const needsFetch = items.some(
-				(it) =>
-					typeof it === "string" ||
-					(it && (it as any).id) ||
-					(it && (it as any)._id),
-			);
-			if (needsFetch) {
-				const ids = items
-					.map((it) =>
-						typeof it === "string"
-							? it
-							: it && ((it as any).id ?? (it as any)._id),
-					)
-					.filter(Boolean)
-					.map(String);
-
-				const timeslots = await TimeSlotModel.find({ _id: { $in: ids } })
-					.lean()
-					.exec();
-				const map = new Map(timeslots.map((t) => [t._id.toString(), t]));
-				preferredTimeslots = items
-					.map((it) => {
-						if (typeof it === "string") {
-							const ts = map.get(it);
-							return ts
-								? {
-										label: ts.label,
-										durationMinutes: ts.durationMinutes,
-										timesPerWeek: ts.timesPerWeek,
-									}
-								: { label: it };
-						}
-						if (it && (it as any).id) {
-							const id = String((it as any).id);
-							const ts = map.get(id);
-							return ts
-								? {
-										label: ts.label,
-										durationMinutes: ts.durationMinutes,
-										timesPerWeek: ts.timesPerWeek,
-									}
-								: { label: (it as any).label ?? id };
-						}
-						if (it && (it as any)._id) {
-							const id = String((it as any)._id);
-							const ts = map.get(id);
-							return ts
-								? {
-										label: ts.label,
-										durationMinutes: ts.durationMinutes,
-										timesPerWeek: ts.timesPerWeek,
-									}
-								: { label: (it as any).label ?? id };
-						}
-						return it as any;
-					})
-					.slice(0, 1);
-			}
-		}
-		preferredTimeslots = (preferredTimeslots ?? []).slice(0, 1);
+		const preferredPlan = data.preferredPlan;
+		const preferredTimeslots = data.preferredTimeslots ?? [];
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
@@ -1212,9 +1080,9 @@ export const LeadService = {
 				preferredLanguage: data.preferredLanguage,
 				preferredSchedule: data.preferredSchedule,
 				preferredDays: data.preferredDays,
+				preferredPlan,
 				preferredTimeslots,
 				price: data.price,
-				startClassWhen: data.startClassWhen,
 				hearAboutUs: data.hearAboutUs,
 				demoAvailability: data.demoAvailability,
 				preferredMentorGender: data.preferredMentorGender,
@@ -1267,12 +1135,14 @@ export const LeadService = {
 				| "Malayalam - English Mixed";
 			preferredSchedule?: string;
 			preferredDays?: string[];
-			preferredTimeslots?: {
-				label: string;
+			preferredPlan?: {
 				timesPerWeek: number;
 				durationMinutes: number;
+			};
+			preferredTimeslots?: {
+				startTime: string;
+				endTime: string;
 			}[];
-			startClassWhen?: string;
 			hearAboutUs?: string;
 			demoAvailability?: string;
 			preferredMentorGender?: "male" | "female" | "both";
@@ -1309,9 +1179,9 @@ export const LeadService = {
 			preferredLanguage: existingLead.preferredLanguage,
 			preferredSchedule: existingLead.preferredSchedule,
 			preferredDays: existingLead.preferredDays,
+			preferredPlan: existingLead.preferredPlan,
 			preferredTimeslots: existingLead.preferredTimeslots,
 			price: existingLead.price,
-			startClassWhen: existingLead.startClassWhen,
 			hearAboutUs: existingLead.hearAboutUs,
 			demoAvailability: existingLead.demoAvailability,
 			preferredMentorGender: existingLead.preferredMentorGender,

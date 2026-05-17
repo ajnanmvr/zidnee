@@ -31,13 +31,17 @@ const OptionalTextSchema = z.preprocess((value) => {
 	return value;
 }, z.string().trim().min(1).max(255).optional());
 
-export const LeadTimeslotSnapshotSchema = z.object({
-	label: z.string().min(1).max(120),
+export const LeadTimeslotSchema = z.object({
+	startTime: z.string().min(1),
+	endTime: z.string().min(1),
+});
+
+export const LeadPreferredPlanSchema = z.object({
 	timesPerWeek: z.number().int().positive(),
 	durationMinutes: z.number().int().positive(),
 });
 
-export type LeadTimeslotSnapshot = z.infer<typeof LeadTimeslotSnapshotSchema>;
+export type LeadPreferredPlan = z.infer<typeof LeadPreferredPlanSchema>;
 
 export const LeadFormDataSchema = z
 	.object({
@@ -56,15 +60,11 @@ export const LeadFormDataSchema = z
 		]),
 		preferredSchedule: z.string().min(1).max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).min(1).optional(),
-		preferredTimeslots: z
-			.array(LeadTimeslotSnapshotSchema)
-			.min(1)
-			.max(1)
-			.optional(),
+		preferredPlan: LeadPreferredPlanSchema.optional(),
+		preferredTimeslots: z.array(LeadTimeslotSchema).default([]),
 		email: z.email().max(255),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
-		startClassWhen: z.string().min(1).max(100).optional(),
 		hearAboutUs: z.string().min(1).max(255),
 		demoAvailability: z.string().min(1).max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -79,16 +79,17 @@ export const LeadFormDataSchema = z
 			return (
 				data.preferredDays &&
 				data.preferredDays.length > 0 &&
+				data.preferredPlan &&
 				data.preferredTimeslots &&
 				data.preferredTimeslots.length > 0 &&
-				data.startClassWhen &&
+
 				data.demoAvailability &&
 				data.preferredMentorGender
 			);
 		},
 		{
 			message:
-				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, start date, demo availability, and mentor preference)",
+				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, demo availability, and mentor preference)",
 		},
 	);
 
@@ -128,9 +129,9 @@ export const LeadSchema = z.object({
 		.optional(),
 	preferredSchedule: z.string().max(150).optional(),
 	preferredDays: z.array(z.string()).default([]),
-	preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).default([]),
+	preferredPlan: LeadPreferredPlanSchema.optional(),
+	preferredTimeslots: z.array(LeadTimeslotSchema).default([]),
 	price: z.number().int().nonnegative().optional(),
-	startClassWhen: z.string().max(100).optional(),
 	hearAboutUs: z.string().max(255).optional(),
 	demoAvailability: z.string().max(100).optional(),
 	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -175,10 +176,10 @@ export const UpdateLeadPayloadSchema = z
 			.optional(),
 		preferredSchedule: z.string().max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).optional(),
-		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).optional(),
+		preferredPlan: LeadPreferredPlanSchema.optional(),
+		preferredTimeslots: z.array(LeadTimeslotSchema).optional(),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
-		startClassWhen: z.string().max(100).optional(),
 		hearAboutUs: z.string().max(255).optional(),
 		demoAvailability: z.string().max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -252,11 +253,11 @@ export const SubmitLeadFormPayloadSchema = z
 		]),
 		preferredSchedule: z.string().max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).optional(),
-		preferredTimeslots: z.array(LeadTimeslotSnapshotSchema).max(1).optional(),
+		preferredPlan: LeadPreferredPlanSchema.optional(),
+		preferredTimeslots: z.array(LeadTimeslotSchema).optional(),
 		email: z.string().email().max(255),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
-		startClassWhen: z.string().max(100).optional(),
 		hearAboutUs: z.string().min(1).max(255),
 		demoAvailability: z.string().max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -272,16 +273,16 @@ export const SubmitLeadFormPayloadSchema = z
 			return (
 				data.preferredDays &&
 				data.preferredDays.length > 0 &&
+				data.preferredPlan &&
 				data.preferredTimeslots &&
 				data.preferredTimeslots.length > 0 &&
-				data.startClassWhen &&
 				data.demoAvailability &&
 				data.preferredMentorGender
 			);
 		},
 		{
 			message:
-				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, start date, demo availability, and mentor preference)",
+				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, demo availability, and mentor preference)",
 		},
 	);
 

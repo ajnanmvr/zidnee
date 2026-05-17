@@ -27,7 +27,6 @@ type LeadEditFormState = {
 	preferredLanguage: string;
 	preferredSchedule: string;
 	preferredDays: string[];
-	startClassWhen: string;
 	hearAboutUs: string;
 	demoAvailability: string;
 	preferredMentorGender: string;
@@ -76,7 +75,7 @@ export const LeadEditPage = () => {
 				preferredLanguage: "",
 				preferredSchedule: "",
 				preferredDays: [],
-				startClassWhen: "",
+
 				hearAboutUs: "",
 				demoAvailability: "",
 				preferredMentorGender: "",
@@ -108,7 +107,7 @@ export const LeadEditPage = () => {
 			preferredLanguage: lead.preferredLanguage ?? "",
 			preferredSchedule: lead.preferredSchedule ?? "",
 			preferredDays: lead.preferredDays ?? [],
-			startClassWhen: lead.startClassWhen ?? "",
+
 			hearAboutUs: lead.hearAboutUs ?? "",
 			demoAvailability: lead.demoAvailability
 				? format(new Date(lead.demoAvailability), "yyyy-MM-dd'T'HH:mm")
@@ -144,7 +143,7 @@ export const LeadEditPage = () => {
 			preferredDays: payload.preferredDays?.length
 				? payload.preferredDays
 				: undefined,
-			startClassWhen: payload.startClassWhen || undefined,
+
 			hearAboutUs: payload.hearAboutUs || undefined,
 			demoAvailability: payload.demoAvailability || undefined,
 			preferredMentorGender: payload.preferredMentorGender || undefined,
@@ -415,20 +414,6 @@ export const LeadEditPage = () => {
 									value={field.value}
 									onChange={field.onChange}
 									placeholder="e.g., 03:53 PM - 04:23 PM IST"
-									error={fieldState.error?.message}
-								/>
-							)}
-						/>
-
-						<Controller
-							name="startClassWhen"
-							control={control}
-							render={({ field, fieldState }) => (
-								<Field
-									label="Start Class When"
-									type="date"
-									value={field.value}
-									onChange={field.onChange}
 									error={fieldState.error?.message}
 								/>
 							)}

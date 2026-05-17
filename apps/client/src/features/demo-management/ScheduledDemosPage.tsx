@@ -20,7 +20,6 @@ import {
 	useAssignDemoMentorMutation,
 	useMarkDemoCompletedMutation,
 } from "@/features/leads/use-lead-mutations";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { DemoOutcomeModal } from "./DemoOutcomeModal";
@@ -32,7 +31,6 @@ export const ScheduledDemosPage = () => {
 	const meQuery = useMeQuery(token);
 	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const reassignDemoMutation = useAssignDemoMentorMutation();
 	const currentUserId = meQuery.data?.id ?? "";
@@ -849,7 +847,6 @@ export const ScheduledDemosPage = () => {
 			<RequirementsModal
 				open={requirementsOpen}
 				lead={selectedRequirements}
-				timeSlots={timeSlotsQuery.data?.timeSlots}
 				onClose={() => {
 					setRequirementsOpen(false);
 					setSelectedRequirements(null);

@@ -84,7 +84,6 @@ const toStudent = (doc: StudentDocument): Student => {
 		preferredDays: doc.preferredDays ?? [],
 		timeslot: doc.timeslot,
 		price: doc.price,
-		startClassWhen: doc.startClassWhen,
 		hearAboutUs: doc.hearAboutUs,
 		mentorId: doc.mentorId?.toString(),
 		batchId: doc.batchId?.toString(),
@@ -396,18 +395,14 @@ export const StudentService = {
 			preferredLanguage: existingLead.preferredLanguage,
 			preferredSchedule: existingLead.preferredSchedule,
 			preferredDays: existingLead.preferredDays ?? [],
-			timeslot: existingLead.preferredTimeslots?.[0]
+			timeslot: existingLead.preferredPlan
 				? {
-						classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
-						durationMinutes: existingLead.preferredTimeslots[0].durationMinutes,
+						classesPerWeek: existingLead.preferredPlan.timesPerWeek,
+						durationMinutes: existingLead.preferredPlan.durationMinutes,
 					}
 				: undefined,
 			price: existingLead.price,
-			startClassWhen: existingLead.startClassWhen,
-			hearAboutUs: existingLead.hearAboutUs,
-			mentorId: resolvedMentorId,
-			batchId,
-			status: "STUDENT",
+
 			nextFollowUpAt,
 			admittedAt,
 		});
@@ -543,18 +538,14 @@ export const StudentService = {
 			preferredLanguage: existingLead.preferredLanguage,
 			preferredSchedule: existingLead.preferredSchedule,
 			preferredDays: existingLead.preferredDays ?? [],
-			timeslot: existingLead.preferredTimeslots?.[0]
+			timeslot: existingLead.preferredPlan
 				? {
-						classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
-						durationMinutes: existingLead.preferredTimeslots[0].durationMinutes,
+						classesPerWeek: existingLead.preferredPlan.timesPerWeek,
+						durationMinutes: existingLead.preferredPlan.durationMinutes,
 					}
 				: undefined,
 			price: existingLead.price,
-			startClassWhen: existingLead.startClassWhen,
-			hearAboutUs: existingLead.hearAboutUs,
-			mentorId: resolvedMentorId,
-			batchId,
-			status: "STUDENT",
+
 			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
 			admittedAt,
 		});

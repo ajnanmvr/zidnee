@@ -128,6 +128,15 @@ const studentSchema = new Schema<StudentDocument>(
 				{
 					classesPerWeek: { type: Number, required: true },
 					durationMinutes: { type: Number, required: true },
+					timeslots: [
+						new Schema(
+							{
+								startTime: { type: String, required: true },
+								endTime: { type: String, required: true },
+							},
+							{ _id: false },
+						),
+					],
 				},
 				{ _id: false },
 			),
@@ -137,12 +146,6 @@ const studentSchema = new Schema<StudentDocument>(
 			type: Number,
 			required: false,
 			min: 0,
-		},
-		startClassWhen: {
-			type: String,
-			required: false,
-			trim: true,
-			maxlength: 100,
 		},
 		hearAboutUs: {
 			type: String,

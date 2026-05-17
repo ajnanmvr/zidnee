@@ -6,9 +6,15 @@ export const StudentStatusSchema = z.enum(["STUDENT", "BREAK", "DROPPED"]);
 
 export type StudentStatus = z.infer<typeof StudentStatusSchema>;
 
+export const StudentTimeslotSchema = z.object({
+	startTime: z.string().min(1),
+	endTime: z.string().min(1),
+});
+
 export const StudentTimeslotSnapshotSchema = z.object({
 	classesPerWeek: z.number().int().positive(),
 	durationMinutes: z.number().int().positive(),
+	timeslots: z.array(StudentTimeslotSchema).default([]),
 });
 
 export type StudentTimeslotSnapshot = z.infer<
@@ -45,7 +51,6 @@ export const StudentSchema = z.object({
 	preferredDays: z.array(z.string()).default([]),
 	timeslot: StudentTimeslotSnapshotSchema.optional(),
 	price: z.number().int().nonnegative().optional(),
-	startClassWhen: z.string().max(100).optional(),
 	hearAboutUs: z.string().max(255).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional(),

@@ -7,6 +7,14 @@ import { requestWithSchema } from "@/api/request";
 
 type StepId = 1 | 2 | 3;
 
+type PreferredTimeslot =
+	| {
+			label: string;
+			timesPerWeek: number;
+			durationMinutes: number;
+		}
+	| { startTime: string; endTime: string };
+
 type PublicFormValues = {
 	name: string;
 	email: string;
@@ -24,11 +32,7 @@ type PublicFormValues = {
 		| "Malayalam - English Mixed";
 	preferredDays: string[];
 	preferredSchedule: string;
-	preferredTimeslots: Array<{
-		label: string;
-		timesPerWeek: number;
-		durationMinutes: number;
-	}>;
+	preferredTimeslots: PreferredTimeslot[];
 	preferredStartTime: string; // hh:mm
 	startClassWhen: string;
 	hearAboutUs: string;
@@ -479,7 +483,7 @@ const PublicFormPage = () => {
 	const selectedTimeslotSnapshot = watch("preferredTimeslots")?.[0];
 	const selectedLevel = watch("level");
 	const selectedTimeslot = useMemo(() => {
-		if (!selectedTimeslotSnapshot) {
+		if (!selectedTimeslotSnapshot || !("label" in selectedTimeslotSnapshot)) {
 			return undefined;
 		}
 
@@ -832,13 +836,15 @@ const PublicFormPage = () => {
 			const toOptionalValue = (value: string) =>
 				value && value.trim().length > 0 ? value : undefined;
 			const isIndividualSubmission = courseType === "INDIVIDUAL";
-			const selectedTimeslot = formOptions.timeslots.find(
-				(timeslot) =>
-					timeslot.label === selectedTimeslotSnapshot?.label &&
-					timeslot.timesPerWeek === selectedTimeslotSnapshot?.timesPerWeek &&
-					timeslot.durationMinutes ===
-						selectedTimeslotSnapshot?.durationMinutes,
-			);
+			const selectedTimeslot =
+				selectedTimeslotSnapshot && "label" in selectedTimeslotSnapshot
+					? formOptions.timeslots.find(
+						(timeslot) =>
+							timeslot.label === selectedTimeslotSnapshot.label &&
+							timeslot.timesPerWeek === selectedTimeslotSnapshot.timesPerWeek &&
+							timeslot.durationMinutes === selectedTimeslotSnapshot.durationMinutes,
+						)
+					: undefined;
 			const payload = {
 				name: data.name,
 				email: data.email,
@@ -1302,27 +1308,48 @@ const PublicFormPage = () => {
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
 										Preferred class timing (Indian Time)
 									</label>
-									<select
-										{...register("preferredStartTime", {
-											required: "Preferred class timing is required",
+									<p className="mb-3 text-xs text-slate-500">
+										Tap one or more hourly tiles to select preferred timings for group classes.
+									</p>
+
+									<div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+										{Array.from({ length: 20 }).map((_, i) => {
+											const hour = 4 + i; // 4..23
+											const start = `${hour.toString().padStart(2, "0")}:00`;
+											const endHour = (hour + 1) % 24;
+											const end = `${endHour.toString().padStart(2, "0")}:00`;
+											const currentPreferred = (watch("preferredTimeslots") || []) as PreferredTimeslot[];
+											const isAdded = currentPreferred.some(
+												(t) => "startTime" in t && t.startTime === start && t.endTime === end,
+											);
+
+											return (
+												<button
+													key={start}
+													type="button"
+													onClick={() => {
+														const current = (watch("preferredTimeslots") || []) as PreferredTimeslot[];
+														const exists = current.some(
+															(t) => "startTime" in t && t.startTime === start && t.endTime === end,
+														);
+														let next: PreferredTimeslot[] = [];
+														if (exists) {
+															next = current.filter(
+																(t) => !("startTime" in t && t.startTime === start && t.endTime === end),
+															);
+														} else {
+															next = [...current, { startTime: start, endTime: end }];
+														}
+														setValue("preferredTimeslots", next, { shouldDirty: true, shouldValidate: true });
+													}}
+													className={`rounded-2xl px-3 py-2 text-sm font-medium transition ${isAdded ? "bg-brand text-white" : "bg-white border border-slate-200 text-slate-700"}`}
+												>
+													<div className="text-xs font-semibold">{to12HourFormat(start)}</div>
+													<div className="text-[11px] text-slate-500">{to12HourFormat(end)}</div>
+												</button>
+											);
 										})}
-										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-									>
-										<option value="">Select preferred class timing</option>
-										<option value="06:00">06 AM - 07 AM</option>
-										<option value="07:00">07 AM - 08 AM</option>
-										<option value="16:00">04 PM - 05 PM</option>
-										<option value="17:00">05 PM - 06 PM</option>
-										<option value="18:00">06 PM - 07 PM</option>
-										<option value="19:00">07 PM - 08 PM</option>
-										<option value="20:00">08 PM - 09 PM</option>
-										<option value="21:00">09 PM - 10 PM</option>
-									</select>
-									{errors.preferredStartTime?.message ? (
-										<p className="mt-1 text-xs text-red-600">
-											{errors.preferredStartTime.message}
-										</p>
-									) : null}
+									</div>
 								</div>
 
 								{courseType === "INDIVIDUAL" && (

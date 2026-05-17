@@ -12,7 +12,6 @@ import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { RequirementsModal } from "./RequirementsModal";
@@ -23,7 +22,6 @@ export const UnassignedDemosPage = () => {
 	const meQuery = useMeQuery(token);
 	const demosQuery = usePendingDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const assignDemoMutation = useAssignDemoMentorMutation();
 	const currentUserId = meQuery.data?.id ?? "";
 
@@ -395,7 +393,6 @@ export const UnassignedDemosPage = () => {
 			<RequirementsModal
 				open={requirementsOpen}
 				lead={selectedRequirements}
-				timeSlots={timeSlotsQuery.data?.timeSlots}
 				onClose={() => {
 					setRequirementsOpen(false);
 					setSelectedRequirements(null);
