@@ -9,7 +9,7 @@ import {
 
 export const INITIAL_SUPERADMIN_USERNAME = "admin";
 export const INITIAL_SUPERADMIN_EMAIL = "admin@zidnee.local";
-export const INITIAL_SUPERADMIN_PASSWORD = "123456";
+export const INITIAL_SUPERADMIN_PASSWORD = process.env.SEED_INITIAL_PASSWORD ?? "123456";
 export const INITIAL_SUPERADMIN_ROLE_NAME = "SuperAdmin";
 
 const BASE_ROLE_DEFINITIONS = [
@@ -122,20 +122,20 @@ export const seedCoreRolesAndUsers = async (): Promise<void> => {
 		},
 		{
 			username: "mentor",
-			email: "mentor@zidnee.local",
-			name: "Seed Mentor",
+			email: "mentor1@zidnee.local",
+			name: "Mentor User",
 			roleNames: ["Mentor"],
 		},
 		{
 			username: "counsellor",
-			email: "counsellor@zidnee.local",
-			name: "Seed Counsellor",
+			email: "counsellor1@zidnee.local",
+			name: "Counsellor User",
 			roleNames: ["Counsellor"],
 		},
 		{
 			username: "sales",
-			email: "sales@zidnee.local",
-			name: "Seed Sales",
+			email: "sales1@zidnee.local",
+			name: "Sales User",
 			roleNames: ["Sales"],
 		},
 	] as const;

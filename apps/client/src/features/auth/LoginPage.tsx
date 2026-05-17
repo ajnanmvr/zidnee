@@ -78,9 +78,12 @@ export const LoginPage = () => {
 				className="w-full max-w-sm space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
 				onSubmit={handleSubmit(onSubmit)}
 			>
-				<div>
-					<h1 className="text-xl font-semibold text-gray-900">Login</h1>
-					<p className="mt-1 text-sm text-gray-600">Username and password</p>
+				<div className="flex items-center gap-3">
+					<img src="/logo.png" alt="Zidnee logo" className="h-10 w-10 rounded-2xl border border-gray-200 bg-gray-50 p-1" />
+					<div>
+						<h1 className="text-xl font-semibold text-gray-900">Zidnee — Sign in</h1>
+						<p className="mt-1 text-sm text-gray-600">Sign in with your email or username</p>
+					</div>
 				</div>
 
 				<Controller
@@ -91,7 +94,7 @@ export const LoginPage = () => {
 							label="Username"
 							value={field.value}
 							onChange={field.onChange}
-							placeholder="admin"
+							placeholder="your username"
 							error={fieldState.error?.message}
 						/>
 					)}
@@ -106,7 +109,7 @@ export const LoginPage = () => {
 							value={field.value}
 							onChange={field.onChange}
 							type="password"
-							placeholder="123456"
+							placeholder="Enter your password"
 							error={fieldState.error?.message}
 						/>
 					)}

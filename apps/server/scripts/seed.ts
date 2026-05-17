@@ -12,7 +12,8 @@ const seedAdmin = async (): Promise<void> => {
 
 	console.log("Seeded roles: admin, mentor, counsellor, sales");
 	console.log("Seeded users: admin, mentor, counsellor, sales");
-	console.log("Default password for seeded users: 123456");
+	const seedPwd = process.env.SEED_INITIAL_PASSWORD ?? "123456";
+	console.log(`Default password for seeded users: ${seedPwd}`);
 	console.log("Admin user now has all four role assignments");
 };
 
