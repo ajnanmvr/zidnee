@@ -22,9 +22,10 @@ export const GroupsPage = () => {
 		() => (batchesQuery.data?.batches ?? []).filter((b) => b.type === "GROUP"),
 		[batchesQuery.data?.batches],
 	);
-	const mentors = (usersQuery.data?.users ?? []).filter((u) =>
-		u.roles.some((r) => r.type === "mentor"),
-	);
+	const [search, setSearch] = useState("");
+	const [levelFilter, setLevelFilter] = useState("");
+	const [sortBy, setSortBy] = useState<"name_asc" | "name_desc" | "count_asc" | "count_desc">("name_asc");
+
 	const studentsByBatchId = useMemo(() => {
 		return (studentsQuery.data?.students ?? []).reduce<Record<string, number>>(
 			(accumulator, student) => {
@@ -35,6 +36,36 @@ export const GroupsPage = () => {
 			{},
 		);
 	}, [studentsQuery.data?.students]);
+
+	const displayedGroups = useMemo(() => {
+		const byLevel = levelFilter ? groups.filter((g) => g.level === levelFilter) : groups.slice();
+		const bySearch = search
+			? byLevel.filter((g) => {
+				  const q = search.toLowerCase();
+				  return (g.name ?? "").toLowerCase().includes(q) || (g.groupId ?? "").toLowerCase().includes(q);
+			  })
+			: byLevel;
+
+		const withCounts = bySearch.map((g) => ({ group: g, count: studentsByBatchId[g.id] ?? 0 }));
+
+		withCounts.sort((a, b) => {
+			switch (sortBy) {
+				case "name_desc":
+					return (b.group.name ?? "").localeCompare(a.group.name ?? "");
+				case "count_asc":
+					return a.count - b.count;
+				case "count_desc":
+					return b.count - a.count;
+				default:
+					return (a.group.name ?? "").localeCompare(b.group.name ?? "");
+			}
+		});
+
+		return withCounts.map((w) => w.group);
+	}, [groups, levelFilter, search, sortBy, studentsByBatchId]);
+	const mentors = (usersQuery.data?.users ?? []).filter((u) =>
+		u.roles.some((r) => r.type === "mentor"),
+	);
 	const [open, setOpen] = useState(false);
 	 const [editOpen, setEditOpen] = useState(false);
 	 const [editingGroup, setEditingGroup] = useState<null | (typeof groups)[number]>(null);
@@ -143,6 +174,29 @@ export const GroupsPage = () => {
 			</div>
 
 			<Panel title="Groups" description="Mentor-linked groups and their members">
+				<div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+					<div className="flex items-center gap-2">
+						<input
+							placeholder="Search groups by name or id"
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							className="rounded-2xl border px-3 py-2 text-sm"
+						/>
+						<select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} className="rounded-2xl border px-3 py-2 text-sm">
+							<option value="">All levels</option>
+							{[...new Set(groups.map((g) => g.level).filter(Boolean))].map((lvl) => (
+								<option key={lvl} value={lvl}>{lvl}</option>
+							))}
+						</select>
+						<select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="rounded-2xl border px-3 py-2 text-sm">
+							<option value="name_asc">Name ↑</option>
+							<option value="name_desc">Name ↓</option>
+							<option value="count_desc">Students ↓</option>
+							<option value="count_asc">Students ↑</option>
+						</select>
+					</div>
+				</div>
+
 				<div className="overflow-x-auto">
 					<table className="min-w-full divide-y divide-gray-200">
 						<thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600">
@@ -157,14 +211,14 @@ export const GroupsPage = () => {
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-100 bg-white">
-							{groups.length === 0 ? (
+							{displayedGroups.length === 0 ? (
 								<tr>
-									<td className="px-4 py-8 text-sm text-gray-500" colSpan={6}>
+									<td className="px-4 py-8 text-sm text-gray-500" colSpan={7}>
 										No groups have been created yet.
 									</td>
 								</tr>
 							) : (
-								groups.map((group) => {
+								displayedGroups.map((group) => {
 									const mentorName =
 										mentors.find((mentor) => mentor.id === group.mentorId)?.name ??
 										group.mentorId;
@@ -187,28 +241,7 @@ export const GroupsPage = () => {
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
 												<div className="font-semibold text-gray-900">{groupStudentCount}</div>
-												{groupStudentCount > 0 ? (
-													<div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-														{(studentsQuery.data?.students ?? [])
-															.filter((student) => student.batchId === group.id)
-															.slice(0, 4)
-															.map((student) => (
-																<span
-																	key={student.id}
-																	className="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700"
-																>
-																	{student.name ?? student.zid.toUpperCase()}
-																</span>
-															))}
-														{groupStudentCount > 4 ? (
-															<span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
-																+{groupStudentCount - 4} more
-															</span>
-														) : null}
-													</div>
-												) : (
-													<p className="mt-2 text-xs text-gray-500">No students assigned yet.</p>
-												)}
+												<p className="mt-1 text-xs text-gray-500">students</p>
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
 												{group.description ?? "-"}
