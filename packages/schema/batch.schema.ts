@@ -7,7 +7,7 @@ export type BatchType = z.infer<typeof BatchTypeSchema>;
 export const BatchSchema = z.object({
 	id: ObjectIdStringSchema,
 	groupId: z.string().min(1).max(20).optional(),
-	name: z.string().min(1).max(255),
+	name: z.string().min(1).max(255).optional(),
 	type: BatchTypeSchema, // GROUP or INDIVIDUAL
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
@@ -20,7 +20,13 @@ export const BatchSchema = z.object({
 export type Batch = z.infer<typeof BatchSchema>;
 
 export const CreateBatchPayloadSchema = z.object({
-	name: z.string().min(1).max(255),
+	name: z.preprocess((value) => {
+		if (typeof value === "string" && value.trim() === "") {
+			return undefined;
+		}
+
+		return value;
+	}, z.string().min(1).max(255).optional()),
 	type: BatchTypeSchema,
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
@@ -30,7 +36,13 @@ export const CreateBatchPayloadSchema = z.object({
 export type CreateBatchPayload = z.infer<typeof CreateBatchPayloadSchema>;
 
 export const UpdateBatchPayloadSchema = z.object({
-	name: z.string().min(1).max(255).optional(),
+	name: z.preprocess((value) => {
+		if (typeof value === "string" && value.trim() === "") {
+			return undefined;
+		}
+
+		return value;
+	}, z.string().min(1).max(255).optional()),
 	type: BatchTypeSchema.optional(),
 	level: z.string().min(1).max(100).optional(),
 	mentorId: ObjectIdStringSchema.optional(),

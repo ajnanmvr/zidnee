@@ -146,7 +146,7 @@ export const GroupsPage = () => {
 												{group.groupId ?? "-"}
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
-												<div className="font-medium text-gray-900">{group.name}</div>
+												<div className="font-medium text-gray-900">{group.name ?? "-"}</div>
 												<div className="mt-1 text-xs text-gray-500">Mongo ID: {group.id}</div>
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
@@ -169,7 +169,7 @@ export const GroupsPage = () => {
 																>
 																	{student.name ?? student.zid}
 																</span>
-																))}
+															))}
 														{groupStudentCount > 4 ? (
 															<span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
 																+{groupStudentCount - 4} more
@@ -195,14 +195,24 @@ export const GroupsPage = () => {
 			<Modal open={open} title="Create group" onClose={() => setOpen(false)}>
 				<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
 					<Controller
-						name="name"
+						name="mentorId"
 						control={control}
 						render={({ field }) => (
-							<Field
-								label="Group name"
-								value={field.value}
-								onChange={field.onChange}
-							/>
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
+								<span>Mentor</span>
+								<select
+									value={field.value}
+									onChange={(e) => field.onChange(e.target.value)}
+									className="rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+								>
+									<option value="">Select mentor</option>
+									{mentors.map((m) => (
+										<option key={m.id} value={m.id}>
+											{m.name}
+										</option>
+									))}
+								</select>
+							</label>
 						)}
 					/>
 					<div className="grid gap-4 md:grid-cols-2">
@@ -218,26 +228,17 @@ export const GroupsPage = () => {
 							)}
 						/>
 						<Controller
-							name="mentorId"
+							name="name"
 							control={control}
 							render={({ field }) => (
-								<label className="grid gap-2 text-sm font-medium text-gray-600">
-									<span>Mentor</span>
-									<select
-										value={field.value}
-										onChange={(e) => field.onChange(e.target.value)}
-										className="rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
-									>
-										<option value="">Select mentor</option>
-										{mentors.map((m) => (
-											<option key={m.id} value={m.id}>
-												{m.name}
-											</option>
-										))}
-									</select>
-								</label>
+								<Field
+									label="Group label (optional)"
+									value={field.value ?? ""}
+									onChange={field.onChange}
+								/>
 							)}
 						/>
+
 					</div>
 					<div className="mt-4 flex justify-end">
 						<button

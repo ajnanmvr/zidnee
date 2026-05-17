@@ -29,7 +29,7 @@ export const BatchService = {
 				: undefined;
 		const batch = await BatchModel.create({
 			groupId,
-			name: payload.name,
+			name: payload.name?.trim() || undefined,
 			type: payload.type,
 			level: payload.level,
 			mentorId: payload.mentorId,
@@ -62,7 +62,7 @@ export const BatchService = {
 			id,
 			{
 				$set: {
-					name: payload.name,
+					name: payload.name?.trim() || undefined,
 					type: payload.type,
 					level: payload.level,
 					mentorId: payload.mentorId,

@@ -11,7 +11,7 @@ const batchSchema = new Schema<BatchDocument>(
 	{
 		name: {
 			type: String,
-			required: true,
+			required: false,
 			index: true,
 		},
 		groupId: {

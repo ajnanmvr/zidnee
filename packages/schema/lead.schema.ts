@@ -61,6 +61,7 @@ export const LeadFormDataSchema = z
 		preferredSchedule: z.string().min(1).max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).min(1).optional(),
 		preferredPlan: LeadPreferredPlanSchema.optional(),
+		preferredStartTime: z.string().min(1).optional(),
 		preferredTimeslots: z.array(LeadTimeslotSchema).default([]),
 		email: z.email().max(255),
 		courseType: BatchTypeSchema.optional(),
@@ -69,29 +70,66 @@ export const LeadFormDataSchema = z
 		demoAvailability: z.string().min(1).max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
 	})
-	.refine(
-		(data) => {
-			// If GROUP course, only require language and hearAboutUs (already required)
-			if (data.courseType === "GROUP") {
-				return true;
+	.superRefine((data, ctx) => {
+		if (data.courseType === "GROUP") {
+			if (!data.preferredTimeslots || data.preferredTimeslots.length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["preferredTimeslots"],
+					message: "Choose at least one preferred class timing.",
+				});
 			}
-			// If INDIVIDUAL or not specified, require scheduling fields
-			return (
-				data.preferredDays &&
-				data.preferredDays.length > 0 &&
-				data.preferredPlan &&
-				data.preferredTimeslots &&
-				data.preferredTimeslots.length > 0 &&
+			return;
+		}
 
-				data.demoAvailability &&
-				data.preferredMentorGender
-			);
-		},
-		{
-			message:
-				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, demo availability, and mentor preference)",
-		},
-	);
+		if (!data.preferredDays || data.preferredDays.length === 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredDays"],
+				message: "Choose at least one preferred day.",
+			});
+		}
+
+		if (!data.preferredPlan) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredPlan"],
+				message: "Choose a plan for individual courses.",
+			});
+		}
+
+		if (!data.preferredStartTime) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredStartTime"],
+				message: "Choose a preferred class time.",
+			});
+		}
+
+		if (!data.preferredTimeslots || data.preferredTimeslots.length === 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredTimeslots"],
+				message: "Preferred class timing is required.",
+			});
+		}
+
+		if (!data.demoAvailability) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["demoAvailability"],
+				message: "Choose when we can give a demo.",
+			});
+		}
+
+		if (!data.preferredMentorGender) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredMentorGender"],
+				message: "Choose a preferred mentor gender.",
+			});
+		}
+	});
 
 export type LeadFormData = z.infer<typeof LeadFormDataSchema>;
 
@@ -254,6 +292,7 @@ export const SubmitLeadFormPayloadSchema = z
 		preferredSchedule: z.string().max(150).optional(),
 		preferredDays: z.array(z.string().min(1)).optional(),
 		preferredPlan: LeadPreferredPlanSchema.optional(),
+		preferredStartTime: z.string().min(1).optional(),
 		preferredTimeslots: z.array(LeadTimeslotSchema).optional(),
 		email: z.string().email().max(255),
 		courseType: BatchTypeSchema.optional(),
@@ -263,27 +302,41 @@ export const SubmitLeadFormPayloadSchema = z
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
 		token: z.string().min(1),
 	})
-	.refine(
-		(data) => {
-			// If GROUP course, only require language and hearAboutUs (already required)
-			if (data.courseType === "GROUP") {
-				return true;
+	.superRefine((data, ctx) => {
+		if (data.courseType === "GROUP") {
+			if (!data.preferredTimeslots || data.preferredTimeslots.length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["preferredTimeslots"],
+					message: "Choose at least one preferred class timing.",
+				});
 			}
-			// If INDIVIDUAL or not specified, require scheduling fields
-			return (
-				data.preferredDays &&
-				data.preferredDays.length > 0 &&
-				data.preferredPlan &&
-				data.preferredTimeslots &&
-				data.preferredTimeslots.length > 0 &&
-				data.demoAvailability &&
-				data.preferredMentorGender
-			);
-		},
-		{
-			message:
-				"For INDIVIDUAL courses, please provide all scheduling details (days, timeslots, demo availability, and mentor preference)",
-		},
-	);
+			return;
+		}
+
+		if (!data.preferredPlan) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredPlan"],
+				message: "Choose a plan for individual courses.",
+			});
+		}
+
+		if (!data.preferredStartTime) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredStartTime"],
+				message: "Choose a preferred class time.",
+			});
+		}
+
+		if (!data.preferredTimeslots || data.preferredTimeslots.length === 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredTimeslots"],
+				message: "Preferred class timing is required.",
+			});
+		}
+	});
 
 export type SubmitLeadFormPayload = z.infer<typeof SubmitLeadFormPayloadSchema>;

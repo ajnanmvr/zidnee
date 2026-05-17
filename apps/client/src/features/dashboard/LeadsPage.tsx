@@ -42,7 +42,6 @@ import {
 	useRequestRedemoMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
-import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import type {
@@ -132,7 +131,6 @@ export const LeadsPage = () => {
 		sortOrder,
 	});
 	const usersQuery = useUsersQuery(token);
-	const batchesQuery = useBatchesQuery(token);
 	const createLeadMutation = useCreateLeadMutation();
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
@@ -160,9 +158,6 @@ export const LeadsPage = () => {
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [deleteNote, setDeleteNote] = useState("");
 	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
-	const [selectedGroupForAdmission, setSelectedGroupForAdmission] = useState<
-		string | null
-	>(null);
 	const [assigningCounsellorToMentor, setAssigningCounsellorToMentor] =
 		useState(false);
 	const [selectedCounsellorForMentor, setSelectedCounsellorForMentor] = useState<
@@ -563,16 +558,9 @@ export const LeadsPage = () => {
 			return;
 		}
 
-		// Validate group selection for GROUP course type
-		if (admissionLead?.courseType === "GROUP" && !selectedGroupForAdmission) {
-			toast.error("Please select a group for GROUP course type");
-			return;
-		}
-
 		const finalPayload = {
 			...payload,
 			counsellorId,
-			batchId: selectedGroupForAdmission || undefined,
 		};
 
 		const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
@@ -594,7 +582,6 @@ export const LeadsPage = () => {
 			toast.success("Lead moved to for admission.");
 			setAdmissionLeadId(null);
 			resetAdmission({ counsellorId: undefined, note: "" });
-			setSelectedGroupForAdmission(null);
 			setAssigningCounsellorToMentor(false);
 			setSelectedCounsellorForMentor(null);
 			navigate("/leads?stage=converted");
@@ -941,9 +928,7 @@ export const LeadsPage = () => {
 									<button
 										type="button"
 										onClick={() =>
-											setCurrentPage(
-												Math.min(pagination.totalPages, currentPage + 1),
-											)
+											setCurrentPage((page) => Math.min(page + 1, pagination.totalPages))
 										}
 										disabled={currentPage === pagination.totalPages}
 										className="rounded px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-gray-200"
@@ -1488,7 +1473,6 @@ export const LeadsPage = () => {
 				onClose={() => {
 					setAdmissionLeadId(null);
 					resetAdmission({ counsellorId: undefined, note: "" });
-					setSelectedGroupForAdmission(null);
 					setAssigningCounsellorToMentor(false);
 					setSelectedCounsellorForMentor(null);
 				}}
@@ -1500,7 +1484,6 @@ export const LeadsPage = () => {
 							onClick={() => {
 								setAdmissionLeadId(null);
 								resetAdmission({ counsellorId: undefined, note: "" });
-								setSelectedGroupForAdmission(null);
 								setAssigningCounsellorToMentor(false);
 								setSelectedCounsellorForMentor(null);
 							}}
@@ -1602,9 +1585,7 @@ export const LeadsPage = () => {
 								<button
 									type="button"
 									className="flex-1 rounded-2xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-									onClick={() =>
-										void handleAssignCounsellorToMentor()
-									}
+									onClick={() => void handleAssignCounsellorToMentor()}
 									disabled={!selectedCounsellorForMentor || updateUserMutation.isPending}
 								>
 									{updateUserMutation.isPending
@@ -1612,37 +1593,6 @@ export const LeadsPage = () => {
 										: "Assign"}
 								</button>
 							</div>
-						</div>
-					)}
-
-					{/* Group Selection for GROUP Course Type */}
-					{admissionLead?.courseType === "GROUP" && (
-						<div>
-							<label className="mb-2 block text-sm font-medium text-slate-600">
-								Select group
-								<span className="ml-1 text-red-600">*</span>
-							</label>
-							<select
-								value={selectedGroupForAdmission ?? ""}
-								onChange={(e) =>
-									setSelectedGroupForAdmission(e.target.value || null)
-								}
-								className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-							>
-								<option value="">Select a group</option>
-								{(batchesQuery.data?.batches ?? [])
-									.filter((b) => b.type === "GROUP")
-									.map((batch) => (
-										<option key={batch.id} value={batch.id}>
-											{batch.name}
-										</option>
-									))}
-							</select>
-							{!selectedGroupForAdmission && admissionLead?.courseType === "GROUP" && (
-								<p className="mt-1 text-xs text-red-600">
-									Group selection is required for GROUP course type
-								</p>
-							)}
 						</div>
 					)}
 

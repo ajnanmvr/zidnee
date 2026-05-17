@@ -163,6 +163,27 @@ export const buildLeadColumns = (options?: {
 		enableSorting: true,
 	},
 	{
+		accessorKey: "courseType",
+		header: "Course",
+		cell: (info) => {
+			const val = info.getValue() as string | undefined | null;
+			if (!val) return <span className="text-sm text-slate-500">-</span>;
+			if (String(val).toUpperCase() === "GROUP") {
+				return (
+					<span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+						Group
+					</span>
+				);
+			}
+			return (
+				<span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+					Individual
+				</span>
+			);
+		},
+		enableSorting: true,
+	},
+	{
 		id: "handler",
 		header: "Handler",
 		cell: (info) => {
