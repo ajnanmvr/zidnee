@@ -4,6 +4,7 @@ import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	createBatchController,
 	listBatchesController,
+ 	updateBatchController,
 } from "./batch.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
@@ -31,5 +32,7 @@ router.use(authMiddleware);
 router.get("/", asyncHandler(listBatchesController));
 
 router.post("/", asyncHandler(createBatchController));
+
+router.patch("/:batchId", asyncHandler(updateBatchController));
 
 export default router;

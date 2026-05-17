@@ -9,6 +9,7 @@ import {
 	listStudentsController,
 	recordStudentFollowUpController,
 	updateStudentAssessmentController,
+ 	updateStudentController,
 } from "./student.controller.js";
 import { getStudentActivitiesController } from "./student-activity.controller.js";
 
@@ -75,6 +76,12 @@ router.patch(
 	"/:studentId/assessments",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(updateStudentAssessmentController),
+);
+
+router.patch(
+	"/:studentId",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(updateStudentController),
 );
 
 export default router;

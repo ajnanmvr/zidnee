@@ -35,6 +35,20 @@ export const fetchStudents = async (
 	);
 };
 
+export const updateStudent = async (
+ 	token: string,
+ 	studentId: string,
+ 	payload: unknown,
+) => {
+	return requestWithSchema(
+		`/students/${studentId}`,
+		StudentResponseEnvelopeSchema,
+		"PATCH",
+		payload,
+		token,
+	);
+};
+
 export const fetchStudentActivities = async (
 	token: string,
 	studentId: string,

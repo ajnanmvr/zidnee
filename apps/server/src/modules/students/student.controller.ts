@@ -2,6 +2,7 @@ import {
 	StudentFollowUpPayloadSchema,
 	StudentsResponseSchema,
 	UpdateStudentAssessmentPayloadSchema,
+ 	UpdateStudentPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
@@ -112,4 +113,18 @@ export const updateStudentAssessmentController = async (
 		ok: true,
 		student: student ? toStudentResponse(student) : null,
 	});
+};
+
+export const updateStudentController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+ 	const studentId = requireStringValue(req.params.studentId, "studentId");
+ 	const payload = UpdateStudentPayloadSchema.parse(req.body);
+ 	const student = await StudentService.update(studentId, payload);
+
+ 	res.json({
+ 		ok: true,
+ 		student: student ? toStudentResponse(student) : null,
+ 	});
 };

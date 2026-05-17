@@ -1,11 +1,13 @@
 import type { CreateBatchPayload } from "@repo/schema";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { HiAcademicCap, HiPlus, HiUsers } from "react-icons/hi2";
 import { Field, Modal, Panel } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useCreateBatchMutation } from "@/features/batches/use-create-batch-mutation";
+import { useUpdateBatchMutation } from "@/features/batches/use-update-batch-mutation";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
@@ -34,6 +36,8 @@ export const GroupsPage = () => {
 		);
 	}, [studentsQuery.data?.students]);
 	const [open, setOpen] = useState(false);
+	 const [editOpen, setEditOpen] = useState(false);
+	 const [editingGroup, setEditingGroup] = useState<null | (typeof groups)[number]>(null);
 
 	const { control, handleSubmit, reset } = useForm<CreateBatchPayload>({
 		defaultValues: {
@@ -50,7 +54,7 @@ export const GroupsPage = () => {
 			const response = await createBatch.mutateAsync(form);
 			toast.success(
 				response.batch.groupId
-					? `Group ${response.batch.groupId} created`
+							? `Group ${response.batch.groupId.toUpperCase()} created`
 					: "Group created",
 			);
 			reset();
@@ -59,6 +63,31 @@ export const GroupsPage = () => {
 			toast.error(
 				err instanceof Error ? err.message : "Unable to create group",
 			);
+		}
+	};
+
+	const updateBatchMutation = useUpdateBatchMutation();
+
+	const openEdit = (group: (typeof groups)[number]) => {
+		setEditingGroup(group);
+		reset({ ...group });
+		setEditOpen(true);
+	};
+
+	const closeEdit = () => {
+		setEditingGroup(null);
+		reset();
+		setEditOpen(false);
+	};
+
+	const onEditSubmit = async (form: CreateBatchPayload) => {
+		if (!editingGroup) return;
+		try {
+			await updateBatchMutation.mutateAsync({ batchId: editingGroup.id, payload: form });
+			toast.success("Group updated");
+			closeEdit();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Unable to update group");
 		}
 	};
 
@@ -123,7 +152,8 @@ export const GroupsPage = () => {
 								<th className="px-4 py-3 text-left">Mentor</th>
 								<th className="px-4 py-3 text-left">Level</th>
 								<th className="px-4 py-3 text-left">Students</th>
-								<th className="px-4 py-3 text-left">Description</th>
+														<th className="px-4 py-3 text-left">Description</th>
+														<th className="px-4 py-3 text-left">Actions</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-100 bg-white">
@@ -143,7 +173,7 @@ export const GroupsPage = () => {
 									return (
 										<tr key={group.id} className="align-top">
 											<td className="px-4 py-4 text-sm font-semibold text-gray-900">
-												{group.groupId ?? "-"}
+												{group.groupId?.toUpperCase() ?? "-"}
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
 												<div className="font-medium text-gray-900">{group.name ?? "-"}</div>
@@ -167,7 +197,7 @@ export const GroupsPage = () => {
 																	key={student.id}
 																	className="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700"
 																>
-																	{student.name ?? student.zid}
+																	{student.name ?? student.zid.toUpperCase()}
 																</span>
 															))}
 														{groupStudentCount > 4 ? (
@@ -182,6 +212,23 @@ export const GroupsPage = () => {
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
 												{group.description ?? "-"}
+											</td>
+											<td className="px-4 py-4 text-sm text-gray-700">
+												<div className="flex items-center gap-2">
+													<Link
+														to={`/groups/${group.id}`}
+														className="text-teal-600 hover:underline text-sm font-medium"
+													>
+														View
+													</Link>
+													<button
+														type="button"
+														onClick={() => openEdit(group)}
+														className="text-sm text-gray-600 hover:text-gray-900"
+													>
+														Edit
+													</button>
+												</div>
 											</td>
 										</tr>
 									);
@@ -247,6 +294,51 @@ export const GroupsPage = () => {
 						>
 							Create
 						</button>
+					</div>
+				</form>
+			</Modal>
+
+			<Modal open={editOpen} title="Edit group" onClose={closeEdit}>
+				<form className="grid gap-4" onSubmit={handleSubmit(onEditSubmit)}>
+					<Controller
+						name="mentorId"
+						control={control}
+						render={({ field }) => (
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
+								<span>Mentor</span>
+								<select
+									value={field.value}
+									onChange={(e) => field.onChange(e.target.value)}
+									className="rounded-2xl border border-gray-300 px-4 py-3 text-gray-900"
+								>
+									<option value="">Select mentor</option>
+									{mentors.map((m) => (
+										<option key={m.id} value={m.id}>
+											{m.name}
+										</option>
+									))}
+								</select>
+							</label>
+						)}
+					/>
+					<div className="grid gap-4 md:grid-cols-2">
+						<Controller
+							name="level"
+							control={control}
+							render={({ field }) => (
+								<Field label="Level" value={field.value} onChange={field.onChange} />
+							)}
+						/>
+						<Controller
+							name="name"
+							control={control}
+							render={({ field }) => (
+								<Field label="Group label (optional)" value={field.value ?? ""} onChange={field.onChange} />
+							)}
+						/>
+					</div>
+					<div className="mt-4 flex justify-end">
+						<button type="submit" className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Save</button>
 					</div>
 				</form>
 			</Modal>

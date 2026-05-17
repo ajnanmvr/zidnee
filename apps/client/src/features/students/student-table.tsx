@@ -70,7 +70,7 @@ export const buildStudentColumns = (
 					to={`/students/${row.original.id}`}
 					className="font-mono font-semibold text-teal-600 hover:underline"
 				>
-					{row.original.zid}
+					{row.original.zid.toUpperCase()}
 				</Link>
 			),
 		},

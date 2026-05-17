@@ -30,7 +30,7 @@ const BatchSequenceModel =
 export const BatchIdentityService = {
 	generateGroupId: async (): Promise<string> => {
 		const sequence = await BatchSequenceModel.findByIdAndUpdate(
-			"zg",
+			"ZG",
 			{ $inc: { nextNumber: 1 } },
 			{ new: true, upsert: true },
 		);
@@ -39,6 +39,6 @@ export const BatchIdentityService = {
 			throw new Error("Failed to generate group ID");
 		}
 
-		return `zg${String(sequence.nextNumber).padStart(3, "0")}`;
+		return `ZG${String(sequence.nextNumber).padStart(3, "0")}`;
 	},
 };

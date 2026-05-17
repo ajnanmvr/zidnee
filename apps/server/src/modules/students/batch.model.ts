@@ -36,6 +36,11 @@ const batchSchema = new Schema<BatchDocument>(
 			required: true,
 			index: true,
 		},
+		counsellorId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
 		description: {
 			type: String,
 			required: false,

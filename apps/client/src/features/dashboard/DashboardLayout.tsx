@@ -28,7 +28,6 @@ import {
 	type LeadStageId,
 	leadStageDefinitions,
 } from "@/features/leads/lead-stage-filters";
-import { useBatchesQuery } from "@/features/batches/batches.queries";
 import {
 	useDemoRequestsQuery,
 	useDueLeadFollowUpsQuery,
@@ -59,6 +58,17 @@ const titles: Record<string, string> = {
 };
 
 const resolveTitle = (pathname: string, search: string): string => {
+	if (pathname === "/students") {
+		const params = new URLSearchParams(search);
+		const studentType = params.get("type");
+		if (studentType === "group") {
+			return "Group Students";
+		}
+		if (studentType === "individual") {
+			return "Individual Students";
+		}
+	}
+
 	if (/^\/users\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit User";
 	}
@@ -126,11 +136,9 @@ export const DashboardLayout = () => {
 	const currentUserId = me?.id;
 
 	const allStudents = studentsQuery.data?.students ?? [];
-	const allBatches = useBatchesQuery(token).data?.batches ?? [];
 	const allReminders = remindersQuery.data ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
-	const groupCount = allBatches.filter((batch) => batch.type === "GROUP").length;
 	const isCounsellor =
 		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
 		false;
@@ -239,11 +247,26 @@ export const DashboardLayout = () => {
 		...(hasPermission("STUDENT_READ")
 			? [
 				{
-					to: "/students",
-					label: "Students",
-					description: "Enrolled",
+					to: "/students?type=group&stage=active",
+					label: "Group Students",
+					description: "Enrolled in groups",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count: studentsQuery.data?.students.length ?? 0,
+					count:
+						studentsQuery.data?.students.filter(
+							(student) => student.courseType === "GROUP",
+						).length ?? 0,
+					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/students?type=individual&stage=active",
+					label: "Individual Students",
+					description: "One-to-one learners",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count:
+						studentsQuery.data?.students.filter(
+							(student) => student.courseType === "INDIVIDUAL",
+						).length ?? 0,
 					accent: "cyan",
 					section: "Learners",
 				},
@@ -252,7 +275,6 @@ export const DashboardLayout = () => {
 					label: "Groups",
 					description: "Mentor groups",
 					icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
-					count: groupCount,
 					accent: "emerald",
 					section: "Learners",
 				},

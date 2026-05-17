@@ -84,7 +84,7 @@ export const AdmissionDetailPage = () => {
 				payload: validation.data,
 			});
 			toast.success(
-				`Admission confirmed. Student ID ${response.student.zid} created.`,
+				`Admission confirmed. Student ID ${response.student.zid.toUpperCase()} created.`,
 			);
 			reset({ counsellorId: undefined, note: "" });
 			navigate("/students");

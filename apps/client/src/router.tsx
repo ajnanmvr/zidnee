@@ -59,6 +59,11 @@ const GroupsPage = lazy(() =>
 		default: module.GroupsPage,
 	})),
 );
+const GroupDetailPage = lazy(() =>
+ 	import("@/features/dashboard/GroupDetailPage").then((module) => ({
+ 		default: module.GroupDetailPage,
+ 	})),
+);
 const CreateTimeSlotsPage = lazy(() =>
 	import("@/features/dashboard/CreateTimeSlotsPage").then((module) => ({
 		default: module.CreateTimeSlotsPage,
@@ -233,6 +238,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<GroupsPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "groups/:groupId",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<GroupDetailPage />
 							</Suspense>
 						),
 					},

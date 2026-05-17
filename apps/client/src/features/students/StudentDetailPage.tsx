@@ -222,7 +222,7 @@ student.status,
 </span>
 </div>
 <p className="text-sm text-gray-600 mt-1">
-ZID: <span className="font-mono font-semibold">{student.zid}</span>
+ZID: <span className="font-mono font-semibold">{student.zid.toUpperCase()}</span>
 </p>
 </div>
 </div>

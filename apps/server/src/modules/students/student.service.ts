@@ -16,7 +16,7 @@ import {
 } from "./student-process.model.js";
 
 const resolveStudentZidPrefix = (courseType?: LeadDocument["courseType"]): string => {
-	return courseType === "GROUP" ? "zig" : "zid";
+	return courseType === "GROUP" ? "ZIG" : "ZID";
 };
 
 type StudentListFilters = {
@@ -611,5 +611,40 @@ export const StudentService = {
 		return toStudent(
 			(syncedStudent ?? createdStudent.toObject()) as StudentDocument,
 		);
+	},
+
+	update: async (
+		studentId: string,
+		payload: Partial<{ batchId?: string | null; mentorId?: string }>,
+	): Promise<Student | null> => {
+		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+		if (!student) {
+			throw new AppError(404, "Student not found");
+		}
+
+		const updatedStudent = await StudentModel.findByIdAndUpdate(
+			student._id,
+			{
+				$set: {
+					mentorId: payload.mentorId ?? student.mentorId,
+					batchId: payload.batchId === null ? undefined : payload.batchId ?? student.batchId,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<StudentDocument | null>();
+
+		if (!updatedStudent) return null;
+
+		await logStudentActivity({
+			studentId: student._id.toString(),
+			type: "UPDATED",
+			performedBy: student.admittedBy.toString(),
+			description: "Student updated",
+			oldValue: { mentorId: student.mentorId?.toString(), batchId: student.batchId?.toString() },
+			newValue: { mentorId: updatedStudent.mentorId?.toString(), batchId: updatedStudent.batchId?.toString() },
+		});
+
+		const synced = await syncStudentProcess(updatedStudent._id.toString());
+		return toStudent((synced ?? updatedStudent) as StudentDocument);
 	},
 };

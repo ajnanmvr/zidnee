@@ -14,6 +14,7 @@ const toBatch = (doc: BatchDocument): Batch => {
 		type: doc.type,
 		level: doc.level,
 		mentorId: doc.mentorId.toString(),
+		counsellorId: doc.counsellorId?.toString(),
 		description: doc.description,
 		isActive: doc.isActive,
 		createdAt: doc.createdAt,
@@ -33,6 +34,7 @@ export const BatchService = {
 			type: payload.type,
 			level: payload.level,
 			mentorId: payload.mentorId,
+			counsellorId: payload.counsellorId,
 			description: payload.description,
 		});
 
@@ -66,6 +68,7 @@ export const BatchService = {
 					type: payload.type,
 					level: payload.level,
 					mentorId: payload.mentorId,
+					counsellorId: payload.counsellorId,
 					description: payload.description,
 					isActive: payload.isActive,
 				},

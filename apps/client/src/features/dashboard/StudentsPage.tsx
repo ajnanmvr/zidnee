@@ -19,7 +19,8 @@ import { useSession } from "@/lib/session";
 export const StudentsPage = () => {
 	const { token } = useSession();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const currentStage = (searchParams.get("stage") ?? "all") as StudentStageId;
+	const currentStage = (searchParams.get("stage") ?? "active") as StudentStageId;
+	const studentType = searchParams.get("type");
 	const searchTerm = searchParams.get("search") ?? "";
 	const sortBy = searchParams.get("sortBy") ?? "nextFollowUpAt";
 	const sortOrder = searchParams.get("sortOrder") === "desc" ? "desc" : "asc";
@@ -51,16 +52,26 @@ export const StudentsPage = () => {
 	const filteredStudents = useMemo(() => {
 		if (!studentsQuery.data?.students) return [];
 
-		const transformed = studentsQuery.data.students.map((s) => ({
-			...s,
-			admittedAt: s.admittedAt ? new Date(s.admittedAt) : new Date(),
-			createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
-			updatedAt: s.updatedAt ? new Date(s.updatedAt) : undefined,
-			nextFollowUpAt: s.nextFollowUpAt ? new Date(s.nextFollowUpAt) : undefined,
-			customNextFollowUpAt: s.customNextFollowUpAt
-				? new Date(s.customNextFollowUpAt)
-				: undefined,
-		})) as unknown as StudentTableRow[];
+		const transformed = studentsQuery.data.students
+			.filter((student) => {
+				if (studentType === "group") {
+					return student.courseType === "GROUP";
+				}
+				if (studentType === "individual") {
+					return student.courseType === "INDIVIDUAL";
+				}
+				return true;
+			})
+			.map((s) => ({
+				...s,
+				admittedAt: s.admittedAt ? new Date(s.admittedAt) : new Date(),
+				createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
+				updatedAt: s.updatedAt ? new Date(s.updatedAt) : undefined,
+				nextFollowUpAt: s.nextFollowUpAt ? new Date(s.nextFollowUpAt) : undefined,
+				customNextFollowUpAt: s.customNextFollowUpAt
+					? new Date(s.customNextFollowUpAt)
+					: undefined,
+			})) as unknown as StudentTableRow[];
 
 		return transformed.sort((left, right) => {
 			const leftState = getStudentFollowUpState(
@@ -85,7 +96,7 @@ export const StudentsPage = () => {
 
 			return leftDate - rightDate;
 		});
-	}, [studentsQuery.data?.students]);
+	}, [studentType, studentsQuery.data?.students]);
 
 	// Build name lookup tables
 	const mentorNameById = useMemo(() => {
@@ -98,8 +109,19 @@ export const StudentsPage = () => {
 
 	// Calculate counts
 	const stageCounts = useMemo(
-		() => getStudentStageCounts(allStudentsQuery.data?.students ?? []),
-		[allStudentsQuery.data?.students],
+		() =>
+			getStudentStageCounts(
+				(allStudentsQuery.data?.students ?? []).filter((student) => {
+					if (studentType === "group") {
+						return student.courseType === "GROUP";
+					}
+					if (studentType === "individual") {
+						return student.courseType === "INDIVIDUAL";
+					}
+					return true;
+				}),
+			),
+		[allStudentsQuery.data?.students, studentType],
 	);
 
 	const columns = useMemo(
@@ -161,6 +183,9 @@ export const StudentsPage = () => {
 						onClick={() => {
 							const next = new URLSearchParams(searchParams);
 							next.set("stage", stage.id);
+							if (studentType) {
+								next.set("type", studentType);
+							}
 							setSearchParams(next);
 						}}
 						className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${

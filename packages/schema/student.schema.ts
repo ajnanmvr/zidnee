@@ -102,6 +102,13 @@ export type StudentFollowUpPayload = z.infer<
 	typeof StudentFollowUpPayloadSchema
 >;
 
+export const UpdateStudentPayloadSchema = z.object({
+ 	mentorId: ObjectIdStringSchema.optional(),
+ 	batchId: ObjectIdStringSchema.optional().nullable(),
+});
+
+export type UpdateStudentPayload = z.infer<typeof UpdateStudentPayloadSchema>;
+
 export const StudentResponseSchema = StudentSchema.omit({
 	dateOfBirth: true,
 	admittedAt: true,

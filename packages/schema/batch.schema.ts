@@ -11,6 +11,7 @@ export const BatchSchema = z.object({
 	type: BatchTypeSchema, // GROUP or INDIVIDUAL
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
+	counsellorId: ObjectIdStringSchema.optional(),
 	description: z.string().max(500).optional(),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
@@ -30,6 +31,7 @@ export const CreateBatchPayloadSchema = z.object({
 	type: BatchTypeSchema,
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
+	counsellorId: ObjectIdStringSchema.optional(),
 	description: z.string().max(500).optional(),
 });
 
@@ -46,6 +48,7 @@ export const UpdateBatchPayloadSchema = z.object({
 	type: BatchTypeSchema.optional(),
 	level: z.string().min(1).max(100).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
 	description: z.string().max(500).optional(),
 	isActive: z.boolean().optional(),
 });
