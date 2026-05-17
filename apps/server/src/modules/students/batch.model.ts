@@ -41,6 +41,21 @@ const batchSchema = new Schema<BatchDocument>(
 			ref: "User",
 			required: false,
 		},
+		oralAssessmentDone: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
+		writtenAssessmentDone: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
+		levelAssessmentDone: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
 		description: {
 			type: String,
 			required: false,

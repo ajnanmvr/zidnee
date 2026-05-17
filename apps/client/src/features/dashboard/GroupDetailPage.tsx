@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { DataTable } from "@/components/DataTable";
 import { Panel, Modal } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
+import { useUpdateBatchMutation } from "@/features/batches/use-update-batch-mutation";
 import {
 	buildStudentColumns,
 	getStudentStatusColor,
@@ -15,6 +16,7 @@ import {
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
+import { useUpdateStudentAssessmentMutation } from "@/features/students/students.mutations";
 import { useSession } from "@/lib/session";
 
 export const GroupDetailPage = () => {
@@ -24,6 +26,8 @@ export const GroupDetailPage = () => {
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const updateStudentMutation = useUpdateStudentMutation();
+	const updateBatchMutation = useUpdateBatchMutation();
+	const updateStudentAssessmentMutation = useUpdateStudentAssessmentMutation();
 
 	const group = useMemo(() => {
 		return (batchesQuery.data?.batches ?? []).find((b) => b.id === groupId) ?? null;
@@ -68,6 +72,12 @@ export const GroupDetailPage = () => {
 	const [confirmStudentId, setConfirmStudentId] = useState<string | null>(null);
 	const [addModalOpen, setAddModalOpen] = useState(false);
 	const [selectedStudentsToAdd, setSelectedStudentsToAdd] = useState<string[]>([]);
+	const [assessmentConfirmOpen, setAssessmentConfirmOpen] = useState(false);
+	const [pendingAssessment, setPendingAssessment] = useState<{
+		assessmentType: "oral" | "written" | "level";
+		nextDone: boolean;
+	} | null>(null);
+	const [activeTab, setActiveTab] = useState<"students" | "assessment">("students");
 
 	if (!group) {
 		return (
@@ -150,6 +160,75 @@ export const GroupDetailPage = () => {
 		}
 	};
 
+	const assessmentConfig = [
+		{
+			assessmentType: "oral" as const,
+			label: "Oral Assessment",
+			value: group.oralAssessmentDone ?? false,
+			description: "Speaking and pronunciation check",
+		},
+		{
+			assessmentType: "written" as const,
+			label: "Written Assessment",
+			value: group.writtenAssessmentDone ?? false,
+			description: "Reading and writing check",
+		},
+		{
+			assessmentType: "level" as const,
+			label: "Level Assessment",
+			value: group.levelAssessmentDone ?? false,
+			description: "Final placement and level check",
+		},
+	];
+
+	const openAssessmentConfirm = (
+		assessmentType: "oral" | "written" | "level",
+		nextDone: boolean,
+	) => {
+		setPendingAssessment({ assessmentType, nextDone });
+		setAssessmentConfirmOpen(true);
+	};
+
+	const submitAssessmentUpdate = async () => {
+		if (!groupId || !pendingAssessment) return;
+
+		try {
+			const assessmentField =
+				pendingAssessment.assessmentType === "oral"
+					? "oralAssessmentDone"
+					: pendingAssessment.assessmentType === "written"
+						? "writtenAssessmentDone"
+						: "levelAssessmentDone";
+
+			// Update the group/batch
+			await updateBatchMutation.mutateAsync({
+				batchId: groupId,
+				payload: {
+					[assessmentField]: pendingAssessment.nextDone,
+				},
+			});
+
+			// Update all active students with the same assessment
+			await Promise.all(
+				activeStudents.map((student) =>
+					updateStudentAssessmentMutation.mutateAsync({
+						studentId: student.id,
+						assessmentType: pendingAssessment.assessmentType,
+						isDone: pendingAssessment.nextDone,
+					}),
+				),
+			);
+
+			toast.success(
+				`Assessment marked as ${pendingAssessment.nextDone ? "done" : "undone"} for group and ${activeStudents.length} student(s)`,
+			);
+			setAssessmentConfirmOpen(false);
+			setPendingAssessment(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Unable to update assessment");
+		}
+	};
+
 	const activeStudentColumns = useMemo<ColumnDef<StudentTableRow>[]>(() => {
 		const sharedColumns = buildStudentColumns(getStudentStatusColor, mentorNameById);
 
@@ -194,24 +273,79 @@ export const GroupDetailPage = () => {
 				{counsellorName && <p className="text-sm text-gray-600">Counsellor: {counsellorName}</p>}
 			</div>
 
-			<Panel title="Active students in this group">
-				<div className="flex justify-end mb-4">
-					<button onClick={() => setAddModalOpen(true)} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-						Add Student
-					</button>
-				</div>
-				<DataTable
-					data={activeStudents}
-					columns={activeStudentColumns}
-					enableGlobalFilter={false}
-					enableTableSorting={false}
-				/>
-				{activeStudents.length === 0 ? (
-					<div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-600">
-						No active students in this group.
+			<div className="border-b border-gray-200">
+				<nav className="flex gap-8">
+					{[
+						{ key: "students", label: "Students" },
+						{ key: "assessment", label: "Assessment" },
+					].map((tab) => (
+						<button
+							key={tab.key}
+							onClick={() => setActiveTab(tab.key as "students" | "assessment")}
+							className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+								activeTab === tab.key
+									? "border-teal-600 text-teal-600"
+									: "border-transparent text-gray-600 hover:text-gray-900"
+							}`}
+						>
+							{tab.label}
+						</button>
+					))}
+				</nav>
+			</div>
+
+			{activeTab === "students" && (
+				<Panel title="Active students in this group">
+					<div className="flex justify-end mb-4">
+						<button onClick={() => setAddModalOpen(true)} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+							Add Student
+						</button>
 					</div>
-				) : null}
-			</Panel>
+					<DataTable
+						data={activeStudents}
+						columns={activeStudentColumns}
+						enableGlobalFilter={false}
+						enableTableSorting={false}
+					/>
+					{activeStudents.length === 0 ? (
+						<div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-600">
+							No active students in this group.
+						</div>
+					) : null}
+				</Panel>
+			)}
+
+			{activeTab === "assessment" && (
+				<Panel title="Group assessments">
+					<div className="space-y-4">
+						{assessmentConfig.map((assessment) => {
+							const nextDone = !assessment.value;
+							return (
+								<div key={assessment.assessmentType} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+									<div className="flex items-start justify-between gap-4">
+										<div>
+											<p className="text-sm font-semibold text-gray-900">{assessment.label}</p>
+											<p className="mt-1 text-sm text-gray-600">{assessment.description}</p>
+										</div>
+										<span
+											className={`rounded-full px-3 py-1 text-xs font-semibold ${assessment.value ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+										>
+											{assessment.value ? "Done" : "Not done"}
+										</span>
+									</div>
+									<button
+										type="button"
+										onClick={() => openAssessmentConfirm(assessment.assessmentType, nextDone)}
+										className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
+									>
+										{assessment.value ? "Mark undone" : "Mark done"}
+									</button>
+								</div>
+							);
+						})}
+					</div>
+				</Panel>
+			)}
 
 			<Modal open={moveModalOpen} title="Move student" onClose={closeMove}>
 				<div className="grid gap-4">
@@ -281,6 +415,43 @@ export const GroupDetailPage = () => {
 							</div>
 						</>
 					)}
+				</div>
+			</Modal>
+
+			<Modal
+				open={assessmentConfirmOpen}
+				title="Confirm assessment update"
+				onClose={() => {
+					setAssessmentConfirmOpen(false);
+					setPendingAssessment(null);
+				}}
+			>
+				<div className="grid gap-4">
+					<p className="text-sm text-gray-700">
+						{pendingAssessment
+							? `Mark ${pendingAssessment.assessmentType} assessment as ${pendingAssessment.nextDone ? "done" : "undone"}?`
+							: "Confirm the assessment change."}
+					</p>
+					<div className="flex justify-end gap-2">
+						<button
+							type="button"
+							onClick={() => {
+								setAssessmentConfirmOpen(false);
+								setPendingAssessment(null);
+							}}
+							className="rounded-2xl border px-4 py-2 text-sm font-semibold text-gray-700"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void submitAssessmentUpdate()}
+							disabled={updateBatchMutation.isPending || !pendingAssessment}
+							className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+						>
+							{updateBatchMutation.isPending ? "Saving..." : "Confirm"}
+						</button>
+					</div>
 				</div>
 			</Modal>
 		</div>

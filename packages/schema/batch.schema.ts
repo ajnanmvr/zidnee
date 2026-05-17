@@ -12,6 +12,9 @@ export const BatchSchema = z.object({
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
 	counsellorId: ObjectIdStringSchema.optional(),
+	oralAssessmentDone: z.boolean().default(false),
+	writtenAssessmentDone: z.boolean().default(false),
+	levelAssessmentDone: z.boolean().default(false),
 	description: z.string().max(500).optional(),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
@@ -32,6 +35,9 @@ export const CreateBatchPayloadSchema = z.object({
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
 	counsellorId: ObjectIdStringSchema.optional(),
+	oralAssessmentDone: z.boolean().optional(),
+	writtenAssessmentDone: z.boolean().optional(),
+	levelAssessmentDone: z.boolean().optional(),
 	description: z.string().max(500).optional(),
 });
 
@@ -49,6 +55,9 @@ export const UpdateBatchPayloadSchema = z.object({
 	level: z.string().min(1).max(100).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
 	counsellorId: ObjectIdStringSchema.optional(),
+	oralAssessmentDone: z.boolean().optional(),
+	writtenAssessmentDone: z.boolean().optional(),
+	levelAssessmentDone: z.boolean().optional(),
 	description: z.string().max(500).optional(),
 	isActive: z.boolean().optional(),
 });
