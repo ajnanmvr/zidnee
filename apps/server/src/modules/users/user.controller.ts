@@ -8,6 +8,7 @@ import {
 	SetUserStatusPayloadSchema,
 	UpdateUserPayloadSchema,
 } from "@repo/schema";
+import { AUTH_CONSTANTS } from "@repo/schema";
 import type { Request, Response } from "express";
 import {
 	AuthenticationError,
@@ -173,7 +174,7 @@ export const createMentorController = async (
 
 	const mentorId = await nextIdentity("mentor");
 	const username = result.data.username || mentorId;
-	const email = `${username}@zidnee.local`;
+	const email = `${username}@${AUTH_CONSTANTS.emailDomain}`;
 	const password = randomUUID();
 
 	const hashedPassword = await hashPassword(password);
@@ -225,7 +226,7 @@ export const createCounsellorController = async (
 
 	const counsellorId = await nextIdentity("counsellor");
 	const username = result.data.username || counsellorId;
-	const email = `${username}@zidnee.local`;
+	const email = `${username}@${AUTH_CONSTANTS.emailDomain}`;
 	const password = randomUUID();
 
 	const hashedPassword = await hashPassword(password);

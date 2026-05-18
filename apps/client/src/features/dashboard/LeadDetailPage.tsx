@@ -1,4 +1,5 @@
 ﻿import {
+	FOLLOW_UP_PERIOD_MS,
 	ConfirmAdmissionPayloadSchema,
 	type LeadResponse,
 	PostponeLeadFollowUpPayloadSchema,
@@ -197,7 +198,7 @@ export const LeadDetailPage = () => {
 		setError: setPostponeError,
 	} = useForm<PostponeLeadFollowUpForm>({
 		defaultValues: {
-			customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			customNextFollowUpAt: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 			note: "",
 		},
 	});
@@ -309,7 +310,7 @@ export const LeadDetailPage = () => {
 		}
 
 		resetPostpone({
-			customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			customNextFollowUpAt: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 			note: "",
 		});
 		setSelectedDuration(1);

@@ -1,4 +1,5 @@
 import type { User } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import { UserModel, type UserDocument } from "../users/user.model.js";
 
 const toUser = (doc: UserDocument): User => ({
@@ -21,12 +22,11 @@ const toUser = (doc: UserDocument): User => ({
 });
 
 const calculateNextFollowUpDate = (
-	attemptNumber: number,
+	source?: Date | null,
 ): Date => {
 	const now = new Date();
-	const daysToAdd = 14;
 
-	return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+	return source ?? new Date(Date.now() + FOLLOW_UP_PERIOD_MS.mentor);
 };
 
 export const MentorFollowUpService = {
@@ -61,7 +61,7 @@ export const MentorFollowUpService = {
 		}
 
 		const now = new Date();
-		const nextFollowUpAt = calculateNextFollowUpDate(1);
+		const nextFollowUpAt = calculateNextFollowUpDate();
 
 		const updated = await UserModel.findByIdAndUpdate(
 			mentorId,

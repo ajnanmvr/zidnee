@@ -1,4 +1,5 @@
 import type { LeadResponse } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format, isPast, isToday } from "date-fns";
 import { useState } from "react";
@@ -68,7 +69,7 @@ export const ScheduledDemosPage = () => {
 	}>({
 		defaultValues: {
 			mentorId: "",
-			demoScheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			demoScheduledFor: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 		},
 	});
 

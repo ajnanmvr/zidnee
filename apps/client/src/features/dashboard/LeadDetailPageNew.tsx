@@ -2,6 +2,7 @@ import { format, formatDistance, isPast } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import {
 	HiAcademicCap,
 	HiArrowLeft,
@@ -179,7 +180,7 @@ export const LeadDetailPageNew = () => {
 		reset: resetPostpone,
 	} = useForm<PostponeLeadFollowUpForm>({
 		defaultValues: {
-			customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			customNextFollowUpAt: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 			note: "",
 		},
 	});
@@ -235,7 +236,7 @@ export const LeadDetailPageNew = () => {
 	useEffect(() => {
 		if (postponeOpen) {
 			resetPostpone({
-				customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+				customNextFollowUpAt: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 				note: "",
 			});
 		}

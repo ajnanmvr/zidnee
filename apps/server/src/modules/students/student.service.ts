@@ -1,4 +1,5 @@
 import type { Student } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
 import { AppError } from "../../utils/errors.util.js";
 import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
@@ -16,7 +17,9 @@ import {
 } from "./student-process.model.js";
 
 const resolveStudentZidPrefix = (courseType?: LeadDocument["courseType"]): string => {
-	return courseType === "GROUP" ? "ZIG" : "ZID";
+	return courseType === "GROUP"
+		? ZID_CONSTANTS.prefixes.groupStudent
+		: ZID_CONSTANTS.prefixes.student;
 };
 
 type StudentListFilters = {
@@ -29,7 +32,7 @@ type StudentListFilters = {
 };
 
 const getDefaultStudentFollowUpAt = (source?: Date | null): Date => {
-	return source ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+	return source ?? new Date(Date.now() + FOLLOW_UP_PERIOD_MS.student);
 };
 
 const getStudentSort = (

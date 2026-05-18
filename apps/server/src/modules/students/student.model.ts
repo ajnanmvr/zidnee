@@ -1,5 +1,6 @@
 import type { Student } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 
 export type StudentDocument = Omit<
 	Student,
@@ -187,7 +188,7 @@ const studentSchema = new Schema<StudentDocument>(
 		nextFollowUpAt: {
 			type: Date,
 			required: false,
-			default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+			default: () => new Date(Date.now() + FOLLOW_UP_PERIOD_MS.student),
 			index: true,
 		},
 		customNextFollowUpAt: {

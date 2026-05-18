@@ -4,6 +4,7 @@ import type {
 	LeadStatus,
 	UpdateLeadPayload,
 } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { Types } from "mongoose";
 import { env } from "process";
@@ -922,7 +923,7 @@ export const LeadService = {
 
 		// Get app URL from environment or use default
 		const formLink = `${appUrl}/form/${leadId}?token=${token}`;
-		const nextFollowUpAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+		const nextFollowUpAt = new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead);
 
 		// Save token to database
 		await LeadModel.findByIdAndUpdate(leadId, {

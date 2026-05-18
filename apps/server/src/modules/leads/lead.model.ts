@@ -1,5 +1,6 @@
 import type { Lead, LeadDemo, LeadStatus } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 
 export type LeadDocument = Omit<
 	Lead,
@@ -208,7 +209,7 @@ const leadSchema = new Schema(
 			type: Date,
 			required: true,
 			index: true,
-			default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to now + 1 day
+			default: () => new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 		},
 		demos: {
 			type: [

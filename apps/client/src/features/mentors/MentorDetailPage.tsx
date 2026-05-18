@@ -1,12 +1,8 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-	HiClock,
-	HiCheckCircle,
-	HiPlusCircle,
-	HiXCircle,
-} from "react-icons/hi2";
+import { FOLLOW_UP_PERIOD_MS, REMINDER_DEFAULT_DAYS } from "@repo/schema";
 import toast from "react-hot-toast";
+import { HiClock, HiCheckCircle, HiPlusCircle, HiXCircle } from "react-icons/hi2";
 import { Panel, Modal } from "@/components/dashboard-ui";
 import { useSession } from "@/lib/session";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -81,7 +77,7 @@ export const MentorDetailPage = () => {
 		reset: resetReminder,
 	} = useForm<ReminderForm>({
 		defaultValues: {
-			date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+			date: new Date(Date.now() + REMINDER_DEFAULT_DAYS * 24 * 60 * 60 * 1000),
 			note: "",
 		},
 	});
@@ -92,7 +88,7 @@ export const MentorDetailPage = () => {
 		reset: resetCustomFollowUp,
 	} = useForm<CustomFollowUpForm>({
 		defaultValues: {
-			customDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+			customDate: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.mentor),
 		},
 	});
 
