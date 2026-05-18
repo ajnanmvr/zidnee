@@ -6,6 +6,7 @@ import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
+import { deleteObjectFromUrl } from "../../lib/s3.js";
 import {
 	type StudentActivityDocument,
 	StudentActivityModel,

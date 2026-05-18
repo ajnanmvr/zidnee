@@ -51,22 +51,6 @@ nextDone: boolean;
 } | null>(null);
 const remindersQuery = useGetStudentReminders(studentId ?? "");
 
-const readFileAsDataUrl = (file: File) => {
-return new Promise<string>((resolve, reject) => {
-const reader = new FileReader();
-reader.onload = () => {
-if (typeof reader.result === "string") {
-resolve(reader.result);
-return;
-}
-
-reject(new Error("Failed to read file"));
-};
-reader.onerror = () => reject(new Error("Failed to read file"));
-reader.readAsDataURL(file);
-});
-};
-
 const student = useMemo(
 () => studentsQuery.data?.students.find((s) => s.id === studentId),
 [studentsQuery.data?.students, studentId],
@@ -196,7 +180,7 @@ const handleProfilePicChange = async (event: ChangeEvent<HTMLInputElement>) => {
 
 		const json = await res.json();
 		if (!res.ok || !json.ok) {
-			throw new ApiError(json, res.status);
+			throw new ApiError(res.status, json);
 		}
 
 		// Refresh students list to pick up updated profile pic
