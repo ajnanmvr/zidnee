@@ -1,13 +1,12 @@
-import type { Reminder } from "@repo/schema";
+import type { MentorReminder } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
 
-export type ReminderDocument = Omit<
-	Reminder,
-	"id" | "linkedPerson" | "createdBy" | "assignedTo"
+export type MentorReminderDocument = Omit<
+	MentorReminder,
+	"id" | "mentorId" | "createdBy" | "assignedTo"
 > & {
 	_id: Types.ObjectId;
-	linkedPersonId: Types.ObjectId;
-	linkedPersonType: string;
+	mentorId: Types.ObjectId;
 	createdBy: Types.ObjectId;
 	assignedTo: Types.ObjectId;
 	date: Date;
@@ -16,18 +15,14 @@ export type ReminderDocument = Omit<
 	updatedAt: Date;
 };
 
-const reminderSchema = new Schema<ReminderDocument>(
+const mentorReminderSchema = new Schema<MentorReminderDocument>(
 	{
-		linkedPersonId: {
-				type: Schema.Types.ObjectId,
-				required: true,
-				index: true,
-			},
-		linkedPersonType: {
-				type: String,
-				required: true,
-				index: true,
-			},
+		mentorId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+			index: true,
+		},
 		date: {
 			type: Date,
 			required: true,
@@ -62,8 +57,9 @@ const reminderSchema = new Schema<ReminderDocument>(
 	},
 );
 
-export const ReminderModel: Model<ReminderDocument> = mongoose.model(
-	"Reminder",
-	reminderSchema,
-	"reminders",
-);
+export const MentorReminderModel: Model<MentorReminderDocument> =
+	mongoose.model(
+		"MentorReminder",
+		mentorReminderSchema,
+		"mentor_reminders",
+	);

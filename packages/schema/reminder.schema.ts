@@ -3,8 +3,11 @@ import { ObjectIdStringSchema } from "./rbac.schema.js";
 
 export const ReminderSchema = z.object({
 	id: ObjectIdStringSchema,
-	studentId: ObjectIdStringSchema,
-		date: z.coerce.date(),
+	linkedPerson: z.object({
+		id: ObjectIdStringSchema,
+		type: z.enum(["mentor", "student"]),
+	}),
+	date: z.coerce.date(),
 	note: z.string().min(1).max(500),
 	isDone: z.boolean().default(false),
 	createdBy: ObjectIdStringSchema,

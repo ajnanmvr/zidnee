@@ -2,6 +2,7 @@ import { Router } from "express";
 import authRoutes from "../modules/auth/auth.routes.js";
 import exportRoutes from "../modules/export/export.routes.js";
 import leadRoutes from "../modules/leads/lead.routes.js";
+import mentorRoutes from "../modules/mentors/mentor.routes.js";
 import permissionRoutes from "../modules/permissions/permission.routes.js";
 import reminderRoutes from "../modules/reminders/reminder.routes.js";
 import roleRoutes from "../modules/roles/role.routes.js";
@@ -20,6 +21,7 @@ router.use("/leads", leadRoutes);
 router.use("/batches", batchRoutes);
 router.use("/students", studentRoutes);
 router.use("/reminders", reminderRoutes);
+router.use("/mentors", mentorRoutes);
 router.use("/time-slots", timeSlotRoutes);
 router.use("/export", exportRoutes);
 

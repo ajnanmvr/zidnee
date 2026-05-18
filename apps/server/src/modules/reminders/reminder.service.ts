@@ -11,7 +11,10 @@ const toReminder = (doc: ReminderDocument): Reminder => {
 
 	return {
 		id: doc._id.toString(),
-		studentId: doc.studentId.toString(),
+		linkedPerson: {
+			id: doc.linkedPersonId.toString(),
+			type: doc.linkedPersonType as "mentor" | "student",
+		},
 		date: doc.date,
 		note: doc.note,
 		isDone: doc.isDone,
@@ -24,12 +27,14 @@ const toReminder = (doc: ReminderDocument): Reminder => {
 
 export const ReminderService = {
 	createReminder: async (
-		studentId: string,
+		linkedPersonId: string,
+		linkedPersonType: "mentor" | "student",
 		createdBy: string,
 		payload: CreateReminderPayload,
 	): Promise<Reminder> => {
 		const reminder = await ReminderModel.create({
-			studentId,
+			linkedPersonId,
+			linkedPersonType,
 			createdBy,
 			assignedTo: createdBy,
 			date: payload.date,
@@ -39,8 +44,14 @@ export const ReminderService = {
 		return toReminder(reminder.toObject() as ReminderDocument);
 	},
 
-	getRemindersByStudent: async (studentId: string): Promise<Reminder[]> => {
-		const reminders = await ReminderModel.find({ studentId })
+	getRemindersByPerson: async (
+		linkedPersonId: string,
+		linkedPersonType: "mentor" | "student",
+	): Promise<Reminder[]> => {
+		const reminders = await ReminderModel.find({
+			linkedPersonId,
+			linkedPersonType,
+		})
 			.sort({ date: -1 })
 			.lean<ReminderDocument[]>();
 
@@ -97,7 +108,13 @@ export const ReminderService = {
 		return reminder ? toReminder(reminder) : null;
 	},
 
-	deleteReminder: async (reminderId: string): Promise<void> => {
-		await ReminderModel.findByIdAndDelete(reminderId);
+	getReminderById: async (reminderId: string): Promise<Reminder | null> => {
+		const reminder = await ReminderModel.findById(reminderId).lean<ReminderDocument | null>();
+		return reminder ? toReminder(reminder) : null;
+	},
+
+	deleteReminder: async (reminderId: string): Promise<Reminder | null> => {
+		const deleted = await ReminderModel.findByIdAndDelete(reminderId).lean<ReminderDocument | null>();
+		return deleted ? toReminder(deleted) : null;
 	},
 };

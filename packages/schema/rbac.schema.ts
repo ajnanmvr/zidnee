@@ -58,6 +58,10 @@ export const UserSchema = z.object({
 		.optional(),
 	roleIds: z.array(ObjectIdStringSchema),
 	isActive: z.boolean().default(true),
+	// Mentor followup fields (for mentor lifecycle)
+	lastContactedAt: z.coerce.date().optional(),
+	nextFollowUpAt: z.coerce.date().optional(),
+	customNextFollowUpAt: z.coerce.date().optional(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });

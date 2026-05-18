@@ -12,12 +12,18 @@ export const createReminderController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const studentId = requireStringValue(req.params.studentId, "studentId");
-	const createdBy = requireStringValue(req.user?.userId, "userId");
+	const personId = (req.params.studentId ?? req.params.mentorId) as string | undefined;
+	const personType = req.params.mentorId ? "mentor" : "student";
+	const createdBy = requireStringValue((req as any).user?.userId, "userId");
+	if (!personId) {
+		throw new Error("Missing person id");
+	}
+
 	const payload = CreateReminderPayloadSchema.parse(req.body);
 
 	const reminder = await ReminderService.createReminder(
-		studentId,
+		personId,
+		personType as "mentor" | "student",
 		createdBy,
 		payload,
 	);
@@ -34,9 +40,16 @@ export const getStudentRemindersController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const studentId = requireStringValue(req.params.studentId, "studentId");
+	const personId = (req.params.studentId ?? req.params.mentorId) as string | undefined;
+	const personType = req.params.mentorId ? "mentor" : "student";
+	if (!personId) {
+		throw new Error("Missing person id");
+	}
 
-	const reminders = await ReminderService.getRemindersByStudent(studentId);
+	const reminders = await ReminderService.getRemindersByPerson(
+		personId,
+		personType as "mentor" | "student",
+	);
 
 	res.json(
 		RemindersResponseSchema.parse({

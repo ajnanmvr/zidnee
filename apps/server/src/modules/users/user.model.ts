@@ -61,6 +61,21 @@ const userSchema = new Schema<UserDocument>(
 			required: true,
 			default: true,
 		},
+		// Mentor followup fields
+		lastContactedAt: {
+			type: Date,
+			required: false,
+		},
+		nextFollowUpAt: {
+			type: Date,
+			required: false,
+			index: true,
+		},
+		customNextFollowUpAt: {
+			type: Date,
+			required: false,
+			index: true,
+		},
 	},
 	{
 		timestamps: true,

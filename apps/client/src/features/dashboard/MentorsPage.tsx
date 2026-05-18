@@ -114,6 +114,7 @@ Assign counsellor
 <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">{groupStudents}</td>
 <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-emerald-800 font-semibold">{groupCount}</td>
 <td className="px-4 py-3 text-sm">
+<Link to={`/mentors/${mentor.id}`} className="text-emerald-700 hover:underline mr-3">Details</Link>
 <Link to={`/users/${mentor.id}/edit`} className="text-emerald-700 hover:underline">Edit</Link>
 </td>
 </tr>

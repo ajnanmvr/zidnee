@@ -101,6 +101,24 @@ export const UserResponseSchema = z
 
 export type UserResponse = z.infer<typeof UserResponseSchema>;
 
+export const MentorFollowUpResponseSchema = z.object({
+	ok: z.boolean(),
+	user: PublicUserResponseSchema,
+});
+
+export type MentorFollowUpResponse = z.infer<
+	typeof MentorFollowUpResponseSchema
+>;
+
+export const MentorFollowUpsResponseSchema = z.object({
+	ok: z.boolean(),
+	users: z.array(PublicUserResponseSchema),
+});
+
+export type MentorFollowUpsResponse = z.infer<
+	typeof MentorFollowUpsResponseSchema
+>;
+
 export const RoleResponseEnvelopeSchema = z.object({
 	ok: z.boolean(),
 	role: RoleWithPermissionsResponseSchema,

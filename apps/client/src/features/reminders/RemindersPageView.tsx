@@ -100,8 +100,12 @@ export const RemindersPageView = ({
         }
 
         return sortedReminders.filter((reminder) => {
+            const linkedPersonId = reminder.linkedPerson.id;
             const student = studentsQuery.data?.students.find(
-                (item) => item.id === reminder.studentId,
+                (item) => item.id === linkedPersonId,
+            );
+            const mentor = usersQuery.data?.users.find(
+                (item) => item.id === linkedPersonId,
             );
             const creator = usersQuery.data?.users.find(
                 (item) => item.id === reminder.createdBy,
@@ -112,6 +116,7 @@ export const RemindersPageView = ({
 
             return [
                 reminder.note,
+                mentor?.name ?? mentor?.username ?? "",
                 student?.name ?? "",
                 student?.zid ?? "",
                 creator?.name ?? creator?.username ?? "",
@@ -335,8 +340,11 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
     students,
     showDueStatus = true,
 }) => {
-    const updateMutation = useUpdateReminderMutation(reminder.studentId);
-    const deleteMutation = useDeleteReminderMutation(reminder.studentId);
+    const linkedPersonId = reminder.linkedPerson.id;
+    const linkedPersonType = reminder.linkedPerson.type;
+
+    const updateMutation = useUpdateReminderMutation(linkedPersonId);
+    const deleteMutation = useDeleteReminderMutation(linkedPersonId);
     const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
@@ -349,8 +357,16 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
     }, [users, reminder.assignedTo]);
 
     const student = useMemo(() => {
-        return students.find((item) => item.id === reminder.studentId);
-    }, [students, reminder.studentId]);
+        return linkedPersonType === "student"
+            ? students.find((item) => item.id === linkedPersonId)
+            : undefined;
+    }, [students, linkedPersonId, linkedPersonType]);
+
+    const mentor = useMemo(() => {
+        return linkedPersonType === "mentor"
+            ? users.find((item) => item.id === linkedPersonId)
+            : undefined;
+    }, [users, linkedPersonId, linkedPersonType]);
     const dueStatus = getReminderDueStatus(reminder.date);
     const dueTone = getReminderDueToneClasses(dueStatus);
 
@@ -399,6 +415,9 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
             }`}
         >
             <div className="flex-1">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {linkedPersonType === "mentor" ? "Mentor" : "Student"}
+                </div>
                 <div className="mb-2 flex items-center gap-2">
                     <HiOutlineCalendarDays className="h-4 w-4 text-gray-500" />
                     <span
@@ -435,7 +454,11 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
                     {reminder.note}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
-                    {student ? (
+                    {linkedPersonType === "mentor" && mentor ? (
+                        <span>
+                            Mentor: {mentor.name ?? mentor.username}
+                        </span>
+                    ) : student ? (
                         <span>
                             Student: <Link to={`/students/${student.id}`} className="text-blue-600 hover:underline">
                                 {student.name ?? student.zid}

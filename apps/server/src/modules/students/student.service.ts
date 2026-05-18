@@ -292,7 +292,7 @@ export const StudentService = {
 			throw new AppError(404, "Student not found");
 		}
 
-		const nextFollowUpAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+		const nextFollowUpAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 		const updatedStudent = await StudentModel.findByIdAndUpdate(
 			student._id,
 			{

@@ -640,7 +640,7 @@ export const submitLeadFormController = async (
 		preferredLanguage: payload.preferredLanguage,
 		preferredSchedule: payload.preferredSchedule,
 		preferredDays: payload.preferredDays,
-		preferredTimeslots: payload.preferredTimeslots,
+		preferredTimeslots: payload.preferredTimeslots ?? [],
 		courseType: payload.courseType,
 		hearAboutUs: payload.hearAboutUs,
 		demoAvailability: payload.demoAvailability,
