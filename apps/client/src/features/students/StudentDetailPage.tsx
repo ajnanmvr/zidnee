@@ -1,8 +1,9 @@
-﻿import { type ChangeEvent, useMemo, useState } from "react";
+﻿import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { HiArrowLeft } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
+import { API_BASE_URL } from "@/api/client";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { CreateReminderModal } from "@/features/reminders/CreateReminderModal";
@@ -34,6 +35,7 @@ const usersQuery = useUsersQuery(token);
 const recordFollowUpMutation = useRecordStudentFollowUpMutation();
 const updateAssessmentMutation = useUpdateStudentAssessmentMutation();
 const updateStudentMutation = useUpdateStudentMutation();
+const profilePicInputRef = useRef<HTMLInputElement | null>(null);
 const [activeTab, setActiveTab] = useState<
 "follow-up" | "assessment" | "profile" | "reminders"
 >("follow-up");
@@ -186,7 +188,7 @@ const handleProfilePicChange = async (event: ChangeEvent<HTMLInputElement>) => {
 		const form = new FormData();
 		form.append("file", file);
 
-		const res = await fetch(`/api/students/${studentId}/profile-pic`, {
+		const res = await fetch(`${API_BASE_URL}/students/${studentId}/profile-pic`, {
 			method: "POST",
 			body: form,
 			headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -227,6 +229,10 @@ return;
 }
 toast.error("Failed to remove profile picture");
 }
+};
+
+const openProfilePicPicker = () => {
+	profilePicInputRef.current?.click();
 };
 
 const openAssessmentConfirm = (
@@ -284,6 +290,13 @@ Go back
 
 return (
 <div className="space-y-4">
+<input
+	type="file"
+	accept="image/*"
+	onChange={handleProfilePicChange}
+	ref={profilePicInputRef}
+	className="hidden"
+/>
 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 <div className="flex items-start gap-3">
@@ -293,6 +306,17 @@ className="mt-1 text-gray-600 hover:text-gray-900"
 >
 <HiArrowLeft className="h-5 w-5" />
 </button>
+<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+	{student.profilePic ? (
+		<img
+			src={student.profilePic}
+			alt={`${student.name ?? student.zid} profile`}
+			className="h-full w-full object-cover"
+		/>
+	) : (
+		<span className="text-xl font-bold text-gray-400">{profileAvatarLabel}</span>
+	)}
+</div>
 <div>
 <div className="flex items-center gap-2">
 <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
@@ -307,6 +331,24 @@ student.status,
 <p className="text-sm text-gray-600 mt-1">
 ZID: <span className="font-mono font-semibold">{student.zid.toUpperCase()}</span>
 </p>
+<div className="mt-3 flex flex-wrap items-center gap-2">
+	<button
+		type="button"
+		onClick={openProfilePicPicker}
+		className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+	>
+		{student.profilePic ? "Change picture" : "Upload profile picture"}
+	</button>
+	{student.profilePic ? (
+		<button
+			type="button"
+			onClick={removeProfilePic}
+			className="rounded-2xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+		>
+			Remove picture
+		</button>
+	) : null}
+</div>
 </div>
 </div>
 <div
