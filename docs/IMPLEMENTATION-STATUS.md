@@ -1,6 +1,6 @@
 # Zidnee Implementation Tracker
 
-Last updated: 2026-05-03
+Last updated: 2026-05-16
 Reference: [docs/ZIDNEE-MASTER-PLAN.md](docs/ZIDNEE-MASTER-PLAN.md)
 
 ## How To Use This File
@@ -47,7 +47,7 @@ Test coverage status:
 - Frontend tests still missing
 
 ## Features Added (Active Work):
- - **Public Form Timing**: Public admission form now reads admin-created time slots and removes the old freeform schedule selector
+ - **Public Form Timing**: Public admission form now saves multiple preferred class timings as nested start/end tiles under the selected plan
  - **Timing Visibility**: Demo scheduling and admission confirmation screens now surface submitted start time, demo availability, and preferred time slots
 Notes:
 - This step is functionally present and ready for domain expansion.
@@ -88,6 +88,7 @@ Features Added (Active Work):
 - **Admission Snapshot**: On admission request, the system creates a student snapshot from lead data, auto-generates ZID, and stores a copied timeslot snapshot (`classesPerWeek`, `durationMinutes`) on student.
 - **Student Lifecycle Statuses**: Student status now uses `ADMISSION_PROCESS | STUDENT | BREAK | DROPPED`.
 - **Student Follow-up Action**: Student detail now includes a mandatory-note follow-up modal that records student history and advances the next follow-up date.
+- **Student Assessments Tracking**: Student detail now shows Oral/Written/Level assessment status and supports confirmation-based done/undone toggles via `PATCH /students/:studentId/assessments`.
 - **Lead Detail Redesign**: Detailed lead profile now surfaces identity, contact, form, schedule, ownership, and demo history sections in a light UI
 - **Lead Response Timestamps**: Shared lead response schema now includes `createdAt` and `updatedAt` for history-aware screens
 
@@ -133,7 +134,7 @@ Checklist:
 - [ ] Add form submission schema and endpoint (/form/:leadId)
 - [x] Add student schemas and model
 - [x] Add conversion service lead -> student
-- [ ] Implement ZID generator (prefix sequence starts at 11)
+- [x] Implement ZID generator (prefix sequence starts at 001 and uses course-type prefixes)
 - [ ] Ensure ZID is immutable and never reused
 - [ ] Add conversion and ZID concurrency tests
 - [ ] Add frontend public form flow
@@ -156,6 +157,7 @@ Checklist:
 - [ ] Ensure inactive entities are hidden in queues
 - [ ] Ensure reappearance when inactiveUntil <= now
 - [x] Add counsellor dashboards and actions on frontend
+- [x] Add mentor directory page with mentor/counsellor mapping
 - [ ] Add tests for inactive visibility transitions
 
 Definition of done:
@@ -167,7 +169,7 @@ Notes:
 
 ## Step 6 - Batch + Group/Individual Progress
 
-Step status: Not Started
+Step status: In Progress
 
 Scope:
 - Batch structure
@@ -175,7 +177,10 @@ Scope:
 - Optional individual progress simplicity
 
 Checklist:
-- [ ] Add batch schema/model with type and checkpoints
+- [x] Add batch schema/model with type and checkpoints
+- [x] Add group ID generation with zg001-style codes
+- [x] Add batches API routes and controller
+- [x] Add frontend groups page with mentor and student membership display
 - [ ] Implement batch-level progress updates
 - [ ] Keep follow-up responsibilities on student entity
 - [ ] Add frontend batch/enrollment pages
@@ -183,6 +188,9 @@ Checklist:
 
 Definition of done:
 - Progress and follow-up responsibilities are clearly separated
+
+Notes:
+- Current group records are backed by the batch module and now expose a human-readable `groupId` code.
 
 ## Step 7 - Tickets + Payment Tracking
 

@@ -1,5 +1,6 @@
 import type { Lead, LeadDemo, LeadStatus } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 
 export type LeadDocument = Omit<
 	Lead,
@@ -149,34 +150,33 @@ const leadSchema = new Schema(
 			required: false,
 			default: [],
 		},
+		preferredPlan: {
+			type: new Schema(
+				{
+					timesPerWeek: { type: Number, required: true },
+					durationMinutes: { type: Number, required: true },
+				},
+				{ _id: false },
+			),
+			required: false,
+		},
 		preferredTimeslots: {
 			type: [
 				new Schema(
 					{
-						label: { type: String, required: true, trim: true, maxlength: 120 },
-						timesPerWeek: { type: Number, required: true },
-						durationMinutes: { type: Number, required: true },
+						startTime: { type: String, required: true },
+						endTime: { type: String, required: true },
 					},
 					{ _id: false },
 				),
 			],
 			required: false,
 			default: [],
-			validate: {
-				validator: (value: unknown[]) => value.length <= 1,
-				message: "Only one preferred timeslot can be saved",
-			},
 		},
 		price: {
 			type: Number,
 			required: false,
 			min: 0,
-		},
-		startClassWhen: {
-			type: String,
-			required: false,
-			trim: true,
-			maxlength: 100,
 		},
 		hearAboutUs: {
 			type: String,
@@ -209,7 +209,7 @@ const leadSchema = new Schema(
 			type: Date,
 			required: true,
 			index: true,
-			default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to now + 1 day
+			default: () => new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 		},
 		demos: {
 			type: [

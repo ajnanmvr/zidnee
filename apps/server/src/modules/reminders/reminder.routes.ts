@@ -46,6 +46,12 @@ router.post(
 	asyncHandler(createReminderController),
 );
 
+router.post(
+	"/mentors/:mentorId",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(createReminderController),
+);
+
 /**
  * @swagger
  * /api/reminders/students/{studentId}:
@@ -65,6 +71,12 @@ router.post(
  */
 router.get(
 	"/students/:studentId",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(getStudentRemindersController),
+);
+
+router.get(
+	"/mentors/:mentorId",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(getStudentRemindersController),
 );

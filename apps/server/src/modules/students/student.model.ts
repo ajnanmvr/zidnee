@@ -1,5 +1,6 @@
 import type { Student } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 
 export type StudentDocument = Omit<
 	Student,
@@ -101,6 +102,10 @@ const studentSchema = new Schema<StudentDocument>(
 			trim: true,
 			maxlength: 20,
 		},
+		profilePic: {
+			type: String,
+			required: false,
+		},
 		studentInfo: {
 			type: String,
 			required: false,
@@ -128,6 +133,15 @@ const studentSchema = new Schema<StudentDocument>(
 				{
 					classesPerWeek: { type: Number, required: true },
 					durationMinutes: { type: Number, required: true },
+					timeslots: [
+						new Schema(
+							{
+								startTime: { type: String, required: true },
+								endTime: { type: String, required: true },
+							},
+							{ _id: false },
+						),
+					],
 				},
 				{ _id: false },
 			),
@@ -137,12 +151,6 @@ const studentSchema = new Schema<StudentDocument>(
 			type: Number,
 			required: false,
 			min: 0,
-		},
-		startClassWhen: {
-			type: String,
-			required: false,
-			trim: true,
-			maxlength: 100,
 		},
 		hearAboutUs: {
 			type: String,
@@ -166,10 +174,25 @@ const studentSchema = new Schema<StudentDocument>(
 			trim: true,
 			maxlength: 150,
 		},
+		oralAssessmentDone: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
+		writtenAssessmentDone: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
+		levelAssessmentDone: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
 		nextFollowUpAt: {
 			type: Date,
 			required: false,
-			default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+			default: () => new Date(Date.now() + FOLLOW_UP_PERIOD_MS.student),
 			index: true,
 		},
 		customNextFollowUpAt: {

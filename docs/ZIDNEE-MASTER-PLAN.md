@@ -133,12 +133,13 @@ Format:
 [PREFIX][NUMBER]
 
 Examples:
-- ZID11
-- ZIG11
+- zid001
+- zig001
 
 Rules:
+- Prefix depends on course type: INDIVIDUAL -> zid, GROUP -> zig
 - Sequence per prefix
-- Starts from 11
+- Starts from 001
 - Never changes
 
 ## 7. Follow-up Engine (Core System)

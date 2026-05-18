@@ -319,7 +319,7 @@ export const UsersPage = () => {
 										{getUserIdentity(
 											user,
 											activeRole === "all" ? null : activeRole,
-										)}
+										).toUpperCase()}
 									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}

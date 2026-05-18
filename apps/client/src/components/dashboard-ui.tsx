@@ -178,7 +178,25 @@ export const Sidebar = ({
 	onLogout,
 	currentLocation,
 }: SidebarProps) => {
-	const isActiveItem = (item: NavigationItem) => currentLocation === item.to;
+	const isActiveItem = (item: NavigationItem) => {
+		try {
+			const currentUrl = new URL(currentLocation, "http://local");
+			const itemUrl = new URL(item.to, "http://local");
+			if (currentUrl.pathname !== itemUrl.pathname) {
+				return false;
+			}
+
+			for (const [key, value] of itemUrl.searchParams.entries()) {
+				if (currentUrl.searchParams.get(key) !== value) {
+					return false;
+				}
+			}
+
+			return true;
+		} catch {
+			return currentLocation === item.to;
+		}
+	};
 
 	// Filter valid items
 	const validItems = items.filter(

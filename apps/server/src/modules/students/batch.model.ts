@@ -3,6 +3,7 @@ import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 export type BatchDocument = Omit<Batch, "id" | "mentorId"> & {
 	_id: Types.ObjectId;
+	groupId?: string;
 	mentorId: Types.ObjectId;
 };
 
@@ -10,7 +11,14 @@ const batchSchema = new Schema<BatchDocument>(
 	{
 		name: {
 			type: String,
-			required: true,
+			required: false,
+			index: true,
+		},
+		groupId: {
+			type: String,
+			required: false,
+			unique: true,
+			sparse: true,
 			index: true,
 		},
 		type: {
@@ -27,6 +35,26 @@ const batchSchema = new Schema<BatchDocument>(
 			ref: "User",
 			required: true,
 			index: true,
+		},
+		counsellorId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
+		oralAssessmentDone: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
+		writtenAssessmentDone: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
+		levelAssessmentDone: {
+			type: Boolean,
+			required: true,
+			default: false,
 		},
 		description: {
 			type: String,

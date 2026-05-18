@@ -1,4 +1,5 @@
 ﻿import {
+	FOLLOW_UP_PERIOD_MS,
 	ConfirmAdmissionPayloadSchema,
 	CreateLeadPayloadSchema,
 	type LeadResponse,
@@ -42,6 +43,7 @@ import {
 	useRequestRedemoMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
+import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import type {
 	ConfirmAdmissionForm,
@@ -114,10 +116,6 @@ export const LeadsPage = () => {
 				return "DEMO_ASSIGNED";
 			case "demoCompleted":
 				return "DEMO_COMPLETED";
-			case "demoCancelled":
-				return "DEMO_CANCELLED";
-			case "converted":
-				return "CONVERTED";
 			case "closed":
 				return "CLOSED";
 			default:
@@ -139,6 +137,7 @@ export const LeadsPage = () => {
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
 	const updateLeadMutation = useUpdateLeadMutation();
+	const updateUserMutation = useUpdateUserMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
 	const cancelLeadDemoMutation = useCancelLeadDemoMutation();
@@ -160,6 +159,11 @@ export const LeadsPage = () => {
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [deleteNote, setDeleteNote] = useState("");
 	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
+	const [assigningCounsellorToMentor, setAssigningCounsellorToMentor] =
+		useState(false);
+	const [selectedCounsellorForMentor, setSelectedCounsellorForMentor] = useState<
+		string | null
+	>(null);
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
@@ -259,7 +263,7 @@ export const LeadsPage = () => {
 		setError: setPostponeError,
 	} = useForm<PostponeLeadFollowUpForm>({
 		defaultValues: {
-			customNextFollowUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			customNextFollowUpAt: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 			note: "",
 		},
 	});
@@ -279,7 +283,6 @@ export const LeadsPage = () => {
 		control: admissionControl,
 		handleSubmit: handleAdmissionSubmit,
 		reset: resetAdmission,
-		setError: setAdmissionError,
 	} = useForm<ConfirmAdmissionForm>({
 		defaultValues: {
 			counsellorId: undefined,
@@ -526,19 +529,49 @@ export const LeadsPage = () => {
 		}
 	};
 
+	const handleAssignCounsellorToMentor = async () => {
+		if (
+			!admissionLeadLatestDemo?.mentorId ||
+			!selectedCounsellorForMentor
+		) {
+			return;
+		}
+		try {
+			await updateUserMutation.mutateAsync({
+				userId: admissionLeadLatestDemo.mentorId,
+				payload: { counsellorId: selectedCounsellorForMentor },
+			});
+			toast.success("Counsellor assigned to mentor.");
+			setAssigningCounsellorToMentor(false);
+			setSelectedCounsellorForMentor(null);
+		} catch (error) {
+			toast.error("Failed to assign counsellor");
+		}
+	};
+
 	const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
 		if (!admissionLeadId) return;
-		const validation = ConfirmAdmissionPayloadSchema.safeParse(payload);
+
+		// Determine counsellor ID: use either mentor's existing or newly assigned
+		const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
+		if (!counsellorId) {
+			toast.error("Please assign a counsellor to the mentor first");
+			return;
+		}
+
+		const finalPayload = {
+			...payload,
+			counsellorId,
+		};
+
+		const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
 		if (!validation.success) {
 			const errors = validation.error.flatten().fieldErrors;
 			if (errors.counsellorId?.[0]) {
-				setAdmissionError("counsellorId", {
-					type: "manual",
-					message: errors.counsellorId[0],
-				});
+				toast.error(errors.counsellorId[0]);
 			}
 			if (errors.note?.[0]) {
-				setAdmissionError("note", { type: "manual", message: errors.note[0] });
+				toast.error(errors.note[0]);
 			}
 			return;
 		}
@@ -550,15 +583,14 @@ export const LeadsPage = () => {
 			toast.success("Lead moved to for admission.");
 			setAdmissionLeadId(null);
 			resetAdmission({ counsellorId: undefined, note: "" });
+			setAssigningCounsellorToMentor(false);
+			setSelectedCounsellorForMentor(null);
 			navigate("/leads?stage=converted");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const counsellorError = error.payload.errors?.counsellorId?.[0];
 				if (counsellorError) {
-					setAdmissionError("counsellorId", {
-						type: "server",
-						message: counsellorError,
-					});
+					toast.error(counsellorError);
 				}
 				toast.error(
 					error.payload.message ?? "Unable to move lead to admission",
@@ -766,23 +798,6 @@ export const LeadsPage = () => {
 										"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
 								},
 							];
-						case "demoCancelled":
-							return [
-								{
-									key: "redemo",
-									label: "Request Redemo",
-									onClick: (item) => setRedemoLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
-								},
-								{
-									key: "toAdmission",
-									label: "Direct Admission",
-									onClick: (item) => setAdmissionLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
-								},
-							];
 						default:
 							return [];
 					}
@@ -914,9 +929,7 @@ export const LeadsPage = () => {
 									<button
 										type="button"
 										onClick={() =>
-											setCurrentPage(
-												Math.min(pagination.totalPages, currentPage + 1),
-											)
+											setCurrentPage((page) => Math.min(page + 1, pagination.totalPages))
 										}
 										disabled={currentPage === pagination.totalPages}
 										className="rounded px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-gray-200"
@@ -1457,10 +1470,12 @@ export const LeadsPage = () => {
 			<Modal
 				open={Boolean(admissionLeadId)}
 				title="Move to for admission"
-				description="Preselecting the counsellor linked to the last demo mentor. You can still change it."
+				description="Preselecting the counsellor linked to the last demo mentor."
 				onClose={() => {
 					setAdmissionLeadId(null);
 					resetAdmission({ counsellorId: undefined, note: "" });
+					setAssigningCounsellorToMentor(false);
+					setSelectedCounsellorForMentor(null);
 				}}
 				footer={
 					<>
@@ -1470,6 +1485,8 @@ export const LeadsPage = () => {
 							onClick={() => {
 								setAdmissionLeadId(null);
 								resetAdmission({ counsellorId: undefined, note: "" });
+								setAssigningCounsellorToMentor(false);
+								setSelectedCounsellorForMentor(null);
 							}}
 						>
 							Cancel
@@ -1493,39 +1510,93 @@ export const LeadsPage = () => {
 					onSubmit={handleAdmissionSubmit(onRequestAdmission)}
 				>
 					{admissionLeadLatestDemo?.mentorId ? (
-						<div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-							Last demo mentor:{" "}
-							{userNameById.get(admissionLeadLatestDemo.mentorId) ?? "-"}
+						<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+							<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+								Last demo mentor
+							</p>
+							<p className="mt-2 text-sm font-medium text-slate-900">
+								{userNameById.get(admissionLeadLatestDemo.mentorId) ?? "-"}
+							</p>
 						</div>
 					) : null}
-					<Controller
-						name="counsellorId"
-						control={admissionControl}
-						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
-								<span>Counsellor</span>
-								<select
-									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-									value={field.value ?? defaultCounsellorId ?? ""}
-									onChange={(event) =>
-										field.onChange(event.target.value || undefined)
-									}
-								>
-									<option value="">Select counsellor</option>
-									{counsellors.map((counsellor) => (
-										<option key={counsellor.id} value={counsellor.id}>
-											{formatUserName(counsellor.name ?? counsellor.username)}
-										</option>
-									))}
-								</select>
-								{fieldState.error?.message ? (
-									<span className="text-xs text-red-600">
-										{fieldState.error.message}
-									</span>
-								) : null}
+
+					{/* Counsellor Assignment Section */}
+					{!assigningCounsellorToMentor ? (
+						<div>
+							<label className="mb-2 block text-sm font-medium text-slate-600">
+								Counsellor
 							</label>
-						)}
-					/>
+							{defaultCounsellorId ? (
+								<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+									<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+										Mentor's counsellor
+									</p>
+									<p className="mt-1 text-sm font-medium text-slate-900">
+										{allUsers.find((u) => u.id === defaultCounsellorId)
+											? formatUserName(
+													allUsers.find((u) => u.id === defaultCounsellorId)?.name ??
+													allUsers.find((u) => u.id === defaultCounsellorId)?.username ??
+													"-",
+											  )
+											: "-"}
+									</p>
+								</div>
+							) : (
+								<button
+									type="button"
+									className="w-full rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+									onClick={() => setAssigningCounsellorToMentor(true)}
+								>
+									Assign counsellor to mentor
+								</button>
+							)}
+						</div>
+					) : (
+						<div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+							<p className="text-sm font-medium text-blue-900">
+								Assign counsellor to mentor
+							</p>
+							<select
+								value={selectedCounsellorForMentor ?? ""}
+								onChange={(e) =>
+									setSelectedCounsellorForMentor(e.target.value || null)
+								}
+								className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+							>
+								<option value="">Select counsellor</option>
+								{counsellors.map((counsellor) => (
+									<option key={counsellor.id} value={counsellor.id}>
+										{formatUserName(
+											counsellor.name ?? counsellor.username,
+										)}
+									</option>
+								))}
+							</select>
+							<div className="flex gap-2">
+								<button
+									type="button"
+									className="flex-1 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+									onClick={() => {
+										setAssigningCounsellorToMentor(false);
+										setSelectedCounsellorForMentor(null);
+									}}
+								>
+									Cancel
+								</button>
+								<button
+									type="button"
+									className="flex-1 rounded-2xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+									onClick={() => void handleAssignCounsellorToMentor()}
+									disabled={!selectedCounsellorForMentor || updateUserMutation.isPending}
+								>
+									{updateUserMutation.isPending
+										? "Assigning..."
+										: "Assign"}
+								</button>
+							</div>
+						</div>
+					)}
+
 					<Controller
 						name="note"
 						control={admissionControl}

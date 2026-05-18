@@ -1,4 +1,5 @@
 import type { LeadResponse } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format, isPast, isToday } from "date-fns";
 import { useState } from "react";
@@ -20,7 +21,6 @@ import {
 	useAssignDemoMentorMutation,
 	useMarkDemoCompletedMutation,
 } from "@/features/leads/use-lead-mutations";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { DemoOutcomeModal } from "./DemoOutcomeModal";
@@ -32,7 +32,6 @@ export const ScheduledDemosPage = () => {
 	const meQuery = useMeQuery(token);
 	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const reassignDemoMutation = useAssignDemoMentorMutation();
 	const currentUserId = meQuery.data?.id ?? "";
@@ -70,7 +69,7 @@ export const ScheduledDemosPage = () => {
 	}>({
 		defaultValues: {
 			mentorId: "",
-			demoScheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			demoScheduledFor: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 		},
 	});
 
@@ -849,7 +848,6 @@ export const ScheduledDemosPage = () => {
 			<RequirementsModal
 				open={requirementsOpen}
 				lead={selectedRequirements}
-				timeSlots={timeSlotsQuery.data?.timeSlots}
 				onClose={() => {
 					setRequirementsOpen(false);
 					setSelectedRequirements(null);

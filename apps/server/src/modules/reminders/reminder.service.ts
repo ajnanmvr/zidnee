@@ -7,14 +7,19 @@ import { AppError } from "../../utils/errors.util.js";
 import { type ReminderDocument, ReminderModel } from "./reminder.model.js";
 
 const toReminder = (doc: ReminderDocument): Reminder => {
+	const assignedTo = doc.assignedTo?.toString() ?? doc.createdBy.toString();
+
 	return {
 		id: doc._id.toString(),
-		studentId: doc.studentId.toString(),
+		linkedPerson: {
+			id: doc.linkedPersonId.toString(),
+			type: doc.linkedPersonType as "mentor" | "student",
+		},
 		date: doc.date,
 		note: doc.note,
 		isDone: doc.isDone,
 		createdBy: doc.createdBy.toString(),
-		assignedTo: doc.assignedTo.toString(),
+		assignedTo,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,
 	};
@@ -22,21 +27,31 @@ const toReminder = (doc: ReminderDocument): Reminder => {
 
 export const ReminderService = {
 	createReminder: async (
-		studentId: string,
+		linkedPersonId: string,
+		linkedPersonType: "mentor" | "student",
 		createdBy: string,
 		payload: CreateReminderPayload,
 	): Promise<Reminder> => {
 		const reminder = await ReminderModel.create({
-			studentId,
-			createdBy,			assignedTo: createdBy,			date: payload.date,
+			linkedPersonId,
+			linkedPersonType,
+			createdBy,
+			assignedTo: createdBy,
+			date: payload.date,
 			note: payload.note,
 		});
 
 		return toReminder(reminder.toObject() as ReminderDocument);
 	},
 
-	getRemindersByStudent: async (studentId: string): Promise<Reminder[]> => {
-		const reminders = await ReminderModel.find({ studentId })
+	getRemindersByPerson: async (
+		linkedPersonId: string,
+		linkedPersonType: "mentor" | "student",
+	): Promise<Reminder[]> => {
+		const reminders = await ReminderModel.find({
+			linkedPersonId,
+			linkedPersonType,
+		})
 			.sort({ date: -1 })
 			.lean<ReminderDocument[]>();
 
@@ -93,7 +108,13 @@ export const ReminderService = {
 		return reminder ? toReminder(reminder) : null;
 	},
 
-	deleteReminder: async (reminderId: string): Promise<void> => {
-		await ReminderModel.findByIdAndDelete(reminderId);
+	getReminderById: async (reminderId: string): Promise<Reminder | null> => {
+		const reminder = await ReminderModel.findById(reminderId).lean<ReminderDocument | null>();
+		return reminder ? toReminder(reminder) : null;
+	},
+
+	deleteReminder: async (reminderId: string): Promise<Reminder | null> => {
+		const deleted = await ReminderModel.findByIdAndDelete(reminderId).lean<ReminderDocument | null>();
+		return deleted ? toReminder(deleted) : null;
 	},
 };

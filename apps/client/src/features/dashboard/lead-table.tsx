@@ -116,7 +116,17 @@ export const buildLeadColumns = (options?: {
 	{
 		id: "urgency",
 		header: "Status",
-		cell: (info) => <UrgencyIndicator lead={info.row.original} />,
+		cell: (info) => {
+			if (options?.activeStage === "closed") {
+				return (
+					<span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+						Closed
+					</span>
+				);
+			}
+
+			return <UrgencyIndicator lead={info.row.original} />;
+		},
 		enableSorting: false,
 	},
 	{
@@ -150,6 +160,27 @@ export const buildLeadColumns = (options?: {
 				{(info.getValue() as string) ?? "-"}
 			</div>
 		),
+		enableSorting: true,
+	},
+	{
+		accessorKey: "courseType",
+		header: "Course",
+		cell: (info) => {
+			const val = info.getValue() as string | undefined | null;
+			if (!val) return <span className="text-sm text-slate-500">-</span>;
+			if (String(val).toUpperCase() === "GROUP") {
+				return (
+					<span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+						Group
+					</span>
+				);
+			}
+			return (
+				<span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+					Individual
+				</span>
+			);
+		},
 		enableSorting: true,
 	},
 	{

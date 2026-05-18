@@ -17,14 +17,12 @@ export const CreateReminderModal: React.FC<CreateReminderModalProps> = ({
 }) => {
 	const [note, setNote] = useState("");
 	const [date, setDate] = useState("");
-	const [dateTime, setDateTime] = useState("");
 	const mutation = useCreateReminderMutation(studentId);
 
 	useEffect(() => {
 		if (!isOpen) {
 			setNote("");
 			setDate("");
-			setDateTime("");
 		}
 	}, [isOpen]);
 
@@ -36,21 +34,23 @@ export const CreateReminderModal: React.FC<CreateReminderModalProps> = ({
 			return;
 		}
 
-		if (!date || !dateTime) {
-			toast.error("Date and time are required");
+		if (!date) {
+			toast.error("Date is required");
 			return;
 		}
 
 		try {
-			const reminderDateTime = new Date(`${date}T${dateTime}`);
-			if (reminderDateTime <= new Date()) {
-				toast.error("Reminder date/time must be in the future");
+			const reminderDate = new Date(`${date}T00:00:00`);
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			if (reminderDate < today) {
+				toast.error("Reminder date must be today or later");
 				return;
 			}
 
 			mutation.mutate({
 				note: note.trim(),
-				date: reminderDateTime,
+				date: reminderDate,
 			});
 
 			toast.success("Reminder created");
@@ -109,19 +109,6 @@ export const CreateReminderModal: React.FC<CreateReminderModalProps> = ({
 							type="date"
 							value={date}
 							onChange={(e) => setDate(e.target.value)}
-							className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
-
-					{/* Time Field */}
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-2">
-							Time <span className="text-red-500">*</span>
-						</label>
-						<input
-							type="time"
-							value={dateTime}
-							onChange={(e) => setDateTime(e.target.value)}
 							className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>

@@ -33,6 +33,8 @@ import {
 	useDueLeadFollowUpsQuery,
 	usePendingDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
+import { useGetAllReminders } from "@/features/reminders/reminders.mutations";
+import { getReminderDueStatus } from "@/features/reminders/reminders.utils";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 
@@ -40,6 +42,7 @@ const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
 	"/students": "Students",
+	"/mentors": "Mentors",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/counsellor/students": "Counsellor Students",
 	"/time-slots": "Time Slots",
@@ -51,9 +54,21 @@ const titles: Record<string, string> = {
 	"/demo-management/unassigned": "Unassigned Demos",
 	"/demo-management/scheduled": "Scheduled Demos",
 	"/reminders": "Reminders",
+	"/reminders/closed": "Closed Tasks",
 };
 
 const resolveTitle = (pathname: string, search: string): string => {
+	if (pathname === "/students") {
+		const params = new URLSearchParams(search);
+		const studentType = params.get("type");
+		if (studentType === "group") {
+			return "Group Students";
+		}
+		if (studentType === "individual") {
+			return "Individual Students";
+		}
+	}
+
 	if (/^\/users\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit User";
 	}
@@ -114,12 +129,14 @@ export const DashboardLayout = () => {
 		enabled: canReadLeads,
 	});
 	const studentsQuery = useStudentsQuery(token, canReadStudents);
+	const remindersQuery = useGetAllReminders({ enabled: canReadStudents });
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
 	const meName = me?.name ?? "User";
 	const currentUserId = me?.id;
 
 	const allStudents = studentsQuery.data?.students ?? [];
+	const allReminders = remindersQuery.data ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
 	const isCounsellor =
@@ -151,6 +168,10 @@ export const DashboardLayout = () => {
 			return isToday(scheduledDate) || isPast(scheduledDate);
 		},
 	).length;
+	const reminderUrgentCount = allReminders.filter((reminder) => {
+		const dueStatus = getReminderDueStatus(reminder.date);
+		return dueStatus === "pastDue" || dueStatus === "today";
+	}).length;
 	const currentLocation = `${location.pathname}${location.search}`;
 	const leadStageIcons = {
 		all: <HiPhone className="h-5 w-5" aria-hidden="true" />,
@@ -162,7 +183,6 @@ export const DashboardLayout = () => {
 		demoRequest: <HiBookmarkSquare className="h-5 w-5" aria-hidden="true" />,
 		demoAssigned: <HiUsers className="h-5 w-5" aria-hidden="true" />,
 		demoCompleted: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-		demoCancelled: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
 		converted: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
 		closed: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
 	} as const;
@@ -177,8 +197,6 @@ export const DashboardLayout = () => {
 		demoRequest: "orange",
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
-		demoCancelled: "orange",
-		converted: "emerald",
 		closed: "teal",
 	};
 
@@ -197,7 +215,7 @@ export const DashboardLayout = () => {
 					icon: leadStageIcons[id] || (
 						<HiPhone className="h-5 w-5" aria-hidden="true" />
 					),
-					count: leadStageCounts[id] ?? 0,
+					count: id === "closed" ? undefined : leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
 				};
@@ -229,22 +247,54 @@ export const DashboardLayout = () => {
 		...(hasPermission("STUDENT_READ")
 			? [
 				{
-					to: "/students",
-					label: "Students",
-					description: "Enrolled",
+					to: "/students?type=group&stage=active",
+					label: "Group Students",
+					description: "Enrolled in groups",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count: studentsQuery.data?.students.length ?? 0,
+					count:
+						studentsQuery.data?.students.filter(
+							(student) => student.courseType === "GROUP",
+						).length ?? 0,
 					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/students?type=individual&stage=active",
+					label: "Individual Students",
+					description: "One-to-one learners",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count:
+						studentsQuery.data?.students.filter(
+							(student) => student.courseType === "INDIVIDUAL",
+						).length ?? 0,
+					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/groups",
+					label: "Groups",
+					description: "Mentor groups",
+					icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+					accent: "emerald",
 					section: "Learners",
 				},
 				{
 					to: "/reminders",
 					label: "Reminders",
-					description: "All reminders",
+						description: "Open reminders",
 					icon: <HiOutlineBellAlert className="h-5 w-5" aria-hidden="true" />,
-					accent: "cyan",
+					count: reminderUrgentCount,
+					accent: "amber",
 					section: "Learners",
 				},
+					{
+						to: "/reminders/closed",
+						label: "Closed Tasks",
+						description: "Completed reminders",
+						icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
+						accent: "rose",
+						section: "Learners",
+					},
 			]
 			: []),
 		...(isCounsellor
@@ -280,6 +330,14 @@ export const DashboardLayout = () => {
 					description: "All accounts",
 					icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
 					accent: "cyan",
+					section: "Management",
+				},
+				{
+					to: "/mentors",
+					label: "Mentors",
+					description: "Mentor directory",
+					icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+					accent: "emerald",
 					section: "Management",
 				},
 			]

@@ -1,4 +1,4 @@
-import type { LeadResponse, TimeSlotResponse } from "@repo/schema";
+import type { LeadResponse } from "@repo/schema";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -9,7 +9,6 @@ import { formatRelativeDateTime, getDateLabel } from "@/lib/utils/date";
 interface RequirementsModalProps {
 	open: boolean;
 	lead: LeadResponse | null;
-	timeSlots?: TimeSlotResponse[];
 	onClose: () => void;
 	onSave?: (updatedLead: Partial<LeadResponse>) => Promise<void>;
 }
@@ -17,7 +16,6 @@ interface RequirementsModalProps {
 export const RequirementsModal = ({
 	open,
 	lead,
-	timeSlots,
 	onClose,
 	onSave,
 }: RequirementsModalProps) => {
@@ -55,27 +53,26 @@ export const RequirementsModal = ({
 		return value.charAt(0).toUpperCase() + value.slice(1);
 	};
 
-	const formatTimeslotLabel = (
-		timeslot:
-			| { label: string; timesPerWeek: number; durationMinutes: number }
-			| string,
-	) => {
-		if (typeof timeslot === "string") {
-			const matchedTimeSlot = timeSlots?.find((slot) => slot.id === timeslot);
-			return matchedTimeSlot?.label ?? timeslot;
+	const formatTimeValue = (value: string) => {
+		const [hoursText, minutesText] = value.split(":");
+		const hours = Number(hoursText);
+		const minutes = Number(minutesText);
+
+		if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+			return value;
 		}
 
-		return `${timeslot.label} • ${timeslot.timesPerWeek}/week • ${timeslot.durationMinutes} min`;
+		const meridiem = hours >= 12 ? "PM" : "AM";
+		const hour12 = hours % 12 || 12;
+		return `${hour12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${meridiem}`;
 	};
 
 	const formatPlanLabel = () => {
-		if (!lead?.preferredTimeslots?.length) {
+		if (!lead?.preferredPlan) {
 			return "N/A";
 		}
 
-		return lead.preferredTimeslots
-			.map((timeslot) => formatTimeslotLabel(timeslot))
-			.join(", ");
+		return `${lead.preferredPlan.timesPerWeek}/week • ${lead.preferredPlan.durationMinutes} min`;
 	};
 
 	const formatTimingLabel = () => {
@@ -84,10 +81,9 @@ export const RequirementsModal = ({
 		}
 
 		return lead.preferredTimeslots
-			.map((timeslot) =>
-				typeof timeslot === "string"
-					? (timeSlots?.find((slot) => slot.id === timeslot)?.label ?? timeslot)
-					: timeslot.label,
+			.map(
+				(slot) =>
+					`${formatTimeValue(slot.startTime)} - ${formatTimeValue(slot.endTime)}`,
 			)
 			.join(", ");
 	};
@@ -120,7 +116,6 @@ export const RequirementsModal = ({
 		const attemptLabel = formatAttemptLabel(lead.demos?.length ?? 0);
 		const plan = lead.preferredSchedule || "N/A";
 		const timing = formatTimingLabel();
-		const classStarting = lead.startClassWhen || "N/A";
 		const demoTime =
 			latestDemo?.demoScheduledFor || lead.demoAvailability || "N/A";
 
@@ -132,7 +127,7 @@ export const RequirementsModal = ({
 			`*Preferred Days:* ${preferredDays}`,
 			`*Plan:* ${plan}`,
 			`*Timing:* ${timing}`,
-			`*Class starting:* ${classStarting}`,
+
 			`*Demo Time:* ${demoTime}`,
 			`*Attempt:* ${attemptLabel}`,
 			latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
@@ -357,23 +352,6 @@ export const RequirementsModal = ({
 									</div>
 								)}
 							/>
-							<Controller
-								name="startClassWhen"
-								control={control}
-								render={({ field }) => (
-									<div>
-										<p className="block text-xs font-semibold text-gray-600 mb-1">
-											Start Class When
-										</p>
-										<input
-											{...field}
-											type="text"
-											placeholder="ASAP / Specific date"
-											className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-										/>
-									</div>
-								)}
-							/>
 						</div>
 
 						{/* Availability */}
@@ -495,12 +473,6 @@ export const RequirementsModal = ({
 										<span className="text-slate-600">Plans</span>
 										<span className="font-semibold text-slate-900 text-right">
 											{formatPlanLabel()}
-										</span>
-									</div>
-									<div className="flex items-start justify-between gap-3">
-										<span className="text-slate-600">Start Class</span>
-										<span className="font-semibold text-slate-900 text-right">
-											{lead.startClassWhen || "N/A"}
 										</span>
 									</div>
 								</div>

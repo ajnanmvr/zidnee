@@ -1,4 +1,5 @@
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import { ZID_CONSTANTS } from "@repo/schema";
 
 interface ZidSequenceDocument {
 	_id: string; // prefix like 'ZID', 'ZIG'
@@ -28,7 +29,9 @@ const ZidSequenceModel =
 	mongoose.model<ZidSequenceDocument>("ZidSequence", zidSequenceSchema);
 
 export const ZidService = {
-	generateZid: async (prefix: string = "ZID"): Promise<string> => {
+	generateZid: async (
+		prefix: string = ZID_CONSTANTS.prefixes.student,
+	): Promise<string> => {
 		const sequence = await ZidSequenceModel.findByIdAndUpdate(
 			prefix,
 			{ $inc: { nextNumber: 1 } },

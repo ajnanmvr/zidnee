@@ -3,10 +3,11 @@ import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 export type ReminderDocument = Omit<
 	Reminder,
-	"id" | "studentId" | "createdBy" | "assignedTo"
+	"id" | "linkedPerson" | "createdBy" | "assignedTo"
 > & {
 	_id: Types.ObjectId;
-	studentId: Types.ObjectId;
+	linkedPersonId: Types.ObjectId;
+	linkedPersonType: string;
 	createdBy: Types.ObjectId;
 	assignedTo: Types.ObjectId;
 	date: Date;
@@ -17,12 +18,16 @@ export type ReminderDocument = Omit<
 
 const reminderSchema = new Schema<ReminderDocument>(
 	{
-		studentId: {
-			type: Schema.Types.ObjectId,
-			ref: "Student",
-			required: true,
-			index: true,
-		},
+		linkedPersonId: {
+				type: Schema.Types.ObjectId,
+				required: true,
+				index: true,
+			},
+		linkedPersonType: {
+				type: String,
+				required: true,
+				index: true,
+			},
 		date: {
 			type: Date,
 			required: true,

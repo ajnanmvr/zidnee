@@ -6,10 +6,15 @@ export type BatchType = z.infer<typeof BatchTypeSchema>;
 
 export const BatchSchema = z.object({
 	id: ObjectIdStringSchema,
-	name: z.string().min(1).max(255),
+	groupId: z.string().min(1).max(20).optional(),
+	name: z.string().min(1).max(255).optional(),
 	type: BatchTypeSchema, // GROUP or INDIVIDUAL
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
+	counsellorId: ObjectIdStringSchema.optional(),
+	oralAssessmentDone: z.boolean().default(false),
+	writtenAssessmentDone: z.boolean().default(false),
+	levelAssessmentDone: z.boolean().default(false),
 	description: z.string().max(500).optional(),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().optional(),
@@ -19,20 +24,40 @@ export const BatchSchema = z.object({
 export type Batch = z.infer<typeof BatchSchema>;
 
 export const CreateBatchPayloadSchema = z.object({
-	name: z.string().min(1).max(255),
+	name: z.preprocess((value) => {
+		if (typeof value === "string" && value.trim() === "") {
+			return undefined;
+		}
+
+		return value;
+	}, z.string().min(1).max(255).optional()),
 	type: BatchTypeSchema,
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
+	counsellorId: ObjectIdStringSchema.optional(),
+	oralAssessmentDone: z.boolean().optional(),
+	writtenAssessmentDone: z.boolean().optional(),
+	levelAssessmentDone: z.boolean().optional(),
 	description: z.string().max(500).optional(),
 });
 
 export type CreateBatchPayload = z.infer<typeof CreateBatchPayloadSchema>;
 
 export const UpdateBatchPayloadSchema = z.object({
-	name: z.string().min(1).max(255).optional(),
+	name: z.preprocess((value) => {
+		if (typeof value === "string" && value.trim() === "") {
+			return undefined;
+		}
+
+		return value;
+	}, z.string().min(1).max(255).optional()),
 	type: BatchTypeSchema.optional(),
 	level: z.string().min(1).max(100).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
+	oralAssessmentDone: z.boolean().optional(),
+	writtenAssessmentDone: z.boolean().optional(),
+	levelAssessmentDone: z.boolean().optional(),
 	description: z.string().max(500).optional(),
 	isActive: z.boolean().optional(),
 });

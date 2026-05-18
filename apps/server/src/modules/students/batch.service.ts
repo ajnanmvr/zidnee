@@ -4,14 +4,20 @@ import type {
 	UpdateBatchPayload,
 } from "@repo/schema";
 import { type BatchDocument, BatchModel } from "./batch.model.js";
+import { BatchIdentityService } from "./batch.identity.js";
 
 const toBatch = (doc: BatchDocument): Batch => {
 	return {
 		id: doc._id.toString(),
+		groupId: doc.groupId,
 		name: doc.name,
 		type: doc.type,
 		level: doc.level,
 		mentorId: doc.mentorId.toString(),
+		counsellorId: doc.counsellorId?.toString(),
+		oralAssessmentDone: doc.oralAssessmentDone ?? false,
+		writtenAssessmentDone: doc.writtenAssessmentDone ?? false,
+		levelAssessmentDone: doc.levelAssessmentDone ?? false,
 		description: doc.description,
 		isActive: doc.isActive,
 		createdAt: doc.createdAt,
@@ -21,11 +27,20 @@ const toBatch = (doc: BatchDocument): Batch => {
 
 export const BatchService = {
 	create: async (payload: CreateBatchPayload): Promise<Batch> => {
+		const groupId =
+			payload.type === "GROUP"
+				? await BatchIdentityService.generateGroupId()
+				: undefined;
 		const batch = await BatchModel.create({
-			name: payload.name,
+			groupId,
+			name: payload.name?.trim() || undefined,
 			type: payload.type,
 			level: payload.level,
 			mentorId: payload.mentorId,
+			counsellorId: payload.counsellorId,
+			oralAssessmentDone: payload.oralAssessmentDone ?? false,
+			writtenAssessmentDone: payload.writtenAssessmentDone ?? false,
+			levelAssessmentDone: payload.levelAssessmentDone ?? false,
 			description: payload.description,
 		});
 
@@ -55,10 +70,14 @@ export const BatchService = {
 			id,
 			{
 				$set: {
-					name: payload.name,
+					name: payload.name?.trim() || undefined,
 					type: payload.type,
 					level: payload.level,
 					mentorId: payload.mentorId,
+					counsellorId: payload.counsellorId,
+					oralAssessmentDone: payload.oralAssessmentDone,
+					writtenAssessmentDone: payload.writtenAssessmentDone,
+					levelAssessmentDone: payload.levelAssessmentDone,
 					description: payload.description,
 					isActive: payload.isActive,
 				},

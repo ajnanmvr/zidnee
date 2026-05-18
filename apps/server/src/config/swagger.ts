@@ -115,7 +115,6 @@ const options: Parameters<typeof swaggerJsdoc>[0] = {
 							},
 						},
 						price: { type: "number" },
-						startClassWhen: { type: "string" },
 						hearAboutUs: { type: "string" },
 						counsellorId: { type: "string" },
 						batchId: { type: "string" },

@@ -49,8 +49,6 @@ const userSchema = new Schema<UserDocument>(
 		counsellorId: {
 			type: String,
 			required: false,
-			unique: true,
-			sparse: true,
 			index: true,
 		},
 		roleIds: {
@@ -62,6 +60,21 @@ const userSchema = new Schema<UserDocument>(
 			type: Boolean,
 			required: true,
 			default: true,
+		},
+		// Mentor followup fields
+		lastContactedAt: {
+			type: Date,
+			required: false,
+		},
+		nextFollowUpAt: {
+			type: Date,
+			required: false,
+			index: true,
+		},
+		customNextFollowUpAt: {
+			type: Date,
+			required: false,
+			index: true,
 		},
 	},
 	{

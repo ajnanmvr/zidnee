@@ -1,4 +1,5 @@
 import type { LeadResponse } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -12,7 +13,6 @@ import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
-import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { RequirementsModal } from "./RequirementsModal";
@@ -23,7 +23,6 @@ export const UnassignedDemosPage = () => {
 	const meQuery = useMeQuery(token);
 	const demosQuery = usePendingDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const timeSlotsQuery = useTimeSlotsQuery(token);
 	const assignDemoMutation = useAssignDemoMentorMutation();
 	const currentUserId = meQuery.data?.id ?? "";
 
@@ -45,7 +44,7 @@ export const UnassignedDemosPage = () => {
 	}>({
 		defaultValues: {
 			mentorId: "",
-			demoScheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			demoScheduledFor: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
 		},
 	});
 
@@ -81,7 +80,7 @@ export const UnassignedDemosPage = () => {
 		// Pre-populate with user's preferred demo availability time
 		const scheduledDate = demo.demoAvailability
 			? new Date(demo.demoAvailability)
-			: new Date(Date.now() + 24 * 60 * 60 * 1000);
+			: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead);
 		resetAssign({
 			mentorId: "",
 			demoScheduledFor: scheduledDate,
@@ -395,7 +394,6 @@ export const UnassignedDemosPage = () => {
 			<RequirementsModal
 				open={requirementsOpen}
 				lead={selectedRequirements}
-				timeSlots={timeSlotsQuery.data?.timeSlots}
 				onClose={() => {
 					setRequirementsOpen(false);
 					setSelectedRequirements(null);

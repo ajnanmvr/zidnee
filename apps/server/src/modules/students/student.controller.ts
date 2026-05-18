@@ -1,10 +1,13 @@
 import {
 	StudentFollowUpPayloadSchema,
 	StudentsResponseSchema,
+	UpdateStudentAssessmentPayloadSchema,
+ 	UpdateStudentPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { StudentService } from "./student.service.js";
+import { uploadBuffer } from "../../lib/s3.js";
 
 const toStudentResponse = (
 	student: Awaited<ReturnType<typeof StudentService.listStudents>>[number],
@@ -24,18 +27,21 @@ const toStudentResponse = (
 		gender: student.gender,
 		primaryWhatsappNumber: student.primaryWhatsappNumber,
 		alternateWhatsappNumber: student.alternateWhatsappNumber,
+		profilePic: student.profilePic,
 		studentInfo: student.studentInfo,
 		preferredLanguage: student.preferredLanguage,
 		preferredSchedule: student.preferredSchedule,
 		preferredDays: student.preferredDays,
 		timeslot: student.timeslot,
 		price: student.price,
-		startClassWhen: student.startClassWhen,
 		hearAboutUs: student.hearAboutUs,
 		mentorId: student.mentorId,
 		batchId: student.batchId,
 		processId: student.processId,
 		processLabel: student.processLabel,
+		oralAssessmentDone: student.oralAssessmentDone,
+		writtenAssessmentDone: student.writtenAssessmentDone,
+		levelAssessmentDone: student.levelAssessmentDone,
 		nextFollowUpAt: student.nextFollowUpAt?.toISOString() ?? null,
 		customNextFollowUpAt: student.customNextFollowUpAt?.toISOString() ?? null,
 		status: student.status,
@@ -88,4 +94,63 @@ export const recordStudentFollowUpController = async (
 		ok: true,
 		student: student ? toStudentResponse(student) : null,
 	});
+};
+
+export const updateStudentAssessmentController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const studentId = requireStringValue(req.params.studentId, "studentId");
+	const payload = UpdateStudentAssessmentPayloadSchema.parse(req.body);
+	const performedBy = requireStringValue(req.user?.userId, "userId");
+	const student = await StudentService.updateAssessment(
+		studentId,
+		payload.assessmentType,
+		payload.isDone,
+		performedBy,
+		payload.note,
+	);
+
+	res.json({
+		ok: true,
+		student: student ? toStudentResponse(student) : null,
+	});
+};
+
+export const updateStudentController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+ 	const studentId = requireStringValue(req.params.studentId, "studentId");
+ 	const payload = UpdateStudentPayloadSchema.parse(req.body);
+ 	const student = await StudentService.update(studentId, payload);
+
+ 	res.json({
+ 		ok: true,
+ 		student: student ? toStudentResponse(student) : null,
+ 	});
+};
+
+export const uploadStudentProfilePicController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const studentId = requireStringValue(req.params.studentId, "studentId");
+	// multer places the file on req.file
+	const file = (req as any).file as Express.Multer.File | undefined;
+
+	if (!file || !file.buffer) {
+		res.status(400).json({ ok: false, error: "No file provided" });
+		return;
+	}
+	// construct a key for S3: students/{studentId}/{timestamp}_{filename}
+	const timestamp = Date.now();
+	const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+	const key = `students/${studentId}/${timestamp}_${safeName}`;
+
+	const url = await uploadBuffer(file.buffer, key, file.mimetype);
+
+	const student = await StudentService.update(studentId, { profilePic: url });
+
+	res.json({ ok: true, student: student ? toStudentResponse(student) : null });
 };

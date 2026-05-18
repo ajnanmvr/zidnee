@@ -6,9 +6,15 @@ export const StudentStatusSchema = z.enum(["STUDENT", "BREAK", "DROPPED"]);
 
 export type StudentStatus = z.infer<typeof StudentStatusSchema>;
 
+export const StudentTimeslotSchema = z.object({
+	startTime: z.string().min(1),
+	endTime: z.string().min(1),
+});
+
 export const StudentTimeslotSnapshotSchema = z.object({
 	classesPerWeek: z.number().int().positive(),
 	durationMinutes: z.number().int().positive(),
+	timeslots: z.array(StudentTimeslotSchema).default([]),
 });
 
 export type StudentTimeslotSnapshot = z.infer<
@@ -21,6 +27,9 @@ export const StudentSchema = z.object({
 	leadId: ObjectIdStringSchema,
 	processId: ObjectIdStringSchema.optional(),
 	processLabel: z.string().max(150).optional(),
+	oralAssessmentDone: z.boolean().default(false),
+	writtenAssessmentDone: z.boolean().default(false),
+	levelAssessmentDone: z.boolean().default(false),
 	nextFollowUpAt: z.date().optional(),
 	customNextFollowUpAt: z.date().optional(),
 	name: z.string().max(255).optional(),
@@ -34,6 +43,7 @@ export const StudentSchema = z.object({
 	gender: z.enum(["male", "female"]).optional(),
 	primaryWhatsappNumber: z.string().min(8).max(20).optional(),
 	alternateWhatsappNumber: z.string().min(8).max(20).optional(),
+	profilePic: z.string().max(5000000).optional(),
 	studentInfo: z.string().max(1000).optional(),
 	preferredLanguage: z
 		.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"])
@@ -42,7 +52,6 @@ export const StudentSchema = z.object({
 	preferredDays: z.array(z.string()).default([]),
 	timeslot: StudentTimeslotSnapshotSchema.optional(),
 	price: z.number().int().nonnegative().optional(),
-	startClassWhen: z.string().max(100).optional(),
 	hearAboutUs: z.string().max(255).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional(),
@@ -62,6 +71,26 @@ export const ConfirmAdmissionPayloadSchema = z.object({
 	note: z.string().max(500).optional(),
 });
 
+export const StudentAssessmentTypeSchema = z.enum([
+	"oral",
+	"written",
+	"level",
+]);
+
+export type StudentAssessmentType = z.infer<
+	typeof StudentAssessmentTypeSchema
+>;
+
+export const UpdateStudentAssessmentPayloadSchema = z.object({
+	assessmentType: StudentAssessmentTypeSchema,
+	isDone: z.boolean(),
+	note: z.string().max(500).optional(),
+});
+
+export type UpdateStudentAssessmentPayload = z.infer<
+	typeof UpdateStudentAssessmentPayloadSchema
+>;
+
 export type ConfirmAdmissionPayload = z.infer<
 	typeof ConfirmAdmissionPayloadSchema
 >;
@@ -73,6 +102,14 @@ export const StudentFollowUpPayloadSchema = z.object({
 export type StudentFollowUpPayload = z.infer<
 	typeof StudentFollowUpPayloadSchema
 >;
+
+export const UpdateStudentPayloadSchema = z.object({
+	mentorId: ObjectIdStringSchema.optional(),
+	batchId: ObjectIdStringSchema.optional().nullable(),
+	profilePic: z.string().max(5000000).nullable().optional(),
+});
+
+export type UpdateStudentPayload = z.infer<typeof UpdateStudentPayloadSchema>;
 
 export const StudentResponseSchema = StudentSchema.omit({
 	dateOfBirth: true,

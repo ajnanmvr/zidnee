@@ -49,10 +49,25 @@ const CreateMentorPage = lazy(() =>
 		default: module.CreateMentorPage,
 	})),
 );
+const MentorsPage = lazy(() =>
+	import("@/features/dashboard/MentorsPage").then((module) => ({
+		default: module.MentorsPage,
+	})),
+);
+const MentorDetailPage = lazy(() =>
+	import("@/features/mentors/MentorDetailPage").then((module) => ({
+		default: module.MentorDetailPage,
+	})),
+);
 const GroupsPage = lazy(() =>
 	import("@/features/dashboard/GroupsPage").then((module) => ({
 		default: module.GroupsPage,
 	})),
+);
+const GroupDetailPage = lazy(() =>
+ 	import("@/features/dashboard/GroupDetailPage").then((module) => ({
+ 		default: module.GroupDetailPage,
+ 	})),
 );
 const CreateTimeSlotsPage = lazy(() =>
 	import("@/features/dashboard/CreateTimeSlotsPage").then((module) => ({
@@ -112,6 +127,11 @@ const ScheduledDemosPage = lazy(() =>
 const RemindersPage = lazy(() =>
 	import("@/features/reminders/RemindersPage").then((module) => ({
 		default: module.RemindersPage,
+	})),
+);
+const ClosedRemindersPage = lazy(() =>
+	import("@/features/reminders/ClosedRemindersPage").then((module) => ({
+		default: module.ClosedRemindersPage,
 	})),
 );
 
@@ -211,10 +231,34 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
+						path: "mentors",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MentorsPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "mentors/:mentorId",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MentorDetailPage />
+							</Suspense>
+						),
+					},
+					{
 						path: "groups",
 						element: (
 							<Suspense fallback={routeFallback}>
 								<GroupsPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "groups/:groupId",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<GroupDetailPage />
 							</Suspense>
 						),
 					},
@@ -319,6 +363,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<RemindersPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "reminders/closed",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<ClosedRemindersPage />
 							</Suspense>
 						),
 					},

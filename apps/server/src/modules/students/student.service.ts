@@ -1,10 +1,12 @@
 import type { Student } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
 import { AppError } from "../../utils/errors.util.js";
 import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
+import { deleteObjectFromUrl } from "../../lib/s3.js";
 import {
 	type StudentActivityDocument,
 	StudentActivityModel,
@@ -14,6 +16,12 @@ import {
 	type StudentProcessDocument,
 	StudentProcessModel,
 } from "./student-process.model.js";
+
+const resolveStudentZidPrefix = (courseType?: LeadDocument["courseType"]): string => {
+	return courseType === "GROUP"
+		? ZID_CONSTANTS.prefixes.groupStudent
+		: ZID_CONSTANTS.prefixes.student;
+};
 
 type StudentListFilters = {
 	status?: string;
@@ -25,7 +33,7 @@ type StudentListFilters = {
 };
 
 const getDefaultStudentFollowUpAt = (source?: Date | null): Date => {
-	return source ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+	return source ?? new Date(Date.now() + FOLLOW_UP_PERIOD_MS.student);
 };
 
 const getStudentSort = (
@@ -50,6 +58,14 @@ const getLatestLeadDemo = (lead: LeadDocument) => {
 	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
 };
 
+const assessmentFieldByType = {
+	oral: "oralAssessmentDone",
+	written: "writtenAssessmentDone",
+	level: "levelAssessmentDone",
+} as const;
+
+type AssessmentType = keyof typeof assessmentFieldByType;
+
 const toStudent = (doc: StudentDocument): Student => {
 	return {
 		id: doc._id.toString(),
@@ -66,18 +82,21 @@ const toStudent = (doc: StudentDocument): Student => {
 		gender: doc.gender,
 		primaryWhatsappNumber: doc.primaryWhatsappNumber,
 		alternateWhatsappNumber: doc.alternateWhatsappNumber,
+		profilePic: doc.profilePic,
 		studentInfo: doc.studentInfo,
 		preferredLanguage: doc.preferredLanguage,
 		preferredSchedule: doc.preferredSchedule,
 		preferredDays: doc.preferredDays ?? [],
 		timeslot: doc.timeslot,
 		price: doc.price,
-		startClassWhen: doc.startClassWhen,
 		hearAboutUs: doc.hearAboutUs,
 		mentorId: doc.mentorId?.toString(),
 		batchId: doc.batchId?.toString(),
 		processId: doc.processId?.toString(),
 		processLabel: doc.processLabel,
+		oralAssessmentDone: doc.oralAssessmentDone ?? false,
+		writtenAssessmentDone: doc.writtenAssessmentDone ?? false,
+		levelAssessmentDone: doc.levelAssessmentDone ?? false,
 		nextFollowUpAt: doc.nextFollowUpAt,
 		customNextFollowUpAt: doc.customNextFollowUpAt,
 		status: doc.status,
@@ -87,10 +106,13 @@ const toStudent = (doc: StudentDocument): Student => {
 	};
 };
 
-const nextStudentZid = async (): Promise<string> => {
+const nextStudentZid = async (prefix: string): Promise<string> => {
 	const students =
 		await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
-	return buildStudentIdentity(students.map((student) => student.zid));
+	return buildStudentIdentity(
+		students.map((student) => student.zid),
+		prefix,
+	);
 };
 
 const logStudentActivity = async (params: {
@@ -98,6 +120,7 @@ const logStudentActivity = async (params: {
 	type:
 		| "CREATED"
 		| "UPDATED"
+		| "ASSESSMENT_UPDATED"
 		| "FOLLOW_UP_POSTPONED"
 		| "FOLLOW_UP_RECORDED"
 		| "STATUS_CHANGED"
@@ -212,6 +235,56 @@ export const StudentService = {
 			.exec();
 	},
 
+	updateAssessment: async (
+		studentId: string,
+		assessmentType: AssessmentType,
+		isDone: boolean,
+		performedBy: string,
+		note?: string,
+	): Promise<Student | null> => {
+		const student = await StudentModel.findById(
+			studentId,
+		).lean<StudentDocument | null>();
+		if (!student) {
+			throw new AppError(404, "Student not found");
+		}
+
+		const fieldName = assessmentFieldByType[assessmentType];
+		const oldValue = {
+			oralAssessmentDone: student.oralAssessmentDone ?? false,
+			writtenAssessmentDone: student.writtenAssessmentDone ?? false,
+			levelAssessmentDone: student.levelAssessmentDone ?? false,
+		};
+		const updatedStudent = await StudentModel.findByIdAndUpdate(
+			student._id,
+			{
+				$set: {
+					[fieldName]: isDone,
+				},
+			},
+			{ returnDocument: "after" },
+		).lean<StudentDocument | null>();
+
+		if (!updatedStudent) {
+			return null;
+		}
+
+		await logStudentActivity({
+			studentId: student._id.toString(),
+			type: "ASSESSMENT_UPDATED",
+			performedBy,
+			description: `${assessmentType} assessment marked ${isDone ? "done" : "undone"}`,
+			note,
+			oldValue,
+			newValue: {
+				[fieldName]: isDone,
+			},
+		});
+
+		return toStudent(updatedStudent);
+	},
+
+
 	recordFollowUp: async (
 		studentId: string,
 		performedBy: string,
@@ -224,7 +297,7 @@ export const StudentService = {
 			throw new AppError(404, "Student not found");
 		}
 
-		const nextFollowUpAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+		const nextFollowUpAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 		const updatedStudent = await StudentModel.findByIdAndUpdate(
 			student._id,
 			{
@@ -304,7 +377,7 @@ export const StudentService = {
 			throw new Error("admittedBy user is required");
 		}
 
-		const zid = await nextStudentZid();
+		const zid = await nextStudentZid(resolveStudentZidPrefix(existingLead.courseType));
 		const admittedAt = new Date();
 		const nextFollowUpAt = getDefaultStudentFollowUpAt(
 			existingLead.nextFollowUpAt,
@@ -327,18 +400,14 @@ export const StudentService = {
 			preferredLanguage: existingLead.preferredLanguage,
 			preferredSchedule: existingLead.preferredSchedule,
 			preferredDays: existingLead.preferredDays ?? [],
-			timeslot: existingLead.preferredTimeslots?.[0]
+			timeslot: existingLead.preferredPlan
 				? {
-						classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
-						durationMinutes: existingLead.preferredTimeslots[0].durationMinutes,
+						classesPerWeek: existingLead.preferredPlan.timesPerWeek,
+						durationMinutes: existingLead.preferredPlan.durationMinutes,
 					}
 				: undefined,
 			price: existingLead.price,
-			startClassWhen: existingLead.startClassWhen,
-			hearAboutUs: existingLead.hearAboutUs,
-			mentorId: resolvedMentorId,
-			batchId,
-			status: "STUDENT",
+
 			nextFollowUpAt,
 			admittedAt,
 		});
@@ -454,7 +523,7 @@ export const StudentService = {
 			throw new Error("admittedBy user is required");
 		}
 
-		const zid = await nextStudentZid();
+		const zid = await nextStudentZid(resolveStudentZidPrefix(existingLead.courseType));
 		const admittedAt = new Date();
 		const createdStudent = await StudentModel.create({
 			zid,
@@ -474,18 +543,14 @@ export const StudentService = {
 			preferredLanguage: existingLead.preferredLanguage,
 			preferredSchedule: existingLead.preferredSchedule,
 			preferredDays: existingLead.preferredDays ?? [],
-			timeslot: existingLead.preferredTimeslots?.[0]
+			timeslot: existingLead.preferredPlan
 				? {
-						classesPerWeek: existingLead.preferredTimeslots[0].timesPerWeek,
-						durationMinutes: existingLead.preferredTimeslots[0].durationMinutes,
+						classesPerWeek: existingLead.preferredPlan.timesPerWeek,
+						durationMinutes: existingLead.preferredPlan.durationMinutes,
 					}
 				: undefined,
 			price: existingLead.price,
-			startClassWhen: existingLead.startClassWhen,
-			hearAboutUs: existingLead.hearAboutUs,
-			mentorId: resolvedMentorId,
-			batchId,
-			status: "STUDENT",
+
 			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
 			admittedAt,
 		});
@@ -551,5 +616,73 @@ export const StudentService = {
 		return toStudent(
 			(syncedStudent ?? createdStudent.toObject()) as StudentDocument,
 		);
+	},
+
+	update: async (
+		studentId: string,
+		payload: Partial<{
+			batchId?: string | null;
+			mentorId?: string;
+			profilePic?: string | null;
+		}>,
+	): Promise<Student | null> => {
+		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+		if (!student) {
+			throw new AppError(404, "Student not found");
+		}
+
+		const $set: Record<string, unknown> = {
+			mentorId: payload.mentorId ?? student.mentorId,
+			batchId: payload.batchId === null ? undefined : payload.batchId ?? student.batchId,
+		};
+		const $unset: Record<string, 1> = {};
+
+		if (payload.profilePic !== undefined) {
+			if (payload.profilePic === null) {
+				$unset.profilePic = 1;
+			} else {
+				$set.profilePic = payload.profilePic;
+			}
+		}
+
+		const updatedStudent = await StudentModel.findByIdAndUpdate(
+			student._id,
+			{
+				$set,
+				...($unset.profilePic ? { $unset } : {}),
+			},
+			{ returnDocument: "after" },
+		).lean<StudentDocument | null>();
+
+		// If profile picture changed/removed, delete the old S3 object if it was hosted on our bucket
+		if (payload.profilePic !== undefined) {
+			const oldPic = student.profilePic;
+			const newPic = updatedStudent?.profilePic ?? null;
+			if (oldPic && oldPic !== newPic) {
+				await deleteObjectFromUrl(oldPic).catch(() => undefined);
+			}
+		}
+
+		if (!updatedStudent) return null;
+
+		await logStudentActivity({
+			studentId: student._id.toString(),
+			type: "UPDATED",
+			performedBy: student.admittedBy.toString(),
+			description: "Student updated",
+			oldValue: {
+				mentorId: student.mentorId?.toString(),
+				batchId: student.batchId?.toString(),
+				profilePic: student.profilePic ?? null,
+			},
+			newValue: {
+				mentorId: updatedStudent.mentorId?.toString(),
+				batchId: updatedStudent.batchId?.toString(),
+				profilePic: updatedStudent.profilePic ?? null,
+			},
+		});
+
+		const synced = await syncStudentProcess(updatedStudent._id.toString());
+		return toStudent((synced ?? updatedStudent) as StudentDocument);
 	},
 };

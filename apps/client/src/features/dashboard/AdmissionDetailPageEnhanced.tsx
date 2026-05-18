@@ -47,7 +47,6 @@ export const AdmissionDetailPageEnhanced = () => {
 
 	const batchesQuery = useBatchesByMentorQuery(token, selectedMentorId ?? "");
 	const allUsers = usersQuery.data?.users ?? [];
-
 	const mentors = useMemo(
 		() =>
 			allUsers.filter((user) =>
@@ -55,7 +54,6 @@ export const AdmissionDetailPageEnhanced = () => {
 			),
 		[allUsers],
 	);
-
 	const counsellors = useMemo(
 		() =>
 			allUsers.filter((user) =>
@@ -63,32 +61,30 @@ export const AdmissionDetailPageEnhanced = () => {
 			),
 		[allUsers],
 	);
-
 	const userNameById = useMemo(
 		() =>
 			new Map(
-				allUsers.map((user) => [
-					user.id,
-					formatUserName(user.name ?? user.username),
-				]),
+				allUsers.map((user) => [user.id, formatUserName(user.name ?? user.username)]),
 			),
 		[allUsers],
 	);
-
 	const selectedMentor = useMemo(
 		() => allUsers.find((user) => user.id === selectedMentorId),
 		[selectedMentorId, allUsers],
 	);
-
 	const mentorHasCounsellor = selectedMentor?.counsellorId;
-	const mentorCounsellorId = mentorHasCounsellor
-		? selectedMentor.counsellorId
-		: null;
+	const mentorCounsellorId = mentorHasCounsellor ? selectedMentor.counsellorId : null;
 
 	const lead = leadQuery.data?.lead;
+	const preferredPlan = lead?.preferredPlan as
+		| { timesPerWeek: number; durationMinutes: number }
+		| undefined;
+	const preferredTimeslots = (lead?.preferredTimeslots ?? []) as Array<{
+		startTime: string;
+		endTime: string;
+	}>;
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 
-	// Auto-select counsellor when mentor is selected
 	useEffect(() => {
 		if (selectedMentorId) {
 			const mentor = allUsers.find((user) => user.id === selectedMentorId);
@@ -136,9 +132,7 @@ export const AdmissionDetailPageEnhanced = () => {
 				leadId,
 				payload: validation.data,
 			});
-			toast.success(
-				`Admission confirmed. Student ID ${response.student.zid} created.`,
-			);
+			toast.success(`Admission confirmed. Student ID ${response.student.zid} created.`);
 			reset();
 			navigate("/students");
 		} catch (error) {
@@ -147,9 +141,7 @@ export const AdmissionDetailPageEnhanced = () => {
 				return;
 			}
 
-			toast.error(
-				error instanceof Error ? error.message : "Unable to confirm admission",
-			);
+			toast.error(error instanceof Error ? error.message : "Unable to confirm admission");
 		}
 	};
 
@@ -196,10 +188,7 @@ export const AdmissionDetailPageEnhanced = () => {
 					Lead: {lead.name ?? "Unnamed lead"} ({lead.phone})
 				</p>
 				<p>
-					Demo mentor:{" "}
-					{latestDemo?.mentorId
-						? (userNameById.get(latestDemo.mentorId) ?? "-")
-						: "-"}
+					Demo mentor: {latestDemo?.mentorId ? (userNameById.get(latestDemo.mentorId) ?? "-") : "-"}
 				</p>
 				<div className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-gray-700">
 					<p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -207,46 +196,45 @@ export const AdmissionDetailPageEnhanced = () => {
 					</p>
 					<div className="grid gap-2 md:grid-cols-3">
 						<p>
-							<span className="font-medium text-gray-900">Start class:</span>{" "}
-							{lead.startClassWhen || "-"}
-						</p>
-						<p>
 							<span className="font-medium text-gray-900">Schedule:</span>{" "}
 							{lead.preferredSchedule || "-"}
 						</p>
 						<p>
-							<span className="font-medium text-gray-900">
-								Demo availability:
-							</span>{" "}
+							<span className="font-medium text-gray-900">Demo availability:</span>{" "}
 							{lead.demoAvailability || "-"}
 						</p>
 						<p>
-							<span className="font-medium text-gray-900">Time slots:</span>{" "}
-							{lead.preferredTimeslots?.length
-								? lead.preferredTimeslots
-										.map((timeslot) =>
-											typeof timeslot === "string"
-												? timeslot
-												: `${timeslot.label} • ${timeslot.timesPerWeek}/week • ${timeslot.durationMinutes} min`,
-										)
-										.join(", ")
-								: "-"}
+							<span className="font-medium text-gray-900">Preferred Plan:</span>{" "}
+							{preferredPlan ? `${preferredPlan.timesPerWeek}/week • ${preferredPlan.durationMinutes} min` : "-"}
 						</p>
+						<div className="md:col-span-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+							<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+								Preferred Timings
+							</p>
+							<div className="mt-2 flex flex-wrap gap-2">
+								{preferredTimeslots.length
+									? preferredTimeslots.map((slot, index) => (
+										<span
+											key={`${slot.startTime}-${slot.endTime}-${index}`}
+											className="rounded-full bg-white px-3 py-1 text-sm text-gray-700 shadow-sm"
+										>
+											{slot.startTime} - {slot.endTime}
+										</span>
+									))
+									: "-"}
+							</div>
+						</div>
 					</div>
 				</div>
 				<p>
-					Student ID will be generated automatically on confirmation in the
-					format `ZID###`.
+					Student ID will be generated automatically on confirmation in the format ZID###.
 				</p>
 			</div>
 
 			<form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
 				<div className="space-y-4 rounded-2xl border border-gray-300 bg-white p-6">
-					<h3 className="text-sm font-semibold text-gray-900">
-						Online School Setup
-					</h3>
+					<h3 className="text-sm font-semibold text-gray-900">Online School Setup</h3>
 
-					{/* Mentor Selection */}
 					<Controller
 						name="mentorId"
 						control={control}
@@ -266,9 +254,7 @@ export const AdmissionDetailPageEnhanced = () => {
 									))}
 								</select>
 								{fieldState.error?.message && (
-									<span className="text-xs text-red-600">
-										{fieldState.error.message}
-									</span>
+									<span className="text-xs text-red-600">{fieldState.error.message}</span>
 								)}
 							</label>
 						)}
@@ -276,12 +262,9 @@ export const AdmissionDetailPageEnhanced = () => {
 
 					{selectedMentorId && (
 						<>
-							{/* Batch Type Selection */}
 							<div className="grid gap-2">
-								<span className="text-sm font-medium text-gray-600">
-									Batch Type
-								</span>
-								<div className="grid gap-2 md:grid-cols-2">
+								<span className="text-sm font-medium text-gray-600">Batch Type</span>
+								<div className="grid gap-3 md:grid-cols-2">
 									<Controller
 										name="batchType"
 										control={control}
@@ -289,18 +272,11 @@ export const AdmissionDetailPageEnhanced = () => {
 											<button
 												type="button"
 												onClick={() => field.onChange("1_TO_1")}
-												className={`rounded-2xl border-2 p-3 text-left transition ${
-													field.value === "1_TO_1"
-														? "border-blue-600 bg-blue-50"
-														: "border-gray-300 bg-white"
-												}`}
+												className={`rounded-2xl border-2 p-3 text-left transition ${field.value === "1_TO_1" ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-white"
+													}`}
 											>
-												<div className="font-semibold text-gray-900">
-													1-to-1
-												</div>
-												<div className="text-xs text-gray-600">
-													Personal tutoring
-												</div>
+												<div className="font-semibold text-gray-900">1-to-1</div>
+												<div className="text-xs text-gray-600">Personal tutoring</div>
 											</button>
 										)}
 									/>
@@ -311,23 +287,17 @@ export const AdmissionDetailPageEnhanced = () => {
 											<button
 												type="button"
 												onClick={() => field.onChange("GROUP")}
-												className={`rounded-2xl border-2 p-3 text-left transition ${
-													field.value === "GROUP"
-														? "border-blue-600 bg-blue-50"
-														: "border-gray-300 bg-white"
-												}`}
+												className={`rounded-2xl border-2 p-3 text-left transition ${field.value === "GROUP" ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-white"
+													}`}
 											>
 												<div className="font-semibold text-gray-900">Group</div>
-												<div className="text-xs text-gray-600">
-													Group learning
-												</div>
+												<div className="text-xs text-gray-600">Group learning</div>
 											</button>
 										)}
 									/>
 								</div>
 							</div>
 
-							{/* Batch Selection for Group */}
 							{selectedBatchType === "GROUP" && (
 								<Controller
 									name="batchId"
@@ -338,13 +308,11 @@ export const AdmissionDetailPageEnhanced = () => {
 											<select
 												className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 												value={field.value ?? ""}
-												onChange={(e) =>
-													field.onChange(e.target.value || undefined)
-												}
+												onChange={(e) => field.onChange(e.target.value || undefined)}
 											>
 												<option value="">Choose a group...</option>
 												{batchesQuery.data?.batches
-													?.filter((b) => b.type === "GROUP")
+													?.filter((batch) => batch.type === "GROUP")
 													?.map((batch) => (
 														<option key={batch.id} value={batch.id}>
 															{batch.name}
@@ -352,9 +320,7 @@ export const AdmissionDetailPageEnhanced = () => {
 													))}
 											</select>
 											{fieldState.error?.message && (
-												<span className="text-xs text-red-600">
-													{fieldState.error.message}
-												</span>
+												<span className="text-xs text-red-600">{fieldState.error.message}</span>
 											)}
 										</label>
 									)}
@@ -364,7 +330,6 @@ export const AdmissionDetailPageEnhanced = () => {
 					)}
 				</div>
 
-				{/* Counsellor Selection */}
 				<div className="rounded-2xl border border-gray-300 bg-white p-6">
 					<Controller
 						name="counsellorId"
@@ -376,8 +341,7 @@ export const AdmissionDetailPageEnhanced = () => {
 									<div className="flex flex-col gap-2">
 										<div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
 											<span className="font-medium text-gray-900">
-												Auto-assigned:{" "}
-												{userNameById.get(mentorCounsellorId ?? "") ?? "-"}
+												Auto-assigned: {userNameById.get(mentorCounsellorId ?? "") ?? "-"}
 											</span>
 											<p className="mt-1 text-xs text-gray-600">
 												The selected mentor already has a counsellor assigned
@@ -388,9 +352,7 @@ export const AdmissionDetailPageEnhanced = () => {
 									<select
 										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 										value={field.value ?? ""}
-										onChange={(e) =>
-											field.onChange(e.target.value || undefined)
-										}
+										onChange={(e) => field.onChange(e.target.value || undefined)}
 									>
 										<option value="">Select counsellor</option>
 										{counsellors.map((counsellor) => (
@@ -401,48 +363,36 @@ export const AdmissionDetailPageEnhanced = () => {
 									</select>
 								)}
 								{fieldState.error?.message && (
-									<span className="text-xs text-red-600">
-										{fieldState.error.message}
-									</span>
+									<span className="text-xs text-red-600">{fieldState.error.message}</span>
 								)}
 							</div>
 						)}
 					/>
 				</div>
 
-				{/* Notes */}
-				<Controller
-					name="note"
-					control={control}
-					render={({ field, fieldState }) => (
-						<TextAreaField
-							label="Notes"
-							value={field.value ?? ""}
-							onChange={field.onChange}
-							error={fieldState.error?.message}
-							placeholder="Add any notes about this admission..."
-						/>
-					)}
-				/>
+				<div className="rounded-2xl border border-gray-300 bg-white p-6">
+					<Controller
+						name="note"
+						control={control}
+						render={({ field }) => (
+							<TextAreaField
+								label="Note"
+								placeholder="Optional note about this admission"
+								{...field}
+								value={field.value ?? ""}
+							/>
+						)}
+					/>
+				</div>
 
-				{/* Submit Button */}
-				<div className="flex gap-2">
+				<div className="flex justify-end gap-3">
 					<button
 						type="submit"
-						disabled={confirmAdmissionMutation.isPending}
-						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+						className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
 					>
-						<HiAcademicCap className="h-4 w-4" aria-hidden="true" />
-						{confirmAdmissionMutation.isPending
-							? "Confirming..."
-							: "Confirm Admission"}
+						<HiAcademicCap className="h-4 w-4" />
+						Confirm Admission
 					</button>
-					<Link
-						to="/leads?stage=converted"
-						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
-					>
-						Cancel
-					</Link>
 				</div>
 			</form>
 		</Panel>

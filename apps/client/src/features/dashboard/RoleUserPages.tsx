@@ -296,6 +296,7 @@ export const RoleUsersPage = ({
 												? user.mentorId
 												: user.counsellorId) ??
 											"-"}
+											.toUpperCase?.()
 									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}
