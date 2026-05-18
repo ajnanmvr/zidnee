@@ -10,8 +10,10 @@ import {
 	recordStudentFollowUpController,
 	updateStudentAssessmentController,
  	updateStudentController,
+	uploadStudentProfilePicController,
 } from "./student.controller.js";
 import { getStudentActivitiesController } from "./student-activity.controller.js";
+import { upload } from "../../middlewares/upload.middleware.js";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -82,6 +84,13 @@ router.patch(
 	"/:studentId",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(updateStudentController),
+);
+
+router.post(
+	"/:studentId/profile-pic",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	upload.single("file"),
+	asyncHandler(uploadStudentProfilePicController),
 );
 
 export default router;

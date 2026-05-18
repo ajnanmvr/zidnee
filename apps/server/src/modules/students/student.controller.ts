@@ -7,6 +7,7 @@ import {
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { StudentService } from "./student.service.js";
+import { uploadBuffer } from "../../lib/s3.js";
 
 const toStudentResponse = (
 	student: Awaited<ReturnType<typeof StudentService.listStudents>>[number],
@@ -128,4 +129,28 @@ export const updateStudentController = async (
  		ok: true,
  		student: student ? toStudentResponse(student) : null,
  	});
+};
+
+export const uploadStudentProfilePicController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const studentId = requireStringValue(req.params.studentId, "studentId");
+	// multer places the file on req.file
+	const file = (req as any).file as Express.Multer.File | undefined;
+
+	if (!file || !file.buffer) {
+		res.status(400).json({ ok: false, error: "No file provided" });
+		return;
+	}
+	// construct a key for S3: students/{studentId}/{timestamp}_{filename}
+	const timestamp = Date.now();
+	const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+	const key = `students/${studentId}/${timestamp}_${safeName}`;
+
+	const url = await uploadBuffer(file.buffer, key, file.mimetype);
+
+	const student = await StudentService.update(studentId, { profilePic: url });
+
+	res.json({ ok: true, student: student ? toStudentResponse(student) : null });
 };

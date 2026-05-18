@@ -653,6 +653,15 @@ export const StudentService = {
 			{ returnDocument: "after" },
 		).lean<StudentDocument | null>();
 
+		// If profile picture changed/removed, delete the old S3 object if it was hosted on our bucket
+		if (payload.profilePic !== undefined) {
+			const oldPic = student.profilePic;
+			const newPic = updatedStudent?.profilePic ?? null;
+			if (oldPic && oldPic !== newPic) {
+				await deleteObjectFromUrl(oldPic).catch(() => undefined);
+			}
+		}
+
 		if (!updatedStudent) return null;
 
 		await logStudentActivity({

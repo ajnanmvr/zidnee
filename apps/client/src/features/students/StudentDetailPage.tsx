@@ -173,32 +173,40 @@ description: "Final placement and level check",
 ];
 
 const handleProfilePicChange = async (event: ChangeEvent<HTMLInputElement>) => {
-const file = event.target.files?.[0];
-event.target.value = "";
+	const file = event.target.files?.[0];
+	event.target.value = "";
 
-if (!file || !studentId) {
-return;
-}
+	if (!file || !studentId) return;
+	if (!file.type.startsWith("image/")) {
+		toast.error("Please select an image file");
+		return;
+	}
 
-if (!file.type.startsWith("image/")) {
-toast.error("Please select an image file");
-return;
-}
+	try {
+		const form = new FormData();
+		form.append("file", file);
 
-try {
-const profilePic = await readFileAsDataUrl(file);
-await updateStudentMutation.mutateAsync({
-studentId,
-payload: { profilePic },
-});
-toast.success("Profile picture updated");
-} catch (error) {
-if (error instanceof ApiError) {
-toast.error(error.payload.message ?? "Failed to update profile picture");
-return;
-}
-toast.error("Failed to update profile picture");
-}
+		const res = await fetch(`/api/students/${studentId}/profile-pic`, {
+			method: "POST",
+			body: form,
+			headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+		});
+
+		const json = await res.json();
+		if (!res.ok || !json.ok) {
+			throw new ApiError(json, res.status);
+		}
+
+		// Refresh students list to pick up updated profile pic
+		await studentsQuery.refetch();
+		toast.success("Profile picture updated");
+	} catch (error) {
+		if (error instanceof ApiError) {
+			toast.error(error.payload.message ?? "Failed to update profile picture");
+			return;
+		}
+		toast.error("Failed to update profile picture");
+	}
 };
 
 const removeProfilePic = async () => {

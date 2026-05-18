@@ -20,6 +20,7 @@ export const fetchStudents = async (
 	},
 ) => {
 	const query = new URLSearchParams();
+
 	if (options?.status) query.set("status", options.status);
 	if (options?.search) query.set("search", options.search);
 	if (options?.sortBy) query.set("sortBy", options.sortBy);
@@ -37,16 +38,22 @@ export const fetchStudents = async (
 };
 
 export const updateStudent = async (
- 	token: string,
- 	studentId: string,
- 	payload: unknown,
+	token: string,
+	studentId: string,
+	payload: unknown,
 ) => {
 	const validatedPayload = UpdateStudentPayloadSchema.parse(payload);
+
 	return requestWithSchema(
 		`/students/${studentId}`,
 		StudentResponseEnvelopeSchema,
 		"PATCH",
 		validatedPayload,
+		token,
+	);
+};
+
+export const fetchStudentActivities = async (
 	token: string,
 	studentId: string,
 ) => {
@@ -65,6 +72,7 @@ export const recordStudentFollowUp = async (
 	payload: { note: string },
 ) => {
 	const validatedPayload = StudentFollowUpPayloadSchema.parse(payload);
+
 	return requestWithSchema(
 		`/students/${studentId}/follow-up`,
 		StudentResponseEnvelopeSchema,
@@ -77,9 +85,15 @@ export const recordStudentFollowUp = async (
 export const updateStudentAssessment = async (
 	token: string,
 	studentId: string,
-	payload: { assessmentType: "oral" | "written" | "level"; isDone: boolean; note?: string },
+	payload: {
+		assessmentType: "oral" | "written" | "level";
+		isDone: boolean;
+		note?: string;
+	},
 ) => {
-	const validatedPayload = UpdateStudentAssessmentPayloadSchema.parse(payload);
+	const validatedPayload =
+		UpdateStudentAssessmentPayloadSchema.parse(payload);
+
 	return requestWithSchema(
 		`/students/${studentId}/assessments`,
 		StudentResponseEnvelopeSchema,
