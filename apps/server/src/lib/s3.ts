@@ -29,7 +29,6 @@ export const uploadBuffer = async (
     Key: key,
     Body: buffer,
     ContentType: contentType,
-    ACL: "public-read",
   });
 
   await client.send(cmd);
