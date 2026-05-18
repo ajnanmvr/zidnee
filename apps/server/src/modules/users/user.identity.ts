@@ -1,8 +1,10 @@
+import { ZID_CONSTANTS } from "@repo/schema";
+
 export const USER_IDENTITY_PREFIXES = {
-	mentor: "ZIM",
-	counsellor: "ZIC",
-	sales: "ZIS",
-	admin: "ZIA",
+	mentor: ZID_CONSTANTS.prefixes.mentor,
+	counsellor: ZID_CONSTANTS.prefixes.counsellor,
+	sales: ZID_CONSTANTS.prefixes.sales,
+	admin: ZID_CONSTANTS.prefixes.admin,
 } as const;
 
 export const USER_IDENTITY_PAD_LENGTH = 3;

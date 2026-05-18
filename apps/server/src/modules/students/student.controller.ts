@@ -26,6 +26,7 @@ const toStudentResponse = (
 		gender: student.gender,
 		primaryWhatsappNumber: student.primaryWhatsappNumber,
 		alternateWhatsappNumber: student.alternateWhatsappNumber,
+		profilePic: student.profilePic,
 		studentInfo: student.studentInfo,
 		preferredLanguage: student.preferredLanguage,
 		preferredSchedule: student.preferredSchedule,

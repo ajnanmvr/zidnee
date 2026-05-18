@@ -1,3 +1,4 @@
+import type { UpdateStudentPayload } from "@repo/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateStudent } from "./students.service";
 import { useSession } from "@/lib/session";
@@ -7,15 +8,21 @@ export const useUpdateStudentMutation = () => {
  	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ studentId, payload }: { studentId: string; payload: unknown }) => {
+		mutationFn: async ({
+			studentId,
+			payload,
+		}: {
+			studentId: string;
+			payload: UpdateStudentPayload;
+		}) => {
 			if (!token) throw new Error("Missing session token");
 			return updateStudent(token, studentId, payload);
 		},
- 		onSuccess: async () => {
- 			if (!token) return;
- 			await queryClient.invalidateQueries({ queryKey: ["students", token] });
- 		},
- 	});
+		onSuccess: async () => {
+			if (!token) return;
+			await queryClient.invalidateQueries({ queryKey: ["students", token] });
+		},
+	});
 };
 
 export default useUpdateStudentMutation;

@@ -102,6 +102,10 @@ const studentSchema = new Schema<StudentDocument>(
 			trim: true,
 			maxlength: 20,
 		},
+		profilePic: {
+			type: String,
+			required: false,
+		},
 		studentInfo: {
 			type: String,
 			required: false,

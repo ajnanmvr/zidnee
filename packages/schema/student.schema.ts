@@ -43,6 +43,7 @@ export const StudentSchema = z.object({
 	gender: z.enum(["male", "female"]).optional(),
 	primaryWhatsappNumber: z.string().min(8).max(20).optional(),
 	alternateWhatsappNumber: z.string().min(8).max(20).optional(),
+	profilePic: z.string().max(5000000).optional(),
 	studentInfo: z.string().max(1000).optional(),
 	preferredLanguage: z
 		.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"])
@@ -103,8 +104,9 @@ export type StudentFollowUpPayload = z.infer<
 >;
 
 export const UpdateStudentPayloadSchema = z.object({
- 	mentorId: ObjectIdStringSchema.optional(),
- 	batchId: ObjectIdStringSchema.optional().nullable(),
+	mentorId: ObjectIdStringSchema.optional(),
+	batchId: ObjectIdStringSchema.optional().nullable(),
+	profilePic: z.string().max(5000000).nullable().optional(),
 });
 
 export type UpdateStudentPayload = z.infer<typeof UpdateStudentPayloadSchema>;

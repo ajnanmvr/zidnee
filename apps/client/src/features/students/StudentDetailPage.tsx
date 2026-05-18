@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿import { type ChangeEvent, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { HiArrowLeft } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -16,6 +16,7 @@ import {
 useRecordStudentFollowUpMutation,
 useUpdateStudentAssessmentMutation,
 } from "@/features/students/students.mutations";
+import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import {
 useStudentActivitiesQuery,
 useStudentsQuery,
@@ -32,6 +33,7 @@ const studentActivitiesQuery = useStudentActivitiesQuery(token, studentId);
 const usersQuery = useUsersQuery(token);
 const recordFollowUpMutation = useRecordStudentFollowUpMutation();
 const updateAssessmentMutation = useUpdateStudentAssessmentMutation();
+const updateStudentMutation = useUpdateStudentMutation();
 const [activeTab, setActiveTab] = useState<
 "follow-up" | "assessment" | "profile" | "reminders"
 >("follow-up");
@@ -46,6 +48,22 @@ assessmentType: "oral" | "written" | "level";
 nextDone: boolean;
 } | null>(null);
 const remindersQuery = useGetStudentReminders(studentId ?? "");
+
+const readFileAsDataUrl = (file: File) => {
+return new Promise<string>((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => {
+if (typeof reader.result === "string") {
+resolve(reader.result);
+return;
+}
+
+reject(new Error("Failed to read file"));
+};
+reader.onerror = () => reject(new Error("Failed to read file"));
+reader.readAsDataURL(file);
+});
+};
 
 const student = useMemo(
 () => studentsQuery.data?.students.find((s) => s.id === studentId),
@@ -63,6 +81,14 @@ if (!student?.admittedBy) return "-";
 const user = usersQuery.data?.users.find((u) => u.id === student.admittedBy);
 return user?.name ?? user?.username ?? "Unknown";
 }, [student?.admittedBy, usersQuery.data?.users]);
+
+const profileAvatarLabel = useMemo(() => {
+if (!student) {
+return "S";
+}
+
+return student.name?.trim().charAt(0).toUpperCase() ?? student.zid.charAt(0).toUpperCase();
+}, [student]);
 
 const followUpDate = useMemo(
 () => student?.customNextFollowUpAt ?? student?.nextFollowUpAt ?? null,
@@ -145,6 +171,55 @@ value: student?.levelAssessmentDone ?? false,
 description: "Final placement and level check",
 },
 ];
+
+const handleProfilePicChange = async (event: ChangeEvent<HTMLInputElement>) => {
+const file = event.target.files?.[0];
+event.target.value = "";
+
+if (!file || !studentId) {
+return;
+}
+
+if (!file.type.startsWith("image/")) {
+toast.error("Please select an image file");
+return;
+}
+
+try {
+const profilePic = await readFileAsDataUrl(file);
+await updateStudentMutation.mutateAsync({
+studentId,
+payload: { profilePic },
+});
+toast.success("Profile picture updated");
+} catch (error) {
+if (error instanceof ApiError) {
+toast.error(error.payload.message ?? "Failed to update profile picture");
+return;
+}
+toast.error("Failed to update profile picture");
+}
+};
+
+const removeProfilePic = async () => {
+if (!studentId) {
+return;
+}
+
+try {
+await updateStudentMutation.mutateAsync({
+studentId,
+payload: { profilePic: null },
+});
+toast.success("Profile picture removed");
+} catch (error) {
+if (error instanceof ApiError) {
+toast.error(error.payload.message ?? "Failed to remove profile picture");
+return;
+}
+toast.error("Failed to remove profile picture");
+}
+};
 
 const openAssessmentConfirm = (
 assessmentType: "oral" | "written" | "level",
@@ -414,6 +489,35 @@ className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibo
 
 {activeTab === "profile" && (
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<Panel title="Profile picture">
+<div className="flex flex-col items-center gap-4">
+<div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-50">
+{student?.profilePic ? (
+<img
+src={student.profilePic}
+alt={`${student.name ?? student.zid} profile`}
+className="h-full w-full object-cover"
+/>
+) : (
+<span className="text-4xl font-bold text-gray-400">{profileAvatarLabel}</span>
+)}
+</div>
+<label className="inline-flex cursor-pointer items-center rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
+<input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
+Upload profile picture
+</label>
+{student?.profilePic ? (
+<button
+	type="button"
+	onClick={removeProfilePic}
+	className="text-sm font-medium text-rose-600 hover:text-rose-700"
+>
+	Remove picture
+</button>
+) : null}
+</div>
+</Panel>
+
 <Panel title="Quick profile">
 <dl className="space-y-4">
 <div>

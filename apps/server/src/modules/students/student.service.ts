@@ -81,6 +81,7 @@ const toStudent = (doc: StudentDocument): Student => {
 		gender: doc.gender,
 		primaryWhatsappNumber: doc.primaryWhatsappNumber,
 		alternateWhatsappNumber: doc.alternateWhatsappNumber,
+		profilePic: doc.profilePic,
 		studentInfo: doc.studentInfo,
 		preferredLanguage: doc.preferredLanguage,
 		preferredSchedule: doc.preferredSchedule,
@@ -618,20 +619,36 @@ export const StudentService = {
 
 	update: async (
 		studentId: string,
-		payload: Partial<{ batchId?: string | null; mentorId?: string }>,
+		payload: Partial<{
+			batchId?: string | null;
+			mentorId?: string;
+			profilePic?: string | null;
+		}>,
 	): Promise<Student | null> => {
 		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
 		if (!student) {
 			throw new AppError(404, "Student not found");
 		}
 
+		const $set: Record<string, unknown> = {
+			mentorId: payload.mentorId ?? student.mentorId,
+			batchId: payload.batchId === null ? undefined : payload.batchId ?? student.batchId,
+		};
+		const $unset: Record<string, 1> = {};
+
+		if (payload.profilePic !== undefined) {
+			if (payload.profilePic === null) {
+				$unset.profilePic = 1;
+			} else {
+				$set.profilePic = payload.profilePic;
+			}
+		}
+
 		const updatedStudent = await StudentModel.findByIdAndUpdate(
 			student._id,
 			{
-				$set: {
-					mentorId: payload.mentorId ?? student.mentorId,
-					batchId: payload.batchId === null ? undefined : payload.batchId ?? student.batchId,
-				},
+				$set,
+				...($unset.profilePic ? { $unset } : {}),
 			},
 			{ returnDocument: "after" },
 		).lean<StudentDocument | null>();
@@ -643,8 +660,16 @@ export const StudentService = {
 			type: "UPDATED",
 			performedBy: student.admittedBy.toString(),
 			description: "Student updated",
-			oldValue: { mentorId: student.mentorId?.toString(), batchId: student.batchId?.toString() },
-			newValue: { mentorId: updatedStudent.mentorId?.toString(), batchId: updatedStudent.batchId?.toString() },
+			oldValue: {
+				mentorId: student.mentorId?.toString(),
+				batchId: student.batchId?.toString(),
+				profilePic: student.profilePic ?? null,
+			},
+			newValue: {
+				mentorId: updatedStudent.mentorId?.toString(),
+				batchId: updatedStudent.batchId?.toString(),
+				profilePic: updatedStudent.profilePic ?? null,
+			},
 		});
 
 		const synced = await syncStudentProcess(updatedStudent._id.toString());

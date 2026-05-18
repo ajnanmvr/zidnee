@@ -19,13 +19,13 @@ export const ZID_CONSTANTS = {
 	prefixes: {
 		student: "ZID",
 		groupStudent: "ZIG",
-		mentor: "mentor",
-		counsellor: "counsellor",
-		sales: "sales",
-		admin: "admin",
+		mentor: "ZM0",
+		counsellor: "ZIC",
+		sales: "ZIS",
+		admin: "ZIA",
 	},
 } as const;
 
 export const AUTH_CONSTANTS = {
-	emailDomain: "zidnee.local",
+	emailDomain: "gmail.com",
 } as const;

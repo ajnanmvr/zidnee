@@ -4,6 +4,7 @@ import {
 	StudentResponseEnvelopeSchema,
 	StudentsResponseSchema,
 	UpdateStudentAssessmentPayloadSchema,
+	UpdateStudentPayloadSchema,
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
@@ -40,16 +41,12 @@ export const updateStudent = async (
  	studentId: string,
  	payload: unknown,
 ) => {
+	const validatedPayload = UpdateStudentPayloadSchema.parse(payload);
 	return requestWithSchema(
 		`/students/${studentId}`,
 		StudentResponseEnvelopeSchema,
 		"PATCH",
-		payload,
-		token,
-	);
-};
-
-export const fetchStudentActivities = async (
+		validatedPayload,
 	token: string,
 	studentId: string,
 ) => {
