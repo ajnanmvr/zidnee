@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { type Express } from "express";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
+import { env } from "./config/env.js";
 import { swaggerSpec } from "./config/swagger.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { publicLeadRoutes } from "./modules/leads/lead.routes.js";
@@ -10,7 +11,31 @@ import routes from "./routes/index.js";
 
 const app: Express = express();
 
-app.use(cors());
+const allowedOrigins = new Set<string>([
+	new URL(env.APP_URL).origin,
+	"http://localhost:5173",
+]);
+
+const corsOptions: cors.CorsOptions = {
+	origin: (origin, callback) => {
+		if (!origin) {
+			callback(null, true);
+			return;
+		}
+
+		if (allowedOrigins.has(origin)) {
+			callback(null, true);
+			return;
+		}
+
+		callback(new Error(`CORS blocked for origin: ${origin}`));
+	},
+	methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+	allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(morgan("dev", {}));
 
