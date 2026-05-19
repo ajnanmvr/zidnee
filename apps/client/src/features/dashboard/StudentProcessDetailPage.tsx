@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMarkTaskCompletedMutation } from "@/features/students/students.queries";
 import { Link, useParams } from "react-router-dom";
 import { HiCheckCircle } from "react-icons/hi2";
 import { Panel } from "@/components/dashboard-ui";
@@ -17,6 +18,8 @@ export const StudentProcessDetailPage = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState<string | null>(null);
     const [modalPhone, setModalPhone] = useState<string | null>(null);
+    const [modalTaskKey, setModalTaskKey] = useState<string | null>(null);
+    const markTaskMutation = useMarkTaskCompletedMutation();
 
     if (q.isLoading) return <div className="py-10 text-center">Loading process...</div>;
     if (q.isError) {
@@ -48,9 +51,10 @@ export const StudentProcessDetailPage = () => {
         window.open(`https://wa.me/${targetNumber}?text=${encodedMessage}`, "_blank");
     };
 
-    const openComposeModal = (phone?: string | null, message?: string) => {
+    const openComposeModal = (phone?: string | null, message?: string, taskKey?: string) => {
         setModalPhone(phone ?? null);
         setModalMessage(message ?? "");
+        setModalTaskKey(taskKey ?? null);
         setShowModal(true);
     };
 
@@ -59,7 +63,7 @@ export const StudentProcessDetailPage = () => {
             return;
         }
 
-        if (task.actionType === "FORM_LINK") {
+                if (task.actionType === "FORM_LINK") {
             // prepare form link then open compose modal so user can edit before sending
             setLoadingTaskKey(task.key);
             try {
@@ -67,6 +71,7 @@ export const StudentProcessDetailPage = () => {
                 openComposeModal(
                     process.student.primaryWhatsappNumber ?? process.student.phone,
                     `${task.whatsappMessage ?? "Please complete the form below."}\n${result.formLink}`,
+                    task.key,
                 );
             } finally {
                 setLoadingTaskKey(null);
@@ -78,6 +83,7 @@ export const StudentProcessDetailPage = () => {
         openComposeModal(
             process.student.primaryWhatsappNumber ?? process.student.phone,
             task.whatsappMessage,
+            task.key,
         );
     };
 
@@ -113,7 +119,16 @@ export const StudentProcessDetailPage = () => {
                                 <p className="mt-0.5 text-xs text-slate-500">{task.completedAt ? `Completed ${new Date(task.completedAt).toLocaleDateString()}` : "Pending"}</p>
                             </div>
                             <div className="flex flex-col items-end gap-2">
-                                <span className={task.completed ? "inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
+                                <span
+                                    role={task.whatsappMessage ? "button" : undefined}
+                                    tabIndex={task.whatsappMessage ? 0 : undefined}
+                                    onKeyDown={task.whatsappMessage ? (e) => { if (e.key === "Enter" || e.key === " ") { void handleTaskAction(task); } } : undefined}
+                                    onClick={task.whatsappMessage ? () => void handleTaskAction(task) : undefined}
+                                    className={
+                                        (task.completed ? "inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700") +
+                                        (task.whatsappMessage ? " cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400" : "")
+                                    }
+                                >
                                     {task.completed ? <HiCheckCircle className="mr-1 h-4 w-4" /> : null}
                                     {task.completed ? "Done" : "Open"}
                                 </span>
@@ -151,9 +166,16 @@ export const StudentProcessDetailPage = () => {
                                 Cancel
                             </button>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     openWhatsApp(modalPhone ?? undefined, modalMessage ?? undefined);
                                     setShowModal(false);
+                                    if (modalTaskKey) {
+                                        try {
+                                            await markTaskMutation.mutateAsync({ processId: process.id, taskKey: modalTaskKey });
+                                        } catch (e) {
+                                            // ignore; cache invalidation will refresh on next view
+                                        }
+                                    }
                                 }}
                                 className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1 text-sm font-semibold text-white"
                             >

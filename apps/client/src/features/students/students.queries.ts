@@ -83,3 +83,24 @@ export const useStudentProcessQuery = (
 		enabled: Boolean(token) && Boolean(processId) && enabled,
 	});
 };
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { markProcessTaskCompleted } from "@/features/students/students.service";
+import { useSession } from "@/lib/session";
+
+export const useMarkTaskCompletedMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ processId, taskKey }: { processId: string; taskKey: string }) => {
+			if (!token) throw new Error("Missing session token");
+			return markProcessTaskCompleted(token, processId, taskKey);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) return;
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
+		},
+	});
+};

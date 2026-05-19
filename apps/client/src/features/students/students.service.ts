@@ -91,6 +91,29 @@ export const fetchStudentProcess = async (token: string, processId: string) => {
 	return requestWithSchema(`/students/processes/${processId}`, validator as any, "GET", undefined, token);
 };
 
+export const markProcessTaskCompleted = async (
+	token: string,
+	processId: string,
+	taskKey: string,
+) => {
+	const validator = {
+		safeParse: (raw: unknown) => {
+			const candidate = (raw as any)?.process;
+			const parsed = StudentProcessResponseSchema.safeParse(candidate);
+			if (!parsed.success) return { success: false } as const;
+			return { success: true, data: { process: parsed.data } } as const;
+		},
+	} as const;
+
+	return requestWithSchema(
+		`/students/processes/${processId}/tasks/${encodeURIComponent(taskKey)}/complete`,
+		validator as any,
+		"POST",
+		undefined,
+		token,
+	);
+};
+
 export const recordStudentFollowUp = async (
 	token: string,
 	studentId: string,

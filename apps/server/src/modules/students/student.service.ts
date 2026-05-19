@@ -347,6 +347,28 @@ export const StudentService = {
 		};
 	},
 
+	markProcessTaskCompleted: async (processId: string, taskKey: string) => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		// Update the matching task in-place
+		await StudentProcessModel.findOneAndUpdate(
+			{ _id: objectId },
+			{
+				$set: {
+					"tasks.$[t].completed": true,
+					"tasks.$[t].completedAt": new Date(),
+				},
+			},
+			{ arrayFilters: [{ "t.key": taskKey }], new: true },
+		).exec();
+
+		// return the updated mapped process
+		return await StudentService.getStudentProcessById(processId);
+	},
+
 	findByLeadId: async (leadId: string): Promise<Student | null> => {
 		const student = await StudentModel.findOne({
 			leadId,

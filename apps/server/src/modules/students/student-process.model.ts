@@ -95,7 +95,7 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 			"verify-contact-details",
 			"collect-basic-profile",
 			"send-form-link",
-				"send-profile-form-link",
+			"send-profile-form-link",
 			"send-welcome-message",
 			"confirm-form-submission",
 			"assign-mentor",
