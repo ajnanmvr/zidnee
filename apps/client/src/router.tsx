@@ -34,11 +34,6 @@ const StudentDetailPage = lazy(() =>
 		default: module.StudentDetailPage,
 	})),
 );
-const CounsellorStudentsPage = lazy(() =>
-	import("@/features/dashboard/CounsellorStudentsPage").then((module) => ({
-		default: module.CounsellorStudentsPage,
-	})),
-);
 const CreateCounsellorPage = lazy(() =>
 	import("@/features/dashboard/CreateCounsellorPage").then((module) => ({
 		default: module.CreateCounsellorPage,
@@ -203,14 +198,6 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<StudentDetailPage />
-							</Suspense>
-						),
-					},
-					{
-						path: "counsellor/students",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CounsellorStudentsPage />
 							</Suspense>
 						),
 					},

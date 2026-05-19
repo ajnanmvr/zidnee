@@ -88,6 +88,7 @@ export const recordStudentFollowUpController = async (
 		studentId,
 		performedBy,
 		payload.note,
+		payload.nextFollowUpAt,
 	);
 
 	res.json({

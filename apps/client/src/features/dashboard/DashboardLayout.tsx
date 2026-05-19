@@ -44,7 +44,6 @@ const titles: Record<string, string> = {
 	"/students": "Students",
 	"/mentors": "Mentors",
 	"/counsellor/mentors": "Counsellor Mentors",
-	"/counsellor/students": "Counsellor Students",
 	"/time-slots": "Time Slots",
 	"/users": "Users",
 	"/users/create": "Create User",
@@ -79,10 +78,6 @@ const resolveTitle = (pathname: string, search: string): string => {
 
 	if (/^\/counsellor\/mentors$/.test(pathname)) {
 		return "Counsellor Mentors";
-	}
-
-	if (/^\/counsellor\/students$/.test(pathname)) {
-		return "Counsellor Students";
 	}
 
 	if (pathname === "/users/create" && search.includes("role=sales")) {
@@ -142,9 +137,6 @@ export const DashboardLayout = () => {
 	const isCounsellor =
 		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
 		false;
-	const currentCounsellorStudents = allStudents.filter(
-		(student) => Boolean(student.mentorId),
-	);
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,
 	).length;
@@ -295,19 +287,6 @@ export const DashboardLayout = () => {
 						accent: "rose",
 						section: "Learners",
 					},
-			]
-			: []),
-		...(isCounsellor
-			? [
-				{
-					to: "/counsellor/students",
-					label: "My Students",
-					description: "Under my mentors",
-					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count: currentCounsellorStudents.length,
-					accent: "cyan",
-					section: "Counsellor Workspace",
-				},
 			]
 			: []),
 		...(hasPermission("TIMESLOT_CREATE")

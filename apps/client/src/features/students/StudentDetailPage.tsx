@@ -41,6 +41,7 @@ const [activeTab, setActiveTab] = useState<
 >("follow-up");
 const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
 const [followUpNote, setFollowUpNote] = useState("");
+const [followUpNextDate, setFollowUpNextDate] = useState("");
 const [followUpError, setFollowUpError] = useState<string | undefined>();
 const [remindersModalOpen, setRemindersModalOpen] = useState(false);
 const [showCompletedReminders, setShowCompletedReminders] = useState(false);
@@ -49,6 +50,7 @@ const [pendingAssessment, setPendingAssessment] = useState<{
 assessmentType: "oral" | "written" | "level";
 nextDone: boolean;
 } | null>(null);
+const [removePicConfirmOpen, setRemovePicConfirmOpen] = useState(false);
 const [imageViewerOpen, setImageViewerOpen] = useState(false);
 const [cropModalOpen, setCropModalOpen] = useState(false);
 const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -111,6 +113,7 @@ border: due ? "border-rose-200" : "border-teal-200",
 
 const openFollowUpModal = () => {
 setFollowUpNote("");
+setFollowUpNextDate("");
 setFollowUpError(undefined);
 setFollowUpModalOpen(true);
 };
@@ -118,6 +121,7 @@ setFollowUpModalOpen(true);
 const closeFollowUpModal = () => {
 setFollowUpModalOpen(false);
 setFollowUpNote("");
+setFollowUpNextDate("");
 setFollowUpError(undefined);
 };
 
@@ -132,8 +136,22 @@ setFollowUpError("Follow-up note is required.");
 return;
 }
 
+let nextFollowUpAt: Date | undefined;
+if (followUpNextDate) {
+	const parsedDate = new Date(followUpNextDate);
+	if (Number.isNaN(parsedDate.getTime())) {
+		setFollowUpError("Please provide a valid next follow-up date.");
+		return;
+	}
+	nextFollowUpAt = parsedDate;
+}
+
 try {
-await recordFollowUpMutation.mutateAsync({ studentId, note });
+await recordFollowUpMutation.mutateAsync({
+	studentId,
+	note,
+	nextFollowUpAt,
+});
 toast.success("Follow-up recorded");
 closeFollowUpModal();
 } catch (error) {
@@ -270,6 +288,7 @@ await updateStudentMutation.mutateAsync({
 studentId,
 payload: { profilePic: null },
 });
+setRemovePicConfirmOpen(false);
 toast.success("Profile picture removed");
 } catch (error) {
 if (error instanceof ApiError) {
@@ -440,7 +459,7 @@ ZID: <span className="font-mono font-semibold">{student.zid.toUpperCase()}</span
 	{student.profilePic ? (
 		<button
 			type="button"
-			onClick={removeProfilePic}
+			onClick={() => setRemovePicConfirmOpen(true)}
 			className="rounded-2xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
 		>
 			Remove picture
@@ -844,6 +863,21 @@ setFollowUpError(undefined);
 placeholder="Summarize the call, message, or visit."
 error={followUpError}
 />
+<div className="space-y-1">
+<label className="text-sm font-medium text-gray-700">Next follow-up date (optional)</label>
+<input
+type="datetime-local"
+value={followUpNextDate}
+onChange={(event) => {
+setFollowUpNextDate(event.target.value);
+if (followUpError) {
+setFollowUpError(undefined);
+}
+}}
+className="w-full rounded-2xl border border-gray-300 px-4 py-2 text-sm text-gray-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+/>
+<p className="text-xs text-gray-500">Leave empty to use the default 14-day follow-up.</p>
+</div>
 </div>
 </Modal>
 
@@ -883,6 +917,34 @@ className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white tr
 }
 >
 <p className="text-sm text-gray-700">This will update the assessment status and add an activity log entry.</p>
+</Modal>
+
+<Modal
+open={removePicConfirmOpen}
+onClose={() => setRemovePicConfirmOpen(false)}
+title="Remove profile picture"
+description="Are you sure you want to remove this profile picture?"
+footer={
+<>
+<button
+type="button"
+onClick={() => setRemovePicConfirmOpen(false)}
+className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+>
+Cancel
+</button>
+<button
+type="button"
+onClick={() => void removeProfilePic()}
+disabled={updateStudentMutation.isPending}
+className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+>
+{updateStudentMutation.isPending ? "Removing..." : "Remove"}
+</button>
+</>
+}
+>
+<p className="text-sm text-gray-700">This action removes the current picture from the student profile.</p>
 </Modal>
 
 <CreateReminderModal
@@ -1033,26 +1095,29 @@ onClose={() => setRemindersModalOpen(false)}
 
 {/* Image Viewer Modal */}
 {imageViewerOpen && student?.profilePic && (
-<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-	<div className="relative max-w-4xl w-full max-h-screen flex flex-col">
+<Modal
+	open={imageViewerOpen}
+	onClose={() => setImageViewerOpen(false)}
+	title="Profile picture"
+	description={`${student.name} • ${student.zid}`}
+	footer={
 		<button
+			type="button"
 			onClick={() => setImageViewerOpen(false)}
-			className="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-900 hover:bg-gray-100 transition"
+			className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 		>
-			<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-			</svg>
+			Close
 		</button>
+	}
+>
+	<div className="rounded-xl bg-black p-2">
 		<img
 			src={student.profilePic}
-			alt={`${student.name ?? student.zid} profile - fullscreen`}
-			className="w-full h-full object-contain"
+			alt={`${student.name ?? student.zid} profile enlarged`}
+			className="mx-auto max-h-[70vh] w-full object-contain"
 		/>
-		<div className="mt-4 text-center text-white text-sm">
-			{student.name} • {student.zid}
-		</div>
 	</div>
-</div>
+</Modal>
 )}
 </div>
 );

@@ -27,6 +27,7 @@ const formatUserName = (name?: string | null, username?: string | null) =>
 
 interface FollowUpForm {
 	note?: string;
+	nextFollowUpAt?: Date;
 }
 
 interface ReminderForm {
@@ -68,7 +69,7 @@ export const MentorDetailPage = () => {
 		handleSubmit: handleFollowUpSubmit,
 		reset: resetFollowUp,
 	} = useForm<FollowUpForm>({
-		defaultValues: { note: "" },
+		defaultValues: { note: "", nextFollowUpAt: undefined },
 	});
 
 	const {
@@ -115,6 +116,7 @@ export const MentorDetailPage = () => {
 			await recordFollowUpMutation.mutateAsync({
 				mentorId,
 				note: data.note,
+				nextFollowUpAt: data.nextFollowUpAt,
 			});
 			toast.success("Followup recorded for mentor");
 			setFollowUpModalOpen(false);
@@ -558,6 +560,30 @@ export const MentorDetailPage = () => {
 									placeholder="What was discussed..."
 									rows={3}
 								/>
+							</div>
+						)}
+					/>
+					<Controller
+						name="nextFollowUpAt"
+						control={followUpControl}
+						render={({ field }) => (
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">Next Follow-up Date (optional)</label>
+								<input
+									type="datetime-local"
+									value={
+										field.value instanceof Date
+											? field.value.toISOString().slice(0, 16)
+											: ""
+									}
+									onChange={(e) => {
+										field.onChange(
+											e.target.value ? new Date(e.target.value) : undefined,
+										);
+									}}
+									className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+								/>
+								<p className="mt-2 text-xs text-gray-500">Leave empty to use the default 14-day follow-up.</p>
 							</div>
 						)}
 					/>

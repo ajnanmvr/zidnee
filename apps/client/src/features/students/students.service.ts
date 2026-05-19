@@ -69,7 +69,7 @@ export const fetchStudentActivities = async (
 export const recordStudentFollowUp = async (
 	token: string,
 	studentId: string,
-	payload: { note: string },
+	payload: { note: string; nextFollowUpAt?: Date },
 ) => {
 	const validatedPayload = StudentFollowUpPayloadSchema.parse(payload);
 

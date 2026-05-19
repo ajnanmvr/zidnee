@@ -174,9 +174,12 @@ export const LeadsPage = () => {
 		string | undefined
 	>(undefined);
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
+	const isRequestingDemo =
+		updateLeadMutation.isPending || requestDemoMutation.isPending;
 
 	const confirmRequestDemo = async () => {
 		if (!requestDemoLeadId) return;
+		if (isRequestingDemo) return;
 
 		if (!selectedRequestCounsellor) {
 			toast.error("Please select a counsellor before requesting a demo.");
@@ -1138,17 +1141,26 @@ export const LeadsPage = () => {
 						<button
 							type="button"
 							onClick={() => setRequestDemoOpen(false)}
-							className="rounded-2xl border px-4 py-2"
+							disabled={isRequestingDemo}
+							className="rounded-2xl border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							Cancel
 						</button>
 						<button
 							type="button"
 							onClick={confirmRequestDemo}
-							disabled={!selectedRequestCounsellor}
-							className="rounded-2xl bg-brand px-4 py-2 text-white disabled:opacity-50"
+							disabled={!selectedRequestCounsellor || isRequestingDemo}
+							className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
+							aria-busy={isRequestingDemo}
 						>
-							Confirm
+							{isRequestingDemo ? (
+								<>
+									<HiArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
+									<span>Requesting...</span>
+								</>
+							) : (
+								"Confirm"
+							)}
 						</button>
 					</div>
 				</div>

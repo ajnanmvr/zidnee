@@ -289,6 +289,7 @@ export const StudentService = {
 		studentId: string,
 		performedBy: string,
 		note: string,
+		nextFollowUpAtOverride?: Date,
 	): Promise<Student | null> => {
 		const student = await StudentModel.findById(
 			studentId,
@@ -297,7 +298,9 @@ export const StudentService = {
 			throw new AppError(404, "Student not found");
 		}
 
-		const nextFollowUpAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+		const nextFollowUpAt = getDefaultStudentFollowUpAt(
+			nextFollowUpAtOverride,
+		);
 		const updatedStudent = await StudentModel.findByIdAndUpdate(
 			student._id,
 			{
@@ -407,6 +410,7 @@ export const StudentService = {
 					}
 				: undefined,
 			price: existingLead.price,
+			mentorId: resolvedMentorId,
 
 			nextFollowUpAt,
 			admittedAt,
@@ -550,6 +554,7 @@ export const StudentService = {
 					}
 				: undefined,
 			price: existingLead.price,
+			mentorId: resolvedMentorId,
 
 			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
 			admittedAt,
@@ -633,9 +638,14 @@ export const StudentService = {
 
 		const $set: Record<string, unknown> = {
 			mentorId: payload.mentorId ?? student.mentorId,
-			batchId: payload.batchId === null ? undefined : payload.batchId ?? student.batchId,
 		};
 		const $unset: Record<string, 1> = {};
+
+		if (payload.batchId === null) {
+			$unset.batchId = 1;
+		} else if (payload.batchId !== undefined) {
+			$set.batchId = payload.batchId;
+		}
 
 		if (payload.profilePic !== undefined) {
 			if (payload.profilePic === null) {
@@ -649,7 +659,7 @@ export const StudentService = {
 			student._id,
 			{
 				$set,
-				...($unset.profilePic ? { $unset } : {}),
+				...(Object.keys($unset).length > 0 ? { $unset } : {}),
 			},
 			{ returnDocument: "after" },
 		).lean<StudentDocument | null>();

@@ -59,6 +59,10 @@ export const getStudentFollowUpState = (
 export const buildStudentColumns = (
 	getColorByStatus: (status: string) => string,
 	mentorNameById: Record<string, string>,
+	options?: {
+		groupLabelByBatchId?: Record<string, string>;
+		onAddToGroup?: (student: StudentTableRow) => void;
+	},
 ): ColumnDef<StudentTableRow>[] => {
 	return [
 		{
@@ -88,20 +92,43 @@ export const buildStudentColumns = (
 			accessorKey: "courseType",
 			header: "Course",
 			size: 100,
-			cell: ({ row }) =>
-				row.original.courseType ? (
-					<span
-						className={`rounded-full px-2 py-1 text-xs font-semibold ${
-							row.original.courseType === "INDIVIDUAL"
-								? "bg-amber-100 text-amber-800"
-								: "bg-blue-100 text-blue-800"
-						}`}
-					>
-						{row.original.courseType}
+			cell: ({ row }) => {
+				const student = row.original;
+
+				if (!student.courseType) {
+					return <span className="text-gray-400">—</span>;
+				}
+
+				if (student.courseType === "GROUP") {
+					if (student.batchId) {
+						const groupLabel =
+							options?.groupLabelByBatchId?.[student.batchId] ?? student.batchId;
+						return (
+							<span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+								{groupLabel}
+							</span>
+						);
+					}
+
+					if (options?.onAddToGroup) {
+						return (
+							<button
+								type="button"
+								onClick={() => options.onAddToGroup?.(student)}
+								className="inline-flex rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200"
+							>
+								Add to group
+							</button>
+						);
+					}
+				}
+
+				return (
+					<span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+						{student.courseType}
 					</span>
-				) : (
-					<span className="text-gray-400">—</span>
-				),
+				);
+			},
 		},
 		{
 			accessorKey: "level",

@@ -97,6 +97,7 @@ export type ConfirmAdmissionPayload = z.infer<
 
 export const StudentFollowUpPayloadSchema = z.object({
 	note: z.string().min(1).max(500),
+	nextFollowUpAt: z.coerce.date().optional(),
 });
 
 export type StudentFollowUpPayload = z.infer<

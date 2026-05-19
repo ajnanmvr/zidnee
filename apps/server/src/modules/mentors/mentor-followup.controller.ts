@@ -1,4 +1,5 @@
 import {
+	RecordMentorFollowUpPayloadSchema,
 	UserResponseSchema,
 	UsersResponseSchema,
 } from "@repo/schema";
@@ -29,11 +30,12 @@ export const getMentorsDueForFollowUpController = asyncHandler(
 export const recordMentorFollowUpController = asyncHandler(
 	async (req: Request, res: Response): Promise<void> => {
 		const mentorId = requireStringValue(req.params.mentorId, "mentorId");
-		const { note } = req.body;
+		const payload = RecordMentorFollowUpPayloadSchema.parse(req.body);
 
 		const mentor = await MentorFollowUpService.recordMentorFollowUp(
 			mentorId as string,
-			note,
+			payload.note,
+			payload.nextFollowUpAt,
 		);
 
 		if (!mentor) {
@@ -48,7 +50,7 @@ export const recordMentorFollowUpController = asyncHandler(
 			performedBy,
 			performedByName,
 			description: "Recorded a mentor follow-up",
-			note,
+			note: payload.note,
 		});
 
 		res.json({

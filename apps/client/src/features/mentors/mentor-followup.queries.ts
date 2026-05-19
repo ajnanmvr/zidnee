@@ -50,13 +50,17 @@ export const useRecordMentorFollowUpMutation = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (params: { mentorId: string; note?: string }) => {
+		mutationFn: async (params: {
+			mentorId: string;
+			note?: string;
+			nextFollowUpAt?: Date;
+		}) => {
 			if (!token) throw new Error("Missing session token");
 			return requestWithSchema(
 				`/mentors/${params.mentorId}/followups`,
 				MentorFollowUpResponseSchema,
 				"POST",
-				{ note: params.note },
+				{ note: params.note, nextFollowUpAt: params.nextFollowUpAt },
 				token,
 			);
 		},

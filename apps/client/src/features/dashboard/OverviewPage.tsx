@@ -20,11 +20,6 @@ export const OverviewPage = () => {
 			description: "Enrolled learners",
 		},
 		{
-			to: "/counsellor/students",
-			label: "My Students",
-			description: "Counsellor workspace",
-		},
-		{
 			to: "/time-slots",
 			label: "Time Slots",
 			description: "Class timing",
@@ -49,12 +44,6 @@ export const OverviewPage = () => {
 
 		if (page.to === "/students") {
 			return hasPermission("STUDENT_READ");
-		}
-
-		if (page.to === "/counsellor/students") {
-			return (
-				meQuery.data?.roles?.some((role) => role.name === "Counsellor") ?? false
-			);
 		}
 
 		if (page.to === "/time-slots") {
