@@ -8,6 +8,8 @@ export const StudentProcessTaskSchema = z.object({
 	label: z.string().min(1).max(150),
 	completed: z.boolean(),
 	completedAt: z.string().datetime().nullable().optional(),
+	actionType: z.enum(["WHATSAPP", "FORM_LINK"]).optional(),
+	whatsappMessage: z.string().max(1000).optional(),
 });
 
 export type StudentProcessTask = z.infer<typeof StudentProcessTaskSchema>;
@@ -22,9 +24,11 @@ export type StudentProcessTaskResponse = z.infer<
 
 export const StudentProcessStudentResponseSchema = z.object({
 	id: ObjectIdStringSchema,
+	leadId: ObjectIdStringSchema.optional(),
 	zid: z.string().min(1).max(20),
 	name: z.string().max(255).optional(),
 	phone: z.string().min(8).max(20),
+	primaryWhatsappNumber: z.string().min(8).max(20).optional(),
 	email: z.string().email().max(255),
 	status: StudentStatusSchema,
 	courseType: BatchTypeSchema.optional(),

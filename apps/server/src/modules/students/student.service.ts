@@ -14,7 +14,9 @@ import {
 } from "./student-activity.model.js";
 import {
 	getStudentProcessTemplate,
+	getAdmissionProcessTemplate,
 	type StudentProcessDocument,
+	type StudentProcessTaskDocument,
 	StudentProcessModel,
 } from "./student-process.model.js";
 
@@ -48,9 +50,11 @@ export type StudentProcessListItem = {
 	updatedAt: Date;
 	student: {
 		id: Types.ObjectId;
+		leadId?: Types.ObjectId;
 		zid: string;
 		name?: string;
 		phone: string;
+		primaryWhatsappNumber?: string;
 		email: string;
 		status: Student["status"];
 		courseType?: Student["courseType"];
@@ -174,6 +178,7 @@ const logStudentActivity = async (params: {
 
 const syncStudentProcess = async (
 	studentId: string,
+	explicitTemplate?: { label: string; tasks: StudentProcessTaskDocument[] },
 ): Promise<StudentDocument | null> => {
 	const student = await StudentModel.findById(
 		studentId,
@@ -182,7 +187,7 @@ const syncStudentProcess = async (
 		return null;
 	}
 
-	const template = getStudentProcessTemplate(student.status);
+	const template = explicitTemplate ?? getStudentProcessTemplate(student.status);
 	const process = await StudentProcessModel.findOneAndUpdate(
 		{ studentId: student._id },
 		{
@@ -278,9 +283,11 @@ export const StudentService = {
 			updatedAt: p.updatedAt,
 			student: {
 				id: p.student?._id,
+				leadId: p.student?.leadId,
 				zid: p.student?.zid,
 				name: p.student?.name,
 				phone: p.student?.phone,
+				primaryWhatsappNumber: p.student?.primaryWhatsappNumber,
 				email: p.student?.email,
 				status: p.student?.status,
 				courseType: p.student?.courseType,
@@ -325,9 +332,11 @@ export const StudentService = {
 			updatedAt: p.updatedAt,
 			student: {
 				id: p.student?._id,
+				leadId: p.student?.leadId,
 				zid: p.student?.zid,
 				name: p.student?.name,
 				phone: p.student?.phone,
+				primaryWhatsappNumber: p.student?.primaryWhatsappNumber,
 				email: p.student?.email,
 				status: p.student?.status,
 				courseType: p.student?.courseType,
@@ -544,6 +553,7 @@ export const StudentService = {
 
 		const syncedStudent = await syncStudentProcess(
 			createdStudent._id.toString(),
+			getAdmissionProcessTemplate(existingLead.courseType),
 		);
 
 		await logStudentActivity({
@@ -691,6 +701,7 @@ export const StudentService = {
 
 		const syncedStudent = await syncStudentProcess(
 			createdStudent._id.toString(),
+			getAdmissionProcessTemplate(existingLead.courseType),
 		);
 
 		await logStudentActivity({

@@ -67,9 +67,11 @@ const toStudentProcessResponse = (process: StudentProcessListItem) => {
 		})),
 		student: {
 			id: process.student.id.toString(),
+			leadId: process.student.leadId?.toString(),
 			zid: process.student.zid,
 			name: process.student.name ?? null,
 			phone: process.student.phone,
+			primaryWhatsappNumber: process.student.primaryWhatsappNumber,
 			email: process.student.email,
 			status: process.student.status,
 			courseType: process.student.courseType,
@@ -125,7 +127,7 @@ export const getStudentProcessController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const processId = req.params.processId;
+	const processId = requireStringValue(req.params.processId, "processId");
 	const process = await StudentService.getStudentProcessById(processId);
 	if (!process) {
 		res.status(404).json({ ok: false, error: "Process not found" });
@@ -146,9 +148,11 @@ export const getStudentProcessController = async (
 		})),
 		student: {
 			id: process.student.id.toString(),
+			leadId: process.student.leadId?.toString(),
 			zid: process.student.zid,
 			name: process.student.name ?? null,
 			phone: process.student.phone,
+			primaryWhatsappNumber: process.student.primaryWhatsappNumber,
 			email: process.student.email,
 			status: process.student.status,
 			courseType: process.student.courseType,
