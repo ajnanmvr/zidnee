@@ -63,8 +63,9 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 		actionType: "WHATSAPP",
 		whatsappMessage: `Assalamu Alaikum,
 We are contacting you from Zidnee Online Islamic School.
-Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will now proceed with the final admission process.
-Please save this number as Zidnee's official contact number.`,
+Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will
+now proceed with the final admission process.
+Please save this number as Zidnee’s official contact number.`,
 	},
 	"confirm-form-submission": { label: "Confirm form submission" },
 	"assign-mentor": { label: "Assign mentor" },
@@ -161,6 +162,17 @@ const studentProcessTaskSchema = new Schema<StudentProcessTaskDocument>(
 			type: Date,
 			required: false,
 			default: null,
+		},
+		actionType: {
+			type: String,
+			required: false,
+			enum: ["WHATSAPP", "FORM_LINK"],
+		},
+		whatsappMessage: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 1000,
 		},
 	},
 	{ _id: false },

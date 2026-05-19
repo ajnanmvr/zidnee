@@ -10,6 +10,11 @@ import { useSession } from "@/lib/session";
 const normalizeWhatsAppNumber = (phone?: string | null) =>
     phone?.replace(/\D/g, "") ?? "";
 
+const getPrimaryWhatsAppNumber = (student: {
+    primaryWhatsappNumber?: string | null;
+    phone?: string | null;
+}) => student.primaryWhatsappNumber ?? student.phone ?? null;
+
 export const StudentProcessDetailPage = () => {
     const { token } = useSession();
     const { processId } = useParams<{ processId: string }>();
@@ -58,6 +63,10 @@ export const StudentProcessDetailPage = () => {
         setShowModal(true);
     };
 
+    const welcomeTask = process.tasks.find(
+        (task: any) => task.key === "send-welcome-message",
+    );
+
     const handleTaskAction = async (task: any) => {
         if (!token || !process?.student?.leadId) {
             return;
@@ -69,7 +78,7 @@ export const StudentProcessDetailPage = () => {
             try {
                 const result = await generateFormLink(token, process.student.leadId);
                 openComposeModal(
-                    process.student.primaryWhatsappNumber ?? process.student.phone,
+                    getPrimaryWhatsAppNumber(process.student),
                     `${task.whatsappMessage ?? "Please complete the form below."}\n${result.formLink}`,
                     task.key,
                 );
@@ -81,7 +90,7 @@ export const StudentProcessDetailPage = () => {
 
         // For plain whatsapp messages open compose modal so the message can be edited
         openComposeModal(
-            process.student.primaryWhatsappNumber ?? process.student.phone,
+            getPrimaryWhatsAppNumber(process.student),
             task.whatsappMessage,
             task.key,
         );
@@ -111,27 +120,38 @@ export const StudentProcessDetailPage = () => {
                 <div className="grid gap-2">
                     {process.tasks.map((task: any) => (
                         <div key={task.key} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-900">{task.label}</p>
+                            <div className="min-w-0 flex-1">
+                                {task.whatsappMessage ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => void handleTaskAction(task)}
+                                        className="text-left"
+                                    >
+                                        <p className="text-sm font-semibold text-slate-900 underline decoration-transparent transition hover:decoration-current">
+                                            {task.label}
+                                        </p>
+                                    </button>
+                                ) : (
+                                    <p className="text-sm font-semibold text-slate-900">{task.label}</p>
+                                )}
                                 {task.whatsappMessage ? (
                                     <p className="mt-1 text-xs text-slate-500">Automation message for WhatsApp on the student&apos;s primary number.</p>
                                 ) : null}
                                 <p className="mt-0.5 text-xs text-slate-500">{task.completedAt ? `Completed ${new Date(task.completedAt).toLocaleDateString()}` : "Pending"}</p>
                             </div>
                             <div className="flex flex-col items-end gap-2">
-                                <span
-                                    role={task.whatsappMessage ? "button" : undefined}
-                                    tabIndex={task.whatsappMessage ? 0 : undefined}
-                                    onKeyDown={task.whatsappMessage ? (e) => { if (e.key === "Enter" || e.key === " ") { void handleTaskAction(task); } } : undefined}
+                                <button
+                                    type="button"
                                     onClick={task.whatsappMessage ? () => void handleTaskAction(task) : undefined}
+                                    disabled={!task.whatsappMessage}
                                     className={
                                         (task.completed ? "inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700") +
-                                        (task.whatsappMessage ? " cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400" : "")
+                                        (task.whatsappMessage ? " cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-70")
                                     }
                                 >
                                     {task.completed ? <HiCheckCircle className="mr-1 h-4 w-4" /> : null}
                                     {task.completed ? "Done" : "Open"}
-                                </span>
+                                </button>
                                 {task.whatsappMessage ? (
                                     <button
                                         onClick={() => void handleTaskAction(task)}
@@ -145,43 +165,49 @@ export const StudentProcessDetailPage = () => {
                         </div>
                     ))}
                 </div>
+
+                {welcomeTask ? (
+                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="text-sm font-semibold text-emerald-900">Send welcome message</p>
+                        <p className="mt-1 text-xs text-emerald-700">
+                            Open the compose modal with the prefilled welcome text and send it to the student&apos;s primary WhatsApp number.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => void handleTaskAction(welcomeTask)}
+                            className="mt-3 inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                        >
+                            Open welcome modal
+                        </button>
+                    </div>
+                ) : null}
             </Panel>
 
             {showModal ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setShowModal(false)} />
-                    <div className="relative z-10 w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
-                        <h3 className="text-lg font-semibold">Send WhatsApp message</h3>
-                        <p className="mt-1 text-sm text-slate-500">Phone: {modalPhone}</p>
-                        <textarea
-                            className="mt-3 h-36 w-full rounded-md border p-3 text-sm"
-                            value={modalMessage ?? ""}
-                            onChange={(e) => setModalMessage(e.target.value)}
-                        />
-                        <div className="mt-4 flex justify-end gap-2">
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="inline-flex items-center rounded-md border px-3 py-1 text-sm font-semibold"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    openWhatsApp(modalPhone ?? undefined, modalMessage ?? undefined);
-                                    setShowModal(false);
-                                    if (modalTaskKey) {
-                                        try {
-                                            await markTaskMutation.mutateAsync({ processId: process.id, taskKey: modalTaskKey });
-                                        } catch (e) {
-                                            // ignore; cache invalidation will refresh on next view
-                                        }
-                                    }
-                                }}
-                                className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1 text-sm font-semibold text-white"
-                            >
-                                Send on WhatsApp
-                            </button>
+                    <div className="relative z-10 w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+                        <h3 className="text-lg font-semibold text-slate-900">Send welcome message</h3>
+                        <p className="mt-1 text-sm text-slate-500">Primary WhatsApp: {modalPhone}</p>
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700 whitespace-pre-line">
+                            {modalMessage}
                         </div>
+                        <button
+                            onClick={async () => {
+                                openWhatsApp(modalPhone ?? undefined, modalMessage ?? undefined);
+                                setShowModal(false);
+                                if (modalTaskKey) {
+                                    try {
+                                        await markTaskMutation.mutateAsync({ processId: process.id, taskKey: modalTaskKey });
+                                    } catch (e) {
+                                        // ignore; cache invalidation will refresh on next view
+                                    }
+                                }
+                            }}
+                            className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                        >
+                            Send to WhatsApp
+                        </button>
                     </div>
                 </div>
             ) : null}
