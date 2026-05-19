@@ -1,5 +1,6 @@
 import type { Student } from "@repo/schema";
 import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
+import { Types } from "mongoose";
 import { AppError } from "../../utils/errors.util.js";
 import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
@@ -30,6 +31,33 @@ type StudentListFilters = {
 	sortOrder?: "asc" | "desc";
 	page?: number;
 	limit?: number;
+};
+
+export type StudentProcessListItem = {
+	id: Types.ObjectId;
+	studentId: Types.ObjectId;
+	status: Student["status"];
+	label: string;
+	tasks: Array<{
+		key: string;
+		label: string;
+		completed: boolean;
+		completedAt?: Date | null;
+	}>;
+	createdAt: Date;
+	updatedAt: Date;
+	student: {
+		id: Types.ObjectId;
+		zid: string;
+		name?: string;
+		phone: string;
+		email: string;
+		status: Student["status"];
+		courseType?: Student["courseType"];
+		level?: string;
+		mentorId?: Types.ObjectId;
+		batchId?: Types.ObjectId;
+	};
 };
 
 const getDefaultStudentFollowUpAt = (source?: Date | null): Date => {
@@ -217,6 +245,97 @@ export const StudentService = {
 			.limit(filters.limit && filters.limit > 0 ? filters.limit : 0)
 			.lean<StudentDocument[]>();
 		return students.map(toStudent);
+	},
+
+	listStudentProcesses: async (): Promise<StudentProcessListItem[]> => {
+		const raw = await StudentProcessModel.aggregate<unknown>([
+			{
+				$lookup: {
+					from: StudentModel.collection.name,
+					localField: "studentId",
+					foreignField: "_id",
+					as: "student",
+				},
+			},
+			{
+				$unwind: "$student",
+			},
+			{
+				$sort: {
+					updatedAt: -1,
+				},
+			},
+		])
+		// Normalize aggregation result: map MongoDB's `_id` fields to `id` so
+		// controller code can safely call `.toString()` on expected fields.
+		const processes = (raw as any[]).map((p) => ({
+			id: p._id,
+			studentId: p.studentId,
+			status: p.status,
+			label: p.label,
+			tasks: p.tasks ?? [],
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			student: {
+				id: p.student?._id,
+				zid: p.student?.zid,
+				name: p.student?.name,
+				phone: p.student?.phone,
+				email: p.student?.email,
+				status: p.student?.status,
+				courseType: p.student?.courseType,
+				level: p.student?.level,
+				mentorId: p.student?.mentorId,
+				batchId: p.student?.batchId,
+			},
+		} as StudentProcessListItem));
+
+		return processes;
+	},
+
+	getStudentProcessById: async (processId: string): Promise<StudentProcessListItem | null> => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		const raw = await StudentProcessModel.aggregate<unknown>([
+			{ $match: { _id: objectId } },
+			{
+				$lookup: {
+					from: StudentModel.collection.name,
+					localField: "studentId",
+					foreignField: "_id",
+					as: "student",
+				},
+			},
+			{ $unwind: "$student" },
+		]);
+
+		if (!raw || (raw as any[]).length === 0) return null;
+
+		const p = (raw as any[])[0];
+		return {
+			id: p._id,
+			studentId: p.studentId,
+			status: p.status,
+			label: p.label,
+			tasks: p.tasks ?? [],
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			student: {
+				id: p.student?._id,
+				zid: p.student?.zid,
+				name: p.student?.name,
+				phone: p.student?.phone,
+				email: p.student?.email,
+				status: p.student?.status,
+				courseType: p.student?.courseType,
+				level: p.student?.level,
+				mentorId: p.student?.mentorId,
+				batchId: p.student?.batchId,
+			},
+		};
 	},
 
 	findByLeadId: async (leadId: string): Promise<Student | null> => {

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	fetchStudentActivities,
+	fetchStudentProcesses,
 	fetchStudents,
+	fetchStudentProcess,
 } from "@/features/students/students.service";
 
 export const studentsQueryKeys = {
@@ -18,6 +20,8 @@ export const studentsQueryKeys = {
 	) => ["students", token, options ?? {}] as const,
 	activities: (token: string, studentId: string) =>
 		["students", token, studentId, "activities"] as const,
+	processes: (token: string) => ["students", token, "processes"] as const,
+		process: (token: string, processId: string) => ["students", token, "processes", processId] as const,
 };
 
 export const useStudentsQuery = (
@@ -57,5 +61,25 @@ export const useStudentActivitiesQuery = (
 		queryKey: studentsQueryKeys.activities(token, studentId ?? ""),
 		queryFn: () => fetchStudentActivities(token, studentId ?? ""),
 		enabled: Boolean(token) && Boolean(studentId) && enabled,
+	});
+};
+
+export const useStudentProcessesQuery = (token: string, enabled = true) => {
+	return useQuery({
+		queryKey: studentsQueryKeys.processes(token),
+		queryFn: () => fetchStudentProcesses(token),
+		enabled: Boolean(token) && enabled,
+	});
+};
+
+export const useStudentProcessQuery = (
+	token: string,
+	processId?: string,
+	enabled = true,
+) => {
+	return useQuery({
+		queryKey: studentsQueryKeys.process(token, processId ?? ""),
+		queryFn: () => fetchStudentProcess(token, processId ?? ""),
+		enabled: Boolean(token) && Boolean(processId) && enabled,
 	});
 };

@@ -1,11 +1,13 @@
 import {
 	StudentActivitiesResponseSchema,
 	StudentFollowUpPayloadSchema,
+	StudentProcessesResponseSchema,
 	StudentResponseEnvelopeSchema,
 	StudentsResponseSchema,
 	UpdateStudentAssessmentPayloadSchema,
 	UpdateStudentPayloadSchema,
 } from "@repo/schema";
+import { StudentProcessResponseSchema } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
 export const fetchStudents = async (
@@ -64,6 +66,29 @@ export const fetchStudentActivities = async (
 		undefined,
 		token,
 	);
+};
+
+export const fetchStudentProcesses = async (token: string) => {
+	return requestWithSchema(
+		`/students/processes`,
+		StudentProcessesResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchStudentProcess = async (token: string, processId: string) => {
+	const validator = {
+		safeParse: (raw: unknown) => {
+			const candidate = (raw as any)?.process;
+			const parsed = StudentProcessResponseSchema.safeParse(candidate);
+			if (!parsed.success) return { success: false } as const;
+			return { success: true, data: { process: parsed.data } } as const;
+		},
+	} as const;
+
+	return requestWithSchema(`/students/processes/${processId}`, validator as any, "GET", undefined, token);
 };
 
 export const recordStudentFollowUp = async (

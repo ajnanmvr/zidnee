@@ -42,6 +42,7 @@ const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
 	"/students": "Students",
+	"/processes": "Processes",
 	"/mentors": "Mentors",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/time-slots": "Time Slots",
@@ -134,9 +135,7 @@ export const DashboardLayout = () => {
 	const allReminders = remindersQuery.data ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
-	const isCounsellor =
-		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
-		false;
+	const currentProcessCount = allStudents.filter((student) => Boolean(student.processId)).length;
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,
 	).length;
@@ -260,6 +259,15 @@ export const DashboardLayout = () => {
 							(student) => student.courseType === "INDIVIDUAL",
 						).length ?? 0,
 					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/processes",
+					label: "Processes",
+					description: "Student workflows",
+					icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
+					count: currentProcessCount,
+					accent: "violet",
 					section: "Learners",
 				},
 				{

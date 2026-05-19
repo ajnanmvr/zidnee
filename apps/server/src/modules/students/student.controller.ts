@@ -1,12 +1,14 @@
 import {
 	StudentFollowUpPayloadSchema,
 	StudentsResponseSchema,
+	StudentProcessesResponseSchema,
+	StudentProcessResponseSchema,
 	UpdateStudentAssessmentPayloadSchema,
  	UpdateStudentPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
-import { StudentService } from "./student.service.js";
+import { StudentService, type StudentProcessListItem } from "./student.service.js";
 import { uploadBuffer } from "../../lib/s3.js";
 
 const toStudentResponse = (
@@ -51,6 +53,35 @@ const toStudentResponse = (
 	};
 };
 
+const toStudentProcessResponse = (process: StudentProcessListItem) => {
+	return {
+		id: process.id.toString(),
+		studentId: process.studentId.toString(),
+		status: process.status,
+		label: process.label,
+		tasks: process.tasks.map((task) => ({
+			key: task.key,
+			label: task.label,
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+		})),
+		student: {
+			id: process.student.id.toString(),
+			zid: process.student.zid,
+			name: process.student.name ?? null,
+			phone: process.student.phone,
+			email: process.student.email,
+			status: process.student.status,
+			courseType: process.student.courseType,
+			level: process.student.level,
+			mentorId: process.student.mentorId?.toString(),
+			batchId: process.student.batchId?.toString(),
+		},
+		createdAt: process.createdAt.toISOString(),
+		updatedAt: process.updatedAt.toISOString(),
+	};
+};
+
 export const listStudentsController = async (
 	req: Request,
 	res: Response,
@@ -75,6 +106,63 @@ export const listStudentsController = async (
 			students: students.map(toStudentResponse),
 		}),
 	);
+};
+
+export const listStudentProcessesController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const processes = await StudentService.listStudentProcesses();
+	res.json(
+		StudentProcessesResponseSchema.parse({
+			ok: true,
+			processes: processes.map(toStudentProcessResponse),
+		}),
+	);
+};
+
+export const getStudentProcessController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = req.params.processId;
+	const process = await StudentService.getStudentProcessById(processId);
+	if (!process) {
+		res.status(404).json({ ok: false, error: "Process not found" });
+		return;
+	}
+
+	// reuse response mapping used for list
+	const mapped = {
+		id: process.id.toString(),
+		studentId: process.studentId.toString(),
+		status: process.status,
+		label: process.label,
+		tasks: process.tasks.map((task) => ({
+			key: task.key,
+			label: task.label,
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+		})),
+		student: {
+			id: process.student.id.toString(),
+			zid: process.student.zid,
+			name: process.student.name ?? null,
+			phone: process.student.phone,
+			email: process.student.email,
+			status: process.student.status,
+			courseType: process.student.courseType,
+			level: process.student.level,
+			mentorId: process.student.mentorId?.toString(),
+			batchId: process.student.batchId?.toString(),
+		},
+		createdAt: process.createdAt.toISOString(),
+		updatedAt: process.updatedAt.toISOString(),
+	};
+
+	// validate the single-process shape before returning
+	const validated = StudentProcessResponseSchema.parse(mapped as any);
+	res.json({ ok: true, process: validated });
 };
 
 export const recordStudentFollowUpController = async (

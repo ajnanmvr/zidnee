@@ -20,6 +20,11 @@ export const OverviewPage = () => {
 			description: "Enrolled learners",
 		},
 		{
+			to: "/processes",
+			label: "Processes",
+			description: "Student workflows",
+		},
+		{
 			to: "/time-slots",
 			label: "Time Slots",
 			description: "Class timing",
@@ -43,6 +48,10 @@ export const OverviewPage = () => {
 		}
 
 		if (page.to === "/students") {
+			return hasPermission("STUDENT_READ");
+		}
+
+		if (page.to === "/processes") {
 			return hasPermission("STUDENT_READ");
 		}
 

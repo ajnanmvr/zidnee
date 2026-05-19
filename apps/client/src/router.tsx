@@ -29,6 +29,14 @@ const StudentsPage = lazy(() =>
 		default: module.StudentsPage,
 	})),
 );
+const StudentProcessesPage = lazy(() =>
+	import("@/features/dashboard/StudentProcessesPage").then((module) => ({
+		default: module.StudentProcessesPage,
+	})),
+);
+const StudentProcessDetailPage = lazy(() =>
+    import("@/features/dashboard/StudentProcessDetailPage").then((m) => ({ default: m.StudentProcessDetailPage })),
+);
 const StudentDetailPage = lazy(() =>
 	import("@/features/students/StudentDetailPage").then((module) => ({
 		default: module.StudentDetailPage,
@@ -190,6 +198,22 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<StudentsPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "processes",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<StudentProcessesPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "processes/:processId",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<StudentProcessDetailPage />
 							</Suspense>
 						),
 					},
