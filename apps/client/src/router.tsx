@@ -9,6 +9,7 @@ const LoginPage = lazy(() =>
 	})),
 );
 const PublicFormPage = lazy(() => import("@/features/public/PublicFormPage"));
+const PublicProfileUploadPage = lazy(() => import("@/features/public/PublicProfileUploadPage"));
 const DashboardLayout = lazy(() =>
 	import("@/features/dashboard/DashboardLayout").then((module) => ({
 		default: module.DashboardLayout,
@@ -156,6 +157,14 @@ export const router = createBrowserRouter([
 		element: (
 			<Suspense fallback={routeFallback}>
 				<PublicFormPage />
+			</Suspense>
+		),
+	},
+	{
+		path: "/form/:leadId/profile-upload",
+		element: (
+			<Suspense fallback={routeFallback}>
+				<PublicProfileUploadPage />
 			</Suspense>
 		),
 	},

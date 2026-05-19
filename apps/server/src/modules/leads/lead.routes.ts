@@ -6,6 +6,7 @@ import {
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import { getLeadActivitiesController } from "./activity.controller.js";
+import { upload } from "../../middlewares/upload.middleware.js";
 import {
 	assignDemoCounsellorController,
 	assignDemoMentorController,
@@ -29,6 +30,7 @@ import {
 	updateLeadController,
 	validateFormLinkController,
 } from "./lead.controller.js";
+import { submitLeadProfilePicController } from "./profile-upload.controller.js";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -449,3 +451,11 @@ publicLeadRoutes.get(
 	"/:leadId/validate",
 	asyncHandler(validateFormLinkController),
 );
+
+// Public profile image upload (multipart). Accepts 'profilePic' file and requires the same token used for form links.
+publicLeadRoutes.post(
+	"/:leadId/profile-upload",
+	upload.single("profilePic"),
+	asyncHandler(submitLeadProfilePicController),
+);
+
