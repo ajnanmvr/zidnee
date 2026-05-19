@@ -143,10 +143,10 @@ export const uploadStudentProfilePicController = async (
 		res.status(400).json({ ok: false, error: "No file provided" });
 		return;
 	}
-	// construct a key for S3: students/{studentId}/{timestamp}_{filename}
+	// store profile images under a dedicated public prefix
 	const timestamp = Date.now();
 	const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-	const key = `students/${studentId}/${timestamp}_${safeName}`;
+	const key = `profile-images/students/${studentId}/${timestamp}_${safeName}`;
 
 	const url = await uploadBuffer(file.buffer, key, file.mimetype);
 

@@ -49,6 +49,14 @@ const [pendingAssessment, setPendingAssessment] = useState<{
 assessmentType: "oral" | "written" | "level";
 nextDone: boolean;
 } | null>(null);
+const [imageViewerOpen, setImageViewerOpen] = useState(false);
+const [cropModalOpen, setCropModalOpen] = useState(false);
+const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number; displayWidth: number; displayHeight: number } | null>(null);
+const [squareSize, setSquareSize] = useState(200);
+const [squareX, setSquareX] = useState(0);
+const [squareY, setSquareY] = useState(0);
+const [isResizing, setIsResizing] = useState(false);
 const remindersQuery = useGetStudentReminders(studentId ?? "");
 
 const student = useMemo(
@@ -137,6 +145,52 @@ toast.error("Failed to record follow-up");
 }
 };
 
+const autoCropToSquare = (file: File): Promise<Blob> => {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const img = new Image();
+			img.onload = () => {
+				// Calculate scale from display to actual image
+				if (!imageDimensions) {
+					reject(new Error("Image dimensions not available"));
+					return;
+				}
+
+				const scaleX = imageDimensions.width / imageDimensions.displayWidth;
+				const scaleY = imageDimensions.height / imageDimensions.displayHeight;
+
+				// Convert display coordinates to actual image coordinates
+				const actualX = squareX * scaleX;
+				const actualY = squareY * scaleY;
+				const actualSize = squareSize * scaleX; // Use scaleX since it's a square
+
+				const canvas = document.createElement("canvas");
+				canvas.width = 400;
+				canvas.height = 400;
+
+				const ctx = canvas.getContext("2d");
+				if (!ctx) {
+					reject(new Error("Failed to get canvas context"));
+					return;
+				}
+
+				// Draw the cropped section onto the canvas
+				ctx.drawImage(img, actualX, actualY, actualSize, actualSize, 0, 0, 400, 400);
+
+				canvas.toBlob((blob) => {
+					if (blob) resolve(blob);
+					else reject(new Error("Failed to create blob"));
+				}, "image/jpeg", 0.8);
+			};
+			img.onerror = () => reject(new Error("Failed to load image"));
+			img.src = e.target?.result as string;
+		};
+		reader.onerror = () => reject(new Error("Failed to read file"));
+		reader.readAsDataURL(file);
+	});
+};
+
 const assessmentConfig = [
 {
 assessmentType: "oral" as const,
@@ -168,31 +222,42 @@ const handleProfilePicChange = async (event: ChangeEvent<HTMLInputElement>) => {
 		return;
 	}
 
-	try {
-		const form = new FormData();
-		form.append("file", file);
+	// Load image and get dimensions
+	const reader = new FileReader();
+	reader.onload = (e) => {
+		const img = new Image();
+		img.onload = () => {
+			// Calculate display dimensions (fit to max 500px)
+			const maxDim = 500;
+			let displayWidth = img.width;
+			let displayHeight = img.height;
 
-		const res = await fetch(`${API_BASE_URL}/students/${studentId}/profile-pic`, {
-			method: "POST",
-			body: form,
-			headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-		});
+			if (img.width > maxDim || img.height > maxDim) {
+				const ratio = Math.max(img.width, img.height) / maxDim;
+				displayWidth = img.width / ratio;
+				displayHeight = img.height / ratio;
+			}
 
-		const json = await res.json();
-		if (!res.ok || !json.ok) {
-			throw new ApiError(res.status, json);
-		}
+			setImageDimensions({
+				width: img.width,
+				height: img.height,
+				displayWidth,
+				displayHeight,
+			});
 
-		// Refresh students list to pick up updated profile pic
-		await studentsQuery.refetch();
-		toast.success("Profile picture updated");
-	} catch (error) {
-		if (error instanceof ApiError) {
-			toast.error(error.payload.message ?? "Failed to update profile picture");
-			return;
-		}
-		toast.error("Failed to update profile picture");
-	}
+			// Initialize square in center
+			const initialSize = Math.min(displayWidth, displayHeight) * 0.6;
+			setSquareSize(initialSize);
+			setSquareX((displayWidth - initialSize) / 2);
+			setSquareY((displayHeight - initialSize) / 2);
+			setIsResizing(false);
+
+			setSelectedImageFile(file);
+			setCropModalOpen(true);
+		};
+		img.src = e.target?.result as string;
+	};
+	reader.readAsDataURL(file);
 };
 
 const removeProfilePic = async () => {
@@ -217,6 +282,50 @@ toast.error("Failed to remove profile picture");
 
 const openProfilePicPicker = () => {
 	profilePicInputRef.current?.click();
+};
+
+const confirmCrop = async () => {
+	if (!selectedImageFile || !studentId) return;
+
+	try {
+		const croppedBlob = await autoCropToSquare(selectedImageFile);
+		const croppedFile = new File([croppedBlob], "profile.jpg", { type: "image/jpeg" });
+
+		const form = new FormData();
+		form.append("file", croppedFile);
+
+		const res = await fetch(`${API_BASE_URL}/students/${studentId}/profile-pic`, {
+			method: "POST",
+			body: form,
+			headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+		});
+
+		const json = await res.json();
+		if (!res.ok || !json.ok) {
+			throw new ApiError(res.status, json);
+		}
+
+		await studentsQuery.refetch();
+		toast.success("Profile picture updated");
+		setCropModalOpen(false);
+		setSelectedImageFile(null);
+	} catch (error) {
+		if (error instanceof ApiError) {
+			toast.error(error.payload.message ?? "Failed to update profile picture");
+			return;
+		}
+		toast.error("Failed to update profile picture");
+	}
+};
+
+const closeCropModal = () => {
+	setCropModalOpen(false);
+	setSelectedImageFile(null);
+	setImageDimensions(null);
+	setSquareSize(200);
+	setSquareX(0);
+	setSquareY(0);
+	setIsResizing(false);
 };
 
 const openAssessmentConfirm = (
@@ -290,7 +399,12 @@ className="mt-1 text-gray-600 hover:text-gray-900"
 >
 <HiArrowLeft className="h-5 w-5" />
 </button>
-<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+<button
+	onClick={() => student.profilePic && setImageViewerOpen(true)}
+	className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 ${
+		student.profilePic ? "cursor-pointer hover:opacity-80 transition" : ""
+	}`}
+>
 	{student.profilePic ? (
 		<img
 			src={student.profilePic}
@@ -300,7 +414,7 @@ className="mt-1 text-gray-600 hover:text-gray-900"
 	) : (
 		<span className="text-xl font-bold text-gray-400">{profileAvatarLabel}</span>
 	)}
-</div>
+</button>
 <div>
 <div className="flex items-center gap-2">
 <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
@@ -525,17 +639,22 @@ className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibo
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 <Panel title="Profile picture">
 <div className="flex flex-col items-center gap-4">
-<div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-50">
-{student?.profilePic ? (
-<img
-src={student.profilePic}
-alt={`${student.name ?? student.zid} profile`}
-className="h-full w-full object-cover"
-/>
-) : (
-<span className="text-4xl font-bold text-gray-400">{profileAvatarLabel}</span>
-)}
-</div>
+<button
+	onClick={() => student?.profilePic && setImageViewerOpen(true)}
+	className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-50 ${
+		student?.profilePic ? "cursor-pointer hover:opacity-80 transition" : ""
+	}`}
+>
+	{student?.profilePic ? (
+		<img
+			src={student.profilePic}
+			alt={`${student.name ?? student.zid} profile`}
+			className="h-full w-full object-cover"
+		/>
+	) : (
+		<span className="text-4xl font-bold text-gray-400">{profileAvatarLabel}</span>
+	)}
+</button>
 <label className="inline-flex cursor-pointer items-center rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
 <input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
 Upload profile picture
@@ -771,6 +890,170 @@ studentId={studentId ?? ""}
 isOpen={remindersModalOpen}
 onClose={() => setRemindersModalOpen(false)}
 />
+
+{/* Crop Modal */}
+{cropModalOpen && selectedImageFile && imageDimensions && (
+<div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black p-4">
+	{/* Close button */}
+	<button
+		onClick={closeCropModal}
+		className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+	>
+		<svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+		</svg>
+	</button>
+
+	{/* Image container with square overlay */}
+	<div className="flex flex-col items-center justify-center flex-1 mb-8">
+		<div 
+			className="relative bg-black flex items-center justify-center"
+			style={{ maxWidth: "600px", maxHeight: "600px" }}
+		>
+			<img
+				src={URL.createObjectURL(selectedImageFile)}
+				alt="Crop preview"
+				className="max-w-full max-h-full object-contain"
+				draggable={false}
+				style={{
+					width: imageDimensions.displayWidth,
+					height: imageDimensions.displayHeight,
+				}}
+			/>
+
+			{/* Dark overlay with transparent square cutout */}
+			<svg
+				className="absolute top-0 left-0 pointer-events-none"
+				style={{
+					width: imageDimensions.displayWidth,
+					height: imageDimensions.displayHeight,
+				}}
+				viewBox={`0 0 ${imageDimensions.displayWidth} ${imageDimensions.displayHeight}`}
+			>
+				<defs>
+					<mask id="cropMask">
+						<rect width={imageDimensions.displayWidth} height={imageDimensions.displayHeight} fill="white" />
+						<rect x={squareX} y={squareY} width={squareSize} height={squareSize} fill="black" />
+					</mask>
+				</defs>
+				<rect
+					width={imageDimensions.displayWidth}
+					height={imageDimensions.displayHeight}
+					fill="rgba(0, 0, 0, 0.7)"
+					mask="url(#cropMask)"
+				/>
+				{/* Square border */}
+				<rect
+					x={squareX}
+					y={squareY}
+					width={squareSize}
+					height={squareSize}
+					fill="none"
+					stroke="#14b8a6"
+					strokeWidth="2"
+				/>
+			</svg>
+
+			{/* Crop square with resize handle - for interaction */}
+			<div
+				className="absolute cursor-move"
+				style={{
+					width: squareSize,
+					height: squareSize,
+					left: squareX,
+					top: squareY,
+					userSelect: "none",
+				}}
+				onMouseDown={(e) => {
+					if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
+					setIsResizing(true);
+				}}
+				onMouseMove={(e) => {
+					if (!isResizing) return;
+					const container = (e.currentTarget.parentElement as HTMLElement);
+					const rect = container.getBoundingClientRect();
+					const newX = Math.max(0, Math.min(e.clientX - rect.left - squareSize / 2, imageDimensions.displayWidth - squareSize));
+					const newY = Math.max(0, Math.min(e.clientY - rect.top - squareSize / 2, imageDimensions.displayHeight - squareSize));
+					setSquareX(newX);
+					setSquareY(newY);
+				}}
+				onMouseUp={() => setIsResizing(false)}
+				onMouseLeave={() => setIsResizing(false)}
+			>
+				{/* Resize handle - bottom right */}
+				<div
+					className="resize-handle absolute w-4 h-4 bg-teal-400 bottom-0 right-0 cursor-se-resize transform translate-x-1/2 translate-y-1/2"
+					onMouseDown={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						const startX = e.clientX;
+						const startY = e.clientY;
+						const startSize = squareSize;
+
+						const handleMouseMove = (moveEvent: MouseEvent) => {
+							const delta = Math.max(moveEvent.clientX - startX, moveEvent.clientY - startY);
+							const newSize = Math.max(50, Math.min(startSize + delta, Math.min(imageDimensions.displayWidth - squareX, imageDimensions.displayHeight - squareY)));
+							setSquareSize(newSize);
+						};
+
+						const handleMouseUp = () => {
+							document.removeEventListener("mousemove", handleMouseMove);
+							document.removeEventListener("mouseup", handleMouseUp);
+						};
+
+						document.addEventListener("mousemove", handleMouseMove);
+						document.addEventListener("mouseup", handleMouseUp);
+					}}
+				/>
+			</div>
+		</div>
+
+		<p className="text-white text-sm mt-4">Drag the square to reposition, drag corner to resize</p>
+	</div>
+
+	{/* Buttons */}
+	<div className="flex gap-3 w-full max-w-md">
+		<button
+			type="button"
+			onClick={closeCropModal}
+			className="flex-1 px-4 py-2 border border-white rounded-2xl font-semibold text-white hover:bg-white hover:text-black transition"
+		>
+			Cancel
+		</button>
+		<button
+			type="button"
+			onClick={() => void confirmCrop()}
+			className="flex-1 px-4 py-2 bg-teal-600 rounded-2xl font-semibold text-white hover:bg-teal-700 transition"
+		>
+			Crop & Upload
+		</button>
+	</div>
+</div>
+)}
+
+{/* Image Viewer Modal */}
+{imageViewerOpen && student?.profilePic && (
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+	<div className="relative max-w-4xl w-full max-h-screen flex flex-col">
+		<button
+			onClick={() => setImageViewerOpen(false)}
+			className="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-900 hover:bg-gray-100 transition"
+		>
+			<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+			</svg>
+		</button>
+		<img
+			src={student.profilePic}
+			alt={`${student.name ?? student.zid} profile - fullscreen`}
+			className="w-full h-full object-contain"
+		/>
+		<div className="mt-4 text-center text-white text-sm">
+			{student.name} • {student.zid}
+		</div>
+	</div>
+</div>
+)}
 </div>
 );
 };
