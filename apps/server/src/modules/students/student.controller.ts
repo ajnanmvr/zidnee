@@ -218,8 +218,8 @@ export const markStudentProcessTaskController = async (
 		updatedAt: updated.updatedAt.toISOString(),
 	};
 
-	const validated = StudentProcessEnvelopeSchema.parse({ process: mapped });
-	res.json(validated);
+	const validated = StudentProcessEnvelopeSchema.parse({ ok: true, process: mapped });
+	res.json({ ok: true, process: validated.process });
 };
 
 export const setStudentProcessTaskCompletionController = async (
@@ -273,8 +273,8 @@ export const setStudentProcessTaskCompletionController = async (
 		updatedAt: updated.updatedAt.toISOString(),
 	};
 
-	const validated = StudentProcessEnvelopeSchema.parse({ process: mapped });
-	res.json(validated);
+	const validated = StudentProcessEnvelopeSchema.parse({ ok: true, process: mapped });
+	res.json({ ok: true, process: validated.process });
 };
 
 export const recordStudentFollowUpController = async (

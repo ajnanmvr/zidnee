@@ -1,10 +1,18 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useMarkTaskCompletedMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
 import { Link, useParams } from "react-router-dom";
 import { Panel } from "@/components/dashboard-ui";
 import { generateFormLink } from "@/features/leads/leads.service";
 import { useStudentProcessQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
+
+const ADMISSION_MODAL_TASK_KEYS = new Set([
+    "data-confirmed",
+    "mentor-assigned-informed",
+    "student-data-shared",
+    "group-created",
+]);
 
 const normalizeWhatsAppNumber = (phone?: string | null) =>
     phone?.replace(/\D/g, "") ?? "";
@@ -23,6 +31,8 @@ export const StudentProcessDetailPage = () => {
     const [modalMessage, setModalMessage] = useState<string | null>(null);
     const [modalPhone, setModalPhone] = useState<string | null>(null);
     const [modalTaskKey, setModalTaskKey] = useState<string | null>(null);
+    const [modalTaskLabel, setModalTaskLabel] = useState<string | null>(null);
+    const [modalTaskCompleted, setModalTaskCompleted] = useState(false);
     const markTaskMutation = useMarkTaskCompletedMutation();
     const setTaskMutation = useSetTaskCompletedMutation();
 
@@ -60,6 +70,25 @@ export const StudentProcessDetailPage = () => {
         setModalPhone(phone ?? null);
         setModalMessage(message ?? "");
         setModalTaskKey(taskKey ?? null);
+        setModalTaskLabel(null);
+        setModalTaskCompleted(false);
+        setShowModal(true);
+    };
+
+    const openStatusModal = (task: any) => {
+        setModalPhone(null);
+        setModalMessage(
+            task.label === "Data confirmed"
+                ? "Confirm that the student's details have been reviewed and verified."
+                : task.label === "Mentor assigned & informed"
+                    ? "Confirm that a mentor has been assigned and informed."
+                    : task.label === "Student data shared"
+                        ? "Confirm that the student's data has been shared with the relevant team."
+                        : "Confirm that the group has been created.",
+        );
+        setModalTaskKey(task.key);
+        setModalTaskLabel(task.label);
+        setModalTaskCompleted(Boolean(task.completed));
         setShowModal(true);
     };
 
@@ -67,6 +96,11 @@ export const StudentProcessDetailPage = () => {
 
     const handleTaskAction = async (task: any) => {
         if (!token || !process?.student?.leadId) {
+            return;
+        }
+
+        if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
+            openStatusModal(task);
             return;
         }
 
@@ -93,6 +127,19 @@ export const StudentProcessDetailPage = () => {
             task.key,
         );
     };
+
+        const handleTaskToggleClick = (task: any) => {
+            if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
+                openStatusModal(task);
+                return;
+            }
+
+            void setTaskMutation.mutateAsync({
+                processId: process.id,
+                taskKey: task.key,
+                completed: !task.completed,
+            });
+        };
 
     const completedCount = process.tasks.filter((t: any) => t.completed).length;
     const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;
@@ -123,12 +170,8 @@ export const StudentProcessDetailPage = () => {
                         >
                             <button
                                 type="button"
-                                onClick={() => {
-                                    // toggle completion
-                                    if (loadingTaskKey) return;
-                                    void setTaskMutation.mutateAsync({ processId: process.id, taskKey: task.key, completed: !task.completed });
-                                }}
-                                disabled={Boolean(setTaskMutation.isPending)}
+                                onClick={() => handleTaskToggleClick(task)}
+                                disabled={Boolean(setTaskMutation.isPending || loadingTaskKey)}
                                 className={
                                     "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition " +
                                     (task.completed
@@ -183,14 +226,23 @@ export const StudentProcessDetailPage = () => {
                             <div className="flex shrink-0 flex-col items-end gap-2">
                                 <button
                                     type="button"
-                                    onClick={task.whatsappMessage ? () => void handleTaskAction(task) : undefined}
-                                    disabled={!task.whatsappMessage}
+                                    onClick={() => {
+                                        if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
+                                            openStatusModal(task);
+                                            return;
+                                        }
+
+                                        if (task.whatsappMessage) {
+                                            void handleTaskAction(task);
+                                        }
+                                    }}
+                                    disabled={!(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key))}
                                     className={
                                         "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition " +
                                         (task.completed
                                             ? "bg-emerald-600 text-white hover:bg-emerald-700"
                                             : "bg-slate-900 text-white hover:bg-slate-800") +
-                                        (task.whatsappMessage ? " focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-60")
+                                        ((task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key)) ? " focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-60")
                                     }
                                 >
                                     {task.completed ? "Completed" : "Open"}
@@ -216,26 +268,52 @@ export const StudentProcessDetailPage = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setShowModal(false)} />
                     <div className="relative z-10 w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
-                        <h3 className="text-lg font-semibold text-slate-900">Send welcome message</h3>
-                        <p className="mt-1 text-sm text-slate-500">Primary WhatsApp: {modalPhone}</p>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            {modalTaskLabel ?? "Send welcome message"}
+                        </h3>
+                        {modalPhone ? (
+                            <p className="mt-1 text-sm text-slate-500">Primary WhatsApp: {modalPhone}</p>
+                        ) : null}
                         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700 whitespace-pre-line">
                             {modalMessage}
                         </div>
                         <button
                             onClick={async () => {
-                                openWhatsApp(modalPhone ?? undefined, modalMessage ?? undefined);
-                                setShowModal(false);
+                                if (modalPhone) {
+                                    openWhatsApp(modalPhone ?? undefined, modalMessage ?? undefined);
+                                    setShowModal(false);
+                                    if (modalTaskKey) {
+                                        try {
+                                            await markTaskMutation.mutateAsync({ processId: process.id, taskKey: modalTaskKey });
+                                        } catch (e) {
+                                            // ignore; cache invalidation will refresh on next view
+                                        }
+                                    }
+                                    return;
+                                }
+
                                 if (modalTaskKey) {
+                                    const nextCompleted = !modalTaskCompleted;
+                                    setShowModal(false);
+
                                     try {
-                                        await markTaskMutation.mutateAsync({ processId: process.id, taskKey: modalTaskKey });
+                                        await setTaskMutation.mutateAsync({
+                                            processId: process.id,
+                                            taskKey: modalTaskKey,
+                                            completed: nextCompleted,
+                                        });
                                     } catch (e) {
-                                        // ignore; cache invalidation will refresh on next view
+                                        toast.error(
+                                            e instanceof Error
+                                                ? e.message
+                                                : "Failed to update task status",
+                                        );
                                     }
                                 }
                             }}
                             className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
                         >
-                            Send to WhatsApp
+                            {modalPhone ? "Send to WhatsApp" : modalTaskCompleted ? "Mark as not done" : "Mark as done"}
                         </button>
                     </div>
                 </div>

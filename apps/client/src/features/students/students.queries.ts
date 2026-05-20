@@ -97,8 +97,12 @@ export const useMarkTaskCompletedMutation = () => {
 			if (!token) throw new Error("Missing session token");
 			return markProcessTaskCompleted(token, processId, taskKey);
 		},
-		onSuccess: async (_data, variables) => {
+		onSuccess: async (data, variables) => {
 			if (!token) return;
+			queryClient.setQueryData(
+				studentsQueryKeys.process(token, variables.processId),
+				data,
+			);
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
 		},
@@ -116,8 +120,12 @@ export const useSetTaskCompletedMutation = () => {
 			if (!token) throw new Error("Missing session token");
 			return setProcessTaskCompleted(token, processId, taskKey, completed);
 		},
-		onSuccess: async (_data, variables) => {
+		onSuccess: async (data, variables) => {
 			if (!token) return;
+			queryClient.setQueryData(
+				studentsQueryKeys.process(token, variables.processId),
+				data,
+			);
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
 		},

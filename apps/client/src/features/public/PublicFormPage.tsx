@@ -611,6 +611,10 @@ const PublicFormPage = () => {
 
 			if (isGroupCourse) {
 				fieldsToValidate = ["preferredLanguage", "preferredTimeslots", "hearAboutUs"];
+				if ((watch("preferredTimeslots") ?? []).length === 0) {
+					toast.error("Please select at least one preferred class timing.");
+					return false;
+				}
 			} else if (isIndividualCourse) {
 				fieldsToValidate = [
 					"preferredLanguage",
@@ -1562,6 +1566,11 @@ const PublicFormPage = () => {
 										</p>
 									) : null}
 								</div>
+								{(watch("preferredTimeslots") ?? []).length === 0 ? (
+									<p className="mt-2 text-xs font-medium text-red-600">
+										Select at least one timing to continue.
+									</p>
+								) : null}
 							</div>
 						) : null}
 
