@@ -135,6 +135,15 @@ export const DashboardLayout = () => {
 	const allReminders = remindersQuery.data ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
+
+	// Count only leads that are due today or past due for the Follow Up sidebar count
+	const followUpUrgentCount = allLeads.filter((lead) => {
+		if (lead.status !== "FOLLOW_UP") return false;
+		if (!lead.nextFollowUpAt) return false;
+		const d = new Date(String(lead.nextFollowUpAt));
+		if (Number.isNaN(d.getTime())) return false;
+		return isToday(d) || isPast(d);
+	}).length;
 	const currentProcessCount = allStudents.filter((student) => Boolean(student.processId)).length;
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,
@@ -206,7 +215,12 @@ export const DashboardLayout = () => {
 					icon: leadStageIcons[id] || (
 						<HiPhone className="h-5 w-5" aria-hidden="true" />
 					),
-					count: id === "closed" ? undefined : leadStageCounts[id] ?? 0,
+					count:
+						id === "closed"
+							? undefined
+							: id === "followUp"
+							? followUpUrgentCount
+							: leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
 				};

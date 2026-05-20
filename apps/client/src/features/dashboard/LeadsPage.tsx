@@ -255,6 +255,7 @@ export const LeadsPage = () => {
 			phone: "",
 			name: "",
 			assignedTo: "",
+			isOrganic: false,
 			customNextFollowUpAt: undefined,
 		},
 	});
@@ -370,6 +371,7 @@ export const LeadsPage = () => {
 			phone: "",
 			name: "",
 			assignedTo: defaultAssignedTo,
+			isOrganic: false,
 			customNextFollowUpAt: undefined,
 		});
 	}, [createOpen, currentUserId, resetCreate, salesUsers]);
@@ -1026,6 +1028,26 @@ export const LeadsPage = () => {
 								onChange={field.onChange}
 								error={fieldState.error?.message}
 							/>
+						)}
+					/>
+					<Controller
+						name="isOrganic"
+						control={createControl}
+						render={({ field }) => (
+							<label className="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm font-medium text-amber-900">
+								<span>
+									Organic lead
+									<span className="mt-1 block text-xs font-normal text-amber-700">
+										Mark this if the lead came in organically.
+									</span>
+								</span>
+								<input
+									type="checkbox"
+									checked={Boolean(field.value)}
+									onChange={(event) => field.onChange(event.target.checked)}
+									className="h-5 w-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+								/>
+							</label>
 						)}
 					/>
 					<Controller

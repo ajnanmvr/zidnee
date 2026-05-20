@@ -149,6 +149,7 @@ export const LeadSchema = z.object({
 	slNo: z.number().int().positive().optional(),
 	name: z.string().max(255).optional(),
 	phone: PhoneNumberSchema,
+	isOrganic: z.boolean().default(false),
 	level: z.string().max(100).optional(),
 	assignedTo: ObjectIdStringSchema.optional(),
 	demoRequestAssignedTo: ObjectIdStringSchema.optional(),
@@ -191,6 +192,7 @@ export const CreateLeadPayloadSchema = z.object({
 	assignedTo: ObjectIdStringSchema.optional(),
 	name: OptionalTextSchema,
 	email: z.string().email().max(255).optional(),
+	isOrganic: z.boolean().default(false),
 	customNextFollowUpAt: z.coerce.date().optional(),
 });
 

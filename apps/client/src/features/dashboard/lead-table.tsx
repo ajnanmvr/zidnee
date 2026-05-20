@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { DateCell } from "@/components/DateCell";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import type { LeadStageId } from "@/features/leads/lead-stage-filters";
+import { HiStar, HiOutlineStar } from "react-icons/hi2";
 
 export const formatUserName = (userName?: string | null) =>
 	userName?.trim() || "-";
@@ -133,8 +134,8 @@ export const buildLeadColumns = (options?: {
 		accessorKey: "slNo",
 		header: "SL No",
 		cell: (info) => (
-			<div className="font-semibold text-gray-900">
-				{info.getValue() ? `#${String(info.getValue())}` : "-"}
+			<div className="inline-flex items-center gap-2 rounded-2xl px-3 py-1.5 font-semibold text-gray-900">
+				<span>{info.getValue() ? `#${String(info.getValue())}` : "-"}</span>
 			</div>
 		),
 		enableSorting: true,
@@ -143,12 +144,19 @@ export const buildLeadColumns = (options?: {
 		accessorKey: "phone",
 		header: "Phone",
 		cell: (info) => (
-			<Link
-				className="font-semibold text-blue-600 hover:text-blue-600/80"
-				to={`/leads/${info.row.original.id}`}
-			>
-				{String(info.getValue())}
-			</Link>
+			<div className="flex items-center gap-2">
+				{info.row.original.isOrganic ? (
+					<HiStar style={{ color: '#f59e0b' }} className="h-4 w-4" aria-hidden="true" title="Organic lead" />
+				) : (
+					<HiOutlineStar style={{ color: '#d1d5db' }} className="h-4 w-4" aria-hidden="true" title="Not organic" />
+				)}
+				<Link
+					className="font-semibold text-blue-600 hover:text-blue-600/80"
+					to={`/leads/${info.row.original.id}`}
+				>
+					{String(info.getValue())}
+				</Link>
+			</div>
 		),
 		enableSorting: true,
 	},

@@ -33,6 +33,11 @@ const leadSchema = new Schema(
 			trim: true,
 			index: true,
 		},
+		isOrganic: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
 		email: {
 			type: String,
 			required: false,
