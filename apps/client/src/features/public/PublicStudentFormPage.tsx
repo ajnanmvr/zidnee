@@ -434,6 +434,38 @@ export function PublicStudentFormPage() {
         );
 
         ctx.restore();
+        // Draw student name and county/country below the profile image
+        try {
+          const name = student.name ?? "";
+          if (name) {
+            const centerX = imageX + imageSize / 2;
+            const padding = Math.round(canvas.height * 0.02); // spacing below image
+            const textY = imageY + imageSize + padding;
+
+            const fontSize = Math.round(canvas.width * 0.018);
+            ctx.font = `300 ${fontSize}px Inter, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+
+            ctx.fillStyle = "#000";
+            ctx.fillText(name, centerX, textY);
+
+            // Draw residingCountry (fallback to country or county) beneath the name
+            const county = (student as any).residingCountry ?? (student as any).country ?? (student as any).county ?? "";
+            if (county) {
+              const smallFont = Math.round(fontSize * 0.65);
+              const countyY = textY + fontSize + Math.round(canvas.height * 0.01);
+
+              ctx.font = `300 ${smallFont}px Inter, sans-serif`;
+              ctx.lineWidth = Math.max(1, Math.round(smallFont * 0.12));
+
+              ctx.fillStyle = "#000";
+              ctx.fillText(county, centerX, countyY);
+            }
+          }
+        } catch (err) {
+          // ignore drawing errors so download still works
+        }
       } finally {
         URL.revokeObjectURL(profileImageUrl);
       }
