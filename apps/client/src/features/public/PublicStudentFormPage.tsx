@@ -6,6 +6,7 @@ type StudentProfileStatus = {
   id: string;
   zid: string;
   name: string | null;
+  residingCountry?: string | null;
   profilePic: string | null;
   submitted: boolean;
   admittedAt?: string | null;
@@ -42,7 +43,6 @@ export function PublicStudentFormPage() {
   const [squareY, setSquareY] = useState(0);
   const [isResizing, setIsResizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const combinedImageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchStudentStatus = async () => {
@@ -442,8 +442,8 @@ export function PublicStudentFormPage() {
             const padding = Math.round(canvas.height * 0.02); // spacing below image
             const textY = imageY + imageSize + padding;
 
-            const fontSize = Math.round(canvas.width * 0.018);
-            ctx.font = `300 ${fontSize}px Inter, sans-serif`;
+            const fontSize = Math.round(canvas.width * 0.02);
+            ctx.font = `500 ${fontSize}px Inter, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
 
@@ -454,12 +454,12 @@ export function PublicStudentFormPage() {
             const county = (student as any).residingCountry ?? (student as any).country ?? (student as any).county ?? "";
             if (county) {
               const smallFont = Math.round(fontSize * 0.65);
-              const countyY = textY + fontSize + Math.round(canvas.height * 0.01);
+              const countyY = textY + fontSize + Math.round(canvas.height * 0.005);
 
               ctx.font = `300 ${smallFont}px Inter, sans-serif`;
               ctx.lineWidth = Math.max(1, Math.round(smallFont * 0.12));
 
-              ctx.fillStyle = "#000";
+              ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
               ctx.fillText(county, centerX, countyY);
             }
           }
@@ -484,7 +484,7 @@ export function PublicStudentFormPage() {
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = `zidnee-profile-${student.zid}.jpg`;
+      link.download = `zidnee-welcome-poster-${student.zid}.jpg`;
 
       document.body.appendChild(link);
       link.click();
@@ -492,7 +492,7 @@ export function PublicStudentFormPage() {
 
       URL.revokeObjectURL(url);
 
-      toast.success("Image downloaded successfully!");
+      toast.success("Welcome poster downloaded successfully!");
     } catch (e) {
       const message =
         e instanceof Error ? e.message : "Failed to download image";
@@ -505,81 +505,86 @@ export function PublicStudentFormPage() {
 
   if (student.submitted && student.profilePic) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(32,111,89,0.12),transparent_32%),linear-gradient(135deg,#f8fbfa,#eef5f9)] px-4 py-8 sm:px-6 sm:py-12 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center gap-8">
-          {/* Header */}
-          <div className="flex items-center justify-center">
-            <img src="/zidnee-typography.png" alt="Zidnee" className="h-16 w-auto" />
-          </div>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(32,111,89,0.16),transparent_34%),linear-gradient(135deg,#f7fbfa,#eef5f9)] px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mx-auto flex min-h-screen max-w-2xl items-center justify-center">
+          <div className="w-full overflow-hidden rounded-4xl border border-white/80 bg-white/92 shadow-[0_24px_90px_rgba(15,23,42,0.14)] backdrop-blur">
+            <div className="h-2 bg-[linear-gradient(90deg,#206f59,#7dc7a7,#206f59)]" />
 
-          {/* Success Message */}
-          <div className="text-center">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Welcome to Zidnee!</h1>
-            <p className="mt-2 text-sm text-slate-600">Your profile has been successfully submitted.</p>
-          </div>
+            <div className="px-6 py-8 sm:px-10 sm:py-10">
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 text-brand shadow-[0_10px_30px_rgba(32,111,89,0.15)]">
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
 
-          {/* Combined Image Container */}
-          <div ref={combinedImageRef} className="relative w-80 h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-            <img
-              src="/welcome/1.jpg"
-              alt="Welcome background"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {/* Profile Picture Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-56 h-56">
-                <img
-                  src={student.profilePic}
-                  alt="Your profile"
-                  className="w-full h-full rounded-full border-4 border-white shadow-lg object-cover"
-                />
+                <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand/15 bg-brand/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-brand">
+                  Submitted successfully
+                </div>
+
+                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                  Your profile is ready
+                </h1>
+                <p className="mt-3 max-w-lg text-sm leading-6 text-slate-600 sm:text-base">
+                  We have received your details and profile picture. You can review your details below and download the final image anytime.
+                </p>
+
+                <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
+                  <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 text-left">
+                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Name</div>
+                    <div className="mt-2 text-lg font-semibold text-slate-900">{student.name ?? "Student"}</div>
+                  </div>
+                  <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 text-left">
+                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">ZID</div>
+                    <div className="mt-2 text-lg font-semibold text-brand">{student.zid}</div>
+                  </div>
+                  <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 text-left">
+                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Residing Country</div>
+                    <div className="mt-2 text-lg font-semibold text-slate-900">
+                      {student.residingCountry ?? "Not provided"}
+                    </div>
+                  </div>
+                  {student.admittedAt && (
+                    <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 text-left">
+                      <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Class Starts On</div>
+                      <div className="mt-2 text-lg font-semibold text-slate-900">
+                        {student.classStartConfirmedAt
+                          ? new Date(student.classStartConfirmedAt).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "Not yet confirmed"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={() => void downloadCombinedImage()}
+                    disabled={submitting}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download Welcome Poster
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* ZID Badge */}
-          <div className="flex items-center justify-center gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
-            <span className="text-sm text-slate-600">Your ZID:</span>
-            <span className="font-semibold text-brand">{student.zid}</span>
-          </div>
-
-          {/* Class Start Section */}
-          {student.admittedAt && (
-            <div className="rounded-2xl border border-brand/20 bg-brand/5 p-6 max-w-sm text-center">
-              <div className="text-sm font-medium text-slate-900">Class Starts On</div>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {student.classStartConfirmedAt
-                  ? new Date(student.classStartConfirmedAt).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
-                  : "Not yet confirmed"}
-              </p>
-            </div>
-          )}
-
-          {/* Download Button */}
-          <button
-            onClick={() => void downloadCombinedImage()}
-            disabled={submitting}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {submitting ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Image
-              </>
-            )}
-          </button>
         </div>
       </div>
     );

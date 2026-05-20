@@ -10,7 +10,7 @@ export const getStudentPublicProfileStatusController = async (
   const studentId = requireStringValue(req.params.studentId, "studentId");
 
   const student = await StudentModel.findById(studentId)
-    .select("_id zid name profilePic admittedAt classStartConfirmedAt")
+    .select("_id zid name profilePic admittedAt classStartConfirmedAt residingCountry")
     .lean();
 
   if (!student) {
@@ -24,6 +24,7 @@ export const getStudentPublicProfileStatusController = async (
       id: String(student._id),
       zid: student.zid,
       name: student.name ?? null,
+      residingCountry: student.residingCountry ?? null,
       profilePic: student.profilePic ?? null,
       submitted: Boolean(student.profilePic),
       admittedAt: student.admittedAt ? student.admittedAt.toISOString() : null,
