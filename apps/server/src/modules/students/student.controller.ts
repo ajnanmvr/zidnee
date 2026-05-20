@@ -222,6 +222,61 @@ export const markStudentProcessTaskController = async (
 	res.json(validated);
 };
 
+export const setStudentProcessTaskCompletionController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const taskKey = requireStringValue(req.params.taskKey, "taskKey");
+	const completed = typeof req.body?.completed === "boolean" ? req.body.completed : undefined;
+
+	if (completed === undefined) {
+		res.status(400).json({ ok: false, error: "Missing 'completed' boolean in request body" });
+		return;
+	}
+
+	const updated = await StudentService.setProcessTaskCompletion(processId, taskKey, completed);
+
+	if (!updated) {
+		res.status(404).json({ ok: false, error: "Process or task not found" });
+		return;
+	}
+
+	const mapped = {
+		id: updated.id.toString(),
+		studentId: updated.studentId.toString(),
+		status: updated.status,
+		label: updated.label,
+			tasks: updated.tasks.map((task) => ({
+				key: task.key,
+				label: task.label,
+				completed: task.completed,
+				completedAt: task.completedAt?.toISOString() ?? null,
+				actionType: (task as any).actionType ?? undefined,
+				whatsappMessage: (task as any).whatsappMessage ?? undefined,
+			})),
+		student: {
+			id: updated.student.id.toString(),
+			leadId: updated.student.leadId?.toString(),
+			zid: updated.student.zid,
+			name: updated.student.name ?? null,
+			phone: updated.student.phone,
+			primaryWhatsappNumber: updated.student.primaryWhatsappNumber,
+			email: updated.student.email,
+			status: updated.student.status,
+			courseType: updated.student.courseType,
+			level: updated.student.level,
+			mentorId: updated.student.mentorId?.toString(),
+			batchId: updated.student.batchId?.toString(),
+		},
+		createdAt: updated.createdAt.toISOString(),
+		updatedAt: updated.updatedAt.toISOString(),
+	};
+
+	const validated = StudentProcessEnvelopeSchema.parse({ process: mapped });
+	res.json(validated);
+};
+
 export const recordStudentFollowUpController = async (
 	req: Request,
 	res: Response,

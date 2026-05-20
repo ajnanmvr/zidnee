@@ -10,6 +10,7 @@ import {
 	listStudentProcessesController,
 	getStudentProcessController,
 	markStudentProcessTaskController,
+	setStudentProcessTaskCompletionController,
 	recordStudentFollowUpController,
 	updateStudentAssessmentController,
  	updateStudentController,
@@ -87,6 +88,12 @@ router.post(
     "/processes/:processId/tasks/:taskKey/complete",
     requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
     asyncHandler(markStudentProcessTaskController),
+);
+
+router.post(
+	"/processes/:processId/tasks/:taskKey/set",
+	requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
+	asyncHandler(setStudentProcessTaskCompletionController),
 );
 
 router.get(

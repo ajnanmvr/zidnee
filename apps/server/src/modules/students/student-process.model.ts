@@ -44,7 +44,11 @@ type StudentProcessTaskKey =
 	| "capture-dropout-reason"
 	| "close-open-follow-ups"
 	| "archive-student"
-	| "notify-ownership-team";
+	| "notify-ownership-team"
+	| "data-confirmed"
+	| "mentor-assigned-informed"
+	| "student-data-shared"
+	| "group-created";
 
 const STUDENT_PROCESS_TASK_LIBRARY: Record<
 	StudentProcessTaskKey,
@@ -76,6 +80,10 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 	"close-open-follow-ups": { label: "Close open follow-ups" },
 	"archive-student": { label: "Archive student" },
 	"notify-ownership-team": { label: "Notify ownership team" },
+	"data-confirmed": { label: "Data confirmed" },
+	"mentor-assigned-informed": { label: "Mentor assigned & informed" },
+	"student-data-shared": { label: "Student data shared" },
+	"group-created": { label: "Group created" },
 } as const;
 
 type StudentProcessTemplateConfig = {
@@ -97,7 +105,11 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 			"send-welcome-message",
 			"confirm-form-submission",
 			"assign-mentor",
+			"mentor-assigned-informed",
+			"data-confirmed",
+			"student-data-shared",
 			"allocate-batch",
+			"group-created",
 			"schedule-first-class",
 		],
 	},
@@ -243,9 +255,12 @@ export const getAdmissionProcessTemplate = (
 	const label =
 		courseType === "GROUP" ? "group admission process" : "one to one class admission";
 
-	// Use only the welcome message task
 	const taskKeys: StudentProcessTaskKey[] = [
 		"send-welcome-message",
+		"data-confirmed",
+		"mentor-assigned-informed",
+		"student-data-shared",
+		"group-created",
 	];
 
 	return {

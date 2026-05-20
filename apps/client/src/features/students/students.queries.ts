@@ -104,3 +104,22 @@ export const useMarkTaskCompletedMutation = () => {
 		},
 	});
 };
+
+import { setProcessTaskCompleted } from "@/features/students/students.service";
+
+export const useSetTaskCompletedMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ processId, taskKey, completed }: { processId: string; taskKey: string; completed: boolean }) => {
+			if (!token) throw new Error("Missing session token");
+			return setProcessTaskCompleted(token, processId, taskKey, completed);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) return;
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
+		},
+	});
+};

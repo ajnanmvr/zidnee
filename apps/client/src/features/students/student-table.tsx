@@ -176,7 +176,7 @@ export const buildStudentColumns = (
 					<span
 						className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white ${getColorByStatus(
 							row.original.status,
-						)}`}
+						)} ${hasProcess ? "animate-pulse bg-yellow-500" : ""}`}
 					>
 						{hasProcess ? (
 							<HiCog6Tooth
@@ -207,10 +207,10 @@ export const buildStudentColumns = (
 						<p>
 							{followUpDate
 								? new Date(followUpDate).toLocaleDateString("en-IN", {
-										year: "numeric",
-										month: "short",
-										day: "numeric",
-									})
+									year: "numeric",
+									month: "short",
+									day: "numeric",
+								})
 								: "—"}
 						</p>
 						<span
@@ -240,13 +240,13 @@ export const formatUserName = (user: {
 export const getStudentStatusColor = (status: string): string => {
 	switch (status) {
 		case "STUDENT":
-			return "bg-emerald-500";
+			return "bg-emerald-500 border-emerald-700";
 		case "BREAK":
-			return "bg-orange-500";
+			return "bg-purple-500 border-purple-700";
 		case "DROPPED":
-			return "bg-gray-500";
+			return "bg-gray-500 border-gray-700";
 		default:
-			return "bg-gray-500";
+			return "bg-gray-500 border-gray-700";
 	}
 };
 

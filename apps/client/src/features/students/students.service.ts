@@ -114,6 +114,30 @@ export const markProcessTaskCompleted = async (
 	);
 };
 
+export const setProcessTaskCompleted = async (
+	token: string,
+	processId: string,
+	taskKey: string,
+	completed: boolean,
+) => {
+	const validator = {
+		safeParse: (raw: unknown) => {
+			const candidate = (raw as any)?.process;
+			const parsed = StudentProcessResponseSchema.safeParse(candidate);
+			if (!parsed.success) return { success: false } as const;
+			return { success: true, data: { process: parsed.data } } as const;
+		},
+	} as const;
+
+	return requestWithSchema(
+		`/students/processes/${processId}/tasks/${encodeURIComponent(taskKey)}/set`,
+		validator as any,
+		"POST",
+		{ completed },
+		token,
+	);
+};
+
 export const recordStudentFollowUp = async (
 	token: string,
 	studentId: string,

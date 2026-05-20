@@ -369,6 +369,26 @@ export const StudentService = {
 		return await StudentService.getStudentProcessById(processId);
 	},
 
+	setProcessTaskCompletion: async (processId: string, taskKey: string, completed: boolean) => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		await StudentProcessModel.findOneAndUpdate(
+			{ _id: objectId },
+			{
+				$set: {
+					"tasks.$[t].completed": completed,
+					"tasks.$[t].completedAt": completed ? new Date() : null,
+				},
+			},
+			{ arrayFilters: [{ "t.key": taskKey }], new: true },
+		).exec();
+
+		return await StudentService.getStudentProcessById(processId);
+	},
+
 	findByLeadId: async (leadId: string): Promise<Student | null> => {
 		const student = await StudentModel.findOne({
 			leadId,

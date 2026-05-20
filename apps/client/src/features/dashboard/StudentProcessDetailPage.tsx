@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMarkTaskCompletedMutation } from "@/features/students/students.queries";
+import { useMarkTaskCompletedMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
 import { Link, useParams } from "react-router-dom";
 import { Panel } from "@/components/dashboard-ui";
 import { generateFormLink } from "@/features/leads/leads.service";
@@ -24,6 +24,7 @@ export const StudentProcessDetailPage = () => {
     const [modalPhone, setModalPhone] = useState<string | null>(null);
     const [modalTaskKey, setModalTaskKey] = useState<string | null>(null);
     const markTaskMutation = useMarkTaskCompletedMutation();
+    const setTaskMutation = useSetTaskCompletedMutation();
 
     if (q.isLoading) return <div className="py-10 text-center">Loading process...</div>;
     if (q.isError) {
@@ -62,9 +63,7 @@ export const StudentProcessDetailPage = () => {
         setShowModal(true);
     };
 
-    const welcomeTask = process.tasks.find(
-        (task: any) => task.key === "send-welcome-message",
-    );
+    // welcome task handled inline in the task list; no separate panel needed
 
     const handleTaskAction = async (task: any) => {
         if (!token || !process?.student?.leadId) {
@@ -124,8 +123,12 @@ export const StudentProcessDetailPage = () => {
                         >
                             <button
                                 type="button"
-                                onClick={task.whatsappMessage ? () => void handleTaskAction(task) : undefined}
-                                disabled={!task.whatsappMessage}
+                                onClick={() => {
+                                    // toggle completion
+                                    if (loadingTaskKey) return;
+                                    void setTaskMutation.mutateAsync({ processId: process.id, taskKey: task.key, completed: !task.completed });
+                                }}
+                                disabled={Boolean(setTaskMutation.isPending)}
                                 className={
                                     "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition " +
                                     (task.completed
@@ -206,21 +209,7 @@ export const StudentProcessDetailPage = () => {
                     ))}
                 </div>
 
-                {welcomeTask ? (
-                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                        <p className="text-sm font-semibold text-emerald-900">Send welcome message</p>
-                        <p className="mt-1 text-xs text-emerald-700">
-                            Open the compose modal with the prefilled welcome text and send it to the student&apos;s primary WhatsApp number.
-                        </p>
-                        <button
-                            type="button"
-                            onClick={() => void handleTaskAction(welcomeTask)}
-                            className="mt-3 inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                        >
-                            Open welcome modal
-                        </button>
-                    </div>
-                ) : null}
+                {/* Removed duplicate welcome panel — task row contains action buttons */}
             </Panel>
 
             {showModal ? (

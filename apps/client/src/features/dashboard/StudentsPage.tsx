@@ -28,6 +28,8 @@ export const StudentsPage = () => {
 	const searchTerm = searchParams.get("search") ?? "";
 	const sortBy = searchParams.get("sortBy") ?? "nextFollowUpAt";
 	const sortOrder = searchParams.get("sortOrder") === "desc" ? "desc" : "asc";
+	const page = Number(searchParams.get("page") ?? "1");
+	const limit = Number(searchParams.get("limit") ?? "25");
 	const selectedStatus =
 		currentStage === "all"
 			? undefined
@@ -40,6 +42,8 @@ export const StudentsPage = () => {
 		search: searchTerm || undefined,
 		sortBy,
 		sortOrder,
+		page,
+		limit,
 	});
 	const batchesQuery = useBatchesQuery(token);
 	const usersQuery = useUsersQuery(token);
@@ -285,6 +289,37 @@ export const StudentsPage = () => {
 					enableGlobalFilter={false}
 					enableTableSorting={false}
 				/>
+			</div>
+
+			{/* Pagination */}
+			<div className="flex items-center justify-between py-4">
+				<div className="text-sm text-gray-600">
+					<span>Page {page}</span>
+				</div>
+				<div className="flex items-center gap-2">
+					<select
+						value={String(limit)}
+						onChange={(e) => setQueryParam("limit", e.target.value)}
+						className="rounded-lg border border-gray-300 px-3 py-1 text-sm"
+					>
+						<option value="10">10</option>
+						<option value="25">25</option>
+						<option value="50">50</option>
+						<option value="100">100</option>
+					</select>
+					<button
+						onClick={() => setQueryParam("page", String(Math.max(1, page - 1)))}
+						className="rounded-lg border border-gray-300 px-3 py-1 text-sm"
+					>
+						Prev
+					</button>
+					<button
+						onClick={() => setQueryParam("page", String(page + 1))}
+						className="rounded-lg border border-gray-300 px-3 py-1 text-sm"
+					>
+						Next
+					</button>
+				</div>
 			</div>
 
 			{filteredStudents.length === 0 && !studentsQuery.isLoading && (

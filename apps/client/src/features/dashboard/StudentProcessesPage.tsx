@@ -46,6 +46,10 @@ export const StudentProcessesPage = () => {
 
 	const allProcesses = processesQuery.data?.processes ?? [];
 
+	// Simple client-side pagination
+	const [page, setPage] = useState(1);
+	const [limit, setLimit] = useState(20);
+
 	const filteredProcesses = useMemo(() => {
 		const query = searchTerm.trim().toLowerCase();
 		if (!query) {
@@ -66,8 +70,7 @@ export const StudentProcessesPage = () => {
 	}, [allProcesses, searchTerm]);
 
 	const totalTasks = useMemo(
-		() =>
-			filteredProcesses.reduce((sum, process) => sum + process.tasks.length, 0),
+		() => filteredProcesses.reduce((sum, process) => sum + process.tasks.length, 0),
 		[filteredProcesses],
 	);
 	const completedTasks = useMemo(
@@ -149,6 +152,7 @@ export const StudentProcessesPage = () => {
 						No matching processes found.
 					</div>
 				) : (
+					<>
 					<table className="w-full table-auto rounded-2xl border-collapse overflow-hidden bg-white">
 						<thead>
 							<tr className="text-left text-sm text-slate-600">
@@ -160,7 +164,9 @@ export const StudentProcessesPage = () => {
 							</tr>
 						</thead>
 						<tbody>
-								{filteredProcesses.map((process) => {
+								{filteredProcesses
+									.slice((page - 1) * limit, page * limit)
+									.map((process) => {
 									const completedCount = process.tasks.filter((task) => task.completed).length;
 									const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;
 									return (
@@ -187,6 +193,21 @@ export const StudentProcessesPage = () => {
 								})}
 						</tbody>
 					</table>
+
+					{/* Pagination controls */}
+					<div className="flex items-center justify-between py-4">
+						<div className="text-sm text-slate-600">Showing {Math.min(filteredProcesses.length, limit)} of {filteredProcesses.length} processes</div>
+						<div className="flex items-center gap-2">
+							<select value={String(limit)} onChange={(e) => setLimit(Number(e.target.value))} className="rounded-lg border border-gray-300 px-3 py-1 text-sm">
+								<option value="10">10</option>
+								<option value="20">20</option>
+								<option value="50">50</option>
+							</select>
+							<button type="button" onClick={() => setPage(Math.max(1, page - 1))} className="rounded-lg border border-gray-300 px-3 py-1 text-sm">Prev</button>
+							<button type="button" onClick={() => setPage(page + 1)} className="rounded-lg border border-gray-300 px-3 py-1 text-sm">Next</button>
+						</div>
+					</div>
+					</>
 				)}
 			</Panel>
 		</div>

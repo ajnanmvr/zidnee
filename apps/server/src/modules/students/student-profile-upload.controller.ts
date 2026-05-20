@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import { uploadBuffer } from "../../lib/s3.js";
 import { StudentModel } from "./student.model.js";
+import { StudentService } from "./student.service.js";
 
 export const getStudentPublicProfileStatusController = async (
   req: Request,
@@ -177,6 +178,19 @@ export const confirmStudentClassStartController = async (
   if (!updated) {
     res.status(404).json({ ok: false, error: "Student not found" });
     return;
+  }
+
+  // If a linked student process exists, mark the welcome message task completed
+  try {
+    const processId = (updated as any).processId;
+    if (processId) {
+      // markProcessTaskCompleted returns the updated process if successful
+      await StudentService.markProcessTaskCompleted(String(processId), "send-welcome-message");
+    }
+  } catch (err) {
+    // Do not fail the public flow if marking the task fails; just log
+    // eslint-disable-next-line no-console
+    console.error("Failed to mark send-welcome-message task:", err);
   }
 
   res.json({ ok: true, classStartConfirmedAt: updated.classStartConfirmedAt?.toISOString() ?? null });
