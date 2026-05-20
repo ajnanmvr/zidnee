@@ -134,6 +134,25 @@ export const buildStudentColumns = (
 			accessorKey: "level",
 			header: "Level",
 			size: 100,
+			cell: ({ row }) => {
+				const levelValue = row.original.level;
+				const levelMap: Record<string | number, string> = {
+					1: "Seed",
+					2: "Sprout",
+					3: "Root",
+					4: "Leaf",
+					5: "Bud",
+					6: "Bloom",
+					7: "Fruit",
+				};
+
+				if (levelValue === undefined || levelValue === null || levelValue === "") {
+					return <span className="text-gray-400">—</span>;
+				}
+
+				const key = typeof levelValue === "number" ? levelValue : Number(levelValue);
+				return <span className="font-semibold">{levelMap[key] ?? String(levelValue)}</span>;
+			},
 		},
 		{
 			accessorKey: "mentorId",
