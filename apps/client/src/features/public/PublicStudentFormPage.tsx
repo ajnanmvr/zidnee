@@ -165,11 +165,11 @@ export function PublicStudentFormPage() {
       setStudent((prev) =>
         prev
           ? {
-              ...prev,
-              profilePic: uploadJson.profilePic as string,
-              submitted: true,
-              classStartConfirmedAt: dateJson.classStartConfirmedAt ?? new Date().toISOString(),
-            }
+            ...prev,
+            profilePic: uploadJson.profilePic as string,
+            submitted: true,
+            classStartConfirmedAt: dateJson.classStartConfirmedAt ?? new Date().toISOString(),
+          }
           : prev,
       );
       toast.success("Profile submitted successfully!");
@@ -299,8 +299,11 @@ export function PublicStudentFormPage() {
       const loadImage = (src: string) =>
         new Promise<HTMLImageElement>((resolve, reject) => {
           const image = new Image();
+
           image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+          image.onerror = () =>
+            reject(new Error(`Failed to load image: ${src}`));
+
           image.src = src;
         });
 
@@ -316,13 +319,13 @@ export function PublicStudentFormPage() {
       const profileImageUrl = URL.createObjectURL(profileBlob);
 
       const canvas = document.createElement("canvas");
-      // Use a 4:5 aspect ratio for downloads (width x height). Common size: 1080x1350
-      const targetWidth = 1080;
-      const targetHeight = Math.round(targetWidth * 1.25); // 4:5 -> height = width * 1.25
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
+
+      // 4:5 aspect ratio
+      canvas.width = 1080;
+      canvas.height = 1350;
 
       const ctx = canvas.getContext("2d");
+
       if (!ctx) {
         throw new Error("Failed to get canvas context");
       }
@@ -333,31 +336,109 @@ export function PublicStudentFormPage() {
           loadImage(profileImageUrl),
         ]);
 
+        // Background image
         ctx.drawImage(welcomeImage, 0, 0, canvas.width, canvas.height);
 
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        // Scale the circular profile radius relative to canvas width so it looks consistent
-        const radius = Math.round(canvas.width * 0.185);
+        /**
+         * PROFILE IMAGE POSITION
+         */
+        const imageX = 206;
+        const imageY = 538;
 
+        /**
+         * PROFILE IMAGE SIZE
+         */
+        const imageSize = 254;
+
+        /**
+         * SMALL BORDER RADIUS
+         */
+        const borderRadius = 60;
+
+        // Object-cover crop
+        const imgW = profileImage.naturalWidth || profileImage.width;
+        const imgH = profileImage.naturalHeight || profileImage.height;
+
+        let srcX = 0;
+        let srcY = 0;
+        let srcSize = Math.min(imgW, imgH);
+
+        if (imgW > imgH) {
+          srcX = Math.round((imgW - imgH) / 2);
+          srcSize = imgH;
+        } else if (imgH > imgW) {
+          srcY = Math.round((imgH - imgW) / 2);
+          srcSize = imgW;
+        }
+
+        /**
+         * Rounded rectangle helper
+         */
+        const roundRect = (
+          ctx: CanvasRenderingContext2D,
+          x: number,
+          y: number,
+          width: number,
+          height: number,
+          radius: number,
+        ) => {
+          ctx.beginPath();
+
+          ctx.moveTo(x + radius, y);
+
+          ctx.lineTo(x + width - radius, y);
+          ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+
+          ctx.lineTo(x + width, y + height - radius);
+          ctx.quadraticCurveTo(
+            x + width,
+            y + height,
+            x + width - radius,
+            y + height,
+          );
+
+          ctx.lineTo(x + radius, y + height);
+          ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+
+          ctx.closePath();
+        };
+
+        // Clip rounded square
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(profileImage, centerX - radius, centerY - radius, radius * 2, radius * 2);
-        ctx.restore();
 
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        // Scale stroke width with canvas size (keep a minimum)
-        ctx.lineWidth = Math.max(4, Math.round(canvas.width * 0.0074));
-        ctx.strokeStyle = "white";
-        ctx.stroke();
+        roundRect(
+          ctx,
+          imageX,
+          imageY,
+          imageSize,
+          imageSize,
+          borderRadius,
+        );
+
+        ctx.clip();
+
+        // Draw profile image
+        ctx.drawImage(
+          profileImage,
+          srcX,
+          srcY,
+          srcSize,
+          srcSize,
+          imageX,
+          imageY,
+          imageSize,
+          imageSize,
+        );
+
+        ctx.restore();
       } finally {
         URL.revokeObjectURL(profileImageUrl);
       }
 
+      // Convert canvas to image
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((result) => resolve(result), "image/jpeg", 0.95);
       });
@@ -366,17 +447,24 @@ export function PublicStudentFormPage() {
         throw new Error("Failed to create image");
       }
 
+      // Download image
       const url = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = url;
       link.download = `zidnee-profile-${student.zid}.jpg`;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
       URL.revokeObjectURL(url);
+
       toast.success("Image downloaded successfully!");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to download image";
+      const message =
+        e instanceof Error ? e.message : "Failed to download image";
+
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -430,11 +518,11 @@ export function PublicStudentFormPage() {
               <p className="mt-2 text-sm font-semibold text-slate-900">
                 {student.classStartConfirmedAt
                   ? new Date(student.classStartConfirmedAt).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
                   : "Not yet confirmed"}
               </p>
             </div>
