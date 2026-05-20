@@ -389,6 +389,37 @@ export const StudentService = {
 		return await StudentService.getStudentProcessById(processId);
 	},
 
+	completeStudentProcess: async (processId: string): Promise<StudentProcessListItem | null> => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		const existingProcess = await StudentProcessModel.findById(objectId).lean<StudentProcessDocument | null>();
+		if (!existingProcess) {
+			return null;
+		}
+
+		const hasIncompleteTasks = (existingProcess.tasks ?? []).some((task) => !task.completed);
+		if (hasIncompleteTasks) {
+			throw new AppError(400, "Complete all tasks before marking the process as completed");
+		}
+
+		await StudentProcessModel.findByIdAndUpdate(
+			objectId,
+			{ $set: { status: "COMPLETED" } },
+			{ new: true },
+		).exec();
+
+		await StudentModel.findByIdAndUpdate(
+			existingProcess.studentId,
+			{ $set: { status: "COMPLETED" } },
+			{ returnDocument: "after" },
+		).exec();
+
+		return await StudentService.getStudentProcessById(processId);
+	},
+
 	findByLeadId: async (leadId: string): Promise<Student | null> => {
 		const student = await StudentModel.findOne({
 			leadId,

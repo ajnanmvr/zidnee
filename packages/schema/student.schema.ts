@@ -2,7 +2,7 @@ import { z } from "zod";
 import { BatchTypeSchema } from "./batch.schema.js";
 import { ObjectIdStringSchema } from "./rbac.schema.js";
 
-export const StudentStatusSchema = z.enum(["STUDENT", "BREAK", "DROPPED"]);
+export const StudentStatusSchema = z.enum(["STUDENT", "BREAK", "DROPPED", "COMPLETED"]);
 
 export type StudentStatus = z.infer<typeof StudentStatusSchema>;
 

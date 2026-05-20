@@ -1,6 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useMarkTaskCompletedMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
+import { useCompleteProcessMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
 import { Link, useParams } from "react-router-dom";
 import { Panel } from "@/components/dashboard-ui";
 import { generateFormLink } from "@/features/leads/leads.service";
@@ -33,8 +33,8 @@ export const StudentProcessDetailPage = () => {
     const [modalTaskKey, setModalTaskKey] = useState<string | null>(null);
     const [modalTaskLabel, setModalTaskLabel] = useState<string | null>(null);
     const [modalTaskCompleted, setModalTaskCompleted] = useState(false);
-    const markTaskMutation = useMarkTaskCompletedMutation();
     const setTaskMutation = useSetTaskCompletedMutation();
+    const completeProcessMutation = useCompleteProcessMutation();
 
     if (q.isLoading) return <div className="py-10 text-center">Loading process...</div>;
     if (q.isError) {
@@ -143,6 +143,7 @@ export const StudentProcessDetailPage = () => {
 
     const completedCount = process.tasks.filter((t: any) => t.completed).length;
     const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;
+    const canCompleteProcess = progress === 100 && process.status !== "COMPLETED";
 
     return (
         <div className="grid gap-6">
@@ -160,6 +161,25 @@ export const StudentProcessDetailPage = () => {
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progress}%` }} />
                     </div>
+                    {canCompleteProcess ? (
+                        <div className="mt-4 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        await completeProcessMutation.mutateAsync({ processId: process.id });
+                                        toast.success("Process marked as completed");
+                                    } catch (error) {
+                                        toast.error(error instanceof Error ? error.message : "Unable to complete process");
+                                    }
+                                }}
+                                disabled={completeProcessMutation.isPending}
+                                className="inline-flex items-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {completeProcessMutation.isPending ? "Completing..." : "Mark whole process as completed"}
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="grid gap-3">
@@ -282,13 +302,6 @@ export const StudentProcessDetailPage = () => {
                                 if (modalPhone) {
                                     openWhatsApp(modalPhone ?? undefined, modalMessage ?? undefined);
                                     setShowModal(false);
-                                    if (modalTaskKey) {
-                                        try {
-                                            await markTaskMutation.mutateAsync({ processId: process.id, taskKey: modalTaskKey });
-                                        } catch (e) {
-                                            // ignore; cache invalidation will refresh on next view
-                                        }
-                                    }
                                     return;
                                 }
 

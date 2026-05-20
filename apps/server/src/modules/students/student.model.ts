@@ -204,7 +204,7 @@ const studentSchema = new Schema<StudentDocument>(
 		status: {
 			type: String,
 			required: true,
-			enum: ["STUDENT", "BREAK", "DROPPED"],
+			enum: ["STUDENT", "BREAK", "DROPPED", "COMPLETED"],
 			default: "STUDENT",
 		},
 		admittedAt: {

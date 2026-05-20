@@ -113,6 +113,10 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 			"schedule-first-class",
 		],
 	},
+	COMPLETED: {
+		label: "Completed Process",
+		taskKeys: [],
+	},
 	BREAK: {
 		label: "Break Process",
 		taskKeys: [
@@ -211,7 +215,7 @@ const studentProcessSchema = new Schema<StudentProcessDocument>(
 		status: {
 			type: String,
 			required: true,
-			enum: ["STUDENT", "BREAK", "DROPPED"],
+			enum: ["STUDENT", "BREAK", "DROPPED", "COMPLETED"],
 		},
 		label: {
 			type: String,

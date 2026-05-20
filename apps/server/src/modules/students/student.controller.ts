@@ -277,6 +277,52 @@ export const setStudentProcessTaskCompletionController = async (
 	res.json({ ok: true, process: validated.process });
 };
 
+export const completeStudentProcessController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const updated = await StudentService.completeStudentProcess(processId);
+
+	if (!updated) {
+		res.status(404).json({ ok: false, error: "Process not found" });
+		return;
+	}
+
+	const mapped = {
+		id: updated.id.toString(),
+		studentId: updated.studentId.toString(),
+		status: updated.status,
+		label: updated.label,
+		tasks: updated.tasks.map((task) => ({
+			key: task.key,
+			label: task.label,
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+			actionType: (task as any).actionType ?? undefined,
+			whatsappMessage: (task as any).whatsappMessage ?? undefined,
+		})),
+		student: {
+			id: updated.student.id.toString(),
+			leadId: updated.student.leadId?.toString(),
+			zid: updated.student.zid,
+			name: updated.student.name ?? null,
+			phone: updated.student.phone,
+			primaryWhatsappNumber: updated.student.primaryWhatsappNumber,
+			email: updated.student.email,
+			status: updated.student.status,
+			courseType: updated.student.courseType,
+			level: updated.student.level,
+			mentorId: updated.student.mentorId?.toString(),
+			batchId: updated.student.batchId?.toString(),
+		},
+		createdAt: updated.createdAt.toISOString(),
+		updatedAt: updated.updatedAt.toISOString(),
+	};
+
+	const validated = StudentProcessEnvelopeSchema.parse({ ok: true, process: mapped });
+	res.json({ ok: true, process: validated.process });
+};
 export const recordStudentFollowUpController = async (
 	req: Request,
 	res: Response,

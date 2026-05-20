@@ -245,6 +245,8 @@ export const getStudentStatusColor = (status: string): string => {
 			return "bg-purple-500 border-purple-700";
 		case "DROPPED":
 			return "bg-gray-500 border-gray-700";
+		case "COMPLETED":
+			return "bg-emerald-700 border-emerald-900";
 		default:
 			return "bg-gray-500 border-gray-700";
 	}
@@ -258,6 +260,8 @@ export const getStudentStatusLabel = (status: string): string => {
 			return "On Break";
 		case "DROPPED":
 			return "Dropped";
+		case "COMPLETED":
+			return "Completed";
 		default:
 			return status;
 	}
