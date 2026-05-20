@@ -28,23 +28,7 @@ type StudentProcessTaskDefinition = {
 };
 
 type StudentProcessTaskKey =
-	| "verify-contact-details"
-	| "collect-basic-profile"
-	| "send-form-link"
-	| "send-profile-form-link"
 	| "send-welcome-message"
-	| "confirm-form-submission"
-	| "assign-mentor"
-	| "allocate-batch"
-	| "schedule-first-class"
-	| "capture-break-reason"
-	| "set-break-window"
-	| "pause-follow-ups"
-	| "plan-rejoin-check"
-	| "capture-dropout-reason"
-	| "close-open-follow-ups"
-	| "archive-student"
-	| "notify-ownership-team"
 	| "data-confirmed"
 	| "mentor-assigned-informed"
 	| "student-data-shared"
@@ -54,32 +38,11 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 	StudentProcessTaskKey,
 	StudentProcessTaskDefinition
 > = {
-	"verify-contact-details": { label: "Verify contact details" },
-	"collect-basic-profile": { label: "Collect basic profile" },
-	"send-form-link": { label: "Send form link" },
-	"send-profile-form-link": {
-		label: "Send profile form link",
-		actionType: "FORM_LINK",
-		whatsappMessage:
-			"Please complete the form below and upload your profile image.",
-	},
 	"send-welcome-message": {
 		label: "Send welcome message",
 		actionType: "WHATSAPP",
 		dynamic: true,
 	},
-	"confirm-form-submission": { label: "Confirm form submission" },
-	"assign-mentor": { label: "Assign mentor" },
-	"allocate-batch": { label: "Allocate batch" },
-	"schedule-first-class": { label: "Schedule first class" },
-	"capture-break-reason": { label: "Capture break reason" },
-	"set-break-window": { label: "Set break window" },
-	"pause-follow-ups": { label: "Pause follow-ups" },
-	"plan-rejoin-check": { label: "Plan rejoin check" },
-	"capture-dropout-reason": { label: "Capture dropout reason" },
-	"close-open-follow-ups": { label: "Close open follow-ups" },
-	"archive-student": { label: "Archive student" },
-	"notify-ownership-team": { label: "Notify ownership team" },
 	"data-confirmed": { label: "Data confirmed" },
 	"mentor-assigned-informed": { label: "Mentor assigned & informed" },
 	"student-data-shared": { label: "Student data shared" },
@@ -98,43 +61,20 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 	STUDENT: {
 		label: "Student Admission Process",
 		taskKeys: [
-			"verify-contact-details",
-			"collect-basic-profile",
-			"send-form-link",
-			"send-profile-form-link",
 			"send-welcome-message",
-			"confirm-form-submission",
-			"assign-mentor",
-			"mentor-assigned-informed",
 			"data-confirmed",
+			"mentor-assigned-informed",
 			"student-data-shared",
-			"allocate-batch",
 			"group-created",
-			"schedule-first-class",
 		],
-	},
-	COMPLETED: {
-		label: "Completed Process",
-		taskKeys: [],
 	},
 	BREAK: {
 		label: "Break Process",
-		taskKeys: [
-			"capture-break-reason",
-			"set-break-window",
-			"pause-follow-ups",
-			"plan-rejoin-check",
-			"notify-ownership-team",
-		],
+		taskKeys: [],
 	},
 	DROPPED: {
 		label: "Drop Process",
-		taskKeys: [
-			"capture-dropout-reason",
-			"close-open-follow-ups",
-			"archive-student",
-			"notify-ownership-team",
-		],
+		taskKeys: [],
 	},
 };
 
@@ -215,7 +155,7 @@ const studentProcessSchema = new Schema<StudentProcessDocument>(
 		status: {
 			type: String,
 			required: true,
-			enum: ["STUDENT", "BREAK", "DROPPED", "COMPLETED"],
+			enum: ["STUDENT", "BREAK", "DROPPED"],
 		},
 		label: {
 			type: String,

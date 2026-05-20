@@ -141,14 +141,11 @@ export const useCompleteProcessMutation = () => {
 			if (!token) throw new Error("Missing session token");
 			return completeStudentProcess(token, processId);
 		},
-		onSuccess: async (data, variables) => {
+		onSuccess: async (_data, variables) => {
 			if (!token) return;
-			queryClient.setQueryData(
-				studentsQueryKeys.process(token, variables.processId),
-				data,
-			);
-			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
+			queryClient.removeQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
 		},
 	});
 };

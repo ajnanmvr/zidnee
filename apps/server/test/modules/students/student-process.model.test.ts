@@ -6,22 +6,14 @@ describe("student process templates", () => {
 		const template = getStudentProcessTemplate("STUDENT");
 
 		expect(template.label).toBe("Student Admission Process");
-		expect(template.tasks).toHaveLength(9);
+		expect(template.tasks).toHaveLength(5);
 		expect(template.tasks.map((task) => task.key)).toEqual([
-			"verify-contact-details",
-			"collect-basic-profile",
-			"send-form-link",
-			"send-profile-form-link",
 			"send-welcome-message",
-			"confirm-form-submission",
-			"assign-mentor",
-			"allocate-batch",
-			"schedule-first-class",
+			"data-confirmed",
+			"mentor-assigned-informed",
+			"student-data-shared",
+			"group-created",
 		]);
-		expect(
-			template.tasks.find((task) => task.key === "send-profile-form-link")
-				?.actionType,
-		).toBe("FORM_LINK");
 		expect(
 			template.tasks.find((task) => task.key === "send-welcome-message")
 				?.whatsappMessage,
@@ -32,26 +24,15 @@ describe("student process templates", () => {
 		const template = getStudentProcessTemplate("BREAK");
 
 		expect(template.label).toBe("Break Process");
-		expect(template.tasks).toHaveLength(5);
-		expect(template.tasks.map((task) => task.key)).toEqual([
-			"capture-break-reason",
-			"set-break-window",
-			"pause-follow-ups",
-			"plan-rejoin-check",
-			"notify-ownership-team",
-		]);
+		expect(template.tasks).toHaveLength(0);
+		expect(template.tasks.map((task) => task.key)).toEqual([]);
 	});
 
 	it("builds a dropped template with the configured task subset", () => {
 		const template = getStudentProcessTemplate("DROPPED");
 
 		expect(template.label).toBe("Drop Process");
-		expect(template.tasks).toHaveLength(4);
-		expect(template.tasks.map((task) => task.key)).toEqual([
-			"capture-dropout-reason",
-			"close-open-follow-ups",
-			"archive-student",
-			"notify-ownership-team",
-		]);
+		expect(template.tasks).toHaveLength(0);
+		expect(template.tasks.map((task) => task.key)).toEqual([]);
 	});
 });

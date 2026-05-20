@@ -1,6 +1,7 @@
 import {
 	StudentActivitiesResponseSchema,
 	StudentFollowUpPayloadSchema,
+	MessageResponseSchema,
 	StudentProcessesResponseSchema,
 	StudentResponseEnvelopeSchema,
 	StudentsResponseSchema,
@@ -139,18 +140,9 @@ export const setProcessTaskCompleted = async (
 };
 
 export const completeStudentProcess = async (token: string, processId: string) => {
-	const validator = {
-		safeParse: (raw: unknown) => {
-			const candidate = (raw as any)?.process;
-			const parsed = StudentProcessResponseSchema.safeParse(candidate);
-			if (!parsed.success) return { success: false } as const;
-			return { success: true, data: { process: parsed.data } } as const;
-		},
-	} as const;
-
 	return requestWithSchema(
 		`/students/processes/${processId}/complete`,
-		validator as any,
+		MessageResponseSchema,
 		"POST",
 		undefined,
 		token,

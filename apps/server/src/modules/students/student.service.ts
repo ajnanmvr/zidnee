@@ -26,6 +26,14 @@ const resolveStudentZidPrefix = (courseType?: LeadDocument["courseType"]): strin
 		: ZID_CONSTANTS.prefixes.student;
 };
 
+const normalizeStudentStatus = (status: unknown): Student["status"] => {
+	if (status === "BREAK" || status === "DROPPED") {
+		return status;
+	}
+
+	return "STUDENT";
+};
+
 type StudentListFilters = {
 	status?: string;
 	search?: string;
@@ -276,7 +284,7 @@ export const StudentService = {
 		const processes = (raw as any[]).map((p) => ({
 			id: p._id,
 			studentId: p.studentId,
-			status: p.status,
+			status: normalizeStudentStatus(p.student?.status ?? p.status),
 			label: p.label,
 			tasks: p.tasks ?? [],
 			createdAt: p.createdAt,
@@ -325,7 +333,7 @@ export const StudentService = {
 		return {
 			id: p._id,
 			studentId: p.studentId,
-			status: p.status,
+			status: normalizeStudentStatus(p.student?.status ?? p.status),
 			label: p.label,
 			tasks: p.tasks ?? [],
 			createdAt: p.createdAt,
@@ -389,15 +397,15 @@ export const StudentService = {
 		return await StudentService.getStudentProcessById(processId);
 	},
 
-	completeStudentProcess: async (processId: string): Promise<StudentProcessListItem | null> => {
+	completeStudentProcess: async (processId: string): Promise<boolean> => {
 		const objectId = Types.ObjectId.isValid(processId)
 			? new Types.ObjectId(processId)
 			: null;
-		if (!objectId) return null;
+		if (!objectId) return false;
 
 		const existingProcess = await StudentProcessModel.findById(objectId).lean<StudentProcessDocument | null>();
 		if (!existingProcess) {
-			return null;
+			return false;
 		}
 
 		const hasIncompleteTasks = (existingProcess.tasks ?? []).some((task) => !task.completed);
@@ -405,19 +413,20 @@ export const StudentService = {
 			throw new AppError(400, "Complete all tasks before marking the process as completed");
 		}
 
-		await StudentProcessModel.findByIdAndUpdate(
-			objectId,
-			{ $set: { status: "COMPLETED" } },
-			{ new: true },
-		).exec();
-
 		await StudentModel.findByIdAndUpdate(
 			existingProcess.studentId,
-			{ $set: { status: "COMPLETED" } },
+			{
+				$unset: {
+					processId: 1,
+					processLabel: 1,
+				},
+			},
 			{ returnDocument: "after" },
 		).exec();
 
-		return await StudentService.getStudentProcessById(processId);
+		await StudentProcessModel.findByIdAndDelete(objectId).exec();
+
+		return true;
 	},
 
 	findByLeadId: async (leadId: string): Promise<Student | null> => {

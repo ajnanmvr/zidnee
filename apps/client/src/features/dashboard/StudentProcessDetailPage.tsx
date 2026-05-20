@@ -1,9 +1,8 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useCompleteProcessMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Panel } from "@/components/dashboard-ui";
-import { generateFormLink } from "@/features/leads/leads.service";
 import { useStudentProcessQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 
@@ -24,9 +23,9 @@ const getPrimaryWhatsAppNumber = (student: {
 
 export const StudentProcessDetailPage = () => {
     const { token } = useSession();
+    const navigate = useNavigate();
     const { processId } = useParams<{ processId: string }>();
     const q = useStudentProcessQuery(token, processId);
-    const [loadingTaskKey, setLoadingTaskKey] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState<string | null>(null);
     const [modalPhone, setModalPhone] = useState<string | null>(null);
@@ -104,22 +103,6 @@ export const StudentProcessDetailPage = () => {
             return;
         }
 
-                if (task.actionType === "FORM_LINK") {
-            // prepare form link then open compose modal so user can edit before sending
-            setLoadingTaskKey(task.key);
-            try {
-                const result = await generateFormLink(token, process.student.leadId);
-                openComposeModal(
-                    getPrimaryWhatsAppNumber(process.student),
-                    `${task.whatsappMessage ?? "Please complete the form below."}\n${result.formLink}`,
-                    task.key,
-                );
-            } finally {
-                setLoadingTaskKey(null);
-            }
-            return;
-        }
-
         // For plain whatsapp messages open compose modal so the message can be edited
         openComposeModal(
             getPrimaryWhatsAppNumber(process.student),
@@ -143,7 +126,7 @@ export const StudentProcessDetailPage = () => {
 
     const completedCount = process.tasks.filter((t: any) => t.completed).length;
     const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;
-    const canCompleteProcess = progress === 100 && process.status !== "COMPLETED";
+    const canCompleteProcess = progress === 100;
 
     return (
         <div className="grid gap-6">
@@ -169,6 +152,7 @@ export const StudentProcessDetailPage = () => {
                                     try {
                                         await completeProcessMutation.mutateAsync({ processId: process.id });
                                         toast.success("Process marked as completed");
+                                        navigate("/processes");
                                     } catch (error) {
                                         toast.error(error instanceof Error ? error.message : "Unable to complete process");
                                     }
@@ -191,7 +175,7 @@ export const StudentProcessDetailPage = () => {
                             <button
                                 type="button"
                                 onClick={() => handleTaskToggleClick(task)}
-                                disabled={Boolean(setTaskMutation.isPending || loadingTaskKey)}
+                                disabled={setTaskMutation.isPending}
                                 className={
                                     "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition " +
                                     (task.completed
@@ -270,10 +254,9 @@ export const StudentProcessDetailPage = () => {
                                 {task.whatsappMessage ? (
                                     <button
                                         onClick={() => void handleTaskAction(task)}
-                                        disabled={loadingTaskKey === task.key}
                                         className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        {loadingTaskKey === task.key ? "Preparing..." : "Send on WhatsApp"}
+                                            Send on WhatsApp
                                     </button>
                                 ) : null}
                             </div>
