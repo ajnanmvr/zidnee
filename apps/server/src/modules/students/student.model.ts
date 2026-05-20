@@ -15,6 +15,7 @@ export type StudentDocument = Omit<
 	nextFollowUpAt?: Date;
 	customNextFollowUpAt?: Date;
 	admittedAt: Date;
+	classStartConfirmedAt?: Date;
 };
 
 const studentSchema = new Schema<StudentDocument>(
@@ -209,6 +210,10 @@ const studentSchema = new Schema<StudentDocument>(
 		admittedAt: {
 			type: Date,
 			required: true,
+		},
+		classStartConfirmedAt: {
+			type: Date,
+			required: false,
 		},
 	},
 	{

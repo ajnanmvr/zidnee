@@ -57,6 +57,7 @@ export const StudentSchema = z.object({
 	batchId: ObjectIdStringSchema.optional(),
 	status: StudentStatusSchema,
 	admittedAt: z.date(),
+	classStartConfirmedAt: z.date().optional(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
@@ -122,6 +123,7 @@ export const StudentResponseSchema = StudentSchema.omit({
 	customNextFollowUpAt: z.string().datetime().nullable().optional(),
 	dateOfBirth: z.string().datetime().nullable(),
 	admittedAt: z.string().datetime(),
+	classStartConfirmedAt: z.string().datetime().nullable().optional(),
 	createdAt: z.string().datetime().nullable(),
 	updatedAt: z.string().datetime().nullable(),
 });

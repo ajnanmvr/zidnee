@@ -238,6 +238,10 @@ const leadSchema = new Schema(
 			ref: "Student",
 			required: false,
 		},
+		profilePic: {
+			type: String,
+			required: false,
+		},
 	},
 	{
 		timestamps: true,

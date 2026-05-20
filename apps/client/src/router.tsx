@@ -9,7 +9,7 @@ const LoginPage = lazy(() =>
 	})),
 );
 const PublicFormPage = lazy(() => import("@/features/public/PublicFormPage"));
-const PublicProfileUploadPage = lazy(() => import("@/features/public/PublicProfileUploadPage"));
+const PublicStudentFormPage = lazy(() => import("@/features/public/PublicStudentFormPage"));
 const DashboardLayout = lazy(() =>
 	import("@/features/dashboard/DashboardLayout").then((module) => ({
 		default: module.DashboardLayout,
@@ -161,10 +161,10 @@ export const router = createBrowserRouter([
 		),
 	},
 	{
-		path: "/form/:leadId/profile-upload",
+		path: "/form/student/:studentId",
 		element: (
 			<Suspense fallback={routeFallback}>
-				<PublicProfileUploadPage />
+				<PublicStudentFormPage />
 			</Suspense>
 		),
 	},

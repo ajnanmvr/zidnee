@@ -16,6 +16,12 @@ import {
 	uploadStudentProfilePicController,
 } from "./student.controller.js";
 import { getStudentActivitiesController } from "./student-activity.controller.js";
+import {
+	uploadStudentProfilePicController as publicUploadStudentProfilePicController,
+	getStudentPublicProfileStatusController,
+	confirmStudentClassStartController,
+	getStudentPublicProfileImageController,
+} from "./student-profile-upload.controller.js";
 import { upload } from "../../middlewares/upload.middleware.js";
 
 const router: ReturnType<typeof Router> = Router();
@@ -115,3 +121,59 @@ router.post(
 );
 
 export default router;
+
+// Public routes (no authentication required)
+export const publicStudentRoutes: ReturnType<typeof Router> = Router();
+
+/**
+ * @swagger
+ * /form/student/{studentId}/profile-upload:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Upload student profile picture (public)
+ *     description: Upload profile picture for a student without authentication
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile picture uploaded successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Student not found
+ */
+publicStudentRoutes.post(
+	"/student/:studentId/profile-upload",
+	upload.single("profilePic"),
+	asyncHandler(publicUploadStudentProfilePicController),
+);
+
+publicStudentRoutes.get(
+	"/student/:studentId/profile-status",
+	asyncHandler(getStudentPublicProfileStatusController),
+);
+
+publicStudentRoutes.get(
+	"/student/:studentId/profile-image",
+	asyncHandler(getStudentPublicProfileImageController),
+);
+
+publicStudentRoutes.post(
+  "/student/:studentId/confirm-class-start",
+  asyncHandler(confirmStudentClassStartController),
+);

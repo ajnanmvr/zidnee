@@ -179,6 +179,7 @@ export const LeadSchema = z.object({
 	demos: z.array(LeadDemoSchema).default([]),
 	admissionRequestedAt: z.date().optional(),
 	studentId: ObjectIdStringSchema.optional(),
+	profilePic: z.string().url().optional(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });

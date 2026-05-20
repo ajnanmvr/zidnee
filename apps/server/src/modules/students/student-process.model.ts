@@ -24,6 +24,7 @@ type StudentProcessTaskDefinition = {
 	label: string;
 	actionType?: "WHATSAPP" | "FORM_LINK";
 	whatsappMessage?: string;
+	dynamic?: boolean;
 };
 
 type StudentProcessTaskKey =
@@ -61,11 +62,7 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 	"send-welcome-message": {
 		label: "Send welcome message",
 		actionType: "WHATSAPP",
-		whatsappMessage: `Assalamu Alaikum,
-We are contacting you from Zidnee Online Islamic School.
-Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will
-now proceed with the final admission process.
-Please save this number as Zidnee’s official contact number.`,
+		dynamic: true,
 	},
 	"confirm-form-submission": { label: "Confirm form submission" },
 	"assign-mentor": { label: "Assign mentor" },
@@ -125,17 +122,29 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 	},
 };
 
-const buildTask = (key: StudentProcessTaskKey): StudentProcessTaskDocument => {
+const buildTask = (key: StudentProcessTaskKey, studentId?: string): StudentProcessTaskDocument => {
+	const definition = STUDENT_PROCESS_TASK_LIBRARY[key];
+	let whatsappMessage = definition.whatsappMessage;
+
+	if (definition.dynamic && studentId) {
+		if (key === "send-welcome-message") {
+			const formLink = `http://localhost:5173/form/student/${studentId}`;
+			whatsappMessage = `Assalamu Alaikum,
+We are contacting you from Zidnee Online Islamic School.
+Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will
+now proceed with the final admission process.
+Please save this number as Zidnee's official contact number.
+
+${formLink}`;
+		}
+	}
+
 	return {
 		key,
-		label: STUDENT_PROCESS_TASK_LIBRARY[key].label,
+		label: definition.label,
 		completed: false,
-		...(STUDENT_PROCESS_TASK_LIBRARY[key].actionType
-			? { actionType: STUDENT_PROCESS_TASK_LIBRARY[key].actionType }
-			: {}),
-		...(STUDENT_PROCESS_TASK_LIBRARY[key].whatsappMessage
-			? { whatsappMessage: STUDENT_PROCESS_TASK_LIBRARY[key].whatsappMessage }
-			: {}),
+		...(definition.actionType ? { actionType: definition.actionType } : {}),
+		...(whatsappMessage ? { whatsappMessage } : {}),
 	};
 };
 
@@ -219,28 +228,28 @@ export const StudentProcessModel =
 		studentProcessSchema,
 	);
 
-export const getStudentProcessTemplate = (status: StudentStatus) => {
+export const getStudentProcessTemplate = (status: StudentStatus, studentId?: string) => {
 	const template = STUDENT_PROCESS_TEMPLATE_CONFIG[status];
 	return {
 		label: template.label,
-		tasks: template.taskKeys.map(buildTask),
+		tasks: template.taskKeys.map((key) => buildTask(key, studentId)),
 	};
 };
 
 export const getAdmissionProcessTemplate = (
 	courseType?: "INDIVIDUAL" | "GROUP",
+	studentId?: string,
 ) => {
 	const label =
 		courseType === "GROUP" ? "group admission process" : "one to one class admission";
 
-	// Use the welcome message and the profile form link task
+	// Use only the welcome message task
 	const taskKeys: StudentProcessTaskKey[] = [
 		"send-welcome-message",
-		"send-profile-form-link",
 	];
 
 	return {
 		label,
-		tasks: taskKeys.map(buildTask),
+		tasks: taskKeys.map((key) => buildTask(key, studentId)),
 	};
 };

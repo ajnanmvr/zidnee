@@ -575,7 +575,7 @@ export const StudentService = {
 
 		const syncedStudent = await syncStudentProcess(
 			createdStudent._id.toString(),
-			getAdmissionProcessTemplate(existingLead.courseType),
+			getAdmissionProcessTemplate(existingLead.courseType, createdStudent._id.toString()),
 		);
 
 		await logStudentActivity({
@@ -723,7 +723,7 @@ export const StudentService = {
 
 		const syncedStudent = await syncStudentProcess(
 			createdStudent._id.toString(),
-			getAdmissionProcessTemplate(existingLead.courseType),
+			getAdmissionProcessTemplate(existingLead.courseType, createdStudent._id.toString()),
 		);
 
 		await logStudentActivity({

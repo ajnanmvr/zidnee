@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { swaggerSpec } from "./config/swagger.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { publicLeadRoutes } from "./modules/leads/lead.routes.js";
+import { publicStudentRoutes } from "./modules/students/student.routes.js";
 import timeSlotRoutes from "./modules/timeslots/timeslot.routes.js";
 import routes from "./routes/index.js";
 
@@ -59,6 +60,7 @@ app.get("/api/docs.json", (_req, res) => {
 
 // Public form routes (no authentication required)
 app.use("/form", publicLeadRoutes);
+app.use("/form", publicStudentRoutes);
 
 // API routes (including public options)
 app.use("/api/form/options", timeSlotRoutes);

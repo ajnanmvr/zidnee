@@ -90,7 +90,7 @@ export const buildStudentColumns = (
 		},
 		{
 			accessorKey: "courseType",
-			header: "Course",
+			header: "batch",
 			size: 100,
 			cell: ({ row }) => {
 				const student = row.original;
