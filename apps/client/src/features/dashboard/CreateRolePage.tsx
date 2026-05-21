@@ -9,6 +9,7 @@ import { Field, SelectField, TextAreaField } from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useCreateRoleMutation } from "@/features/roles/use-create-role-mutation";
 import type { CreateRoleForm } from "@/lib/dashboard-types";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type PermissionGroup = {
@@ -23,6 +24,7 @@ type PermissionGroup = {
 
 export const CreateRolePage = () => {
 	const { token } = useSession();
+	const canCreateRole = useHasPermission("ROLE_CREATE");
 	const permissionsQuery = usePermissionsQuery(token);
 	const createRoleMutation = useCreateRoleMutation();
 	const { control, formState, handleSubmit, reset, setError, setValue, watch } =
@@ -144,6 +146,18 @@ export const CreateRolePage = () => {
 			);
 		}
 	};
+
+	if (!canCreateRole) {
+		return (
+			<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
+				<h3 className="text-xl font-semibold text-gray-900">Access denied</h3>
+				<p className="mt-2 text-sm text-gray-600">
+					You do not have permission to create roles. Ask an administrator to
+					grant ROLE_CREATE.
+				</p>
+			</section>
+		);
+	}
 
 	return (
 		<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">

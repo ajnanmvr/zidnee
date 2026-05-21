@@ -22,6 +22,7 @@ import {
 	useMarkDemoCompletedMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { DemoOutcomeModal } from "./DemoOutcomeModal";
 import { RequirementsModal } from "./RequirementsModal";
@@ -30,6 +31,8 @@ export const ScheduledDemosPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
+	const canAssignDemo = useHasPermission("LEAD_DEMO_ASSIGN");
+	const canCompleteDemo = useHasPermission("LEAD_DEMO_COMPLETE");
 	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
@@ -345,22 +348,26 @@ export const ScheduledDemosPage = () => {
 					>
 						Requirements
 					</button>
-					<button
-						type="button"
-						onClick={() => handleOpenReschedule(row.original)}
-						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
-					>
-						<HiCalendarDays className="h-4 w-4" />
-						Reschedule
-					</button>
-					<button
-						type="button"
-						onClick={() => handleOpenComplete(row.original)}
-						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
-					>
-						<HiCheckCircle className="h-4 w-4" />
-						Complete
-					</button>
+					{canAssignDemo ? (
+						<button
+							type="button"
+							onClick={() => handleOpenReschedule(row.original)}
+							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+						>
+							<HiCalendarDays className="h-4 w-4" />
+							Reschedule
+						</button>
+					) : null}
+					{canCompleteDemo ? (
+						<button
+							type="button"
+							onClick={() => handleOpenComplete(row.original)}
+							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+						>
+							<HiCheckCircle className="h-4 w-4" />
+							Complete
+						</button>
+					) : null}
 				</div>
 			),
 		},
@@ -697,17 +704,19 @@ export const ScheduledDemosPage = () => {
 						>
 							Cancel
 						</button>
-						<button
-							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-							onClick={() => void onMarkCompleted()}
-							disabled={markDemoCompletedMutation.isPending}
-						>
-							<HiCheckCircle className="h-4 w-4" />
-							{markDemoCompletedMutation.isPending
-								? "Completing..."
-								: "Mark Completed"}
-						</button>
+						{canCompleteDemo ? (
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+								onClick={() => void onMarkCompleted()}
+								disabled={markDemoCompletedMutation.isPending}
+							>
+								<HiCheckCircle className="h-4 w-4" />
+								{markDemoCompletedMutation.isPending
+									? "Completing..."
+									: "Mark Completed"}
+							</button>
+						) : null}
 					</>
 				}
 			>
@@ -763,17 +772,19 @@ export const ScheduledDemosPage = () => {
 						>
 							Cancel
 						</button>
-						<button
-							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-							onClick={() => void onReschedule()}
-							disabled={reassignDemoMutation.isPending}
-						>
-							<HiCalendarDays className="h-4 w-4" />
-							{reassignDemoMutation.isPending
-								? "Rescheduling..."
-								: "Reschedule"}
-						</button>
+						{canAssignDemo ? (
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+								onClick={() => void onReschedule()}
+								disabled={reassignDemoMutation.isPending}
+							>
+								<HiCalendarDays className="h-4 w-4" />
+								{reassignDemoMutation.isPending
+									? "Rescheduling..."
+									: "Reschedule"}
+							</button>
+						) : null}
 					</>
 				}
 			>

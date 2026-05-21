@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Panel } from "@/components/dashboard-ui";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useMemo } from "react";
@@ -17,6 +18,7 @@ export const CreateMentorPage = () => {
 	const navigate = useNavigate();
 	const createMentor = useCreateMentorMutation();
 	const { token } = useSession();
+	const canCreateUser = useHasPermission("USER_CREATE");
 	const usersQuery = useUsersQuery(token);
 
 	const counsellors = useMemo(() => {
@@ -43,6 +45,12 @@ export const CreateMentorPage = () => {
 
 	return (
 		<div className="grid gap-6">
+			{!canCreateUser ? (
+				<Panel title="Access denied" description="You do not have permission to create mentors.">
+					<p className="text-sm text-gray-600">Ask an administrator to grant USER_CREATE.</p>
+				</Panel>
+			) : null}
+			{canCreateUser ? (
 			<Panel title="Quick create mentor" description="Create a mentor quickly (username and password are auto-generated)">
 				<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 					<div>
@@ -82,6 +90,7 @@ export const CreateMentorPage = () => {
 					</div>
 				</form>
 			</Panel>
+			) : null}
 		</div>
 	);
 };

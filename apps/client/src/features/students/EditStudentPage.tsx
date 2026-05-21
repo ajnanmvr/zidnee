@@ -24,6 +24,41 @@ export const EditStudentPage = () => {
 
   const [form, setForm] = useState<Record<string, any>>({});
 
+  const buildUpdatePayload = () => {
+    const nextPayload: Record<string, unknown> = {
+      name: form.name?.trim() ?? undefined,
+      phone: form.phone?.trim() ?? undefined,
+      email: form.email?.trim() ?? undefined,
+      courseType: form.courseType || undefined,
+      level: form.level?.trim() ?? undefined,
+      dateOfBirth: form.dateOfBirth ? form.dateOfBirth : undefined,
+      residingCountry: form.residingCountry?.trim() ?? undefined,
+      gender: form.gender || undefined,
+      primaryWhatsappNumber: form.primaryWhatsappNumber?.trim() ?? undefined,
+      alternateWhatsappNumber: form.alternateWhatsappNumber?.trim() ?? undefined,
+      studentInfo: form.studentInfo?.trim() ?? undefined,
+      preferredLanguage: form.preferredLanguage || undefined,
+      preferredSchedule: form.preferredSchedule?.trim() ?? undefined,
+      preferredDays: Array.isArray(form.preferredDays) ? form.preferredDays : undefined,
+      price: form.price === "" || form.price == null ? undefined : form.price,
+      hearAboutUs: form.hearAboutUs?.trim() ?? undefined,
+      mentorId: form.mentorId || undefined,
+      batchId: form.batchId === "" ? null : form.batchId ?? null,
+      status: form.status || undefined,
+      profilePic: form.profilePic === "" ? null : form.profilePic ?? undefined,
+      timeslot: form.timeslot
+        ? {
+            classesPerWeek: form.timeslot.classesPerWeek,
+            durationMinutes: form.timeslot.durationMinutes,
+          }
+        : undefined,
+    };
+
+    return Object.fromEntries(
+      Object.entries(nextPayload).filter(([, value]) => value !== undefined),
+    );
+  };
+
   useEffect(() => {
     if (!student) return;
     setForm({
@@ -73,11 +108,14 @@ export const EditStudentPage = () => {
           <button
             onClick={async () => {
               try {
-                await updateStudentMutation.mutateAsync({ studentId, payload: form });
+                await updateStudentMutation.mutateAsync({
+                  studentId,
+                  payload: buildUpdatePayload(),
+                });
                 toast.success("Student updated");
                 navigate(`/students/${studentId}`);
               } catch (e) {
-                toast.error("Failed to update student");
+                toast.error(e instanceof Error ? e.message : "Failed to update student");
               }
             }}
             className="ml-3 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"

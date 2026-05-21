@@ -24,6 +24,7 @@ import {
 } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
+import { useMeQuery } from "@/features/auth/auth.queries";
 
 const levelLabels: Record<string, string> = {
 	"1": "Seed Level 1",
@@ -48,6 +49,8 @@ export const StudentDetailPage = () => {
 	const { studentId } = useParams<{ studentId: string }>();
 	const navigate = useNavigate();
 	const { token } = useSession();
+	const { data: me } = useMeQuery(token);
+	const hasPermission = (key: string) => me?.permissions?.some((p) => p.key === key) ?? false;
 	const studentsQuery = useStudentsQuery(token);
 	const studentActivitiesQuery = useStudentActivitiesQuery(token, studentId);
 	const usersQuery = useUsersQuery(token);
@@ -555,15 +558,17 @@ export const StudentDetailPage = () => {
 								ZID: <span className="font-mono font-semibold">{student.zid.toUpperCase()}</span>
 							</p>
 							<div className="mt-3 flex flex-wrap items-center gap-2">
-								<button
-									type="button"
-									onClick={openProfilePicPicker}
-									className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
-								>
-									{student.profilePic ? "Change picture" : "Upload profile picture"}
-								</button>
+								{hasPermission("STUDENT_UPLOAD_PROFILE_PIC") && (
+									<button
+										type="button"
+										onClick={openProfilePicPicker}
+										className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+									>
+										{student.profilePic ? "Change picture" : "Upload profile picture"}
+									</button>
+								)}
 								{/* Certificate download moved to Assessments tab */}
-								{student.profilePic ? (
+								{student.profilePic && hasPermission("STUDENT_UPDATE") ? (
 									<button
 										type="button"
 										onClick={() => setRemovePicConfirmOpen(true)}
@@ -598,13 +603,15 @@ export const StudentDetailPage = () => {
 					</div>
 				</div>
 			</div>
-			<button
-				className="ml-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800 hover:bg-sky-100"
-				type="button"
-				onClick={() => navigate(`/students/${studentId}/edit`)}
-			>
-				Edit
-			</button>
+			{hasPermission("STUDENT_UPDATE") && (
+				<button
+					className="ml-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800 hover:bg-sky-100"
+					type="button"
+					onClick={() => navigate(`/students/${studentId}/edit`)}
+				>
+					Edit
+				</button>
+			)}
 
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -672,13 +679,15 @@ export const StudentDetailPage = () => {
 					<Panel
 						title="Follow-up focus"
 						action={
-							<button
-								type="button"
-								onClick={openFollowUpModal}
-								className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
-							>
-								Record follow-up
-							</button>
+							hasPermission("STUDENT_UPDATE") ? (
+								<button
+									type="button"
+									onClick={openFollowUpModal}
+									className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+								>
+									Record follow-up
+								</button>
+							) : null
 						}
 					>
 						<div className="grid gap-4 sm:grid-cols-2">
@@ -739,21 +748,23 @@ export const StudentDetailPage = () => {
 						title="Assessments"
 						action={
 							<div>
-								<button
-									type="button"
-									onClick={() => {
-										const allDone = assessmentConfig.every((a) => a.value);
-										if (allDone) {
-											void downloadCertificate();
-										} else {
-											setCertificateConfirmOpen(true);
-										}
-									}}
-									disabled={isGeneratingCertificate}
-									className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-								>
-									{isGeneratingCertificate ? "Preparing certificate..." : "Download certificate"}
-								</button>
+								{hasPermission("STUDENT_CERTIFICATE_DOWNLOAD") && (
+									<button
+										type="button"
+										onClick={() => {
+											const allDone = assessmentConfig.every((a) => a.value);
+											if (allDone) {
+												void downloadCertificate();
+											} else {
+												setCertificateConfirmOpen(true);
+											}
+										}}
+										disabled={isGeneratingCertificate}
+										className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										{isGeneratingCertificate ? "Preparing certificate..." : "Download certificate"}
+									</button>
+								)}
 							</div>
 						}
 					>
@@ -773,13 +784,15 @@ export const StudentDetailPage = () => {
 												{assessment.value ? "Done" : "Not done"}
 											</span>
 										</div>
-										<button
-											type="button"
-											onClick={() => openAssessmentConfirm(assessment.assessmentType, nextDone)}
-											className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
-										>
-											{assessment.value ? "Mark undone" : "Mark done"}
-										</button>
+										{hasPermission("STUDENT_ASSESSMENT_UPDATE") ? (
+											<button
+												type="button"
+												onClick={() => openAssessmentConfirm(assessment.assessmentType, nextDone)}
+												className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
+											>
+												{assessment.value ? "Mark undone" : "Mark done"}
+											</button>
+										) : null}
 									</div>
 								);
 							})}
@@ -807,11 +820,13 @@ export const StudentDetailPage = () => {
 									<span className="text-4xl font-bold text-gray-400">{profileAvatarLabel}</span>
 								)}
 							</button>
-							<label className="inline-flex cursor-pointer items-center rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
-								<input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
-								Upload profile picture
-							</label>
-							{student?.profilePic ? (
+							{hasPermission("STUDENT_UPLOAD_PROFILE_PIC") && (
+								<label className="inline-flex cursor-pointer items-center rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
+									<input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
+									Upload profile picture
+								</label>
+							)}
+							{student?.profilePic && hasPermission("STUDENT_UPDATE") ? (
 								<button
 									type="button"
 									onClick={removeProfilePic}
@@ -930,13 +945,15 @@ export const StudentDetailPage = () => {
 									/>
 									Show completed
 								</label>
-								<button
-									type="button"
-									onClick={() => setRemindersModalOpen(true)}
-									className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-								>
-									Add Reminder
-								</button>
+								{hasPermission("REMINDER_CREATE") && (
+									<button
+										type="button"
+										onClick={() => setRemindersModalOpen(true)}
+										className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+									>
+										Add Reminder
+									</button>
+								)}
 							</div>
 						}
 					>

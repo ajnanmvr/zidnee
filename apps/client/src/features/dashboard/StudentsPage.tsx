@@ -18,6 +18,7 @@ import {
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 export const StudentsPage = () => {
@@ -47,6 +48,7 @@ export const StudentsPage = () => {
 	});
 	const batchesQuery = useBatchesQuery(token);
 	const usersQuery = useUsersQuery(token);
+	const canUpdateStudent = useHasPermission("STUDENT_UPDATE");
 	const updateStudentMutation = useUpdateStudentMutation();
 
 	const [addToGroupModalOpen, setAddToGroupModalOpen] = useState(false);
@@ -144,6 +146,7 @@ export const StudentsPage = () => {
 	const columns = useMemo(
 		() =>
 			buildStudentColumns(getStudentStatusColor, mentorNameById, {
+				canAddToGroup: canUpdateStudent,
 				groupLabelByBatchId: (batchesQuery.data?.batches ?? []).reduce<
 					Record<string, string>
 				>((acc, batch) => {

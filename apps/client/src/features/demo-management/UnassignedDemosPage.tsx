@@ -14,6 +14,7 @@ import { useMeQuery } from "@/features/auth/auth.queries";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { RequirementsModal } from "./RequirementsModal";
 
@@ -21,6 +22,7 @@ export const UnassignedDemosPage = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
+	const canAssignDemo = useHasPermission("LEAD_DEMO_ASSIGN");
 	const demosQuery = usePendingDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const assignDemoMutation = useAssignDemoMentorMutation();
@@ -203,14 +205,16 @@ export const UnassignedDemosPage = () => {
 					>
 						Requirements
 					</button>
-					<button
-						type="button"
-						onClick={() => handleOpenAssign(row.original)}
-						className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
-					>
-						<HiCalendarDays className="h-4 w-4" />
-						Assign Mentor
-					</button>
+					{canAssignDemo ? (
+						<button
+							type="button"
+							onClick={() => handleOpenAssign(row.original)}
+							className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+						>
+							<HiCalendarDays className="h-4 w-4" />
+							Assign Mentor
+						</button>
+					) : null}
 				</div>
 			),
 		},
@@ -311,15 +315,17 @@ export const UnassignedDemosPage = () => {
 						>
 							Cancel
 						</button>
-						<button
-							type="button"
-							className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-							onClick={() => void onAssignMentor()}
-							disabled={isSubmitting || assignDemoMutation.isPending}
-						>
-							<HiCalendarDays className="h-4 w-4" />
-							{assignDemoMutation.isPending ? "Assigning..." : "Assign Mentor"}
-						</button>
+						{canAssignDemo ? (
+							<button
+								type="button"
+								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+								onClick={() => void onAssignMentor()}
+								disabled={isSubmitting || assignDemoMutation.isPending}
+							>
+								<HiCalendarDays className="h-4 w-4" />
+								{assignDemoMutation.isPending ? "Assigning..." : "Assign Mentor"}
+							</button>
+						) : null}
 					</>
 				}
 			>

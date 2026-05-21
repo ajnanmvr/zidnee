@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Field, Panel } from "@/components/dashboard-ui";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type CreateUserFormData = {
@@ -47,6 +48,8 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 	submitLabel,
 }) => {
 	const { token } = useSession();
+	const canCreateUser = useHasPermission("USER_CREATE");
+	const canUpdateUser = useHasPermission("USER_UPDATE");
 	const rolesQuery = useRolesQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(
@@ -89,6 +92,22 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		() => rolesQuery.data?.roles ?? [],
 		[rolesQuery.data?.roles],
 	);
+
+	if ((mode === "create" && !canCreateUser) || (mode === "edit" && !canUpdateUser)) {
+		return (
+			<Panel
+				title={title ?? (mode === "create" ? "Create User" : "Edit user")}
+				description={
+					description ??
+					(mode === "create" ? "Add a new user to the system" : "Update")
+				}
+			>
+				<p className="text-sm text-gray-600">
+					You do not have permission to {mode === "create" ? "create" : "edit"} users.
+				</p>
+			</Panel>
+		);
+	}
 
 	const toggleRole = (roleId: string) => {
 		setSelectedRoleIds((prev) =>

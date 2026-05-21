@@ -905,9 +905,27 @@ export const StudentService = {
 	update: async (
 		studentId: string,
 		payload: Partial<{
-			batchId?: string | null;
 			mentorId?: string;
+			batchId?: string | null;
 			profilePic?: string | null;
+			name?: string;
+			phone?: string;
+			email?: string;
+			courseType?: Student["courseType"];
+			level?: string;
+			dateOfBirth?: Date | null;
+			residingCountry?: string;
+			gender?: Student["gender"];
+			primaryWhatsappNumber?: string;
+			alternateWhatsappNumber?: string;
+			studentInfo?: string;
+			preferredLanguage?: Student["preferredLanguage"];
+			preferredSchedule?: string;
+			preferredDays?: string[];
+			timeslot?: Student["timeslot"] | null;
+			price?: number | null;
+			hearAboutUs?: string;
+			status?: Student["status"];
 		}>,
 	): Promise<Student | null> => {
 		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
@@ -919,6 +937,90 @@ export const StudentService = {
 			mentorId: payload.mentorId ?? student.mentorId,
 		};
 		const $unset: Record<string, 1> = {};
+
+		if (payload.name !== undefined) {
+			$set.name = payload.name;
+		}
+
+		if (payload.phone !== undefined) {
+			$set.phone = payload.phone;
+		}
+
+		if (payload.email !== undefined) {
+			$set.email = payload.email;
+		}
+
+		if (payload.courseType !== undefined) {
+			$set.courseType = payload.courseType;
+		}
+
+		if (payload.level !== undefined) {
+			$set.level = payload.level;
+		}
+
+		if (payload.dateOfBirth !== undefined) {
+			if (payload.dateOfBirth === null) {
+				$unset.dateOfBirth = 1;
+			} else {
+				$set.dateOfBirth = payload.dateOfBirth;
+			}
+		}
+
+		if (payload.residingCountry !== undefined) {
+			$set.residingCountry = payload.residingCountry;
+		}
+
+		if (payload.gender !== undefined) {
+			$set.gender = payload.gender;
+		}
+
+		if (payload.primaryWhatsappNumber !== undefined) {
+			$set.primaryWhatsappNumber = payload.primaryWhatsappNumber;
+		}
+
+		if (payload.alternateWhatsappNumber !== undefined) {
+			$set.alternateWhatsappNumber = payload.alternateWhatsappNumber;
+		}
+
+		if (payload.studentInfo !== undefined) {
+			$set.studentInfo = payload.studentInfo;
+		}
+
+		if (payload.preferredLanguage !== undefined) {
+			$set.preferredLanguage = payload.preferredLanguage;
+		}
+
+		if (payload.preferredSchedule !== undefined) {
+			$set.preferredSchedule = payload.preferredSchedule;
+		}
+
+		if (payload.preferredDays !== undefined) {
+			$set.preferredDays = payload.preferredDays;
+		}
+
+		if (payload.timeslot !== undefined) {
+			if (payload.timeslot === null) {
+				$unset.timeslot = 1;
+			} else {
+				$set.timeslot = payload.timeslot;
+			}
+		}
+
+		if (payload.price !== undefined) {
+			if (payload.price === null) {
+				$unset.price = 1;
+			} else {
+				$set.price = payload.price;
+			}
+		}
+
+		if (payload.hearAboutUs !== undefined) {
+			$set.hearAboutUs = payload.hearAboutUs;
+		}
+
+		if (payload.status !== undefined) {
+			$set.status = payload.status;
+		}
 
 		if (payload.batchId === null) {
 			$unset.batchId = 1;
@@ -960,11 +1062,17 @@ export const StudentService = {
 			performedBy: student.admittedBy.toString(),
 			description: "Student updated",
 			oldValue: {
+				name: student.name ?? null,
+				phone: student.phone,
+				email: student.email,
 				mentorId: student.mentorId?.toString(),
 				batchId: student.batchId?.toString(),
 				profilePic: student.profilePic ?? null,
 			},
 			newValue: {
+				name: updatedStudent.name ?? null,
+				phone: updatedStudent.phone,
+				email: updatedStudent.email,
 				mentorId: updatedStudent.mentorId?.toString(),
 				batchId: updatedStudent.batchId?.toString(),
 				profilePic: updatedStudent.profilePic ?? null,

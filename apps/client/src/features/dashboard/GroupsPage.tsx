@@ -10,6 +10,7 @@ import { useCreateBatchMutation } from "@/features/batches/use-create-batch-muta
 import { useUpdateBatchMutation } from "@/features/batches/use-update-batch-mutation";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -28,6 +29,8 @@ export const GroupsPage = () => {
 	const batchesQuery = useBatchesQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const usersQuery = useUsersQuery(token);
+	const canCreateBatch = useHasPermission("BATCH_CREATE");
+	const canUpdateBatch = useHasPermission("BATCH_UPDATE");
 	const createBatch = useCreateBatchMutation();
 	const groups = useMemo(
 		() => (batchesQuery.data?.batches ?? []).filter((b) => b.type === "GROUP"),
@@ -146,13 +149,15 @@ export const GroupsPage = () => {
 						students assigned to it.
 					</p>
 				</div>
-				<button
-					type="button"
-					className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
-					onClick={() => setOpen(true)}
-				>
-					<HiPlus className="h-4 w-4" /> Add group
-				</button>
+				{canCreateBatch ? (
+					<button
+						type="button"
+						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
+						onClick={() => setOpen(true)}
+					>
+						<HiPlus className="h-4 w-4" /> Add group
+					</button>
+				) : null}
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-2">
@@ -265,13 +270,15 @@ export const GroupsPage = () => {
 													>
 														View
 													</Link>
-													<button
-														type="button"
-														onClick={() => openEdit(group)}
-														className="text-sm text-gray-600 hover:text-gray-900"
-													>
-														Edit
-													</button>
+													{canUpdateBatch ? (
+														<button
+															type="button"
+															onClick={() => openEdit(group)}
+															className="text-sm text-gray-600 hover:text-gray-900"
+														>
+															Edit
+														</button>
+													) : null}
 												</div>
 											</td>
 										</tr>
@@ -283,6 +290,7 @@ export const GroupsPage = () => {
 				</div>
 			</Panel>
 
+			{canCreateBatch ? (
 			<Modal open={open} title="Create group" onClose={() => setOpen(false)}>
 				<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
 					<Controller
@@ -349,7 +357,9 @@ export const GroupsPage = () => {
 					</div>
 				</form>
 			</Modal>
+			) : null}
 
+			{canUpdateBatch ? (
 			<Modal open={editOpen} title="Edit group" onClose={closeEdit}>
 				<form className="grid gap-4" onSubmit={handleSubmit(onEditSubmit)}>
 					<Controller
@@ -406,6 +416,7 @@ export const GroupsPage = () => {
 					</div>
 				</form>
 			</Modal>
+			) : null}
 		</div>
 	);
 };

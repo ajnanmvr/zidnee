@@ -62,6 +62,7 @@ export const buildStudentColumns = (
 	options?: {
 		groupLabelByBatchId?: Record<string, string>;
 		onAddToGroup?: (student: StudentTableRow) => void;
+		canAddToGroup?: boolean;
 	},
 ): ColumnDef<StudentTableRow>[] => {
 	return [
@@ -110,7 +111,7 @@ export const buildStudentColumns = (
 						);
 					}
 
-					if (options?.onAddToGroup) {
+					if (options?.onAddToGroup && options.canAddToGroup) {
 						return (
 							<button
 								type="button"

@@ -1,7 +1,10 @@
-﻿import { lazy, Suspense } from "react";
+﻿import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { ApiError } from "@/api/request";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
+import { useMeQuery } from "@/features/auth/auth.queries";
+import { useSession } from "@/lib/session";
 
 const LoginPage = lazy(() =>
 	import("@/features/auth/LoginPage").then((module) => ({
@@ -154,6 +157,55 @@ const routeFallback = (
 	<div className="p-6 text-sm text-slate-500">Loading...</div>
 );
 
+type PermissionRouteProps = {
+	permissions: string[];
+	fallbackPath?: string;
+	children: ReactNode;
+};
+
+const PermissionRoute = ({
+	permissions,
+	fallbackPath = "/",
+	children,
+}: PermissionRouteProps) => {
+	const { token } = useSession();
+	const { data: me, error, isLoading } = useMeQuery(token);
+
+	if (!token || isLoading) {
+		return routeFallback;
+	}
+
+	if (error instanceof ApiError && error.status === 401) {
+		return <Navigate to="/login" replace />;
+	}
+
+	if (!me) {
+		return routeFallback;
+	}
+
+	const hasAccess = permissions.some((permissionKey) =>
+		me.permissions?.some((permission) => permission.key === permissionKey),
+	);
+
+	if (!hasAccess) {
+		return <Navigate to={fallbackPath} replace />;
+	}
+
+	return <>{children}</>;
+};
+
+const withPermissions = (
+	permissions: string[],
+	element: ReactNode,
+	fallbackPath = "/",
+) => {
+	return (
+		<PermissionRoute permissions={permissions} fallbackPath={fallbackPath}>
+			<Suspense fallback={routeFallback}>{element}</Suspense>
+		</PermissionRoute>
+	);
+};
+
 export const router = createBrowserRouter([
 	{
 		path: "/login",
@@ -199,195 +251,109 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "leads",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<LeadsPage />
-							</Suspense>
-						),
+						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadsPage />),
 					},
 					{
 						path: "admissions",
-						element: <Navigate to="/leads?stage=converted" replace />,
+						element: withPermissions(
+							["LEAD_READ_MY", "LEAD_READ_ALL"],
+							<Navigate to="/leads?stage=converted" replace />,
+						),
 					},
 					{
 						path: "admissions/:leadId",
-						element: <Navigate to="/leads?stage=converted" replace />,
+						element: withPermissions(
+							["LEAD_READ_MY", "LEAD_READ_ALL"],
+							<Navigate to="/leads?stage=converted" replace />,
+						),
 					},
 					{
 						path: "students",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<StudentsPage />
-							</Suspense>
-						),
+						element: withPermissions(["STUDENT_READ"], <StudentsPage />),
 					},
 					{
 						path: "processes",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<StudentProcessesPage />
-							</Suspense>
-						),
+						element: withPermissions(["STUDENT_READ"], <StudentProcessesPage />),
 					},
 					{
 						path: "process-history",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<ProcessHistoryPage />
-							</Suspense>
-						),
+						element: withPermissions(["STUDENT_READ"], <ProcessHistoryPage />),
 					},
 					{
 						path: "processes/:processId",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<StudentProcessDetailPage />
-							</Suspense>
-						),
+						element: withPermissions(["STUDENT_READ"], <StudentProcessDetailPage />),
 					},
 					{
 						path: "students/:studentId",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<StudentDetailPage />
-							</Suspense>
-						),
+						element: withPermissions(["STUDENT_READ"], <StudentDetailPage />),
 					},
 					{
 						path: "students/:studentId/edit",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<EditStudentPage />
-							</Suspense>
-						),
+						element: withPermissions(["STUDENT_UPDATE"], <EditStudentPage />),
 					},
 					{
 						path: "counsellors/create",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CreateCounsellorPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_CREATE"], <CreateCounsellorPage />),
 					},
 					{
 						path: "mentors/create",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CreateMentorPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_CREATE"], <CreateMentorPage />),
 					},
 					{
 						path: "mentors",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<MentorsPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_READ"], <MentorsPage />),
 					},
 					{
 						path: "mentors/:mentorId",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<MentorDetailPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_READ"], <MentorDetailPage />),
 					},
 					{
 						path: "mentors/substitutions",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<SubstitutionsPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_READ"], <SubstitutionsPage />),
 					},
 					{
 						path: "groups",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<GroupsPage />
-							</Suspense>
-						),
+						element: withPermissions(["BATCH_READ"], <GroupsPage />),
 					},
 					{
 						path: "groups/:groupId",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<GroupDetailPage />
-							</Suspense>
-						),
+						element: withPermissions(["BATCH_READ"], <GroupDetailPage />),
 					},
 					{
 						path: "time-slots",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CreateTimeSlotsPage />
-							</Suspense>
-						),
+						element: withPermissions(["TIMESLOT_CREATE"], <CreateTimeSlotsPage />),
 					},
 					{
 						path: "leads/:leadId",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<LeadDetailPageNew />
-							</Suspense>
-						),
+						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadDetailPageNew />),
 					},
 					{
 						path: "leads/:leadId/edit",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<LeadEditPage />
-							</Suspense>
-						),
+						element: withPermissions(["LEAD_UPDATE_MY", "LEAD_UPDATE_ALL"], <LeadEditPage />),
 					},
 					{
 						path: "users",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<UsersPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_READ"], <UsersPage />),
 					},
 					{
 						path: "users/create",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CreateUserPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_CREATE"], <CreateUserPage />),
 					},
 					{
 						path: "users/:userId/edit",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<EditUserPage />
-							</Suspense>
-						),
+						element: withPermissions(["USER_UPDATE"], <EditUserPage />),
 					},
 					{
 						path: "roles",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<RolesPage />
-							</Suspense>
-						),
+						element: withPermissions(["ROLE_READ"], <RolesPage />),
 					},
 					{
 						path: "roles/create",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<CreateRolePage />
-							</Suspense>
-						),
+						element: withPermissions(["ROLE_CREATE"], <CreateRolePage />),
 					},
 					{
 						path: "roles/:roleId/edit",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<EditRolePage />
-							</Suspense>
-						),
+						element: withPermissions(["ROLE_UPDATE"], <EditRolePage />),
 					},
 					{
 						path: "me",
@@ -399,35 +365,19 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "demo-management/unassigned",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<UnassignedDemosPage />
-							</Suspense>
-						),
+						element: withPermissions(["LEAD_DEMO_ASSIGN"], <UnassignedDemosPage />),
 					},
 					{
 						path: "demo-management/scheduled",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<ScheduledDemosPage />
-							</Suspense>
-						),
+						element: withPermissions(["LEAD_DEMO_COMPLETE"], <ScheduledDemosPage />),
 					},
 					{
 						path: "reminders",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<RemindersPage />
-							</Suspense>
-						),
+						element: withPermissions(["REMINDER_READ"], <RemindersPage />),
 					},
 					{
 						path: "reminders/closed",
-						element: (
-							<Suspense fallback={routeFallback}>
-								<ClosedRemindersPage />
-							</Suspense>
-						),
+						element: withPermissions(["REMINDER_READ"], <ClosedRemindersPage />),
 					},
 				],
 			},

@@ -24,6 +24,7 @@ import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries.js";
 import { useStudentsQuery } from "@/features/students/students.queries.js";
 import { useUsersQuery } from "@/features/users/users.queries.js";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session.js";
 
 type ReminderPageMode = "open" | "closed";
@@ -46,6 +47,9 @@ export const RemindersPageView = ({
     const navigate = useNavigate();
     const { token } = useSession();
     const meQuery = useMeQuery(token);
+    const canCreateReminder = useHasPermission("REMINDER_CREATE");
+    const canUpdateReminder = useHasPermission("REMINDER_UPDATE");
+    const canDeleteReminder = useHasPermission("REMINDER_DELETE");
     const studentsQuery = useStudentsQuery(token);
     const usersQuery = useUsersQuery(token);
     const [sortBy, setSortBy] = useState<"date" | "createdAt">("date");
@@ -161,13 +165,15 @@ export const RemindersPageView = ({
                         <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
                         <p className="text-sm text-gray-500">{description}</p>
                     </div>
-                    <Link
-                        to={actionTo}
-                        className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-                    >
-                        <HiArchiveBox className="h-4 w-4" />
-                        {actionLabel}
-                    </Link>
+                    {canCreateReminder ? (
+                        <Link
+                            to={actionTo}
+                            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                        >
+                            <HiArchiveBox className="h-4 w-4" />
+                            {actionLabel}
+                        </Link>
+                    ) : null}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -290,6 +296,8 @@ export const RemindersPageView = ({
                                 users={usersQuery.data?.users ?? []}
                                 students={studentsQuery.data?.students ?? []}
                                 showDueStatus={mode !== "closed"}
+                                canUpdateReminder={canUpdateReminder}
+                                canDeleteReminder={canDeleteReminder}
                             />
                         ))}
                     </div>
@@ -332,6 +340,8 @@ interface ReminderRowProps {
     users: Array<{ id: string; name: string; username: string }>;
     students: Array<{ id: string; name?: string; zid: string }>;
     showDueStatus?: boolean;
+    canUpdateReminder?: boolean;
+    canDeleteReminder?: boolean;
 }
 
 const ReminderRow: React.FC<ReminderRowProps> = ({
@@ -339,6 +349,8 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
     users,
     students,
     showDueStatus = true,
+    canUpdateReminder = false,
+    canDeleteReminder = false,
 }) => {
     const linkedPersonId = reminder.linkedPerson.id;
     const linkedPersonType = reminder.linkedPerson.type;
@@ -477,6 +489,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+                {canUpdateReminder ? (
                 <button
                     onClick={requestToggleDone}
                     disabled={updateMutation.isPending}
@@ -489,6 +502,8 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
                 >
                     <HiCheckCircle className="h-5 w-5" />
                 </button>
+                ) : null}
+                {canDeleteReminder ? (
                 <button
                     onClick={() => {
                         setConfirmDeleteOpen(true);
@@ -499,6 +514,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
                 >
                     <HiTrash className="h-5 w-5" />
                 </button>
+                ) : null}
             </div>
 
             <Modal

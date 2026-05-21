@@ -114,6 +114,12 @@ export const DashboardLayout = () => {
 	const canReadStudents =
 		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
 		false;
+	const canReadBatches =
+		me?.permissions?.some((permission) => permission.key === "BATCH_READ") ??
+		false;
+	const canReadReminders =
+		me?.permissions?.some((permission) => permission.key === "REMINDER_READ") ??
+		false;
 	const canReadDemos =
 		me?.permissions?.some(
 			(permission) =>
@@ -126,7 +132,7 @@ export const DashboardLayout = () => {
 		enabled: canReadLeads,
 	});
 	const studentsQuery = useStudentsQuery(token, canReadStudents);
-	const remindersQuery = useGetAllReminders({ enabled: canReadStudents });
+	const remindersQuery = useGetAllReminders({ enabled: canReadReminders });
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
 	const meName = me?.name ?? "User";
@@ -293,6 +299,10 @@ export const DashboardLayout = () => {
 					accent: "rose",
 					section: "Learners",
 				},
+			]
+			: []),
+		...(canReadBatches
+			? [
 				{
 					to: "/groups",
 					label: "Groups",
@@ -301,23 +311,27 @@ export const DashboardLayout = () => {
 					accent: "emerald",
 					section: "Learners",
 				},
+			]
+			: []),
+		...(canReadReminders
+			? [
 				{
 					to: "/reminders",
 					label: "Reminders",
-						description: "Open reminders",
+					description: "Open reminders",
 					icon: <HiOutlineBellAlert className="h-5 w-5" aria-hidden="true" />,
 					count: reminderUrgentCount,
 					accent: "amber",
 					section: "Learners",
 				},
-					{
-						to: "/reminders/closed",
-						label: "Closed Tasks",
-						description: "Completed reminders",
-						icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-						accent: "rose",
-						section: "Learners",
-					},
+				{
+					to: "/reminders/closed",
+					label: "Closed Tasks",
+					description: "Completed reminders",
+					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
+					accent: "rose",
+					section: "Learners",
+				},
 			]
 			: []),
 		...(hasPermission("TIMESLOT_CREATE")

@@ -41,6 +41,35 @@ interface CustomFollowUpForm {
 	customDate: Date;
 }
 
+type DetailSectionProps = {
+	id: string;
+	tone: "emerald" | "amber" | "blue" | "teal" | "violet" | "orange" | "rose";
+	label: string;
+	children: React.ReactNode;
+};
+
+const DetailSection = ({ id, tone, label, children }: DetailSectionProps) => {
+	const toneClasses = {
+		emerald: "bg-emerald-600",
+		amber: "bg-amber-600",
+		blue: "bg-blue-600",
+		teal: "bg-teal-600",
+		violet: "bg-violet-600",
+		orange: "bg-orange-600",
+		rose: "bg-rose-600",
+	};
+
+	return (
+		<section id={id} className="scroll-mt-28">
+			<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+				<span className={`h-2 w-2 rounded-full ${toneClasses[tone]}`} />
+				{label}
+			</div>
+			{children}
+		</section>
+	);
+};
+
 export const MentorDetailPage = () => {
 	const { mentorId } = useParams<{ mentorId: string }>();
 	const { token } = useSession();
@@ -324,386 +353,340 @@ export const MentorDetailPage = () => {
 				</div>
 			</nav>
 
-			<section id="overview" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-emerald-600" />
-					Overview
-				</div>
-			<Panel
-				title="Mentor profile"
-				description="Identity, owner, and service load"
-				action={
-					<Link
-						to="/mentors/substitutions"
-						className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
-					>
-						Open substitutions
-					</Link>
-				}
-			>
-				<div className="space-y-4">
-					<div className="grid gap-2 md:grid-cols-2">
-						<div>
-							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-								Mentor ID
-							</p>
-							<p className="mt-1 text-lg font-semibold text-gray-900">
-								{mentor.mentorId ?? mentor.zids?.mentor ?? "-"}
-							</p>
+			<DetailSection id="overview" tone="emerald" label="Overview">
+				<Panel
+					title="Mentor profile"
+					description="Identity, owner, and service load"
+					action={
+						<Link
+							to="/mentors/substitutions"
+							className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+						>
+							Open substitutions
+						</Link>
+					}
+				>
+					<div className="space-y-4">
+						<div className="grid gap-2 md:grid-cols-2">
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+									Mentor ID
+								</p>
+								<p className="mt-1 text-lg font-semibold text-gray-900">
+									{mentor.mentorId ?? mentor.zids?.mentor ?? "-"}
+								</p>
+							</div>
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+									Email
+								</p>
+								<p className="mt-1 text-gray-900">{mentor.email ?? "-"}</p>
+							</div>
 						</div>
-						<div>
-							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-								Email
-							</p>
-							<p className="mt-1 text-gray-900">{mentor.email ?? "-"}</p>
+
+						<div className="grid gap-2 md:grid-cols-3">
+							<div className="rounded-2xl bg-teal-50 px-3 py-2">
+								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+									Students
+								</p>
+								<p className="mt-1 text-lg font-bold text-teal-800">
+									{mentorStudents.length}
+								</p>
+								<p className="text-xs text-teal-600">
+									{activeStudents.length} active
+								</p>
+							</div>
+							<div className="rounded-2xl bg-amber-50 px-3 py-2">
+								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+									Last Contacted
+								</p>
+								<p className="mt-1 text-sm font-medium text-amber-900">
+									{mentor.lastContactedAt
+										? new Date(mentor.lastContactedAt).toLocaleDateString()
+										: "Never"}
+								</p>
+							</div>
+							<div
+								className={`rounded-2xl px-3 py-2 ${
+									isFollowUpDue ? "bg-red-50" : "bg-emerald-50"
+								}`}
+							>
+								<p
+									className={`text-xs font-semibold uppercase tracking-[0.18em] ${
+										isFollowUpDue ? "text-red-700" : "text-emerald-700"
+									}`}
+								>
+									Next Follow-up
+								</p>
+								<p
+									className={`mt-1 text-sm font-medium ${
+										isFollowUpDue ? "text-red-900" : "text-emerald-900"
+									}`}
+								>
+									{nextFollowUpDate ? nextFollowUpDate.toLocaleDateString() : "Not set"}
+								</p>
+								{isFollowUpDue && <p className="text-xs font-semibold text-red-600">DUE NOW</p>}
+							</div>
+						</div>
+
+						<div className="flex flex-wrap gap-2">
+							<button
+								onClick={() => setSubstitutionModalOpen(true)}
+								className="inline-flex items-center gap-2 rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-100"
+							>
+								<HiUserGroup className="h-4 w-4" aria-hidden="true" />
+								Substitute mentor
+							</button>
 						</div>
 					</div>
+				</Panel>
+			</DetailSection>
 
-					<div className="grid gap-2 md:grid-cols-3">
-						<div className="rounded-2xl bg-teal-50 px-3 py-2">
-							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
-								Students
-							</p>
-							<p className="mt-1 text-lg font-bold text-teal-800">
-								{mentorStudents.length}
-							</p>
-							<p className="text-xs text-teal-600">
-								{activeStudents.length} active
-							</p>
+			<DetailSection id="substitutions" tone="amber" label="Substitutions">
+				<Panel
+					title="Substitution status"
+					description="Current and upcoming substitution coverage for this mentor"
+					action={
+						<Link
+							to="/mentors/substitutions"
+							className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
+						>
+							View all
+						</Link>
+					}
+				>
+					<MentorSubstitutionInfo mentorId={mentor.id} />
+				</Panel>
+			</DetailSection>
+
+			<DetailSection id="follow-up" tone="blue" label="Follow-up">
+				<Panel
+					title="Mentor Follow-up"
+					description="Track communication and schedule next contact"
+				>
+					<div className="space-y-4">
+						<div className="flex flex-wrap gap-2">
+							<button
+								onClick={() => setFollowUpModalOpen(true)}
+								disabled={recordFollowUpMutation.isPending}
+								className="inline-flex items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 disabled:opacity-50"
+							>
+								<HiCheckCircle className="h-4 w-4" />
+								Record Follow-up
+							</button>
+							<button
+								onClick={() => setCustomFollowUpModalOpen(true)}
+								className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
+							>
+								<HiClock className="h-4 w-4" />
+								Set Custom Date
+							</button>
 						</div>
-						<div className="rounded-2xl bg-amber-50 px-3 py-2">
-							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+
+						{mentor.customNextFollowUpAt && (
+							<div className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
+								<p className="text-sm text-blue-900">
+									<strong>Custom Date:</strong>{" "}
+									{new Date(mentor.customNextFollowUpAt).toLocaleDateString()}
+								</p>
+							</div>
+						)}
+					</div>
+				</Panel>
+			</DetailSection>
+
+			<DetailSection id="snapshot" tone="teal" label="Snapshot">
+				<Panel
+					title="Follow-up Snapshot"
+					description="Current mentor follow-up status and schedule"
+				>
+					<div className="grid gap-3 md:grid-cols-3">
+						<div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
 								Last Contacted
 							</p>
-							<p className="mt-1 text-sm font-medium text-amber-900">
-								{mentor.lastContactedAt
-									? new Date(mentor.lastContactedAt).toLocaleDateString()
+							<p className="mt-2 text-sm font-medium text-gray-900">
+								{followUpState?.lastContactedAt
+									? new Date(followUpState.lastContactedAt).toLocaleDateString()
 									: "Never"}
 							</p>
 						</div>
-						<div
-							className={`rounded-2xl px-3 py-2 ${
-								isFollowUpDue
-									? "bg-red-50"
-									: "bg-emerald-50"
-							}`}
-						>
-							<p
-								className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-									isFollowUpDue
-										? "text-red-700"
-										: "text-emerald-700"
-								}`}
-							>
+						<div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
 								Next Follow-up
 							</p>
-							<p
-								className={`mt-1 text-sm font-medium ${
-									isFollowUpDue
-										? "text-red-900"
-										: "text-emerald-900"
-								}`}
-							>
+							<p className="mt-2 text-sm font-medium text-gray-900">
+								{followUpState?.customNextFollowUpAt
+									? new Date(followUpState.customNextFollowUpAt).toLocaleDateString()
+									: followUpState?.nextFollowUpAt
+										? new Date(followUpState.nextFollowUpAt).toLocaleDateString()
+										: "Not set"}
+							</p>
+						</div>
+						<div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+							<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+								Status
+							</p>
+							<p className="mt-2 text-sm font-medium text-gray-900">
 								{nextFollowUpDate
-									? nextFollowUpDate.toLocaleDateString()
-									: "Not set"}
-							</p>
-							{isFollowUpDue && (
-								<p className="text-xs text-red-600 font-semibold">
-									DUE NOW
-								</p>
-							)}
-						</div>
-					</div>
-
-					<div className="flex flex-wrap gap-2">
-						<button
-							onClick={() => setSubstitutionModalOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-100"
-						>
-							<HiUserGroup className="h-4 w-4" aria-hidden="true" />
-							Substitute mentor
-						</button>
-					</div>
-				</div>
-			</Panel>
-			</section>
-
-			<section id="substitutions" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-amber-600" />
-					Substitutions
-				</div>
-			<Panel
-				title="Substitution status"
-				description="Current and upcoming substitution coverage for this mentor"
-				action={
-					<Link
-						to="/mentors/substitutions"
-						className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
-					>
-						View all
-					</Link>
-				}
-			>
-				<MentorSubstitutionInfo mentorId={mentor.id} />
-			</Panel>
-			</section>
-
-			<section id="follow-up" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-blue-600" />
-					Follow-up
-				</div>
-			<Panel
-				title="Mentor Follow-up"
-				description="Track communication and schedule next contact"
-			>
-				<div className="space-y-4">
-					<div className="flex flex-wrap gap-2">
-						<button
-							onClick={() => setFollowUpModalOpen(true)}
-							disabled={recordFollowUpMutation.isPending}
-							className="inline-flex items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 disabled:opacity-50"
-						>
-							<HiCheckCircle className="h-4 w-4" />
-							Record Follow-up
-						</button>
-						<button
-							onClick={() => setCustomFollowUpModalOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
-						>
-							<HiClock className="h-4 w-4" />
-							Set Custom Date
-						</button>
-					</div>
-
-					{mentor.customNextFollowUpAt && (
-						<div className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
-							<p className="text-sm text-blue-900">
-								<strong>Custom Date:</strong>{" "}
-								{new Date(mentor.customNextFollowUpAt).toLocaleDateString()}
+									? nextFollowUpDate <= new Date()
+										? "Due now"
+										: "Scheduled"
+									: "Not scheduled"}
 							</p>
 						</div>
-					)}
-				</div>
-			</Panel>
-			</section>
-
-			<section id="snapshot" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-teal-600" />
-					Snapshot
-				</div>
-			<Panel
-				title="Follow-up Snapshot"
-				description="Current mentor follow-up status and schedule"
-			>
-				<div className="grid gap-3 md:grid-cols-3">
-					<div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-							Last Contacted
-						</p>
-						<p className="mt-2 text-sm font-medium text-gray-900">
-							{followUpState?.lastContactedAt
-								? new Date(followUpState.lastContactedAt).toLocaleDateString()
-								: "Never"}
-						</p>
 					</div>
-					<div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-							Next Follow-up
-						</p>
-						<p className="mt-2 text-sm font-medium text-gray-900">
-							{followUpState?.customNextFollowUpAt
-								? new Date(followUpState.customNextFollowUpAt).toLocaleDateString()
-								: followUpState?.nextFollowUpAt
-									? new Date(followUpState.nextFollowUpAt).toLocaleDateString()
-									: "Not set"}
-						</p>
+				</Panel>
+			</DetailSection>
+
+			<DetailSection id="activity" tone="violet" label="Activity">
+				<Panel
+					title="Activity Timeline"
+					description="All mentor followup and reminder actions"
+				>
+					<ActivityTimeline
+						activities={activities.map((activity) => ({
+							id: activity.id,
+							type: activity.type,
+							performedByName: activity.performedByName,
+							description: activity.description,
+							oldValue: activity.oldValue,
+							newValue: activity.newValue,
+							note: activity.note,
+							createdAt: activity.createdAt,
+						}))}
+						emptyMessage="No mentor activities yet. Followups and reminders will appear here."
+					/>
+				</Panel>
+			</DetailSection>
+
+			<DetailSection id="reminders" tone="orange" label="Reminders">
+				<Panel
+					title="Reminders"
+					description={`${reminders.length} reminder${reminders.length !== 1 ? "s" : ""}`}
+				>
+					<div className="space-y-4">
+						<button
+							onClick={() => setReminderModalOpen(true)}
+							disabled={createReminderMutation.isPending}
+							className="inline-flex items-center gap-2 rounded-2xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-400 disabled:opacity-50"
+						>
+							<HiPlusCircle className="h-4 w-4" />
+							Create Reminder
+						</button>
+
+						{reminders.length === 0 ? (
+							<div className="rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-8 text-center text-sm text-gray-600">
+								No reminders yet. Create one to stay organized.
+							</div>
+						) : (
+							<div className="space-y-2">
+								{reminders.map((reminder) => (
+									<div
+										key={reminder.id}
+										className={`rounded-2xl border-2 p-3 transition ${
+											reminder.isDone
+												? "border-gray-200 bg-gray-50"
+												: "border-blue-200 bg-blue-50"
+										}`}
+									>
+										<div className="flex items-start justify-between gap-3">
+											<div className="flex-1">
+												<p
+													className={`text-sm font-medium ${
+														reminder.isDone
+															? "text-gray-500 line-through"
+															: "text-gray-900"
+													}`}
+												>
+													{reminder.note}
+												</p>
+												<p className="mt-1 text-xs text-gray-600">
+													{new Date(reminder.date).toLocaleDateString()} at{" "}
+													{new Date(reminder.date).toLocaleTimeString([], {
+														hour: "2-digit",
+														minute: "2-digit",
+													})}
+												</p>
+											</div>
+											<div className="flex items-center gap-1">
+												<button
+													onClick={() => toggleReminderDone(reminder.id, reminder.isDone)}
+													disabled={updateReminderMutation.isPending}
+													className={`rounded-full p-2 transition ${
+														reminder.isDone
+															? "bg-gray-200 text-gray-600 hover:bg-gray-300"
+															: "bg-blue-200 text-blue-600 hover:bg-blue-300"
+													}`}
+													title={reminder.isDone ? "Mark undone" : "Mark done"}
+												>
+													{reminder.isDone ? (
+														<HiCheckCircle className="h-4 w-4" />
+													) : (
+														<HiClock className="h-4 w-4" />
+													)}
+												</button>
+												<button
+													onClick={() => deleteReminder(reminder.id)}
+													disabled={deleteReminderMutation.isPending}
+													className="rounded-full bg-red-100 p-2 text-red-600 transition hover:bg-red-200"
+													title="Delete reminder"
+												>
+													<HiXCircle className="h-4 w-4" />
+												</button>
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
-					<div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-							Status
-						</p>
-						<p className="mt-2 text-sm font-medium text-gray-900">
-							{nextFollowUpDate
-								? nextFollowUpDate <= new Date()
-									? "Due now"
-									: "Scheduled"
-								: "Not scheduled"}
-						</p>
-					</div>
-				</div>
-			</Panel>
-			</section>
+				</Panel>
+			</DetailSection>
 
-			<section id="activity" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-violet-600" />
-					Activity
-				</div>
-			<Panel
-				title="Activity Timeline"
-				description="All mentor followup and reminder actions"
-			>
-				<ActivityTimeline
-					activities={activities.map((activity) => ({
-						id: activity.id,
-						type: activity.type,
-						performedByName: activity.performedByName,
-						description: activity.description,
-						oldValue: activity.oldValue,
-						newValue: activity.newValue,
-						note: activity.note,
-						createdAt: activity.createdAt,
-					}))}
-					emptyMessage="No mentor activities yet. Followups and reminders will appear here."
-				/>
-			</Panel>
-			</section>
-
-			<section id="reminders" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-orange-600" />
-					Reminders
-				</div>
-			<Panel
-				title="Reminders"
-				description={`${reminders.length} reminder${reminders.length !== 1 ? "s" : ""}`}
-			>
-				<div className="space-y-4">
-					<button
-						onClick={() => setReminderModalOpen(true)}
-						disabled={createReminderMutation.isPending}
-						className="inline-flex items-center gap-2 rounded-2xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-400 disabled:opacity-50"
-					>
-						<HiPlusCircle className="h-4 w-4" />
-						Create Reminder
-					</button>
-
-					{reminders.length === 0 ? (
+			<DetailSection id="students" tone="rose" label="Students">
+				<Panel
+					title="Students"
+					description={`${mentorStudents.length} student${mentorStudents.length !== 1 ? "s" : ""} (${activeStudents.length} active)`}
+				>
+					{mentorStudents.length === 0 ? (
 						<div className="rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-8 text-center text-sm text-gray-600">
-							No reminders yet. Create one to stay organized.
+							No students assigned to this mentor yet.
 						</div>
 					) : (
-						<div className="space-y-2">
-							{reminders.map((reminder) => (
+						<div className="space-y-3">
+							{mentorStudents.map((student) => (
 								<div
-									key={reminder.id}
-									className={`rounded-2xl border-2 p-3 transition ${
-										reminder.isDone
-											? "border-gray-200 bg-gray-50"
-											: "border-blue-200 bg-blue-50"
+									key={student.id}
+									className={`rounded-2xl border p-3 ${
+										student.status === "STUDENT"
+											? "border-emerald-200 bg-emerald-50"
+											: "border-gray-200 bg-gray-50"
 									}`}
 								>
-									<div className="flex items-start justify-between gap-3">
-										<div className="flex-1">
-											<p
-												className={`text-sm font-medium ${
-													reminder.isDone
-														? "text-gray-500 line-through"
-														: "text-gray-900"
-												}`}
-											>
-												{reminder.note}
+									<div className="flex items-start justify-between gap-2">
+										<div>
+											<p className="font-medium text-gray-900">
+												{student.zid} · {student.name}
 											</p>
-											<p className="text-xs text-gray-600 mt-1">
-												{new Date(reminder.date).toLocaleDateString()} at{" "}
-												{new Date(reminder.date).toLocaleTimeString([], {
-													hour: "2-digit",
-													minute: "2-digit",
-												})}
-											</p>
+											<p className="text-xs text-gray-600">{student.phone}</p>
 										</div>
-										<div className="flex items-center gap-1">
-											<button
-												onClick={() =>
-													toggleReminderDone(reminder.id, reminder.isDone)
-												}
-												disabled={updateReminderMutation.isPending}
-												className={`rounded-full p-2 transition ${
-													reminder.isDone
-														? "bg-gray-200 text-gray-600 hover:bg-gray-300"
-														: "bg-blue-200 text-blue-600 hover:bg-blue-300"
-												}`}
-												title={
-													reminder.isDone
-														? "Mark undone"
-														: "Mark done"
-												}
-											>
-												{reminder.isDone ? (
-													<HiCheckCircle className="h-4 w-4" />
-												) : (
-													<HiClock className="h-4 w-4" />
-												)}
-											</button>
-											<button
-												onClick={() => deleteReminder(reminder.id)}
-												disabled={deleteReminderMutation.isPending}
-												className="rounded-full bg-red-100 p-2 text-red-600 transition hover:bg-red-200"
-												title="Delete reminder"
-											>
-												<HiXCircle className="h-4 w-4" />
-											</button>
-										</div>
+										<span
+											className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+												student.status === "STUDENT"
+													? "bg-emerald-200 text-emerald-700"
+													: "bg-gray-200 text-gray-700"
+											}`}
+										>
+											{student.status}
+										</span>
 									</div>
 								</div>
 							))}
 						</div>
 					)}
-				</div>
-			</Panel>
-			</section>
-
-			<section id="students" className="scroll-mt-28">
-				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-					<span className="h-2 w-2 rounded-full bg-rose-600" />
-					Students
-				</div>
-			<Panel
-				title="Students"
-				description={`${mentorStudents.length} student${mentorStudents.length !== 1 ? "s" : ""} (${activeStudents.length} active)`}
-			>
-				{mentorStudents.length === 0 ? (
-					<div className="rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-8 text-center text-sm text-gray-600">
-						No students assigned to this mentor yet.
-					</div>
-				) : (
-					<div className="space-y-3">
-						{mentorStudents.map((student) => (
-							<div
-								key={student.id}
-								className={`rounded-2xl border p-3 ${
-									student.status === "STUDENT"
-										? "border-emerald-200 bg-emerald-50"
-										: "border-gray-200 bg-gray-50"
-								}`}
-							>
-								<div className="flex items-start justify-between gap-2">
-									<div>
-										<p className="font-medium text-gray-900">
-											{student.zid} · {student.name}
-										</p>
-										<p className="text-xs text-gray-600">{student.phone}</p>
-									</div>
-									<span
-										className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-											student.status === "STUDENT"
-												? "bg-emerald-200 text-emerald-700"
-												: "bg-gray-200 text-gray-700"
-										}`}
-									>
-										{student.status}
-									</span>
-								</div>
-							</div>
-						))}
-					</div>
-				)}
-			</Panel>
-			</section>
+				</Panel>
+			</DetailSection>
 
 			{/* Modals */}
 			<Modal
