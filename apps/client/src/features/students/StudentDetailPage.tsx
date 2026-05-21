@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { API_BASE_URL } from "@/api/client";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
-import { Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { Modal, Panel, TextAreaField, ConfirmDialog } from "@/components/dashboard-ui";
 import { CreateReminderModal } from "@/features/reminders/CreateReminderModal";
 import { RemindersList } from "@/features/reminders/RemindersList";
 import { useGetStudentReminders } from "@/features/reminders/reminders.mutations";
@@ -78,6 +78,7 @@ export const StudentDetailPage = () => {
 	const [squareX, setSquareX] = useState(0);
 	const [squareY, setSquareY] = useState(0);
 	const [isResizing, setIsResizing] = useState(false);
+	const [certificateConfirmOpen, setCertificateConfirmOpen] = useState(false);
 	const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 	const remindersQuery = useGetStudentReminders(studentId ?? "");
 
@@ -561,14 +562,7 @@ export const StudentDetailPage = () => {
 								>
 									{student.profilePic ? "Change picture" : "Upload profile picture"}
 								</button>
-								<button
-									type="button"
-									onClick={() => void downloadCertificate()}
-									disabled={isGeneratingCertificate}
-									className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-								>
-									{isGeneratingCertificate ? "Preparing certificate..." : "Download certificate"}
-								</button>
+								{/* Certificate download moved to Assessments tab */}
 								{student.profilePic ? (
 									<button
 										type="button"
@@ -734,7 +728,28 @@ export const StudentDetailPage = () => {
 
 			{activeTab === "assessment" && (
 				<div className="space-y-4">
-					<Panel title="Assessments">
+					<Panel
+						title="Assessments"
+						action={
+							<div>
+								<button
+									type="button"
+									onClick={() => {
+										const allDone = assessmentConfig.every((a) => a.value);
+										if (allDone) {
+											void downloadCertificate();
+										} else {
+											setCertificateConfirmOpen(true);
+										}
+									}}
+									disabled={isGeneratingCertificate}
+									className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									{isGeneratingCertificate ? "Preparing certificate..." : "Download certificate"}
+								</button>
+							</div>
+						}
+					>
 						<div className="space-y-4">
 							{assessmentConfig.map((assessment) => {
 								const nextDone = !assessment.value;
@@ -1029,6 +1044,19 @@ export const StudentDetailPage = () => {
 			>
 				<p className="text-sm text-gray-700">This will update the assessment status and add an activity log entry.</p>
 			</Modal>
+
+			<ConfirmDialog
+				open={certificateConfirmOpen}
+				title="Certificate not ready"
+				description="Some assessments are not complete. Are you sure you want to download the certificate anyway?"
+				confirmLabel="Download anyway"
+				onConfirm={() => {
+					setCertificateConfirmOpen(false);
+					void downloadCertificate();
+				}}
+				onCancel={() => setCertificateConfirmOpen(false)}
+				busy={isGeneratingCertificate}
+			/>
 
 			<Modal
 				open={removePicConfirmOpen}
