@@ -199,19 +199,19 @@ export const GroupDetailPage = () => {
 	const assessmentConfig = [
 		{
 			assessmentType: "oral" as const,
-			label: "Oral Assessment",
+			label: "Quarterly Oral Assessment",
 			value: group.oralAssessmentDone ?? false,
 			description: "Speaking and pronunciation check",
 		},
 		{
 			assessmentType: "written" as const,
-			label: "Written Assessment",
+			label: "MID Term Assessment",
 			value: group.writtenAssessmentDone ?? false,
 			description: "Reading and writing check",
 		},
 		{
 			assessmentType: "level" as const,
-			label: "Level Assessment",
+			label: "Term End  Assessment",
 			value: group.levelAssessmentDone ?? false,
 			description: "Final placement and level check",
 		},

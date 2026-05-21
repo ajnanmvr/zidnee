@@ -30,10 +30,17 @@ type StudentProcessTaskDefinition = {
 
 type StudentProcessTaskKey =
 	| "send-welcome-message"
-	| "data-confirmed"
-	| "mentor-assigned-informed"
-	| "student-data-shared"
-	| "group-created";
+	| "data-confirmed-and-shared-class-group-awareness"
+	| "level-drive-link-shared-to-parent"
+	| "data-shared-to-mentor-for-confirmation-and-created-group"
+	| "level-teaching-guide-shared-to-ongoing-mentor"
+	| "confirmed-data-shared-to-new-mentor"
+	| "added-in-parents-group"
+	| "cancelled-drive-access"
+	| "informed-mentor"
+	| "payment-completed"
+	| "removed-from-coffee-and-zidnee-app"
+	| "remove-from-parents-group";
 
 const STUDENT_PROCESS_TASK_LIBRARY: Record<
 	StudentProcessTaskKey,
@@ -44,10 +51,34 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 		actionType: "WHATSAPP",
 		dynamic: true,
 	},
-	"data-confirmed": { label: "Data confirmed" },
-	"mentor-assigned-informed": { label: "Mentor assigned & informed" },
-	"student-data-shared": { label: "Student data shared" },
-	"group-created": { label: "Group created" },
+	"data-confirmed-and-shared-class-group-awareness": {
+		label: "Data confirmed & Shared Class Group Awareness",
+	},
+	"level-drive-link-shared-to-parent": {
+		label: "Level Drive Link Shared to Parent",
+	},
+	"data-shared-to-mentor-for-confirmation-and-created-group": {
+		label: "Data Shared To Mentor for Confirmation & Created Group",
+	},
+	"level-teaching-guide-shared-to-ongoing-mentor": {
+		label: "Level & Teaching Guide Link Shared To Ongoing Mentor",
+	},
+	"confirmed-data-shared-to-new-mentor": {
+		label:
+			"Confirmed Following Data Shared To New Mentor: ID & Counselor Name and Contact, Class Room Group Awareness (Google Meet Link, Attendance Form), level and teaching guide Drive Link, SOP and General Mentor Guide Awareness",
+	},
+	"added-in-parents-group": {
+		label: "Added in parent's Group",
+	},
+	"cancelled-drive-access": { label: "Cancelled Drive Access" },
+	"informed-mentor": { label: "Informed Mentor" },
+	"payment-completed": { label: "Payment Completed" },
+	"removed-from-coffee-and-zidnee-app": {
+		label: "Removed from Coffee and Zidnee App",
+	},
+	"remove-from-parents-group": {
+		label: "Remove from Parents Group",
+	},
 } as const;
 
 type StudentProcessTemplateConfig = {
@@ -63,10 +94,12 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 		label: "Student Admission Process",
 		taskKeys: [
 			"send-welcome-message",
-			"data-confirmed",
-			"mentor-assigned-informed",
-			"student-data-shared",
-			"group-created",
+			"data-confirmed-and-shared-class-group-awareness",
+			"level-drive-link-shared-to-parent",
+			"data-shared-to-mentor-for-confirmation-and-created-group",
+			"level-teaching-guide-shared-to-ongoing-mentor",
+			"confirmed-data-shared-to-new-mentor",
+			"added-in-parents-group",
 		],
 	},
 	BREAK: {
@@ -75,7 +108,13 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 	},
 	DROPPED: {
 		label: "Drop Process",
-		taskKeys: [],
+		taskKeys: [
+			"cancelled-drive-access",
+			"informed-mentor",
+			"payment-completed",
+			"removed-from-coffee-and-zidnee-app",
+			"remove-from-parents-group",
+		],
 	},
 };
 
@@ -207,10 +246,12 @@ export const getAdmissionProcessTemplate = (
 
 	const taskKeys: StudentProcessTaskKey[] = [
 		"send-welcome-message",
-		"data-confirmed",
-		"mentor-assigned-informed",
-		"student-data-shared",
-		"group-created",
+		"data-confirmed-and-shared-class-group-awareness",
+		"level-drive-link-shared-to-parent",
+		"data-shared-to-mentor-for-confirmation-and-created-group",
+		"level-teaching-guide-shared-to-ongoing-mentor",
+		"confirmed-data-shared-to-new-mentor",
+		"added-in-parents-group",
 	];
 
 	return {

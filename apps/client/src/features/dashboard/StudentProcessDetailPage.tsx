@@ -8,9 +8,15 @@ import { useSession } from "@/lib/session";
 
 const ADMISSION_MODAL_TASK_KEYS = new Set([
     "data-confirmed",
+    "data-confirmed-and-shared-class-group-awareness",
     "mentor-assigned-informed",
+    "data-shared-to-mentor-for-confirmation-and-created-group",
     "student-data-shared",
     "group-created",
+    "added-in-parents-group",
+    "confirmed-data-shared-to-new-mentor",
+    "level-drive-link-shared-to-parent",
+    "level-teaching-guide-shared-to-ongoing-mentor",
 ]);
 
 const normalizeWhatsAppNumber = (phone?: string | null) =>
@@ -127,14 +133,29 @@ export const StudentProcessDetailPage = () => {
     const completedCount = process.tasks.filter((t: any) => t.completed).length;
     const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;
     const canCompleteProcess = progress === 100;
+    const isArchived = Boolean(process.archivedAt);
 
     return (
         <div className="grid gap-6">
-            <Panel title={process.label} description={`Process for ${process.student.zid} — ${process.student.name ?? "Unnamed"}`}>
-                <div className="mb-4">
-                    <p className="text-sm">Student: <Link to={`/students/${process.student.id}`} className="text-emerald-600 font-semibold">{process.student.zid} · {process.student.name ?? process.student.phone}</Link></p>
-                    <p className="text-sm">Status: <span className="font-semibold">{process.status}</span></p>
-                </div>
+            <Panel
+                title={process.label}
+                description={`Process for ${process.student.zid} — ${process.student.name ?? "Unnamed"}`}
+            >
+                {isArchived ? (
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-sm">Student: <Link to={`/students/${process.student.id}`} className="text-emerald-600 font-semibold">{process.student.zid} · {process.student.name ?? process.student.phone}</Link></p>
+                            <p className="text-sm">Status: <span className="font-semibold">{process.status}</span></p>
+                            <p className="text-sm text-gray-600">Completed: {new Date(process.archivedAt as any).toLocaleString()}</p>
+                        </div>
+                        <div className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">Completed</div>
+                    </div>
+                ) : (
+                    <div className="mb-4">
+                        <p className="text-sm">Student: <Link to={`/students/${process.student.id}`} className="text-emerald-600 font-semibold">{process.student.zid} · {process.student.name ?? process.student.phone}</Link></p>
+                        <p className="text-sm">Status: <span className="font-semibold">{process.status}</span></p>
+                    </div>
+                )}
 
                 <div className="mb-4">
                     <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -142,9 +163,9 @@ export const StudentProcessDetailPage = () => {
                         <span>{progress}%</span>
                     </div>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progress}%` }} />
+                        <div className={`h-full rounded-full ${isArchived ? "bg-slate-400" : "bg-emerald-500"}`} style={{ width: `${progress}%` }} />
                     </div>
-                    {canCompleteProcess ? (
+                    {!isArchived && canCompleteProcess ? (
                         <div className="mt-4 flex justify-end">
                             <button
                                 type="button"
@@ -170,48 +191,17 @@ export const StudentProcessDetailPage = () => {
                     {process.tasks.map((task: any) => (
                         <div
                             key={task.key}
-                            className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/40"
+                            className={`flex items-start gap-4 rounded-2xl border px-4 py-4 shadow-sm ${isArchived ? "border-transparent bg-slate-50" : "border-slate-200 bg-white"}`}
                         >
-                            <button
-                                type="button"
-                                onClick={() => handleTaskToggleClick(task)}
-                                disabled={setTaskMutation.isPending}
-                                className={
-                                    "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition " +
-                                    (task.completed
-                                        ? "border-emerald-600 bg-emerald-600 text-white"
-                                        : task.whatsappMessage
-                                            ? "border-amber-400 bg-amber-50 text-amber-700 hover:border-emerald-500 hover:bg-emerald-100"
-                                            : "border-slate-300 bg-slate-100 text-slate-400")
-                                }
-                            >
+                            <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${task.completed ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-slate-100 text-slate-400"}`}>
                                 {task.completed ? "✓" : ""}
-                            </button>
+                            </div>
 
                             <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    {task.whatsappMessage ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => void handleTaskAction(task)}
-                                            className="text-left"
-                                        >
-                                            <p className="text-sm font-semibold text-slate-900 underline decoration-transparent transition hover:decoration-current">
-                                                {task.label}
-                                            </p>
-                                        </button>
-                                    ) : (
-                                        <p className="text-sm font-semibold text-slate-900">{task.label}</p>
-                                    )}
+                                    <p className={`text-sm font-semibold ${isArchived ? "text-slate-700" : "text-slate-900"}`}>{task.label}</p>
 
-                                    <span
-                                        className={
-                                            "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] " +
-                                            (task.completed
-                                                ? "bg-emerald-100 text-emerald-700"
-                                                : "bg-amber-100 text-amber-700")
-                                        }
-                                    >
+                                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${task.completed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                                         {task.completed ? "Done" : "Pending"}
                                     </span>
                                 </div>
@@ -221,45 +211,34 @@ export const StudentProcessDetailPage = () => {
                                 </p>
 
                                 {task.whatsappMessage ? (
-                                    <p className="mt-1 text-xs text-slate-500">
-                                        WhatsApp automation for the student&apos;s primary number.
-                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">WhatsApp automation for the student&apos;s primary number.</p>
                                 ) : null}
                             </div>
 
-                            <div className="flex shrink-0 flex-col items-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
-                                            openStatusModal(task);
-                                            return;
-                                        }
-
-                                        if (task.whatsappMessage) {
-                                            void handleTaskAction(task);
-                                        }
-                                    }}
-                                    disabled={!(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key))}
-                                    className={
-                                        "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition " +
-                                        (task.completed
-                                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                            : "bg-slate-900 text-white hover:bg-slate-800") +
-                                        ((task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key)) ? " focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-60")
-                                    }
-                                >
-                                    {task.completed ? "Completed" : "Open"}
-                                </button>
-                                {task.whatsappMessage ? (
+                            {!isArchived ? (
+                                <div className="flex shrink-0 flex-col items-end gap-2">
                                     <button
-                                        onClick={() => void handleTaskAction(task)}
-                                        className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        type="button"
+                                        onClick={() => {
+                                            if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
+                                                openStatusModal(task);
+                                                return;
+                                            }
+
+                                            if (task.whatsappMessage) {
+                                                void handleTaskAction(task);
+                                            }
+                                        }}
+                                        disabled={!(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key))}
+                                        className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition ${task.completed ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-900 text-white hover:bg-slate-800"} ${(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key)) ? " focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-60"}`}
                                     >
-                                            Send on WhatsApp
+                                        {task.completed ? "Completed" : "Open"}
                                     </button>
-                                ) : null}
-                            </div>
+                                    {task.whatsappMessage ? (
+                                        <button onClick={() => void handleTaskAction(task)} className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">Send on WhatsApp</button>
+                                    ) : null}
+                                </div>
+                            ) : null}
                         </div>
                     ))}
                 </div>

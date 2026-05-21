@@ -21,6 +21,8 @@ import { useUpdateStudentMutation } from "@/features/students/use-update-student
 import {
 	useStudentActivitiesQuery,
 	useStudentsQuery,
+	useStudentProcessesQuery,
+	useStudentProcessHistoryQuery,
 } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
@@ -128,6 +130,9 @@ export const StudentDetailPage = () => {
 	const [dropModalError, setDropModalError] = useState<string | undefined>();
 	const [activateConfirmOpen, setActivateConfirmOpen] = useState(false);
 	const remindersQuery = useGetStudentReminders(studentId ?? "");
+
+	const studentProcessesQuery = useStudentProcessesQuery(token);
+	const studentProcessHistoryQuery = useStudentProcessHistoryQuery(token);
 
 	const student = useMemo(
 		() => studentsQuery.data?.students.find((s) => s.id === studentId),
@@ -280,19 +285,19 @@ export const StudentDetailPage = () => {
 	const assessmentConfig = [
 		{
 			assessmentType: "oral" as const,
-			label: "Oral Assessment",
+			label: "Quarterly Oral Assessment",
 			value: student?.oralAssessmentDone ?? false,
 			description: "Speaking and pronunciation check",
 		},
 		{
 			assessmentType: "written" as const,
-			label: "Written Assessment",
+			label: "MID Term Assessment",
 			value: student?.writtenAssessmentDone ?? false,
 			description: "Reading and writing check",
 		},
 		{
 			assessmentType: "level" as const,
-			label: "Level Assessment",
+			label: "Term End  Assessment",
 			value: student?.levelAssessmentDone ?? false,
 			description: "Final placement and level check",
 		},
@@ -772,6 +777,41 @@ export const StudentDetailPage = () => {
 							})
 							: "-"}
 					</p>
+				</div>
+
+				{/* Linked processes (compact) */}
+				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+					<p className="text-xs text-gray-600 uppercase tracking-wide">Linked processes</p>
+					<div className="mt-2">
+						{(studentProcessesQuery.isLoading || studentProcessHistoryQuery.isLoading) ? (
+							<div className="text-sm text-gray-500">Loading...</div>
+						) : (
+							(() => {
+								const active = studentProcessesQuery.data?.processes ?? [];
+								const history = studentProcessHistoryQuery.data?.processes ?? [];
+								const linked = [...active, ...history].filter((p) => p.student?.id === studentId);
+								if (linked.length === 0) {
+									return <div className="text-sm text-gray-500">No linked processes</div>;
+								}
+								return (
+									<ul className="divide-y">
+										{linked.slice(0, 6).map((p) => (
+											<li key={p.id} className="flex items-center justify-between py-2">
+												<div>
+													<div className="text-sm font-medium text-slate-900">{p.label}</div>
+													<div className="text-xs text-slate-500">{p.student.zid} · {p.student.name ?? "-"}</div>
+												</div>
+												<div className="flex items-center gap-3">
+													<span className="text-xs text-slate-600">{p.tasks.filter((t) => t.completed).length}/{p.tasks.length}</span>
+													<Link to={`/processes/${p.id}`} className="text-xs text-emerald-600">Open</Link>
+												</div>
+											</li>
+										))}
+									</ul>
+								);
+							})()
+						)}
+					</div>
 				</div>
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
 					<p className="text-xs text-gray-600 uppercase tracking-wide">Owner</p>

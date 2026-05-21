@@ -32,7 +32,12 @@ describe("student process templates", () => {
 		const template = getStudentProcessTemplate("DROPPED");
 
 		expect(template.label).toBe("Drop Process");
-		expect(template.tasks).toHaveLength(0);
-		expect(template.tasks.map((task) => task.key)).toEqual([]);
+		expect(template.tasks).toHaveLength(4);
+		expect(template.tasks.map((task) => task.key)).toEqual([
+			"cancelled-drive-access",
+			"informed-mentor",
+			"payment-completed",
+			"removed-from-coffee-and-zidnee-app",
+		]);
 	});
 });

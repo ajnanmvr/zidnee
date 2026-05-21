@@ -157,7 +157,7 @@ export const RemindersPageView = ({
 
     return (
         <div className="space-y-6">
-            <section className={`overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br ${heroTone} text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]`}>
+            <section className={`overflow-hidden rounded-4xl border border-white/10 bg-linear-to-br ${heroTone} text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]`}>
                 <div className="relative overflow-hidden px-6 py-7 sm:px-8 sm:py-8">
                     <div className="pointer-events-none absolute inset-0 opacity-60">
                         <div className="absolute -left-20 top-0 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
@@ -224,7 +224,7 @@ export const RemindersPageView = ({
                 </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="rounded-4xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div className="flex flex-wrap gap-2">
                         <button
@@ -249,7 +249,7 @@ export const RemindersPageView = ({
                         </button>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:min-w-md">
                         <label className="relative block">
                             <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                                 Search
@@ -301,7 +301,7 @@ export const RemindersPageView = ({
                 </div>
             </section>
 
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
                 {remindersQuery.isLoading ? (
                     <div className="p-10 text-center text-slate-500">Loading reminders...</div>
                 ) : visibleReminders.length === 0 ? (
@@ -324,7 +324,7 @@ export const RemindersPageView = ({
             </div>
 
             {visibleReminders.length > pageSize ? (
-                <div className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                     <p className="text-sm text-slate-600">
                         Page {safeCurrentPage} of {totalPages}
                     </p>
