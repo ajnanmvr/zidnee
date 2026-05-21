@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { FOLLOW_UP_PERIOD_MS, REMINDER_DEFAULT_DAYS } from "@repo/schema";
 import toast from "react-hot-toast";
-import { HiClock, HiCheckCircle, HiPlusCircle, HiXCircle } from "react-icons/hi2";
+import { HiClock, HiCheckCircle, HiPlusCircle, HiUserGroup, HiXCircle } from "react-icons/hi2";
 import { Panel, Modal } from "@/components/dashboard-ui";
 import { useSession } from "@/lib/session";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
+import { CreateSubstitutionModal } from "./CreateSubstitutionModal";
+import { MentorSubstitutionInfo } from "./MentorSubstitutionInfo";
 import {
 	useMentorFollowUpQuery,
 	useRecordMentorFollowUpMutation,
@@ -57,6 +59,7 @@ export const MentorDetailPage = () => {
 	const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
 	const [reminderModalOpen, setReminderModalOpen] = useState(false);
 	const [customFollowUpModalOpen, setCustomFollowUpModalOpen] = useState(false);
+	const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
 
 	const recordFollowUpMutation = useRecordMentorFollowUpMutation();
 	const setCustomFollowUpMutation = useSetMentorCustomFollowUpMutation();
@@ -103,6 +106,15 @@ export const MentorDetailPage = () => {
 	const mentorStudents = useMemo(
 		() => allStudents.filter((s) => s.mentorId === mentorId),
 		[allStudents, mentorId],
+	);
+	const mentorOptions = useMemo(
+		() =>
+			allUsers.filter(
+				(user) =>
+					user.id !== mentorId &&
+					user.roles.some((role) => role.type === "mentor"),
+			),
+		[allUsers, mentorId],
 	);
 
 	const activeStudents = useMemo(
@@ -228,9 +240,107 @@ export const MentorDetailPage = () => {
 	const isFollowUpDue = nextFollowUpDate && nextFollowUpDate <= new Date();
 
 	return (
-		<div className="grid gap-6">
-			{/* Mentor Header */}
-			<Panel title={formatUserName(mentor.name, mentor.username)}>
+		<div className="grid gap-6 scroll-smooth">
+			<section className="overflow-hidden rounded-4xl border border-emerald-200 bg-linear-to-br from-emerald-950 via-slate-950 to-slate-800 text-white shadow-[0_28px_80px_rgba(15,23,42,0.24)]">
+				<div className="grid gap-6 p-6 lg:grid-cols-[1.25fr_0.75fr] lg:p-8">
+					<div className="space-y-5">
+						<div>
+							<p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-emerald-200/80">
+								Mentor detail
+							</p>
+							<h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">
+								{formatUserName(mentor.name, mentor.username)}
+							</h2>
+							<p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50/80 md:text-base">
+								Mentor ID {mentor.mentorId ?? mentor.zids?.mentor ?? "-"} · {mentor.email ?? "No email on file"}
+							</p>
+						</div>
+
+						<div className="flex flex-wrap gap-3">
+							<button
+								onClick={() => setFollowUpModalOpen(true)}
+								className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-emerald-950 shadow-lg shadow-black/10 transition hover:bg-emerald-50"
+							>
+								<HiCheckCircle className="h-4 w-4" />
+								Record follow-up
+							</button>
+							<button
+								onClick={() => setSubstitutionModalOpen(true)}
+								className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+							>
+								<HiUserGroup className="h-4 w-4" aria-hidden="true" />
+								Substitute mentor
+							</button>
+							<button
+								onClick={() => setCustomFollowUpModalOpen(true)}
+								className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+							>
+								<HiClock className="h-4 w-4" />
+								Custom date
+							</button>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-3">
+						{[
+							{ label: "Students", value: String(mentorStudents.length) },
+							{ label: "Active", value: String(activeStudents.length) },
+							{ label: "Last contacted", value: mentor.lastContactedAt ? new Date(mentor.lastContactedAt).toLocaleDateString() : "Never" },
+							{ label: "Next follow-up", value: nextFollowUpDate ? nextFollowUpDate.toLocaleDateString() : "Not set" },
+						].map((item) => (
+							<div
+								key={item.label}
+								className="rounded-3xl border border-white/10 bg-white/10 p-4 backdrop-blur"
+							>
+								<p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100/80">
+									{item.label}
+								</p>
+								<p className="mt-2 text-base font-semibold text-white">{item.value}</p>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			<nav className="sticky top-3 z-20 rounded-3xl border border-gray-200 bg-white/90 p-2 shadow-sm backdrop-blur">
+				<div className="flex flex-wrap gap-2">
+					{[
+						{ href: "#overview", label: "Overview" },
+						{ href: "#substitutions", label: "Substitutions" },
+						{ href: "#follow-up", label: "Follow-up" },
+						{ href: "#snapshot", label: "Snapshot" },
+						{ href: "#activity", label: "Activity" },
+						{ href: "#reminders", label: "Reminders" },
+						{ href: "#students", label: "Students" },
+					].map((item) => (
+						<a
+							key={item.href}
+							href={item.href}
+							className="rounded-2xl px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-800"
+						>
+							{item.label}
+						</a>
+					))}
+				</div>
+			</nav>
+
+			<section id="overview" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-emerald-600" />
+					Overview
+				</div>
+			<Panel
+				title="Mentor profile"
+				description="Identity, owner, and service load"
+				action={
+					<Link
+						to="/mentors/substitutions"
+						className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+					>
+						Open substitutions
+					</Link>
+				}
+			>
 				<div className="space-y-4">
 					<div className="grid gap-2 md:grid-cols-2">
 						<div>
@@ -305,10 +415,46 @@ export const MentorDetailPage = () => {
 							)}
 						</div>
 					</div>
+
+					<div className="flex flex-wrap gap-2">
+						<button
+							onClick={() => setSubstitutionModalOpen(true)}
+							className="inline-flex items-center gap-2 rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-100"
+						>
+							<HiUserGroup className="h-4 w-4" aria-hidden="true" />
+							Substitute mentor
+						</button>
+					</div>
 				</div>
 			</Panel>
+			</section>
 
-			{/* Follow-ups Section */}
+			<section id="substitutions" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-amber-600" />
+					Substitutions
+				</div>
+			<Panel
+				title="Substitution status"
+				description="Current and upcoming substitution coverage for this mentor"
+				action={
+					<Link
+						to="/mentors/substitutions"
+						className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
+					>
+						View all
+					</Link>
+				}
+			>
+				<MentorSubstitutionInfo mentorId={mentor.id} />
+			</Panel>
+			</section>
+
+			<section id="follow-up" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-blue-600" />
+					Follow-up
+				</div>
 			<Panel
 				title="Mentor Follow-up"
 				description="Track communication and schedule next contact"
@@ -342,8 +488,13 @@ export const MentorDetailPage = () => {
 					)}
 				</div>
 			</Panel>
+			</section>
 
-			{/* Follow-up Snapshot */}
+			<section id="snapshot" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-teal-600" />
+					Snapshot
+				</div>
 			<Panel
 				title="Follow-up Snapshot"
 				description="Current mentor follow-up status and schedule"
@@ -385,8 +536,13 @@ export const MentorDetailPage = () => {
 					</div>
 				</div>
 			</Panel>
+			</section>
 
-			{/* Activities Section */}
+			<section id="activity" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-violet-600" />
+					Activity
+				</div>
 			<Panel
 				title="Activity Timeline"
 				description="All mentor followup and reminder actions"
@@ -405,8 +561,13 @@ export const MentorDetailPage = () => {
 					emptyMessage="No mentor activities yet. Followups and reminders will appear here."
 				/>
 			</Panel>
+			</section>
 
-			{/* Reminders Section */}
+			<section id="reminders" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-orange-600" />
+					Reminders
+				</div>
 			<Panel
 				title="Reminders"
 				description={`${reminders.length} reminder${reminders.length !== 1 ? "s" : ""}`}
@@ -494,8 +655,13 @@ export const MentorDetailPage = () => {
 					)}
 				</div>
 			</Panel>
+			</section>
 
-			{/* Students Section */}
+			<section id="students" className="scroll-mt-28">
+				<div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+					<span className="h-2 w-2 rounded-full bg-rose-600" />
+					Students
+				</div>
 			<Panel
 				title="Students"
 				description={`${mentorStudents.length} student${mentorStudents.length !== 1 ? "s" : ""} (${activeStudents.length} active)`}
@@ -537,6 +703,7 @@ export const MentorDetailPage = () => {
 					</div>
 				)}
 			</Panel>
+			</section>
 
 			{/* Modals */}
 			<Modal
@@ -726,6 +893,17 @@ export const MentorDetailPage = () => {
 					</div>
 				</form>
 			</Modal>
+
+			<CreateSubstitutionModal
+				isOpen={substitutionModalOpen}
+				mentors={mentorOptions}
+				defaultOriginalMentorId={mentor.id}
+				endDateLabel="Until Date"
+				onClose={() => setSubstitutionModalOpen(false)}
+				onSuccess={() => {
+					toast.success("Substitution created");
+				}}
+			/>
 		</div>
 	);
 };

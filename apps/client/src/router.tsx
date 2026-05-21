@@ -138,6 +138,11 @@ const ClosedRemindersPage = lazy(() =>
 		default: module.ClosedRemindersPage,
 	})),
 );
+const SubstitutionsPage = lazy(() =>
+	import("@/features/mentors/SubstitutionsPage").then((module) => ({
+		default: module.SubstitutionsPage,
+	})),
+);
 
 const routeFallback = (
 	<div className="p-6 text-sm text-slate-500">Loading...</div>
@@ -263,6 +268,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<MentorDetailPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "mentors/substitutions",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<SubstitutionsPage />
 							</Suspense>
 						),
 					},
