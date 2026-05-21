@@ -43,6 +43,9 @@ const toStudentResponse = (
 		batchId: student.batchId,
 		processId: student.processId,
 		processLabel: student.processLabel,
+		inactiveFrom: student.inactiveFrom?.toISOString() ?? null,
+		inactiveUntil: student.inactiveUntil?.toISOString() ?? null,
+		dropReason: student.dropReason ?? null,
 		oralAssessmentDone: student.oralAssessmentDone,
 		writtenAssessmentDone: student.writtenAssessmentDone,
 		levelAssessmentDone: student.levelAssessmentDone,
@@ -355,7 +358,11 @@ export const updateStudentController = async (
 ): Promise<void> => {
  	const studentId = requireStringValue(req.params.studentId, "studentId");
  	const payload = UpdateStudentPayloadSchema.parse(req.body);
- 	const student = await StudentService.update(studentId, payload);
+	const student = await StudentService.update(
+		studentId,
+		payload,
+		req.user?.userId,
+	);
 
  	res.json({
  		ok: true,

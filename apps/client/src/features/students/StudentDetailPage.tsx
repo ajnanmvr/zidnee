@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { API_BASE_URL } from "@/api/client";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
-import { Modal, Panel, TextAreaField, ConfirmDialog } from "@/components/dashboard-ui";
+import { Modal, Panel, SelectField, TextAreaField, ConfirmDialog } from "@/components/dashboard-ui";
 import { CreateReminderModal } from "@/features/reminders/CreateReminderModal";
 import { RemindersList } from "@/features/reminders/RemindersList";
 import { useGetStudentReminders } from "@/features/reminders/reminders.mutations";
@@ -45,6 +45,40 @@ const getLevelLabel = (level?: string | number | null) => {
 	return levelLabels[key] ?? `Level ${key}`;
 };
 
+const formatDateInputValue = (value?: string | Date | null) => {
+	if (!value) {
+		return "";
+	}
+
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) {
+		return "";
+	}
+
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
+};
+
+const parseDateInputValue = (value: string) => {
+	const [year, month, day] = value.split("-").map((part) => Number(part));
+	if (!year || !month || !day) {
+		return null;
+	}
+
+	const parsed = new Date(year, month - 1, day);
+	return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const dropReasonOptions = [
+	{ value: "Student requested break permanently", label: "Student requested break permanently" },
+	{ value: "Not enough time for classes", label: "Not enough time for classes" },
+	{ value: "Payment issue", label: "Payment issue" },
+	{ value: "Moved to another institute", label: "Moved to another institute" },
+	{ value: "Other", label: "Other" },
+];
+
 export const StudentDetailPage = () => {
 	const { studentId } = useParams<{ studentId: string }>();
 	const navigate = useNavigate();
@@ -83,6 +117,16 @@ export const StudentDetailPage = () => {
 	const [isResizing, setIsResizing] = useState(false);
 	const [certificateConfirmOpen, setCertificateConfirmOpen] = useState(false);
 	const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
+	const [breakModalOpen, setBreakModalOpen] = useState(false);
+	const [breakModalMode, setBreakModalMode] = useState<"break" | "extend">("break");
+	const [breakFromDate, setBreakFromDate] = useState("");
+	const [breakUntilDate, setBreakUntilDate] = useState("");
+	const [breakModalError, setBreakModalError] = useState<string | undefined>();
+	const [dropModalOpen, setDropModalOpen] = useState(false);
+	const [dropReasonChoice, setDropReasonChoice] = useState(dropReasonOptions[0]?.value ?? "");
+	const [dropReasonCustom, setDropReasonCustom] = useState("");
+	const [dropModalError, setDropModalError] = useState<string | undefined>();
+	const [activateConfirmOpen, setActivateConfirmOpen] = useState(false);
 	const remindersQuery = useGetStudentReminders(studentId ?? "");
 
 	const student = useMemo(
@@ -488,6 +532,109 @@ export const StudentDetailPage = () => {
 		}
 	};
 
+	const openBreakModal = (mode: "break" | "extend") => {
+		setBreakModalMode(mode);
+		setBreakFromDate(formatDateInputValue(mode === "extend" ? student?.inactiveFrom : new Date()));
+		setBreakUntilDate(formatDateInputValue(student?.inactiveUntil));
+		setBreakModalError(undefined);
+		setBreakModalOpen(true);
+	};
+
+	const submitBreakUpdate = async () => {
+		if (!studentId) {
+			return;
+		}
+
+		const fromDate = parseDateInputValue(breakFromDate);
+		const untilDate = parseDateInputValue(breakUntilDate);
+
+		if (!fromDate || !untilDate) {
+			setBreakModalError("Please select both break dates.");
+			return;
+		}
+
+		if (untilDate.getTime() < fromDate.getTime()) {
+			setBreakModalError("Break end date must be on or after the start date.");
+			return;
+		}
+
+		try {
+			await updateStudentMutation.mutateAsync({
+				studentId,
+				payload: {
+					status: "BREAK",
+					inactiveFrom: fromDate,
+					inactiveUntil: untilDate,
+				},
+			});
+			toast.success(breakModalMode === "extend" ? "Break extended" : "Student put on break");
+			setBreakModalOpen(false);
+			setBreakModalError(undefined);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Failed to update break period");
+				return;
+			}
+			toast.error("Failed to update break period");
+		}
+	};
+
+	const submitDropUpdate = async () => {
+		if (!studentId) {
+			return;
+		}
+
+		const selectedReason = dropReasonChoice.trim();
+		const reason = selectedReason === "Other" ? dropReasonCustom.trim() : selectedReason;
+
+		if (!reason) {
+			setDropModalError("Please choose a reason or enter a custom one.");
+			return;
+		}
+
+		try {
+			await updateStudentMutation.mutateAsync({
+				studentId,
+				payload: {
+					status: "DROPPED",
+					dropReason: reason,
+				},
+			});
+			toast.success("Student marked as dropped");
+			setDropModalOpen(false);
+			setDropModalError(undefined);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Failed to drop student");
+				return;
+			}
+			toast.error("Failed to drop student");
+		}
+	};
+
+	const activateStudent = async () => {
+		if (!studentId) {
+			return;
+		}
+
+		try {
+			await updateStudentMutation.mutateAsync({
+				studentId,
+				payload: {
+					status: "STUDENT",
+				},
+			});
+			toast.success("Student marked as active");
+			setActivateConfirmOpen(false);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Failed to activate student");
+				return;
+			}
+			toast.error("Failed to activate student");
+		}
+	};
+
 	if (studentsQuery.isLoading) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -802,7 +949,105 @@ export const StudentDetailPage = () => {
 			)}
 
 			{activeTab === "profile" && (
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+					<Panel
+						title="Lifecycle controls"
+						action={
+							<div className="flex flex-wrap gap-2">
+								{student.status === "STUDENT" && hasPermission("STUDENT_UPDATE") ? (
+									<>
+										<button
+											type="button"
+											onClick={() => openBreakModal("break")}
+											className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100"
+										>
+											Put on break
+										</button>
+										<button
+											type="button"
+											onClick={() => setDropModalOpen(true)}
+											className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+										>
+											Drop student
+										</button>
+									</>
+								) : null}
+								{student.status === "BREAK" && hasPermission("STUDENT_UPDATE") ? (
+									<>
+										<button
+											type="button"
+											onClick={() => openBreakModal("extend")}
+											className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+										>
+											Extend break
+										</button>
+										<button
+											type="button"
+											onClick={() => setActivateConfirmOpen(true)}
+											className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
+										>
+											Mark active
+										</button>
+										<button
+											type="button"
+											onClick={() => setDropModalOpen(true)}
+											className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+										>
+											Drop student
+										</button>
+									</>
+								) : null}
+								{student.status === "DROPPED" && hasPermission("STUDENT_UPDATE") ? (
+									<button
+										type="button"
+										onClick={() => setActivateConfirmOpen(true)}
+										className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
+									>
+										Mark active
+									</button>
+								) : null}
+							</div>
+						}
+					>
+						<div className="grid gap-4 md:grid-cols-3">
+							<div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+								<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current status</p>
+								<p className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(student.status)}`}>
+									{getStudentStatusLabel(student.status)}
+								</p>
+							</div>
+							<div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+								<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Break from</p>
+								<p className="mt-2 text-sm font-semibold text-gray-900">
+									{student.inactiveFrom ? new Date(student.inactiveFrom).toLocaleDateString("en-IN", {
+										year: "numeric",
+										month: "short",
+										day: "numeric",
+									}) : "-"}
+								</p>
+							</div>
+							<div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+								<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Break until</p>
+								<p className="mt-2 text-sm font-semibold text-gray-900">
+									{student.inactiveUntil ? new Date(student.inactiveUntil).toLocaleDateString("en-IN", {
+										year: "numeric",
+										month: "short",
+										day: "numeric",
+									}) : "-"}
+								</p>
+							</div>
+							{student.status === "DROPPED" || student.dropReason ? (
+								<div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 md:col-span-3">
+									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Drop reason</p>
+									<p className="mt-2 text-sm font-medium text-gray-900 whitespace-pre-wrap">
+										{student.dropReason ?? "-"}
+									</p>
+								</div>
+							) : null}
+						</div>
+					</Panel>
+
+					<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 					<Panel title="Profile picture">
 						<div className="flex flex-col items-center gap-4">
 							<button
@@ -928,6 +1173,7 @@ export const StudentDetailPage = () => {
 						</dl>
 					</Panel>
 				</div>
+					</div>
 			)}
 
 			{activeTab === "reminders" && (
@@ -1068,6 +1314,148 @@ export const StudentDetailPage = () => {
 			>
 				<p className="text-sm text-gray-700">This will update the assessment status and add an activity log entry.</p>
 			</Modal>
+
+			<Modal
+				open={breakModalOpen}
+				onClose={() => {
+					setBreakModalOpen(false);
+					setBreakModalError(undefined);
+				}}
+				title={breakModalMode === "extend" ? "Extend break" : "Put student on break"}
+				description="Set the break dates. A reminder will be linked to the break end date."
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setBreakModalOpen(false);
+								setBreakModalError(undefined);
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void submitBreakUpdate()}
+							disabled={updateStudentMutation.isPending}
+							className="rounded-2xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{updateStudentMutation.isPending ? "Saving..." : breakModalMode === "extend" ? "Extend break" : "Save break"}
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<div className="grid gap-4 md:grid-cols-2">
+						<label className="grid gap-2 text-sm font-medium text-gray-600">
+							<span>Break from</span>
+							<input
+								type="date"
+								value={breakFromDate}
+								onChange={(event) => {
+									setBreakFromDate(event.target.value);
+									if (breakModalError) {
+										setBreakModalError(undefined);
+									}
+								}}
+								className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-amber-600 focus:ring-4 focus:ring-amber-100"
+							/>
+						</label>
+						<label className="grid gap-2 text-sm font-medium text-gray-600">
+							<span>Break until</span>
+							<input
+								type="date"
+								value={breakUntilDate}
+								onChange={(event) => {
+									setBreakUntilDate(event.target.value);
+									if (breakModalError) {
+										setBreakModalError(undefined);
+									}
+								}}
+								className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-amber-600 focus:ring-4 focus:ring-amber-100"
+							/>
+						</label>
+					</div>
+					{breakModalError ? (
+						<p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{breakModalError}</p>
+					) : null}
+				</div>
+			</Modal>
+
+			<Modal
+				open={dropModalOpen}
+				onClose={() => {
+					setDropModalOpen(false);
+					setDropModalError(undefined);
+				}}
+				title="Drop student"
+				description="Choose a preset reason or enter a custom one before marking the student as dropped."
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setDropModalOpen(false);
+								setDropModalError(undefined);
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void submitDropUpdate()}
+							disabled={updateStudentMutation.isPending}
+							className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{updateStudentMutation.isPending ? "Saving..." : "Mark dropped"}
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<SelectField
+						label="Reason"
+						value={dropReasonChoice}
+						onChange={(value) => {
+							setDropReasonChoice(value);
+							if (dropModalError) {
+								setDropModalError(undefined);
+							}
+						}}
+						options={dropReasonOptions}
+					/>
+					{dropReasonChoice === "Other" ? (
+						<TextAreaField
+							label="Custom reason"
+							value={dropReasonCustom}
+							onChange={(value) => {
+								setDropReasonCustom(value);
+								if (dropModalError) {
+									setDropModalError(undefined);
+								}
+							}}
+							placeholder="Explain why the student is being dropped"
+							error={dropModalError}
+						/>
+					) : dropModalError ? (
+						<p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{dropModalError}</p>
+					) : null}
+				</div>
+			</Modal>
+
+			<ConfirmDialog
+				open={activateConfirmOpen}
+				title="Mark student active"
+				description="This will restore the student to active status and clear any break-only dates or drop reason."
+				confirmLabel="Mark active"
+				onConfirm={() => {
+					void activateStudent();
+				}}
+				onCancel={() => setActivateConfirmOpen(false)}
+				busy={updateStudentMutation.isPending}
+			/>
 
 			<ConfirmDialog
 				open={certificateConfirmOpen}

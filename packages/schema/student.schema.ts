@@ -27,6 +27,9 @@ export const StudentSchema = z.object({
 	leadId: ObjectIdStringSchema,
 	processId: ObjectIdStringSchema.optional(),
 	processLabel: z.string().max(150).optional(),
+	inactiveFrom: z.date().optional(),
+	inactiveUntil: z.date().optional(),
+	dropReason: z.string().max(255).optional(),
 	oralAssessmentDone: z.boolean().default(false),
 	writtenAssessmentDone: z.boolean().default(false),
 	levelAssessmentDone: z.boolean().default(false),
@@ -129,6 +132,9 @@ export const UpdateStudentPayloadSchema = z.object({
 	timeslot: StudentTimeslotSnapshotSchema.optional().nullable(),
 	price: z.number().int().nonnegative().optional().nullable(),
 	hearAboutUs: z.string().max(255).optional(),
+	inactiveFrom: z.coerce.date().optional().nullable(),
+	inactiveUntil: z.coerce.date().optional().nullable(),
+	dropReason: z.string().max(255).optional(),
 	status: StudentStatusSchema.optional(),
 });
 
@@ -140,6 +146,9 @@ export const StudentResponseSchema = StudentSchema.omit({
 	createdAt: true,
 	updatedAt: true,
 }).extend({
+	inactiveFrom: z.string().datetime().nullable().optional(),
+	inactiveUntil: z.string().datetime().nullable().optional(),
+	dropReason: z.string().max(255).nullable().optional(),
 	nextFollowUpAt: z.string().datetime().nullable().optional(),
 	customNextFollowUpAt: z.string().datetime().nullable().optional(),
 	dateOfBirth: z.string().datetime().nullable(),

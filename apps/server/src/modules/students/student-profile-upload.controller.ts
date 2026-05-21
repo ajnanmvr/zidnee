@@ -3,6 +3,7 @@ import { requireStringValue } from "../rbac/rbac.http.js";
 import { uploadBuffer } from "../../lib/s3.js";
 import { StudentModel } from "./student.model.js";
 import { StudentService } from "./student.service.js";
+import { ReminderService } from "../reminders/reminder.service.js";
 
 export const getStudentPublicProfileStatusController = async (
   req: Request,
@@ -191,6 +192,22 @@ export const confirmStudentClassStartController = async (
     // Do not fail the public flow if marking the task fails; just log
     // eslint-disable-next-line no-console
     console.error("Failed to mark send-welcome-message task:", err);
+  }
+
+  try {
+    await ReminderService.createReminder(
+      studentId,
+      "student",
+      String(student.admittedBy),
+      {
+        date: chosen,
+        note: `Call student on class start date for ${student.zid}`,
+      },
+    );
+  } catch (err) {
+    // Do not block class-start confirmation if reminder creation fails.
+    // eslint-disable-next-line no-console
+    console.error("Failed to create class-start reminder:", err);
   }
 
   res.json({ ok: true, classStartConfirmedAt: updated.classStartConfirmedAt?.toISOString() ?? null });

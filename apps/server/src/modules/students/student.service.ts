@@ -2,6 +2,7 @@ import type { Student } from "@repo/schema";
 import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
 import { Types } from "mongoose";
 import { AppError } from "../../utils/errors.util.js";
+import { ReminderService } from "../reminders/reminder.service.js";
 import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
@@ -135,6 +136,9 @@ const toStudent = (doc: StudentDocument): Student => {
 		batchId: doc.batchId?.toString(),
 		processId: doc.processId?.toString(),
 		processLabel: doc.processLabel,
+		inactiveFrom: doc.inactiveFrom,
+		inactiveUntil: doc.inactiveUntil,
+	dropReason: doc.dropReason,
 		oralAssessmentDone: doc.oralAssessmentDone ?? false,
 		writtenAssessmentDone: doc.writtenAssessmentDone ?? false,
 		levelAssessmentDone: doc.levelAssessmentDone ?? false,
@@ -926,7 +930,11 @@ export const StudentService = {
 			price?: number | null;
 			hearAboutUs?: string;
 			status?: Student["status"];
+			inactiveFrom?: Date | null;
+			inactiveUntil?: Date | null;
+			dropReason?: string;
 		}>,
+		performedBy?: string,
 	): Promise<Student | null> => {
 		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
 		if (!student) {
@@ -1018,8 +1026,44 @@ export const StudentService = {
 			$set.hearAboutUs = payload.hearAboutUs;
 		}
 
+		const effectiveStatus = payload.status ?? student.status;
+
 		if (payload.status !== undefined) {
 			$set.status = payload.status;
+			if (payload.status === "STUDENT") {
+				$unset.inactiveFrom = 1;
+				$unset.inactiveUntil = 1;
+				$unset.dropReason = 1;
+			} else if (payload.status === "BREAK") {
+				$unset.dropReason = 1;
+			} else if (payload.status === "DROPPED") {
+				$unset.inactiveFrom = 1;
+				$unset.inactiveUntil = 1;
+			}
+		}
+
+		if (effectiveStatus === "BREAK") {
+			if (payload.inactiveFrom !== undefined) {
+				if (payload.inactiveFrom === null) {
+					$unset.inactiveFrom = 1;
+				} else {
+					$set.inactiveFrom = payload.inactiveFrom;
+				}
+			}
+
+			if (payload.inactiveUntil !== undefined) {
+				if (payload.inactiveUntil === null) {
+					$unset.inactiveUntil = 1;
+				} else {
+					$set.inactiveUntil = payload.inactiveUntil;
+				}
+			}
+		} else if (effectiveStatus === "DROPPED" && payload.dropReason !== undefined) {
+			if (payload.dropReason.trim()) {
+				$set.dropReason = payload.dropReason.trim();
+			} else {
+				$unset.dropReason = 1;
+			}
 		}
 
 		if (payload.batchId === null) {
@@ -1055,6 +1099,50 @@ export const StudentService = {
 		}
 
 		if (!updatedStudent) return null;
+
+		const actorId = performedBy ?? student.admittedBy.toString();
+		const breakReminderId = student.breakReminderId?.toString();
+		const breakEndDate = updatedStudent.inactiveUntil ?? payload.inactiveUntil ?? student.inactiveUntil;
+
+		if (updatedStudent.status === "BREAK" && breakEndDate) {
+			const reminderNote = `Break ends for ${updatedStudent.name ?? updatedStudent.zid}`;
+			if (breakReminderId) {
+				const reminder = await ReminderService.updateReminder(breakReminderId, {
+					date: breakEndDate,
+					note: reminderNote,
+					isDone: false,
+				}).catch(() => null);
+
+				if (!reminder) {
+					const createdReminder = await ReminderService.createReminder(
+						updatedStudent._id.toString(),
+						"student",
+						actorId,
+						{ date: breakEndDate, note: reminderNote },
+					);
+					await StudentModel.findByIdAndUpdate(updatedStudent._id, {
+						$set: { breakReminderId: createdReminder.id },
+					});
+				}
+			} else {
+				const createdReminder = await ReminderService.createReminder(
+					updatedStudent._id.toString(),
+					"student",
+					actorId,
+					{ date: breakEndDate, note: reminderNote },
+				);
+				await StudentModel.findByIdAndUpdate(updatedStudent._id, {
+					$set: { breakReminderId: createdReminder.id },
+				});
+			}
+		} else if ((updatedStudent.status === "STUDENT" || updatedStudent.status === "DROPPED") && breakReminderId) {
+			await ReminderService.updateReminder(breakReminderId, {
+				isDone: true,
+			}).catch(() => undefined);
+			await StudentModel.findByIdAndUpdate(updatedStudent._id, {
+				$unset: { breakReminderId: 1 },
+			});
+		}
 
 		await logStudentActivity({
 			studentId: student._id.toString(),
