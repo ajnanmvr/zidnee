@@ -109,6 +109,27 @@ export const UpdateStudentPayloadSchema = z.object({
 	mentorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional().nullable(),
 	profilePic: z.string().max(5000000).nullable().optional(),
+	// Allow editing core student fields
+	name: z.string().max(255).optional(),
+	phone: z.string().min(8).max(20).optional(),
+	email: z.string().email().max(255).optional(),
+	courseType: BatchTypeSchema.optional(),
+	level: z.string().max(100).optional(),
+	dateOfBirth: z.coerce.date().optional().nullable(),
+	residingCountry: z.string().max(100).optional(),
+	gender: z.enum(["male", "female"]).optional(),
+	primaryWhatsappNumber: z.string().min(8).max(20).optional(),
+	alternateWhatsappNumber: z.string().min(8).max(20).optional(),
+	studentInfo: z.string().max(1000).optional(),
+	preferredLanguage: z
+		.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"])
+		.optional(),
+	preferredSchedule: z.string().max(150).optional(),
+	preferredDays: z.array(z.string()).optional(),
+	timeslot: StudentTimeslotSnapshotSchema.optional().nullable(),
+	price: z.number().int().nonnegative().optional().nullable(),
+	hearAboutUs: z.string().max(255).optional(),
+	status: StudentStatusSchema.optional(),
 });
 
 export type UpdateStudentPayload = z.infer<typeof UpdateStudentPayloadSchema>;

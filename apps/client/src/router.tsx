@@ -48,6 +48,7 @@ const StudentDetailPage = lazy(() =>
 		default: module.StudentDetailPage,
 	})),
 );
+const EditStudentPage = lazy(() => import("@/features/students/EditStudentPage").then((m) => ({ default: m.EditStudentPage })));
 const CreateCounsellorPage = lazy(() =>
 	import("@/features/dashboard/CreateCounsellorPage").then((module) => ({
 		default: module.CreateCounsellorPage,
@@ -249,6 +250,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<StudentDetailPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "students/:studentId/edit",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<EditStudentPage />
 							</Suspense>
 						),
 					},

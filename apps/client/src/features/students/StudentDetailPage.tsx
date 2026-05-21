@@ -598,6 +598,13 @@ export const StudentDetailPage = () => {
 					</div>
 				</div>
 			</div>
+			<button
+				className="ml-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800 hover:bg-sky-100"
+				type="button"
+				onClick={() => navigate(`/students/${studentId}/edit`)}
+			>
+				Edit
+			</button>
 
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -1057,6 +1064,8 @@ export const StudentDetailPage = () => {
 				onCancel={() => setCertificateConfirmOpen(false)}
 				busy={isGeneratingCertificate}
 			/>
+
+			{/* Edit moved to dedicated page */}
 
 			<Modal
 				open={removePicConfirmOpen}
