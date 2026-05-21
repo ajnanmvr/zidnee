@@ -54,6 +54,7 @@ export type StudentProcessListItem = {
 		completed: boolean;
 		completedAt?: Date | null;
 	}>;
+	archivedAt?: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
 	student: {
@@ -263,6 +264,11 @@ export const StudentService = {
 	listStudentProcesses: async (): Promise<StudentProcessListItem[]> => {
 		const raw = await StudentProcessModel.aggregate<unknown>([
 			{
+				$match: {
+					$or: [{ archivedAt: null }, { archivedAt: { $exists: false } }],
+				},
+			},
+			{
 				$lookup: {
 					from: StudentModel.collection.name,
 					localField: "studentId",
@@ -287,6 +293,7 @@ export const StudentService = {
 			status: normalizeStudentStatus(p.student?.status ?? p.status),
 			label: p.label,
 			tasks: p.tasks ?? [],
+			archivedAt: p.archivedAt ?? null,
 			createdAt: p.createdAt,
 			updatedAt: p.updatedAt,
 			student: {
@@ -306,6 +313,57 @@ export const StudentService = {
 		} as StudentProcessListItem));
 
 		return processes;
+	},
+
+	listStudentProcessHistory: async (): Promise<StudentProcessListItem[]> => {
+		const raw = await StudentProcessModel.aggregate<unknown>([
+			{
+				$match: {
+					archivedAt: { $ne: null },
+				},
+			},
+			{
+				$lookup: {
+					from: StudentModel.collection.name,
+					localField: "studentId",
+					foreignField: "_id",
+					as: "student",
+				},
+			},
+			{
+				$unwind: "$student",
+			},
+			{
+				$sort: {
+					archivedAt: -1,
+				},
+			},
+		]);
+
+		return (raw as any[]).map((p) => ({
+			id: p._id,
+			studentId: p.studentId,
+			status: normalizeStudentStatus(p.student?.status ?? p.status),
+			label: p.label,
+			tasks: p.tasks ?? [],
+			archivedAt: p.archivedAt ?? null,
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			student: {
+				id: p.student?._id,
+				leadId: p.student?.leadId,
+				zid: p.student?.zid,
+				name: p.student?.name,
+				phone: p.student?.phone,
+				primaryWhatsappNumber: p.student?.primaryWhatsappNumber,
+				email: p.student?.email,
+				status: p.student?.status,
+				courseType: p.student?.courseType,
+				level: p.student?.level,
+				mentorId: p.student?.mentorId,
+				batchId: p.student?.batchId,
+			},
+		} as StudentProcessListItem));
 	},
 
 	getStudentProcessById: async (processId: string): Promise<StudentProcessListItem | null> => {
@@ -336,6 +394,7 @@ export const StudentService = {
 			status: normalizeStudentStatus(p.student?.status ?? p.status),
 			label: p.label,
 			tasks: p.tasks ?? [],
+			archivedAt: p.archivedAt ?? null,
 			createdAt: p.createdAt,
 			updatedAt: p.updatedAt,
 			student: {
@@ -424,7 +483,15 @@ export const StudentService = {
 			{ returnDocument: "after" },
 		).exec();
 
-		await StudentProcessModel.findByIdAndDelete(objectId).exec();
+		await StudentProcessModel.findByIdAndUpdate(
+			objectId,
+			{
+				$set: {
+					archivedAt: new Date(),
+				},
+			},
+			{ new: true },
+		).exec();
 
 		return true;
 	},

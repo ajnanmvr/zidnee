@@ -69,9 +69,28 @@ export const fetchStudentActivities = async (
 	);
 };
 
-export const fetchStudentProcesses = async (token: string) => {
+export const fetchStudentProcesses = async (
+	token: string,
+	options?: { archived?: boolean },
+) => {
+	const query = new URLSearchParams();
+
+	if (options?.archived) {
+		query.set("archived", "true");
+	}
+
 	return requestWithSchema(
-		`/students/processes`,
+		`/students/processes${query.toString() ? `?${query.toString()}` : ""}`,
+		StudentProcessesResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchStudentProcessHistory = async (token: string) => {
+	return requestWithSchema(
+		`/students/process-history`,
 		StudentProcessesResponseSchema,
 		"GET",
 		undefined,

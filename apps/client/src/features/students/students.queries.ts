@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	fetchStudentActivities,
+	fetchStudentProcessHistory,
 	fetchStudentProcesses,
 	fetchStudents,
 	fetchStudentProcess,
@@ -20,7 +21,8 @@ export const studentsQueryKeys = {
 	) => ["students", token, options ?? {}] as const,
 	activities: (token: string, studentId: string) =>
 		["students", token, studentId, "activities"] as const,
-	processes: (token: string) => ["students", token, "processes"] as const,
+	processes: (token: string, archived = false) =>
+		["students", token, "processes", archived ? "history" : "active"] as const,
 		process: (token: string, processId: string) => ["students", token, "processes", processId] as const,
 };
 
@@ -66,8 +68,16 @@ export const useStudentActivitiesQuery = (
 
 export const useStudentProcessesQuery = (token: string, enabled = true) => {
 	return useQuery({
-		queryKey: studentsQueryKeys.processes(token),
+		queryKey: studentsQueryKeys.processes(token, false),
 		queryFn: () => fetchStudentProcesses(token),
+		enabled: Boolean(token) && enabled,
+	});
+};
+
+export const useStudentProcessHistoryQuery = (token: string, enabled = true) => {
+	return useQuery({
+		queryKey: studentsQueryKeys.processes(token, true),
+		queryFn: () => fetchStudentProcessHistory(token),
 		enabled: Boolean(token) && enabled,
 	});
 };
@@ -145,6 +155,7 @@ export const useCompleteProcessMutation = () => {
 			if (!token) return;
 			queryClient.removeQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token, true) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
 		},
 	});

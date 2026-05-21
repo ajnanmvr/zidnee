@@ -43,6 +43,7 @@ const titles: Record<string, string> = {
 	"/leads": "Leads",
 	"/students": "Students",
 	"/processes": "Processes",
+	"/process-history": "Process History",
 	"/mentors": "Mentors",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/time-slots": "Time Slots",
@@ -282,6 +283,14 @@ export const DashboardLayout = () => {
 					icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
 					count: currentProcessCount,
 					accent: "violet",
+					section: "Learners",
+				},
+				{
+					to: "/process-history",
+					label: "Process History",
+					description: "Completed workflows",
+					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
+					accent: "rose",
 					section: "Learners",
 				},
 				{

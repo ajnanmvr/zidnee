@@ -47,6 +47,7 @@ export const StudentProcessSchema = z.object({
 	status: StudentStatusSchema,
 	label: z.string().min(1).max(150),
 	tasks: z.array(StudentProcessTaskSchema).default([]),
+	archivedAt: z.date().optional().nullable(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
@@ -56,10 +57,12 @@ export type StudentProcess = z.infer<typeof StudentProcessSchema>;
 export const StudentProcessResponseSchema = StudentProcessSchema.omit({
 	createdAt: true,
 	updatedAt: true,
+	archivedAt: true,
 })
 	.extend({
 		tasks: z.array(StudentProcessTaskResponseSchema),
 		student: StudentProcessStudentResponseSchema,
+		archivedAt: z.string().datetime().nullable().optional(),
 		createdAt: z.string().datetime(),
 		updatedAt: z.string().datetime(),
 	});

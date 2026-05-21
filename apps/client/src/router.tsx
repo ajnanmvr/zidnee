@@ -35,6 +35,11 @@ const StudentProcessesPage = lazy(() =>
 		default: module.StudentProcessesPage,
 	})),
 );
+const ProcessHistoryPage = lazy(() =>
+	import("@/features/dashboard/ProcessHistoryPage").then((module) => ({
+		default: module.ProcessHistoryPage,
+	})),
+);
 const StudentProcessDetailPage = lazy(() =>
     import("@/features/dashboard/StudentProcessDetailPage").then((m) => ({ default: m.StudentProcessDetailPage })),
 );
@@ -220,6 +225,14 @@ export const router = createBrowserRouter([
 						element: (
 							<Suspense fallback={routeFallback}>
 								<StudentProcessesPage />
+							</Suspense>
+						),
+					},
+					{
+						path: "process-history",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<ProcessHistoryPage />
 							</Suspense>
 						),
 					},

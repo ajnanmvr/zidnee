@@ -8,6 +8,7 @@ import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	listStudentsController,
 	listStudentProcessesController,
+	listStudentProcessHistoryController,
 	getStudentProcessController,
 	markStudentProcessTaskController,
 	setStudentProcessTaskCompletionController,
@@ -77,6 +78,12 @@ router.get(
 	"/processes",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(listStudentProcessesController),
+);
+
+router.get(
+	"/process-history",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(listStudentProcessHistoryController),
 );
 
 router.get(

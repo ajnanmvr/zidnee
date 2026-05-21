@@ -61,6 +61,7 @@ const toStudentProcessResponse = (process: StudentProcessListItem) => {
 		studentId: process.studentId.toString(),
 		status: process.status,
 		label: process.label,
+		archivedAt: process.archivedAt?.toISOString() ?? null,
 			tasks: process.tasks.map((task) => ({
 				key: task.key,
 				label: task.label,
@@ -127,6 +128,19 @@ export const listStudentProcessesController = async (
 	);
 };
 
+export const listStudentProcessHistoryController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const processes = await StudentService.listStudentProcessHistory();
+	res.json(
+		StudentProcessesResponseSchema.parse({
+			ok: true,
+			processes: processes.map(toStudentProcessResponse),
+		}),
+	);
+};
+
 export const getStudentProcessController = async (
 	req: Request,
 	res: Response,
@@ -140,6 +154,7 @@ export const getStudentProcessController = async (
 
 	// reuse response mapping used for list
 	const mapped = {
+			archivedAt: process.archivedAt?.toISOString() ?? null,
 		id: process.id.toString(),
 		studentId: process.studentId.toString(),
 		status: process.status,
@@ -190,6 +205,7 @@ export const markStudentProcessTaskController = async (
 
 	const mapped = {
 		id: updated.id.toString(),
+			archivedAt: updated.archivedAt?.toISOString() ?? null,
 		studentId: updated.studentId.toString(),
 		status: updated.status,
 		label: updated.label,
@@ -237,7 +253,6 @@ export const setStudentProcessTaskCompletionController = async (
 	}
 
 	const updated = await StudentService.setProcessTaskCompletion(processId, taskKey, completed);
-
 	if (!updated) {
 		res.status(404).json({ ok: false, error: "Process or task not found" });
 		return;
@@ -248,7 +263,8 @@ export const setStudentProcessTaskCompletionController = async (
 		studentId: updated.studentId.toString(),
 		status: updated.status,
 		label: updated.label,
-			tasks: updated.tasks.map((task) => ({
+		archivedAt: updated.archivedAt?.toISOString() ?? null,
+		tasks: updated.tasks.map((task) => ({
 				key: task.key,
 				label: task.label,
 				completed: task.completed,
@@ -290,7 +306,7 @@ export const completeStudentProcessController = async (
 		return;
 	}
 
-	res.json(MessageResponseSchema.parse({ ok: true, message: "Process removed" }));
+	res.json(MessageResponseSchema.parse({ ok: true, message: "Process moved to history" }));
 };
 export const recordStudentFollowUpController = async (
 	req: Request,

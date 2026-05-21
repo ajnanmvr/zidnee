@@ -152,7 +152,7 @@ export const StudentProcessDetailPage = () => {
                                     try {
                                         await completeProcessMutation.mutateAsync({ processId: process.id });
                                         toast.success("Process marked as completed");
-                                        navigate("/processes");
+                                        navigate("/process-history");
                                     } catch (error) {
                                         toast.error(error instanceof Error ? error.message : "Unable to complete process");
                                     }

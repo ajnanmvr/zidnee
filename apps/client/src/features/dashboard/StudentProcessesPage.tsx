@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import { Panel } from "@/components/dashboard-ui";
 import {
@@ -44,6 +44,7 @@ const timeAgo = (dateString?: string | null) => {
 
 export const StudentProcessesPage = () => {
 	const { token } = useSession();
+	const navigate = useNavigate();
 	const processesQuery = useStudentProcessesQuery(token);
 	const completeProcess = useCompleteProcessMutation();
 	const [searchTerm, setSearchTerm] = useState("");
@@ -128,16 +129,24 @@ export const StudentProcessesPage = () => {
 				title="Processes"
 				description="Browse all active and archived student process records"
 				action={
-					<label className="relative block w-full min-w-72 max-w-md">
-						<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-						<input
-							type="search"
-							value={searchTerm}
-							onChange={(event) => setSearchTerm(event.target.value)}
-							placeholder="Search by student, ZID, or process label"
-							className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-						/>
-					</label>
+					<div className="flex items-center gap-3">
+						<Link
+							to="/process-history"
+							className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+						>
+							Process history
+						</Link>
+						<label className="relative block w-full min-w-72 max-w-md">
+							<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+							<input
+								type="search"
+								value={searchTerm}
+								onChange={(event) => setSearchTerm(event.target.value)}
+								placeholder="Search by student, ZID, or process label"
+								className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+							/>
+						</label>
+					</div>
 				}
 			>
 				{processesQuery.isLoading ? (
@@ -197,6 +206,7 @@ export const StudentProcessesPage = () => {
 															onClick={async () => {
 															if (confirm("Mark this process as completed?")) {
 																await completeProcess.mutateAsync({ processId: process.id });
+																navigate("/process-history");
 															}
 															}}
 															disabled={completeProcess.isPending}

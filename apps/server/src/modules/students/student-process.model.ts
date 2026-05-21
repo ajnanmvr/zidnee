@@ -16,6 +16,7 @@ export type StudentProcessDocument = {
 	status: StudentStatus;
 	label: string;
 	tasks: StudentProcessTaskDocument[];
+	archivedAt?: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -167,6 +168,11 @@ const studentProcessSchema = new Schema<StudentProcessDocument>(
 			type: [studentProcessTaskSchema],
 			required: true,
 			default: [],
+		},
+		archivedAt: {
+			type: Date,
+			required: false,
+			default: null,
 		},
 	},
 	{
