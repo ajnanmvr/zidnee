@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { HiAcademicCap, HiPlus, HiUsers } from "react-icons/hi2";
-import { Field, Modal, Panel } from "@/components/dashboard-ui";
+import { Field, Modal, Panel, SelectField } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useCreateBatchMutation } from "@/features/batches/use-create-batch-mutation";
 import { useUpdateBatchMutation } from "@/features/batches/use-update-batch-mutation";
@@ -300,10 +300,18 @@ export const GroupsPage = () => {
 							name="level"
 							control={control}
 							render={({ field }) => (
-								<Field
+								<SelectField
 									label="Level"
 									value={field.value}
 									onChange={field.onChange}
+									options={[
+										{ value: "1", label: "Seed Level 1" },
+										{ value: "2", label: "Sprout Level 2" },
+										{ value: "3", label: "Root Level 3" },
+										{ value: "4", label: "Leaf Level 4" },
+										{ value: "5", label: "Bud Level 5" },
+									]}
+									placeholder="Select level..."
 								/>
 							)}
 						/>
@@ -359,7 +367,19 @@ export const GroupsPage = () => {
 							name="level"
 							control={control}
 							render={({ field }) => (
-								<Field label="Level" value={field.value} onChange={field.onChange} />
+								<SelectField
+									label="Level"
+									value={field.value}
+									onChange={field.onChange}
+									options={[
+										{ value: "1", label: "Seed Level 1" },
+										{ value: "2", label: "Sprout Level 2" },
+										{ value: "3", label: "Root Level 3" },
+										{ value: "4", label: "Leaf Level 4" },
+										{ value: "5", label: "Bud Level 5" },
+									]}
+									placeholder="Select level..."
+								/>
 							)}
 						/>
 						<Controller

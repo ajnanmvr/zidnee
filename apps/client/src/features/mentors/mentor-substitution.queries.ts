@@ -195,7 +195,9 @@ export const useDeleteSubstitution = () => {
 		},
 		onSuccess: (deletedId: string) => {
 			// Invalidate the substitutions queries so lists refresh
-			queryClient.invalidateQueries(SUBSTITUTIONS_QUERY_KEY);
+			queryClient.invalidateQueries({
+				queryKey: SUBSTITUTIONS_QUERY_KEY,
+			});
 
 			// Also remove the deleted item from any cached mentor-specific lists to avoid waiting for refetch
 			const keys = queryClient.getQueryCache().getAll().map((q) => q.queryKey);
