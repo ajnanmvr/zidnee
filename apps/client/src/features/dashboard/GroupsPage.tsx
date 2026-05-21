@@ -12,6 +12,17 @@ import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
+const LEVEL_LABELS: Record<string, string> = {
+	"1": "Seed Level 1",
+	"2": "Sprout Level 2",
+	"3": "Root Level 3",
+	"4": "Leaf Level 4",
+	"5": "Bud Level 5",
+};
+
+const formatGroupLevel = (level?: string | null) =>
+	(level ? LEVEL_LABELS[level] ?? level : "-");
+
 export const GroupsPage = () => {
 	const { token } = useSession();
 	const batchesQuery = useBatchesQuery(token);
@@ -237,7 +248,7 @@ export const GroupsPage = () => {
 												{mentorName}
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
-												{group.level}
+												{formatGroupLevel(group.level)}
 											</td>
 											<td className="px-4 py-4 text-sm text-gray-700">
 												<div className="font-semibold text-gray-900">{groupStudentCount}</div>
