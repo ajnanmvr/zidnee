@@ -182,7 +182,7 @@ export const useDeleteSubstitution = () => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
-
+			// call delete endpoint; some APIs return no body
 			await requestWithSchema(
 				`/mentors/substitutions/${substitutionId}`,
 				MentorSubstitutionResponseSchema,
@@ -190,10 +190,22 @@ export const useDeleteSubstitution = () => {
 				undefined,
 				token,
 			);
+
+			return substitutionId;
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: SUBSTITUTIONS_QUERY_KEY,
+		onSuccess: (deletedId: string) => {
+			// Invalidate the substitutions queries so lists refresh
+			queryClient.invalidateQueries(SUBSTITUTIONS_QUERY_KEY);
+
+			// Also remove the deleted item from any cached mentor-specific lists to avoid waiting for refetch
+			const keys = queryClient.getQueryCache().getAll().map((q) => q.queryKey);
+			keys.forEach((key) => {
+				if (Array.isArray(key) && key[0] === SUBSTITUTIONS_QUERY_KEY[0]) {
+					queryClient.setQueryData(key, (old: any) => {
+						if (!old || !Array.isArray(old)) return old;
+						return old.filter((s: any) => s.id !== deletedId);
+					});
+				}
 			});
 		},
 	});

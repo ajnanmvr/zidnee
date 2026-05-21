@@ -168,7 +168,6 @@ No mentor accounts found.
 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Mentor ID</th>
 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Name</th>
 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Counsellor</th>
-<th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Substitution</th>
 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Individual</th>
 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Group</th>
 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Groups</th>
@@ -179,10 +178,13 @@ No mentor accounts found.
 {mentors.map(({ mentor, counsellor, individualStudents, groupStudents, groupCount, substitutionSummary }) => (
 <tr key={mentor.id} className="odd:bg-white even:bg-gray-50">
 <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{getMentorDisplayId(mentor)}</td>
-<td className="px-4 py-3">
-<div className="text-sm font-medium text-gray-900">{formatUserName(mentor.name, mentor.username)}</div>
-<div className="mt-1 text-xs text-gray-500">{mentor.username ?? "-"} · {mentor.email ?? "-"}</div>
-</td>
+	<td className="px-4 py-3">
+	<div className="text-sm font-medium text-gray-900">{formatUserName(mentor.name, mentor.username)}</div>
+	<div className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${substitutionSummary.tone}`}>
+	{substitutionSummary.label}
+	</div>
+	<div className="mt-1 text-xs text-gray-500">{substitutionSummary.detail}</div>
+	</td>
 <td className="px-4 py-3 text-sm text-gray-700">
 {counsellor ? (
 <div className="font-medium text-gray-900">{formatUserName(counsellor.name, counsellor.username)}</div>
@@ -195,12 +197,7 @@ Assign counsellor
 </Link>
 )}
 </td>
-<td className="px-4 py-3 text-sm text-gray-700">
-<div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${substitutionSummary.tone}`}>
-{substitutionSummary.label}
-</div>
-<div className="mt-2 text-xs text-gray-500">{substitutionSummary.detail}</div>
-</td>
+    
 <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">{individualStudents}</td>
 <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">{groupStudents}</td>
 <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-emerald-800 font-semibold">{groupCount}</td>

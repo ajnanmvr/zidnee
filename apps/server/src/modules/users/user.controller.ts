@@ -175,7 +175,8 @@ export const createMentorController = async (
 	const mentorId = await nextIdentity("mentor");
 	const username = result.data.username || mentorId;
 	const email = `${username}@${AUTH_CONSTANTS.emailDomain}`;
-	const password = randomUUID();
+	// For quick mentor creation, use a predictable initial password: mentorId repeated twice
+	const password = `${mentorId}${mentorId}`;
 
 	const hashedPassword = await hashPassword(password);
 	const zids: Record<string, string> = { mentor: mentorId };

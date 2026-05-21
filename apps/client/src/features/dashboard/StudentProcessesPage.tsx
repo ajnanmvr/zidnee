@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import { Panel } from "@/components/dashboard-ui";
-import { useStudentProcessesQuery } from "@/features/students/students.queries";
+import {
+	useStudentProcessesQuery,
+	useCompleteProcessMutation,
+} from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 
 const timeAgo = (dateString?: string | null) => {
@@ -42,6 +45,7 @@ const timeAgo = (dateString?: string | null) => {
 export const StudentProcessesPage = () => {
 	const { token } = useSession();
 	const processesQuery = useStudentProcessesQuery(token);
+	const completeProcess = useCompleteProcessMutation();
 	const [searchTerm, setSearchTerm] = useState("");
 
 	const allProcesses = processesQuery.data?.processes ?? [];
@@ -187,6 +191,21 @@ export const StudentProcessesPage = () => {
 												<div className="w-full bg-slate-100 h-2 rounded-full">
 													<div className="h-2 rounded-full bg-emerald-500" style={{ width: `${progress}%` }} />
 												</div>
+												{progress === 100 && (
+													<div className="mt-2">
+														<button
+															onClick={async () => {
+															if (confirm("Mark this process as completed?")) {
+																await completeProcess.mutateAsync({ processId: process.id });
+															}
+															}}
+															disabled={completeProcess.isPending}
+															className="mt-1 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-3 py-1 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+														>
+															Mark as completed
+														</button>
+													</div>
+												)}
 											</td>
 										</tr>
 									);

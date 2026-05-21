@@ -45,7 +45,8 @@ export const CreateSubstitutionModal = ({
 		const today = new Date().toISOString().split("T")[0] ?? "";
 		setOriginalMentorId(defaultOriginalMentorId ?? "");
 		setSubstituteMentorId("");
-		setStartDate(defaultOriginalMentorId ? today : "");
+		// Default the start date to today but allow changing it
+		setStartDate(today);
 		setEndDate("");
 		setReason("");
 		setError("");
@@ -96,7 +97,7 @@ export const CreateSubstitutionModal = ({
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
-			<div className="w-full max-w-2xl overflow-hidden rounded-[1.75rem] border border-white/70 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.32)]">
+			<div className="w-full max-w-xl overflow-hidden rounded-[1.25rem] border border-white/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
 				<div className="bg-linear-to-r from-emerald-950 via-slate-900 to-slate-800 px-6 py-5 text-white">
 					<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-100/80">
 						Mentor substitution
@@ -107,7 +108,7 @@ export const CreateSubstitutionModal = ({
 					</p>
 				</div>
 
-				<form onSubmit={handleSubmit} className="grid gap-5 p-6">
+				<form onSubmit={handleSubmit} className="grid gap-4 p-4">
 					{error && (
 						<div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
 							{error}
@@ -168,18 +169,12 @@ export const CreateSubstitutionModal = ({
 							<p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
 								Start date
 							</p>
-							{defaultOriginalMentorId ? (
-								<div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-									Starts today
-								</div>
-							) : (
-								<input
-									type="date"
-									value={startDate}
-									onChange={(e) => setStartDate(e.target.value)}
-									className="mt-3 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-								/>
-							)}
+							<input
+								type="date"
+								value={startDate}
+								onChange={(e) => setStartDate(e.target.value)}
+								className="mt-3 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+							/>
 						</div>
 
 						<div className="rounded-3xl border border-gray-200 bg-white p-4">
