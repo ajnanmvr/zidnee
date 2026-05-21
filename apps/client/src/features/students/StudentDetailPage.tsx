@@ -367,7 +367,7 @@ export const StudentDetailPage = () => {
 			ctx.textBaseline = "middle";
 
 			// Scaled font sizes for larger canvas
-			ctx.font = "700 190px Inter, sans-serif";
+			ctx.font = "700 130px Inter, sans-serif";
 			ctx.fillStyle = "#14532d";
 			ctx.fillText(student.name ?? student.zid, centerX, 1650);
 
