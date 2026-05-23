@@ -245,7 +245,7 @@ export const StudentService = {
 		if (filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
 			const batchIds = await BatchModel.find({
 				counsellorId: new Types.ObjectId(filters.userId),
-			}).distinct("_id");
+			} as any).distinct("_id");
 			query.batchId = { $in: batchIds };
 		}
 
