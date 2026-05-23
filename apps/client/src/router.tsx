@@ -127,6 +127,11 @@ const MePage = lazy(() =>
 		default: module.MePage,
 	})),
 );
+const MePermissionsPage = lazy(() =>
+	import("@/features/dashboard/MePermissionsPage").then((module) => ({
+		default: module.MePermissionsPage,
+	})),
+);
 const UnassignedDemosPage = lazy(() =>
 	import("@/features/demo-management/UnassignedDemosPage").then((module) => ({
 		default: module.UnassignedDemosPage,
@@ -364,12 +369,26 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
+						path: "me/permissions",
+						element: (
+							<Suspense fallback={routeFallback}>
+								<MePermissionsPage />
+							</Suspense>
+						),
+					},
+					{
 						path: "demo-management/unassigned",
-						element: withPermissions(["LEAD_DEMO_ASSIGN"], <UnassignedDemosPage />),
+						element: withPermissions([
+							"DEMO_UNASSIGNED_READ_MY",
+							"DEMO_UNASSIGNED_READ_ALL",
+						], <UnassignedDemosPage />),
 					},
 					{
 						path: "demo-management/scheduled",
-						element: withPermissions(["LEAD_DEMO_COMPLETE"], <ScheduledDemosPage />),
+						element: withPermissions([
+							"DEMO_SCHEDULED_READ_MY",
+							"DEMO_SCHEDULED_READ_ALL",
+						], <ScheduledDemosPage />),
 					},
 					{
 						path: "reminders",

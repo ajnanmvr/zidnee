@@ -119,6 +119,30 @@ export const PERMISSION_CATALOG = {
 		resource: "leads",
 		action: "demo:assign",
 	},
+	DEMO_UNASSIGNED_READ_MY: {
+		name: "View My Unassigned Demos",
+		description: "View unassigned demo requests assigned to me",
+		resource: "demo-management",
+		action: "unassigned:read:own",
+	},
+	DEMO_UNASSIGNED_READ_ALL: {
+		name: "View All Unassigned Demos",
+		description: "View all unassigned demo requests",
+		resource: "demo-management",
+		action: "unassigned:read:all",
+	},
+	DEMO_SCHEDULED_READ_MY: {
+		name: "View My Scheduled Demos",
+		description: "View scheduled demos assigned to me",
+		resource: "demo-management",
+		action: "scheduled:read:own",
+	},
+	DEMO_SCHEDULED_READ_ALL: {
+		name: "View All Scheduled Demos",
+		description: "View all scheduled demos",
+		resource: "demo-management",
+		action: "scheduled:read:all",
+	},
 	LEAD_DEMO_COMPLETE: {
 		name: "Complete Demo",
 		description: "Mark demo as completed",

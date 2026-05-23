@@ -2,7 +2,7 @@ import type { LeadResponse } from "@repo/schema";
 import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format, isPast, isToday } from "date-fns";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import {
@@ -33,6 +33,8 @@ export const ScheduledDemosPage = () => {
 	const meQuery = useMeQuery(token);
 	const canAssignDemo = useHasPermission("LEAD_DEMO_ASSIGN");
 	const canCompleteDemo = useHasPermission("LEAD_DEMO_COMPLETE");
+	const canViewMyScheduledDemos = useHasPermission("DEMO_SCHEDULED_READ_MY");
+	const canViewAllScheduledDemos = useHasPermission("DEMO_SCHEDULED_READ_ALL");
 	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
@@ -48,7 +50,11 @@ export const ScheduledDemosPage = () => {
 	const [outcomeOpen, setOutcomeOpen] = useState(false);
 	const [outcomeDemoForAction, setOutcomeDemoForAction] =
 		useState<LeadResponse | null>(null);
-	const [viewScope, setViewScope] = useState<"mine" | "all">("mine");
+	const [viewScope, setViewScope] = useState<"mine" | "all">(
+		canViewMyScheduledDemos ? "mine" : "all",
+	);
+
+	const canToggleScope = canViewMyScheduledDemos && canViewAllScheduledDemos;
 
 	const {
 		control: completeControl,
@@ -94,6 +100,17 @@ export const ScheduledDemosPage = () => {
 			throw new Error("Failed to mark demo as completed");
 		}
 	};
+
+	useEffect(() => {
+		if (canViewMyScheduledDemos) {
+			setViewScope((current) => (current === "all" ? "all" : "mine"));
+			return;
+		}
+
+		if (canViewAllScheduledDemos) {
+			setViewScope("all");
+		}
+	}, [canViewAllScheduledDemos, canViewMyScheduledDemos]);
 
 	const onMarkCompleted = handleCompleteSubmit(async (data) => {
 		if (!selectedDemo) {
@@ -216,6 +233,7 @@ export const ScheduledDemosPage = () => {
 	const upcomingDemos = visibleDemos.filter(
 		(demo) => getDemoScheduleStatus(demo) === "upcoming",
 	);
+	const activeScopeLabel = viewScope === "mine" ? "Assigned to me" : "Assigned to all";
 
 	const columns: ColumnDef<LeadResponse>[] = [
 		{
@@ -403,22 +421,28 @@ export const ScheduledDemosPage = () => {
 							</p>
 						</div>
 					</div>
-					<div className="inline-flex rounded-2xl border border-gray-200 bg-gray-50 p-1">
-						<button
-							type="button"
-							onClick={() => setViewScope("mine")}
-							className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "mine" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-						>
-							Assigned to me
-						</button>
-						<button
-							type="button"
-							onClick={() => setViewScope("all")}
-							className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-						>
-							All assignments
-						</button>
-					</div>
+					{canToggleScope ? (
+						<div className="inline-flex rounded-2xl border border-gray-200 bg-gray-50 p-1">
+							<button
+								type="button"
+								onClick={() => setViewScope("mine")}
+								className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "mine" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+							>
+								Assigned to me
+							</button>
+							<button
+								type="button"
+								onClick={() => setViewScope("all")}
+								className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+							>
+								All assignments
+							</button>
+						</div>
+					) : (
+						<div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700">
+							{activeScopeLabel}
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -431,7 +455,7 @@ export const ScheduledDemosPage = () => {
 							No scheduled demos in this view
 						</p>
 						<p className="mt-1 text-sm text-gray-600">
-							Switch to All assignments to see every scheduled demo
+							{canToggleScope ? "Switch to All assignments to see every scheduled demo" : "This queue scope is currently empty."}
 						</p>
 					</div>
 				) : (

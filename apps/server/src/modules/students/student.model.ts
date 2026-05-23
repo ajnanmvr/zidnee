@@ -196,6 +196,11 @@ const studentSchema = new Schema<StudentDocument>(
 			trim: true,
 			maxlength: 255,
 		},
+		dropTemporary: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
 		oralAssessmentDone: {
 			type: Boolean,
 			required: false,

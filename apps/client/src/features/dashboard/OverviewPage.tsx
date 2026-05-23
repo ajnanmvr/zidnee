@@ -68,11 +68,17 @@ export const OverviewPage = () => {
 		}
 
 		if (page.to === "/demo-management/unassigned") {
-			return hasPermission("LEAD_DEMO_ASSIGN");
+			return (
+				hasPermission("DEMO_UNASSIGNED_READ_MY") ||
+				hasPermission("DEMO_UNASSIGNED_READ_ALL")
+			);
 		}
 
 		if (page.to === "/demo-management/scheduled") {
-			return hasPermission("LEAD_DEMO_COMPLETE");
+			return (
+				hasPermission("DEMO_SCHEDULED_READ_MY") ||
+				hasPermission("DEMO_SCHEDULED_READ_ALL")
+			);
 		}
 
 		return true;

@@ -933,6 +933,7 @@ export const StudentService = {
 			inactiveFrom?: Date | null;
 			inactiveUntil?: Date | null;
 			dropReason?: string;
+			dropTemporary?: boolean;
 		}>,
 		performedBy?: string,
 	): Promise<Student | null> => {
@@ -1034,8 +1035,10 @@ export const StudentService = {
 				$unset.inactiveFrom = 1;
 				$unset.inactiveUntil = 1;
 				$unset.dropReason = 1;
+				$unset.dropTemporary = 1;
 			} else if (payload.status === "BREAK") {
 				$unset.dropReason = 1;
+				$unset.dropTemporary = 1;
 			} else if (payload.status === "DROPPED") {
 				$unset.inactiveFrom = 1;
 				$unset.inactiveUntil = 1;
@@ -1063,6 +1066,14 @@ export const StudentService = {
 				$set.dropReason = payload.dropReason.trim();
 			} else {
 				$unset.dropReason = 1;
+			}
+		}
+
+		if (effectiveStatus === "DROPPED" && payload.dropTemporary !== undefined) {
+			if (payload.dropTemporary) {
+				$set.dropTemporary = true;
+			} else {
+				$unset.dropTemporary = 1;
 			}
 		}
 

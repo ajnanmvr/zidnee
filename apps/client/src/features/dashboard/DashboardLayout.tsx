@@ -120,11 +120,17 @@ export const DashboardLayout = () => {
 	const canReadReminders =
 		me?.permissions?.some((permission) => permission.key === "REMINDER_READ") ??
 		false;
-	const canReadDemos =
+	const canReadUnassignedDemos =
 		me?.permissions?.some(
 			(permission) =>
-				permission.key === "LEAD_DEMO_ASSIGN" ||
-				permission.key === "LEAD_DEMO_COMPLETE",
+				permission.key === "DEMO_UNASSIGNED_READ_MY" ||
+				permission.key === "DEMO_UNASSIGNED_READ_ALL",
+		) ?? false;
+	const canReadScheduledDemos =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "DEMO_SCHEDULED_READ_MY" ||
+				permission.key === "DEMO_SCHEDULED_READ_ALL",
 		) ?? false;
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: canReadAllLeads ? "all" : "mine",
@@ -133,8 +139,8 @@ export const DashboardLayout = () => {
 	});
 	const studentsQuery = useStudentsQuery(token, canReadStudents);
 	const remindersQuery = useGetAllReminders({ enabled: canReadReminders });
-	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
-	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
+	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadUnassignedDemos);
+	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadScheduledDemos);
 	const meName = me?.name ?? "User";
 	const currentUserId = me?.id;
 
@@ -378,7 +384,7 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("LEAD_DEMO_ASSIGN")
+		...(hasPermission("DEMO_UNASSIGNED_READ_MY") || hasPermission("DEMO_UNASSIGNED_READ_ALL")
 			? [
 				{
 					to: "/demo-management/unassigned",
@@ -391,7 +397,7 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("LEAD_DEMO_COMPLETE")
+		...(hasPermission("DEMO_SCHEDULED_READ_MY") || hasPermission("DEMO_SCHEDULED_READ_ALL")
 			? [
 				{
 					to: "/demo-management/scheduled",

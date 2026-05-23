@@ -275,11 +275,7 @@ export const MentorDetailPage = () => {
 		{ key: "students", label: "Students", description: "Assigned list" },
 	];
 
-	const groupedStudents = [
-		{ key: "STUDENT", label: "Active", students: activeStudents },
-		{ key: "BREAK", label: "Break", students: breakStudents },
-		{ key: "DROPPED", label: "Dropped", students: droppedStudents },
-	] as const;
+	// groupedStudents helper removed — use explicit status tabs below
 
 	const studentStatusTabs: Array<{
 		key: StudentStatusTabKey;

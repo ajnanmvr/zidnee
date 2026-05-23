@@ -127,6 +127,7 @@ export const StudentDetailPage = () => {
 	const [dropModalOpen, setDropModalOpen] = useState(false);
 	const [dropReasonChoice, setDropReasonChoice] = useState(dropReasonOptions[0]?.value ?? "");
 	const [dropReasonCustom, setDropReasonCustom] = useState("");
+	const [dropTemporary, setDropTemporary] = useState(false);
 	const [dropModalError, setDropModalError] = useState<string | undefined>();
 	const [activateConfirmOpen, setActivateConfirmOpen] = useState(false);
 	const remindersQuery = useGetStudentReminders(studentId ?? "");
@@ -603,11 +604,13 @@ export const StudentDetailPage = () => {
 				payload: {
 					status: "DROPPED",
 					dropReason: reason,
+					dropTemporary,
 				},
 			});
 			toast.success("Student marked as dropped");
 			setDropModalOpen(false);
 			setDropModalError(undefined);
+			setDropTemporary(false);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Failed to drop student");
@@ -1082,6 +1085,11 @@ export const StudentDetailPage = () => {
 									<p className="mt-2 text-sm font-medium text-gray-900 whitespace-pre-wrap">
 										{student.dropReason ?? "-"}
 									</p>
+									{student.dropTemporary ? (
+										<span className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+											Temporary
+										</span>
+									) : null}
 								</div>
 							) : null}
 						</div>
@@ -1428,6 +1436,7 @@ export const StudentDetailPage = () => {
 				onClose={() => {
 					setDropModalOpen(false);
 					setDropModalError(undefined);
+					setDropTemporary(false);
 				}}
 				title="Drop student"
 				description="Choose a preset reason or enter a custom one before marking the student as dropped."
@@ -1438,6 +1447,7 @@ export const StudentDetailPage = () => {
 							onClick={() => {
 								setDropModalOpen(false);
 								setDropModalError(undefined);
+								setDropTemporary(false);
 							}}
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 						>
@@ -1482,6 +1492,15 @@ export const StudentDetailPage = () => {
 					) : dropModalError ? (
 						<p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{dropModalError}</p>
 					) : null}
+					<label className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900">
+						<input
+							type="checkbox"
+							checked={dropTemporary}
+							onChange={(event) => setDropTemporary(event.target.checked)}
+							className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+						/>
+						Temporary
+					</label>
 				</div>
 			</Modal>
 

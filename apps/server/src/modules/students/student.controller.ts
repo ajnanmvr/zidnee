@@ -46,6 +46,7 @@ const toStudentResponse = (
 		inactiveFrom: student.inactiveFrom?.toISOString() ?? null,
 		inactiveUntil: student.inactiveUntil?.toISOString() ?? null,
 		dropReason: student.dropReason ?? null,
+		dropTemporary: student.dropTemporary ?? null,
 		oralAssessmentDone: student.oralAssessmentDone,
 		writtenAssessmentDone: student.writtenAssessmentDone,
 		levelAssessmentDone: student.levelAssessmentDone,

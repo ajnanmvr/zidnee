@@ -30,6 +30,7 @@ export const StudentSchema = z.object({
 	inactiveFrom: z.date().optional(),
 	inactiveUntil: z.date().optional(),
 	dropReason: z.string().max(255).optional(),
+	dropTemporary: z.boolean().optional(),
 	oralAssessmentDone: z.boolean().default(false),
 	writtenAssessmentDone: z.boolean().default(false),
 	levelAssessmentDone: z.boolean().default(false),
@@ -135,6 +136,7 @@ export const UpdateStudentPayloadSchema = z.object({
 	inactiveFrom: z.coerce.date().optional().nullable(),
 	inactiveUntil: z.coerce.date().optional().nullable(),
 	dropReason: z.string().max(255).optional(),
+	dropTemporary: z.boolean().optional(),
 	status: StudentStatusSchema.optional(),
 });
 
@@ -149,6 +151,7 @@ export const StudentResponseSchema = StudentSchema.omit({
 	inactiveFrom: z.string().datetime().nullable().optional(),
 	inactiveUntil: z.string().datetime().nullable().optional(),
 	dropReason: z.string().max(255).nullable().optional(),
+	dropTemporary: z.boolean().nullable().optional(),
 	nextFollowUpAt: z.string().datetime().nullable().optional(),
 	customNextFollowUpAt: z.string().datetime().nullable().optional(),
 	dateOfBirth: z.string().datetime().nullable(),

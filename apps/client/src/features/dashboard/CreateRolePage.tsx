@@ -31,7 +31,7 @@ export const CreateRolePage = () => {
 		useForm<CreateRoleForm>({
 			defaultValues: {
 				name: "",
-				type: "admin",
+				type: "",
 				description: "",
 				permissionIds: [],
 			},
@@ -111,7 +111,7 @@ export const CreateRolePage = () => {
 		try {
 			await createRoleMutation.mutateAsync(validation.data);
 			toast.success("Role created successfully.");
-			reset({ name: "", type: "admin", description: "", permissionIds: [] });
+			reset({ name: "", type: "", description: "", permissionIds: [] });
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const serverErrors = error.payload.errors ?? {};
@@ -196,10 +196,11 @@ export const CreateRolePage = () => {
 						render={({ field, fieldState }) => (
 							<SelectField
 								label="Role Type"
-								value={field.value}
-								onChange={field.onChange}
+								value={field.value ?? ""}
+								onChange={(v) => field.onChange(v)}
 								options={[
-									{ value: "general", label: "General" },
+									{ value: "", label: "Select role type" },
+									{ value: "admin", label: "Admin" },
 									{ value: "mentor", label: "Mentor" },
 									{ value: "counsellor", label: "Counsellor" },
 									{ value: "sales", label: "Sales" },

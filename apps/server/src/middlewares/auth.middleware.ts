@@ -119,6 +119,39 @@ export const requirePermissionKey = (keys: PermissionKey | PermissionKey[]) => {
 	};
 };
 
+export const requireAnyPermissionKey = (keys: PermissionKey | PermissionKey[]) => {
+	return async (
+		req: Request,
+		_res: Response,
+		next: NextFunction,
+	): Promise<void> => {
+		try {
+			if (!req.user) {
+				throw new AuthenticationError("User not authenticated");
+			}
+
+			const checksArray = Array.isArray(keys) ? keys : [keys];
+			const userPermissions = req.user.roleIds.length
+				? await getEffectivePermissions(req.user.roleIds)
+				: await PermissionService.findByIds(req.user.permissionIds);
+
+			const hasPermission = checksArray.some((requiredKey) =>
+				userPermissions.some((permission) => permission.key === requiredKey),
+			);
+
+			if (!hasPermission) {
+				throw new AuthorizationError(
+					"Insufficient permissions for this action",
+				);
+			}
+
+			next();
+		} catch (error) {
+			next(error);
+		}
+	};
+};
+
 /**
  * Require specific roles or permissions
  * For now, we'll check if user has required role

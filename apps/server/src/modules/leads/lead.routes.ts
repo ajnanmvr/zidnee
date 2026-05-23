@@ -2,6 +2,7 @@ import type { PermissionKey } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
+	requireAnyPermissionKey,
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
@@ -111,7 +112,10 @@ router.get(
  */
 router.get(
 	"/for-demo",
-	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"DEMO_UNASSIGNED_READ_MY" satisfies PermissionKey,
+		"DEMO_UNASSIGNED_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(listPendingDemoRequestsController),
 );
 
@@ -131,7 +135,10 @@ router.get(
  */
 router.get(
 	"/demo-requests",
-	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"DEMO_SCHEDULED_READ_MY" satisfies PermissionKey,
+		"DEMO_SCHEDULED_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(listDemoRequestsController),
 );
 

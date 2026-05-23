@@ -117,18 +117,7 @@ export const StudentProcessDetailPage = () => {
         );
     };
 
-        const handleTaskToggleClick = (task: any) => {
-            if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
-                openStatusModal(task);
-                return;
-            }
-
-            void setTaskMutation.mutateAsync({
-                processId: process.id,
-                taskKey: task.key,
-                completed: !task.completed,
-            });
-        };
+        // Task toggle handled via modal or inline actions; removed unused toggle handler
 
     const completedCount = process.tasks.filter((t: any) => t.completed).length;
     const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;

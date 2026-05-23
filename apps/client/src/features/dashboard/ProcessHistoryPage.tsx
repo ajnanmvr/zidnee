@@ -1,29 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-	HiArchiveBox,
-	HiCalendarDays,
-	HiCheckCircle,
-	HiClock,
-	HiMagnifyingGlass,
-	HiSquares2X2,
-} from "react-icons/hi2";
+import { HiMagnifyingGlass } from "react-icons/hi2";
 import { useStudentProcessHistoryQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 
-const formatDate = (value?: string | null) => {
-	if (!value) return "-";
-	return new Date(value).toLocaleString();
-};
-
-const formatCompactDate = (value?: string | null) => {
-	if (!value) return "-";
-	return new Date(value).toLocaleDateString(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
-};
 
 export const ProcessHistoryPage = () => {
 	const { token } = useSession();
@@ -36,7 +16,7 @@ export const ProcessHistoryPage = () => {
 	const [searchTerm, setSearchTerm] = useState(initialQuery);
 	const [debouncedSearch, setDebouncedSearch] = useState(initialQuery);
 	const [page, setPage] = useState(1);
-	const [limit, setLimit] = useState(20);
+	const limit = 20;
 
 	const allProcesses = historyQuery.data?.processes ?? [];
 
@@ -75,7 +55,7 @@ export const ProcessHistoryPage = () => {
 
 	useEffect(() => {
 		setPage(1);
-	}, [searchTerm, limit]);
+	}, [searchTerm]);
 
 	const pageCount = Math.max(1, Math.ceil(filteredProcesses.length / limit));
 	const currentPage = Math.min(page, pageCount);
@@ -84,48 +64,7 @@ export const ProcessHistoryPage = () => {
 		[filteredProcesses, currentPage, limit],
 	);
 
-	const totalTasks = useMemo(
-		() => filteredProcesses.reduce((sum, process) => sum + process.tasks.length, 0),
-		[filteredProcesses],
-	);
-	const completedTasks = useMemo(
-		() =>
-			filteredProcesses.reduce(
-				(sum, process) =>
-					sum + process.tasks.filter((task) => task.completed).length,
-				0,
-			),
-		[filteredProcesses],
-	);
-	const averageProgress = useMemo(() => {
-		if (!filteredProcesses.length) return 0;
-		const totalProgress = filteredProcesses.reduce((sum, process) => {
-			const completedCount = process.tasks.filter((task) => task.completed).length;
-			const progress = process.tasks.length
-				? Math.round((completedCount / process.tasks.length) * 100)
-				: 0;
-			return sum + progress;
-		}, 0);
-		return Math.round(totalProgress / filteredProcesses.length);
-	}, [filteredProcesses]);
-	const latestArchivedAt = useMemo(() => {
-		return filteredProcesses.reduce<string | null>((latest, process) => {
-			if (!process.archivedAt) return latest;
-			if (!latest) return process.archivedAt;
-			return new Date(process.archivedAt).getTime() > new Date(latest).getTime()
-				? process.archivedAt
-				: latest;
-		}, null);
-	}, [filteredProcesses]);
-	const oldestArchivedAt = useMemo(() => {
-		return filteredProcesses.reduce<string | null>((oldest, process) => {
-			if (!process.archivedAt) return oldest;
-			if (!oldest) return process.archivedAt;
-			return new Date(process.archivedAt).getTime() < new Date(oldest).getTime()
-				? process.archivedAt
-				: oldest;
-		}, null);
-	}, [filteredProcesses]);
+	// summary metrics intentionally omitted to keep this view compact
 
 	return (
 		<div className="grid gap-4">
