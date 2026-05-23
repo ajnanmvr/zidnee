@@ -6,9 +6,16 @@ import {
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
-export const fetchTimeSlots = async (token?: string) => {
+export const fetchTimeSlots = async (
+	token?: string,
+	options?: { scope?: "mine" | "all" },
+) => {
+	const query = new URLSearchParams();
+	if (options?.scope) {
+		query.set("scope", options.scope);
+	}
 	return requestWithSchema(
-		"/time-slots",
+		`/time-slots${query.toString() ? `?${query.toString()}` : ""}`,
 		TimeSlotsResponseSchema,
 		"GET",
 		undefined,

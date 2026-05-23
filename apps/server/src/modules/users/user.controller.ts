@@ -267,6 +267,54 @@ export const listUsersController = async (
 	});
 };
 
+export const listMentorsController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const mentorRole = await findRoleByType("mentor");
+	if (!mentorRole) {
+		res.json({ ok: true, users: [] });
+		return;
+	}
+
+	const users = await UserService.findAll();
+	const mentors = users.filter((user) =>
+		(user.roleIds ?? []).some((roleId) => roleId === mentorRole.id),
+	);
+	const usersWithRelations = await Promise.all(
+		mentors.map((user) => getUserWithRelations(user)),
+	);
+
+	res.json({
+		ok: true,
+		users: usersWithRelations,
+	});
+};
+
+export const listCounsellorsController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const counsellorRole = await findRoleByType("counsellor");
+	if (!counsellorRole) {
+		res.json({ ok: true, users: [] });
+		return;
+	}
+
+	const users = await UserService.findAll();
+	const counsellors = users.filter((user) =>
+		(user.roleIds ?? []).some((roleId) => roleId === counsellorRole.id),
+	);
+	const usersWithRelations = await Promise.all(
+		counsellors.map((user) => getUserWithRelations(user)),
+	);
+
+	res.json({
+		ok: true,
+		users: usersWithRelations,
+	});
+};
+
 export const getUserController = async (
 	req: Request,
 	res: Response,
@@ -374,6 +422,72 @@ export const updateUserController = async (
 
 	if (!updatedUser) {
 		throw new Error("Failed to update user");
+	}
+
+	res.json({
+		ok: true,
+		...(await getUserWithRelations(updatedUser)),
+	});
+};
+
+export const assignUserCounsellorController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const userId = requireStringValue(req.params.userId, "userId");
+	const result = UpdateUserPayloadSchema.pick({ counsellorId: true }).safeParse(
+		req.body,
+	);
+
+	if (!result.success) {
+		throw new ValidationError(result.error.flatten().fieldErrors);
+	}
+
+	const mentorRole = await findRoleByType("mentor");
+	if (!mentorRole) {
+		throw new NotFoundError("Mentor role");
+	}
+
+	const counsellorId = result.data.counsellorId;
+	if (!counsellorId) {
+		throw new ValidationError({
+			counsellorId: ["Counsellor is required"],
+		});
+	}
+
+	const targetUser = await UserService.findById(userId);
+	if (!targetUser) {
+		throw new NotFoundError("User");
+	}
+
+	const isMentor = targetUser.roleIds.some((roleId) => roleId === mentorRole.id);
+	if (!isMentor) {
+		throw new ValidationError({
+			counsellorId: ["Counsellor can only be assigned to mentor accounts"],
+		});
+	}
+
+	const counsellor = await UserService.findById(counsellorId);
+	if (!counsellor) {
+		throw new NotFoundError("Counsellor");
+	}
+
+	const counsellorRole = await findRoleByType("counsellor");
+	const isCounsellor = counsellorRole
+		? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
+		: false;
+	if (!isCounsellor) {
+		throw new ValidationError({
+			counsellorId: ["Selected user is not a counsellor"],
+		});
+	}
+
+	const updatedUser = await UserService.update(userId, {
+		counsellorId,
+	});
+
+	if (!updatedUser) {
+		throw new Error("Failed to assign counsellor");
 	}
 
 	res.json({

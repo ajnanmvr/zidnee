@@ -20,10 +20,14 @@ const toTimeSlotResponse = (
 });
 
 export const listTimeSlotsController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const timeSlots = await TimeSlotService.findAll();
+	const scope = req.query.scope === "mine" ? "mine" : "all";
+	const timeSlots = await TimeSlotService.findAll({
+		scope,
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	});
 	res.json({
 		ok: true,
 		timeSlots: timeSlots.map(toTimeSlotResponse),
@@ -39,7 +43,10 @@ export const createTimeSlotController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const timeSlot = await TimeSlotService.create(result.data);
+	const timeSlot = await TimeSlotService.create(
+		result.data,
+		typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	);
 
 	res.status(201).json({
 		ok: true,

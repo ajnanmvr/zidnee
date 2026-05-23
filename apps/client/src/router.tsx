@@ -102,6 +102,11 @@ const UsersPage = lazy(() =>
 		default: module.UsersPage,
 	})),
 );
+const SalesUsersPage = lazy(() =>
+	import("@/features/dashboard/SalesUsersPage").then((module) => ({
+		default: module.SalesUsersPage,
+	})),
+);
 const CreateUserPage = lazy(() =>
 	import("@/features/dashboard/CreateUserPage").then((module) => ({
 		default: module.CreateUserPage,
@@ -339,6 +344,10 @@ export const router = createBrowserRouter([
 					{
 						path: "users",
 						element: withPermissions(["USER_READ"], <UsersPage />),
+					},
+					{
+						path: "sales-users",
+						element: withPermissions(["SALES_USERS_READ"], <SalesUsersPage />),
 					},
 					{
 						path: "users/create",

@@ -64,7 +64,10 @@ export const RemindersPageView = ({
     const pageSize = 8;
     const currentUserId = meQuery.data?.id ?? "";
 
-    const remindersQuery = useGetAllReminders({ enabled: Boolean(token) });
+    const remindersQuery = useGetAllReminders({
+        scope: scope === "assignedToMe" ? "mine" : "all",
+        enabled: Boolean(token),
+    });
     const reminders = remindersQuery.data ?? [];
 
     const activeReminders = useMemo(

@@ -20,6 +20,7 @@ export const fetchStudents = async (
 		sortOrder?: "asc" | "desc";
 		page?: number;
 		limit?: number;
+		scope?: "mine" | "all";
 	},
 ) => {
 	const query = new URLSearchParams();
@@ -30,6 +31,7 @@ export const fetchStudents = async (
 	if (options?.sortOrder) query.set("sortOrder", options.sortOrder);
 	if (options?.page) query.set("page", String(options.page));
 	if (options?.limit) query.set("limit", String(options.limit));
+	if (options?.scope) query.set("scope", options.scope);
 
 	return requestWithSchema(
 		`/students${query.toString() ? `?${query.toString()}` : ""}`,
@@ -71,12 +73,15 @@ export const fetchStudentActivities = async (
 
 export const fetchStudentProcesses = async (
 	token: string,
-	options?: { archived?: boolean },
+	options?: { archived?: boolean; scope?: "mine" | "all" },
 ) => {
 	const query = new URLSearchParams();
 
 	if (options?.archived) {
 		query.set("archived", "true");
+	}
+	if (options?.scope) {
+		query.set("scope", options.scope);
 	}
 
 	return requestWithSchema(
@@ -88,9 +93,16 @@ export const fetchStudentProcesses = async (
 	);
 };
 
-export const fetchStudentProcessHistory = async (token: string) => {
+export const fetchStudentProcessHistory = async (
+	token: string,
+	options?: { scope?: "mine" | "all" },
+) => {
+	const query = new URLSearchParams();
+	if (options?.scope) {
+		query.set("scope", options.scope);
+	}
 	return requestWithSchema(
-		`/students/process-history`,
+		`/students/process-history${query.toString() ? `?${query.toString()}` : ""}`,
 		StudentProcessesResponseSchema,
 		"GET",
 		undefined,

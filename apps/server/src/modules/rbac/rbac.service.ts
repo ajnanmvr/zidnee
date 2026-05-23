@@ -25,11 +25,25 @@ let defaultsInitialized = false;
 let defaultsInitPromise: Promise<void> | null = null;
 
 const dropLegacyIdIndex = async (collection: {
-	listIndexes: () => { toArray: () => Promise<Array<{ name: string }>> };
+	listIndexes: (...args: any[]) => any;
 	dropIndex: (indexName: string) => Promise<unknown>;
 }): Promise<void> => {
 	try {
-		const indexes = await collection.listIndexes().toArray();
+		// `listIndexes()` can return a cursor with `toArray()`, or
+		// in some driver/mongoose versions return a promise/array directly.
+		const raw = collection.listIndexes();
+		let indexes: Array<{ name: string }> = [];
+
+		if (raw && typeof raw.toArray === "function") {
+			indexes = await raw.toArray();
+		} else {
+			// Await in case it's a promise, otherwise use as-is if it's an array
+			const awaited = await Promise.resolve(raw);
+			if (Array.isArray(awaited)) {
+				indexes = awaited as Array<{ name: string }>;
+			}
+		}
+
 		const staleIdIndex = indexes.find((index) => index.name === "id_1");
 
 		if (staleIdIndex) {
@@ -41,7 +55,7 @@ const dropLegacyIdIndex = async (collection: {
 			typeof error === "object" &&
 			error !== null &&
 			"code" in error &&
-			error.code === 26
+			(error as any).code === 26
 		) {
 			return;
 		}

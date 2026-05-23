@@ -3,6 +3,7 @@ import mongoose, { type Model, Schema, type Types } from "mongoose";
 
 export type TimeSlotDocument = Omit<TimeSlot, "id"> & {
 	_id: Types.ObjectId;
+	createdBy?: Types.ObjectId | null;
 };
 
 const timeSlotSchema = new Schema<TimeSlotDocument>(
@@ -30,6 +31,12 @@ const timeSlotSchema = new Schema<TimeSlotDocument>(
 			type: Boolean,
 			required: true,
 			default: true,
+			index: true,
+		},
+		createdBy: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
 			index: true,
 		},
 	},

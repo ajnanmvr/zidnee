@@ -13,6 +13,10 @@ import { requireStringValue } from "../rbac/rbac.http.js";
 import { StudentService, type StudentProcessListItem } from "./student.service.js";
 import { uploadBuffer } from "../../lib/s3.js";
 
+const trimProcessTaskLabel = (label: string) => {
+	return label.length > 150 ? label.slice(0, 150) : label;
+};
+
 const toStudentResponse = (
 	student: Awaited<ReturnType<typeof StudentService.listStudents>>[number],
 ) => {
@@ -66,14 +70,14 @@ const toStudentProcessResponse = (process: StudentProcessListItem) => {
 		status: process.status,
 		label: process.label,
 		archivedAt: process.archivedAt?.toISOString() ?? null,
-			tasks: process.tasks.map((task) => ({
-				key: task.key,
-				label: task.label,
-				completed: task.completed,
-				completedAt: task.completedAt?.toISOString() ?? null,
-				actionType: (task as any).actionType ?? undefined,
-				whatsappMessage: (task as any).whatsappMessage ?? undefined,
-			})),
+		tasks: process.tasks.map((task) => ({
+			key: task.key,
+			label: trimProcessTaskLabel(task.label),
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+			actionType: (task as any).actionType ?? undefined,
+			whatsappMessage: (task as any).whatsappMessage ?? undefined,
+		})),
 		student: {
 			id: process.student.id.toString(),
 			leadId: process.student.leadId?.toString(),
@@ -110,6 +114,8 @@ export const listStudentsController = async (
 			typeof req.query.limit === "string"
 				? parseInt(req.query.limit, 10)
 				: undefined,
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(
 		StudentsResponseSchema.parse({
@@ -120,10 +126,13 @@ export const listStudentsController = async (
 };
 
 export const listStudentProcessesController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const processes = await StudentService.listStudentProcesses();
+	const processes = await StudentService.listStudentProcesses({
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	});
 	res.json(
 		StudentProcessesResponseSchema.parse({
 			ok: true,
@@ -133,10 +142,13 @@ export const listStudentProcessesController = async (
 };
 
 export const listStudentProcessHistoryController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const processes = await StudentService.listStudentProcessHistory();
+	const processes = await StudentService.listStudentProcessHistory({
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	});
 	res.json(
 		StudentProcessesResponseSchema.parse({
 			ok: true,
@@ -158,19 +170,19 @@ export const getStudentProcessController = async (
 
 	// reuse response mapping used for list
 	const mapped = {
-			archivedAt: process.archivedAt?.toISOString() ?? null,
+		archivedAt: process.archivedAt?.toISOString() ?? null,
 		id: process.id.toString(),
 		studentId: process.studentId.toString(),
 		status: process.status,
 		label: process.label,
 		tasks: process.tasks.map((task) => ({
-				key: task.key,
-				label: task.label,
-				completed: task.completed,
-				completedAt: task.completedAt?.toISOString() ?? null,
-				actionType: (task as any).actionType ?? undefined,
-				whatsappMessage: (task as any).whatsappMessage ?? undefined,
-			})),
+			key: task.key,
+			label: trimProcessTaskLabel(task.label),
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+			actionType: (task as any).actionType ?? undefined,
+			whatsappMessage: (task as any).whatsappMessage ?? undefined,
+		})),
 		student: {
 			id: process.student.id.toString(),
 			leadId: process.student.leadId?.toString(),
@@ -209,18 +221,18 @@ export const markStudentProcessTaskController = async (
 
 	const mapped = {
 		id: updated.id.toString(),
-			archivedAt: updated.archivedAt?.toISOString() ?? null,
+		archivedAt: updated.archivedAt?.toISOString() ?? null,
 		studentId: updated.studentId.toString(),
 		status: updated.status,
 		label: updated.label,
-			tasks: updated.tasks.map((task) => ({
-				key: task.key,
-				label: task.label,
-				completed: task.completed,
-				completedAt: task.completedAt?.toISOString() ?? null,
-				actionType: (task as any).actionType ?? undefined,
-				whatsappMessage: (task as any).whatsappMessage ?? undefined,
-			})),
+		tasks: updated.tasks.map((task) => ({
+			key: task.key,
+			label: trimProcessTaskLabel(task.label),
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+			actionType: (task as any).actionType ?? undefined,
+			whatsappMessage: (task as any).whatsappMessage ?? undefined,
+		})),
 		student: {
 			id: updated.student.id.toString(),
 			leadId: updated.student.leadId?.toString(),
@@ -269,13 +281,13 @@ export const setStudentProcessTaskCompletionController = async (
 		label: updated.label,
 		archivedAt: updated.archivedAt?.toISOString() ?? null,
 		tasks: updated.tasks.map((task) => ({
-				key: task.key,
-				label: task.label,
-				completed: task.completed,
-				completedAt: task.completedAt?.toISOString() ?? null,
-				actionType: (task as any).actionType ?? undefined,
-				whatsappMessage: (task as any).whatsappMessage ?? undefined,
-			})),
+			key: task.key,
+			label: trimProcessTaskLabel(task.label),
+			completed: task.completed,
+			completedAt: task.completedAt?.toISOString() ?? null,
+			actionType: (task as any).actionType ?? undefined,
+			whatsappMessage: (task as any).whatsappMessage ?? undefined,
+		})),
 		student: {
 			id: updated.student.id.toString(),
 			leadId: updated.student.leadId?.toString(),

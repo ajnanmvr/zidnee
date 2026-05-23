@@ -1,4 +1,5 @@
 import type { CreateTimeSlotPayload, TimeSlot } from "@repo/schema";
+import { Types } from "mongoose";
 import { type TimeSlotDocument, TimeSlotModel } from "./timeslot.model.js";
 
 const toTimeSlot = (doc: TimeSlotDocument): TimeSlot => ({
@@ -7,6 +8,7 @@ const toTimeSlot = (doc: TimeSlotDocument): TimeSlot => ({
 	durationMinutes: doc.durationMinutes,
 	timesPerWeek: doc.timesPerWeek,
 	isActive: doc.isActive,
+	createdBy: doc.createdBy?.toString() ?? null,
 	createdAt: doc.createdAt,
 	updatedAt: doc.updatedAt,
 });
@@ -18,7 +20,7 @@ const buildTimeSlotLabel = (durationMinutes: number, timesPerWeek: number) => {
 };
 
 export const TimeSlotService = {
-	create: async (payload: CreateTimeSlotPayload): Promise<TimeSlot> => {
+	create: async (payload: CreateTimeSlotPayload, createdBy?: string): Promise<TimeSlot> => {
 		const label = buildTimeSlotLabel(
 			payload.durationMinutes,
 			payload.timesPerWeek,
@@ -27,12 +29,17 @@ export const TimeSlotService = {
 			label,
 			durationMinutes: payload.durationMinutes,
 			timesPerWeek: payload.timesPerWeek,
+			createdBy: createdBy && Types.ObjectId.isValid(createdBy) ? createdBy : undefined,
 		});
 		return toTimeSlot(timeSlot.toObject() as TimeSlotDocument);
 	},
 
-	findAll: async (): Promise<TimeSlot[]> => {
-		const timeSlots = await TimeSlotModel.find({ isActive: true })
+	findAll: async (filters?: { scope?: "mine" | "all"; userId?: string }): Promise<TimeSlot[]> => {
+		const query: Record<string, unknown> = { isActive: true };
+		if (filters?.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
+			query.createdBy = new Types.ObjectId(filters.userId);
+		}
+		const timeSlots = await TimeSlotModel.find(query)
 			.sort({ label: 1 })
 			.lean<TimeSlotDocument[]>();
 		return timeSlots.map(toTimeSlot);

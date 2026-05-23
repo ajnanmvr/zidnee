@@ -94,6 +94,10 @@ const resolveTitle = (pathname: string, search: string): string => {
 		return "Sales";
 	}
 
+	if (pathname === "/sales-users") {
+		return "Sales Users";
+	}
+
 	return titles[pathname] ?? "Overview";
 };
 
@@ -262,6 +266,32 @@ export const DashboardLayout = () => {
 				...getLeadStageItems(),
 			]
 			: []),
+		...(hasPermission("DEMO_UNASSIGNED_READ_MY") || hasPermission("DEMO_UNASSIGNED_READ_ALL")
+			? [
+				{
+					to: "/demo-management/unassigned",
+					label: "Unassigned Demos",
+					description: "Pending assignment",
+					icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
+					count: myPendingDemoCount,
+					accent: "amber",
+					section: "Demo Management",
+				},
+			]
+			: []),
+		...(hasPermission("DEMO_SCHEDULED_READ_MY") || hasPermission("DEMO_SCHEDULED_READ_ALL")
+			? [
+				{
+					to: "/demo-management/scheduled",
+					label: "Scheduled Demos",
+					description: "Assigned & due",
+					icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+					count: myScheduledDemoCount,
+					accent: "emerald",
+					section: "Demo Management",
+				},
+			]
+			: []),
 		...(hasPermission("STUDENT_READ")
 			? [
 				{
@@ -362,6 +392,22 @@ export const DashboardLayout = () => {
 					accent: "cyan",
 					section: "Management",
 				},
+			]
+			: []),
+		...(hasPermission("SALES_USERS_READ")
+			? [
+				{
+					to: "/sales-users",
+					label: "Sales Users",
+					description: "Sales team",
+					icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
+					accent: "amber",
+					section: "Management",
+				},
+			]
+			: []),
+		...(hasPermission("USER_READ")
+			? [
 				{
 					to: "/mentors",
 					label: "Mentors",
@@ -381,32 +427,6 @@ export const DashboardLayout = () => {
 					icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
 					accent: "violet",
 					section: "Management",
-				},
-			]
-			: []),
-		...(hasPermission("DEMO_UNASSIGNED_READ_MY") || hasPermission("DEMO_UNASSIGNED_READ_ALL")
-			? [
-				{
-					to: "/demo-management/unassigned",
-					label: "Unassigned Demos",
-					description: "Pending assignment",
-					icon: <HiCalendarDays className="h-5 w-5" aria-hidden="true" />,
-					count: myPendingDemoCount,
-					accent: "amber",
-					section: "Demo Management",
-				},
-			]
-			: []),
-		...(hasPermission("DEMO_SCHEDULED_READ_MY") || hasPermission("DEMO_SCHEDULED_READ_ALL")
-			? [
-				{
-					to: "/demo-management/scheduled",
-					label: "Scheduled Demos",
-					description: "Assigned & due",
-					icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
-					count: myScheduledDemoCount,
-					accent: "emerald",
-					section: "Demo Management",
 				},
 			]
 			: []),

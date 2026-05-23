@@ -28,10 +28,13 @@ const toBatchResponse = (batch: Awaited<ReturnType<typeof BatchService.create>>)
 };
 
 export const listBatchesController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const batches = await BatchService.findAll();
+	const batches = await BatchService.findAll({
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	});
 	res.json(
 		BatchesResponseSchema.parse({
 			ok: true,

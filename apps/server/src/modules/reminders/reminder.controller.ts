@@ -66,11 +66,14 @@ export const getAllRemindersController = async (
 	const isDone = req.query.isDone ? req.query.isDone === "true" : undefined;
 	const sortBy = req.query.sortBy === "createdAt" ? "createdAt" : "date";
 	const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+	const scope = req.query.scope === "mine" ? "mine" : "all";
 
 	const reminders = await ReminderService.getAllReminders({
 		isDone,
 		sortBy,
 		sortOrder,
+		scope,
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 
 	res.json(

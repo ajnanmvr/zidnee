@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usersQueryKeys } from "@/features/users/users.queries";
 import {
+	assignUserCounsellor,
 	changeMyPassword,
 	changeUserPassword,
 	deleteUser,
@@ -31,6 +32,36 @@ export const useUpdateUserMutation = () => {
 			}
 
 			return updateUser(token, userId, payload);
+		},
+		onSuccess: async () => {
+			if (!token) {
+				return;
+			}
+
+			await queryClient.invalidateQueries({
+				queryKey: usersQueryKeys.users(token),
+			});
+		},
+	});
+};
+
+export const useAssignUserCounsellorMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			userId,
+			counsellorId,
+		}: {
+			userId: string;
+			counsellorId: string;
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+
+			return assignUserCounsellor(token, userId, counsellorId);
 		},
 		onSuccess: async () => {
 			if (!token) {

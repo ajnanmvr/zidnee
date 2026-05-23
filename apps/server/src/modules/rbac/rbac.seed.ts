@@ -169,4 +169,15 @@ export const seedCoreRolesAndUsers = async (): Promise<void> => {
 			{ upsert: true },
 		);
 	}
+
+	// Ensure SALES_USERS_READ is present on Admin and Sales roles (for older DBs that seeded before the permission existed)
+	try {
+		const salesPerm = await PermissionService.findByKey("SALES_USERS_READ" as any);
+		if (salesPerm) {
+			await RoleModel.updateOne({ name: "Admin" }, { $addToSet: { permissionIds: salesPerm.id } });
+			await RoleModel.updateOne({ name: "Sales" }, { $addToSet: { permissionIds: salesPerm.id } });
+		}
+	} catch (err) {
+		// ignore seeding errors here
+	}
 };

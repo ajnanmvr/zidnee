@@ -7,7 +7,9 @@ import { useSession } from "@/lib/session";
 
 export const ProcessHistoryPage = () => {
 	const { token } = useSession();
-	const historyQuery = useStudentProcessHistoryQuery(token);
+	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const historyQuery = useStudentProcessHistoryQuery(token, { scope: activeScope });
 	const location = useLocation();
 	const navigate = useNavigate();
 
@@ -69,9 +71,23 @@ export const ProcessHistoryPage = () => {
 	return (
 		<div className="grid gap-4">
 			<section className="px-2 py-3">
-				<div className="flex items-center justify-between">
+				<div className="flex items-center justify-between gap-3">
 					<h2 className="text-lg font-semibold">Process History</h2>
 					<div className="flex items-center gap-2">
+						<button
+							type="button"
+							onClick={() => setLoadAllRequested(false)}
+							className={`rounded-md px-3 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-700"}`}
+						>
+							Assigned to me
+						</button>
+						<button
+							type="button"
+							onClick={() => setLoadAllRequested(true)}
+							className={`rounded-md px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-700"}`}
+						>
+							All history
+						</button>
 						<div className="relative">
 							<span className="absolute inset-y-0 left-2 flex items-center text-slate-400"><HiMagnifyingGlass /></span>
 							<input

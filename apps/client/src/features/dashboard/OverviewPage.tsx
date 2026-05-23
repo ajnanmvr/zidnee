@@ -30,6 +30,7 @@ export const OverviewPage = () => {
 			description: "Class timing",
 		},
 		{ to: "/users", label: "Users", description: "User accounts" },
+        { to: "/sales-users", label: "Sales Users", description: "Sales team" },
 		{ to: "/roles", label: "Roles", description: "Permissions and roles" },
 		{
 			to: "/demo-management/unassigned",
@@ -61,6 +62,10 @@ export const OverviewPage = () => {
 
 		if (page.to === "/users") {
 			return hasPermission("USER_READ");
+		}
+
+		if (page.to === "/sales-users") {
+			return hasPermission("SALES_USERS_READ");
 		}
 
 		if (page.to === "/roles") {

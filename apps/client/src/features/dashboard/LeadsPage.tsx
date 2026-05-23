@@ -21,6 +21,12 @@ import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import {
+	useCounsellorsQuery,
+	useMentorsQuery,
+	useSalesUsersQuery,
+	useUsersQuery,
+} from "@/features/users/users.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	buildLeadColumns,
@@ -43,8 +49,9 @@ import {
 	useRequestRedemoMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
-import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
-import { useUsersQuery } from "@/features/users/users.queries";
+import {
+	useAssignUserCounsellorMutation,
+} from "@/features/users/use-user-management-mutations";
 import type {
 	ConfirmAdmissionForm,
 	CreateLeadForm,
@@ -70,7 +77,6 @@ const toInputDateTimeLocal = (value: string | null): string => {
 };
 
 const isCounsellorRole = (roleType: string) => roleType === "counsellor";
-const isSalesRole = (roleType: string) => roleType === "sales";
 
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
@@ -83,6 +89,15 @@ export const LeadsPage = () => {
 
 	const hasPermission = (key?: string) =>
 		Boolean(meQuery.data?.permissions?.some((p) => p.key === key));
+	const canAssignLeadToOthers =
+		hasPermission("LEAD_READ_ALL") || hasPermission("LEAD_UPDATE_ALL");
+	const canReadUsers = hasPermission("USER_READ");
+	// Allow reading sales users either with explicit SALES_USERS_READ
+	// or with LEAD_ASSIGN (server accepts either via requireAnyPermissionKey).
+	const canReadSalesUsers =
+		hasPermission("SALES_USERS_READ") || hasPermission("LEAD_ASSIGN");
+	const canRequestOrConfirmAdmission =
+		hasPermission("LEAD_ADMISSION_REQUEST") || hasPermission("LEAD_ADMISSION_CONFIRM");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
 	// Default sort: past → future (ascending)
@@ -98,8 +113,11 @@ export const LeadsPage = () => {
 		meQuery.data?.permissions?.some(
 			(permission) => permission.key === "LEAD_READ_ALL",
 		) ?? false;
-	const scopeParam = searchParams.get("scope");
-	const activeScope = scopeParam === "all" && canReadAllLeads ? "all" : "mine";
+	// Don't load the full "all" scope automatically on initial page load.
+	// The page stays on "mine" until the user explicitly clicks
+	// the "All users in stage" control.
+	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const activeScope = loadAllRequested && canReadAllLeads ? "all" : "mine";
 
 	// Map stage to status for backend filtering
 	const stageToStatus = (stage: LeadStageId): string | undefined => {
@@ -123,6 +141,9 @@ export const LeadsPage = () => {
 		}
 	};
 
+	const shouldEnableLeadsQuery =
+		activeScope === "mine" || (activeScope === "all" && loadAllRequested);
+
 	const activeLeadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: activeScope,
 		timeFilter: "all",
@@ -130,14 +151,15 @@ export const LeadsPage = () => {
 		page: currentPage,
 		sortBy,
 		sortOrder,
+		enabled: shouldEnableLeadsQuery,
 	});
-	const usersQuery = useUsersQuery(token);
+	const usersQuery = useUsersQuery(token, canReadUsers);
 	const createLeadMutation = useCreateLeadMutation();
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
 	const updateLeadMutation = useUpdateLeadMutation();
-	const updateUserMutation = useUpdateUserMutation();
+	const assignUserCounsellorMutation = useAssignUserCounsellorMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
 	const cancelLeadDemoMutation = useCancelLeadDemoMutation();
@@ -305,29 +327,32 @@ export const LeadsPage = () => {
 	});
 
 	const allUsers = usersQuery.data?.users ?? [];
+	const mentorsQuery = useMentorsQuery(token, Boolean(token));
+	const allMentors = mentorsQuery.data?.users ?? [];
+	const salesUsersQuery = useSalesUsersQuery(token, canReadSalesUsers);
+	const salesUsers = salesUsersQuery.data?.users ?? [];
+	const counsellorsQuery = useCounsellorsQuery(token, Boolean(token));
+
+	// prefer full user list when available, otherwise fall back to sales users
+	const combinedUsers = allUsers.length > 0 ? allUsers : salesUsers;
+
 	const counsellors = useMemo(
 		() =>
-			allUsers.filter((user) =>
-				user.roles.some((role) => isCounsellorRole(role.type ?? "general")),
+			(counsellorsQuery.data?.users ?? combinedUsers).filter((user: any) =>
+				user.roles.some((role: any) => isCounsellorRole(role.type ?? "general")),
 			),
-		[allUsers],
+		[counsellorsQuery.data, combinedUsers],
 	);
-	const salesUsers = useMemo(
-		() =>
-			allUsers.filter((user) =>
-				user.roles.some((role) => isSalesRole(role.type ?? "general")),
-			),
-		[allUsers],
-	);
+
 	const userNameById = useMemo(
 		() =>
 			new Map(
-				allUsers.map((user) => [
+				combinedUsers.map((user) => [
 					user.id,
 					formatUserName(user.name ?? user.username),
 				]),
 			),
-		[allUsers],
+		[combinedUsers],
 	);
 	const currentUserId = meQuery.data?.id;
 	const scopeLeads = activeLeadsQuery.data?.leads ?? [];
@@ -361,11 +386,11 @@ export const LeadsPage = () => {
 			return;
 		}
 
-		const defaultAssignedTo = salesUsers.some(
-			(user) => user.id === currentUserId,
-		)
-			? (currentUserId ?? "")
-			: "";
+		const defaultAssignedTo = canAssignLeadToOthers
+			? (salesUsers.some((user: any) => user.id === currentUserId)
+					? (currentUserId ?? "")
+					: "")
+			: (currentUserId ?? "");
 
 		resetCreate({
 			phone: "",
@@ -374,7 +399,7 @@ export const LeadsPage = () => {
 			isOrganic: false,
 			customNextFollowUpAt: undefined,
 		});
-	}, [createOpen, currentUserId, resetCreate, salesUsers]);
+	}, [canAssignLeadToOthers, createOpen, currentUserId, resetCreate, salesUsers]);
 
 	const onCreateLead = async (payload: CreateLeadForm) => {
 		const validation = CreateLeadPayloadSchema.safeParse(payload);
@@ -542,9 +567,9 @@ export const LeadsPage = () => {
 			return;
 		}
 		try {
-			await updateUserMutation.mutateAsync({
+			await assignUserCounsellorMutation.mutateAsync({
 				userId: admissionLeadLatestDemo.mentorId,
-				payload: { counsellorId: selectedCounsellorForMentor },
+				counsellorId: selectedCounsellorForMentor,
 			});
 			toast.success("Counsellor assigned to mentor.");
 			setAssigningCounsellorToMentor(false);
@@ -616,10 +641,13 @@ export const LeadsPage = () => {
 	const admissionLeadLatestDemo = admissionLead
 		? getLatestLeadDemo(admissionLead)
 		: null;
-	const defaultCounsellorId = admissionLeadLatestDemo?.mentorId
-		? allUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId)
-				?.counsellorId
-		: undefined;
+	const admissionLeadMentor = admissionLeadLatestDemo?.mentorId
+		? allMentors.find((mentor) => mentor.id === admissionLeadLatestDemo.mentorId) ??
+		  allUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId) ??
+		  salesUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId) ??
+		  null
+		: null;
+	const defaultCounsellorId = admissionLeadMentor?.counsellorId;
 
 	const columns = useMemo(
 		() =>
@@ -828,12 +856,14 @@ export const LeadsPage = () => {
 					<div className="flex flex-wrap gap-2">
 						<Link
 							to={buildSearch(activeStage, "mine")}
+							onClick={() => setLoadAllRequested(false)}
 							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
 						>
 							My leads
 						</Link>
 						<Link
 							to={buildSearch(activeStage, "all")}
+							onClick={() => setLoadAllRequested(true)}
 							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "all" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
 						>
 							All users in stage
@@ -978,33 +1008,35 @@ export const LeadsPage = () => {
 					className="grid gap-4"
 					onSubmit={handleCreateSubmit(onCreateLead)}
 				>
-					<Controller
-						name="assignedTo"
-						control={createControl}
-						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
-								<span>Assign to</span>
-								<select
-									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-									value={field.value ?? ""}
-									onChange={(event) => field.onChange(event.target.value)}
-								>
-									<option value="">Select user</option>
-									{salesUsers.map((user) => (
-										<option key={user.id} value={user.id}>
-											{formatUserName(user.name ?? user.username)}
-											{user.id === currentUserId ? " (You)" : ""}
-										</option>
-									))}
-								</select>
-								{fieldState.error?.message ? (
-									<p className="text-xs text-red-600">
-										{fieldState.error.message}
-									</p>
-								) : null}
-							</label>
-						)}
-					/>
+					{canAssignLeadToOthers ? (
+						<Controller
+							name="assignedTo"
+							control={createControl}
+							render={({ field, fieldState }) => (
+								<label className="grid gap-2 text-sm font-medium text-gray-600">
+									<span>Assign to</span>
+									<select
+										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+										value={field.value ?? ""}
+										onChange={(event) => field.onChange(event.target.value)}
+									>
+										<option value="">Select user</option>
+										{salesUsers.map((user: any) => (
+											<option key={user.id} value={user.id}>
+												{formatUserName(user.name ?? user.username)}
+												{user.id === currentUserId ? " (You)" : ""}
+											</option>
+										))}
+									</select>
+									{fieldState.error?.message ? (
+										<p className="text-xs text-red-600">
+											{fieldState.error.message}
+										</p>
+									) : null}
+								</label>
+							)}
+						/>
+					) : null}
 					<Controller
 						name="phone"
 						control={createControl}
@@ -1141,24 +1173,26 @@ export const LeadsPage = () => {
 					<p className="text-sm text-slate-600">
 						Select a counsellor who will coordinate and schedule the demo.
 					</p>
-					<select
-						value={selectedRequestCounsellor ?? ""}
-						onChange={(e) => setSelectedRequestCounsellor(e.target.value)}
-						className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2"
-					>
-						<option value="" disabled>
-							Select counsellor
-						</option>
-						{allUsers
-							.filter((u) =>
-								u.roles.some((r) => (r.type ?? "general") === "counsellor"),
-							)
-							.map((c) => (
+					{counsellors.length === 0 ? (
+						<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+							No counsellors available
+						</div>
+					) : (
+						<select
+							value={selectedRequestCounsellor ?? ""}
+							onChange={(e) => setSelectedRequestCounsellor(e.target.value)}
+							className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2"
+						>
+							<option value="" disabled>
+								Select counsellor
+							</option>
+							{counsellors.map((c) => (
 								<option key={c.id} value={c.id}>
 									{c.name || c.username}
 								</option>
 							))}
-					</select>
+						</select>
+					)}
 					<div className="flex justify-end gap-2">
 						<button
 							type="button"
@@ -1543,7 +1577,7 @@ export const LeadsPage = () => {
 					className="grid gap-4"
 					onSubmit={handleAdmissionSubmit(onRequestAdmission)}
 				>
-					{admissionLeadLatestDemo?.mentorId ? (
+					{canRequestOrConfirmAdmission && admissionLeadLatestDemo?.mentorId ? (
 						<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
 							<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
 								Last demo mentor
@@ -1554,82 +1588,97 @@ export const LeadsPage = () => {
 						</div>
 					) : null}
 
+					{/* Debug info (use ?debugAdmission=1 to enable) */}
+					{searchParams.get("debugAdmission") === "1" ? (
+						<div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+							<div className="font-semibold">Debug: admission modal data</div>
+							<pre className="mt-2 max-h-40 overflow-auto text-[11px]">{JSON.stringify({
+								admissionLead: admissionLead ?? null,
+								admissionLeadLatestDemo: admissionLeadLatestDemo ?? null,
+								defaultCounsellorId: defaultCounsellorId ?? null,
+								mentorInUsers: admissionLeadLatestDemo?.mentorId
+									? Boolean(combinedUsers.find((u) => u.id === admissionLeadLatestDemo.mentorId))
+									: false,
+							}, null, 2)}</pre>
+						</div>
+					) : null}
+
 					{/* Counsellor Assignment Section */}
-					{!assigningCounsellorToMentor ? (
-						<div>
-							<label className="mb-2 block text-sm font-medium text-slate-600">
-								Counsellor
-							</label>
-							{defaultCounsellorId ? (
-								<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-									<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-										Mentor's counsellor
-									</p>
-									<p className="mt-1 text-sm font-medium text-slate-900">
-										{allUsers.find((u) => u.id === defaultCounsellorId)
-											? formatUserName(
+					{canRequestOrConfirmAdmission ? (
+						!assigningCounsellorToMentor ? (
+							<div>
+								<label className="mb-2 block text-sm font-medium text-slate-600">
+									Counsellor
+								</label>
+								{defaultCounsellorId ? (
+									<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+										<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+											Mentor's counsellor
+										</p>
+										<p className="mt-1 text-sm font-medium text-slate-900">
+											{counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId) ?? allUsers.find((u) => u.id === defaultCounsellorId)
+												? formatUserName(
+													counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId)?.name ??
+													counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId)?.username ??
 													allUsers.find((u) => u.id === defaultCounsellorId)?.name ??
 													allUsers.find((u) => u.id === defaultCounsellorId)?.username ??
-													"-",
-											  )
-											: "-"}
-									</p>
-								</div>
-							) : (
-								<button
-									type="button"
-									className="w-full rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
-									onClick={() => setAssigningCounsellorToMentor(true)}
-								>
-									Assign counsellor to mentor
-								</button>
-							)}
-						</div>
-					) : (
-						<div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-							<p className="text-sm font-medium text-blue-900">
-								Assign counsellor to mentor
-							</p>
-							<select
-								value={selectedCounsellorForMentor ?? ""}
-								onChange={(e) =>
-									setSelectedCounsellorForMentor(e.target.value || null)
-								}
-								className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-							>
-								<option value="">Select counsellor</option>
-								{counsellors.map((counsellor) => (
-									<option key={counsellor.id} value={counsellor.id}>
-										{formatUserName(
-											counsellor.name ?? counsellor.username,
-										)}
-									</option>
-								))}
-							</select>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									className="flex-1 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-									onClick={() => {
-										setAssigningCounsellorToMentor(false);
-										setSelectedCounsellorForMentor(null);
-									}}
-								>
-									Cancel
-								</button>
-								<button
-									type="button"
-									className="flex-1 rounded-2xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-									onClick={() => void handleAssignCounsellorToMentor()}
-									disabled={!selectedCounsellorForMentor || updateUserMutation.isPending}
-								>
-									{updateUserMutation.isPending
-										? "Assigning..."
-										: "Assign"}
-								</button>
+													  "-",
+												  )
+												: "-"}
+										</p>
+									</div>
+								) : (
+									<button
+										type="button"
+										className="w-full rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+										onClick={() => setAssigningCounsellorToMentor(true)}
+									>
+										Assign counsellor to mentor
+									</button>
+								)}
 							</div>
-						</div>
-					)}
+						) : (
+							<div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+								<p className="text-sm font-medium text-blue-900">Assign counsellor to mentor</p>
+								{counsellors.length === 0 ? (
+									<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">No counsellors available</div>
+								) : (
+									<select
+										value={selectedCounsellorForMentor ?? ""}
+										onChange={(e) => setSelectedCounsellorForMentor(e.target.value || null)}
+										className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+									>
+										<option value="">Select counsellor</option>
+										{counsellors.map((counsellor: any) => (
+											<option key={counsellor.id} value={counsellor.id}>
+												{formatUserName(counsellor.name ?? counsellor.username)}
+											</option>
+										))}
+									</select>
+								)}
+								<div className="flex gap-2">
+									<button
+										type="button"
+										className="flex-1 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+										onClick={() => {
+											setAssigningCounsellorToMentor(false);
+											setSelectedCounsellorForMentor(null);
+										}}
+									>
+										Cancel
+									</button>
+									<button
+										type="button"
+										className="flex-1 rounded-2xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+										onClick={() => void handleAssignCounsellorToMentor()}
+										disabled={!selectedCounsellorForMentor || assignUserCounsellorMutation.isPending}
+									>
+											{assignUserCounsellorMutation.isPending ? "Assigning..." : "Assign"}
+									</button>
+								</div>
+							</div>
+						)
+					) : null}
 
 					<Controller
 						name="note"

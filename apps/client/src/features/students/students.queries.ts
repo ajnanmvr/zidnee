@@ -36,6 +36,7 @@ export const useStudentsQuery = (
 				sortOrder?: "asc" | "desc";
 				page?: number;
 				limit?: number;
+				scope?: "mine" | "all";
 		  }
 		| boolean,
 	enabled = true,
@@ -66,19 +67,33 @@ export const useStudentActivitiesQuery = (
 	});
 };
 
-export const useStudentProcessesQuery = (token: string, enabled = true) => {
+export const useStudentProcessesQuery = (
+	token: string,
+	optionsOrEnabled?: { scope?: "mine" | "all" } | boolean,
+	enabled = true,
+) => {
+	const options = typeof optionsOrEnabled === "boolean" ? undefined : optionsOrEnabled;
+	const queryEnabled =
+		typeof optionsOrEnabled === "boolean" ? optionsOrEnabled && enabled : enabled;
 	return useQuery({
-		queryKey: studentsQueryKeys.processes(token, false),
-		queryFn: () => fetchStudentProcesses(token),
-		enabled: Boolean(token) && enabled,
+		queryKey: [...studentsQueryKeys.processes(token, false), options?.scope ?? "all"],
+		queryFn: () => fetchStudentProcesses(token, { scope: options?.scope ?? "all" }),
+		enabled: Boolean(token) && queryEnabled,
 	});
 };
 
-export const useStudentProcessHistoryQuery = (token: string, enabled = true) => {
+export const useStudentProcessHistoryQuery = (
+	token: string,
+	optionsOrEnabled?: { scope?: "mine" | "all" } | boolean,
+	enabled = true,
+) => {
+	const options = typeof optionsOrEnabled === "boolean" ? undefined : optionsOrEnabled;
+	const queryEnabled =
+		typeof optionsOrEnabled === "boolean" ? optionsOrEnabled && enabled : enabled;
 	return useQuery({
-		queryKey: studentsQueryKeys.processes(token, true),
-		queryFn: () => fetchStudentProcessHistory(token),
-		enabled: Boolean(token) && enabled,
+		queryKey: [...studentsQueryKeys.processes(token, true), options?.scope ?? "all"],
+		queryFn: () => fetchStudentProcessHistory(token, { scope: options?.scope ?? "all" }),
+		enabled: Boolean(token) && queryEnabled,
 	});
 };
 

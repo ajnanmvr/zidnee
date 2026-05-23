@@ -4,9 +4,11 @@ import type { MentorSubstitution } from "@repo/schema";
 import {
 	useGetAllSubstitutions,
 	useDeleteSubstitution,
+	useGetSubstitutionsByStatus,
 } from "./mentor-substitution.queries";
-import { useUsersQuery } from "../users/users.queries";
+import { useMentorsQuery } from "../users/users.queries";
 import { useSession } from "@/lib/session";
+import { useMeQuery } from "@/features/auth/auth.queries";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
 	today: {
@@ -64,9 +66,16 @@ function getSubstitutionStatus(substitution: MentorSubstitution): string {
 
 export const SubstitutionsPage = () => {
 	const { token } = useSession();
-	const [statusFilter, setStatusFilter] = useState<string | null>(null);
-	const { data: substitutions = [] } = useGetAllSubstitutions(token);
-	const { data: usersData } = useUsersQuery(token);
+	const { data: me } = useMeQuery(token);
+	// Tabs: 'mine' or 'all'
+	const [activeTab, setActiveTab] = useState<"mine" | "all">("mine");
+	const [statusFilter] = useState<string | null>("active");
+	// Fetch active substitutions for initial view (status=active)
+	const { data: activeSubstitutions = [] } = useGetSubstitutionsByStatus(token, "active");
+	// Lazily fetch all substitutions only when user selects the 'all' tab
+	const allQuery = useGetAllSubstitutions(token, activeTab === "all");
+	const substitutions = activeTab === "all" ? allQuery.data ?? [] : activeSubstitutions;
+	const { data: usersData } = useMentorsQuery(token);
 	const mentors = usersData?.users ?? [];
 	const deleteSubstitution = useDeleteSubstitution();
 
@@ -74,7 +83,7 @@ export const SubstitutionsPage = () => {
 		return new Map(mentors.map((m: any) => [m.id, m.name]));
 	}, [mentors]);
 
-	// Add status to each substitution
+	// Add status to each substitution (derived from dates)
 	const substitutionsWithStatus = useMemo(() => {
 		return substitutions.map((sub: MentorSubstitution) => ({
 			...sub,
@@ -82,14 +91,13 @@ export const SubstitutionsPage = () => {
 		}));
 	}, [substitutions]);
 
-	// Filter by status
-	const filtered = useMemo(() => {
-		if (!statusFilter) return substitutionsWithStatus;
-		return substitutionsWithStatus.filter((sub: any) => sub.status === statusFilter);
-	}, [substitutionsWithStatus, statusFilter]);
+	// Helper: filter by status
+	const filterByStatus = (items: any[]) => {
+		if (!statusFilter) return items;
+		return items.filter((sub: any) => sub.status === statusFilter);
+	};
 
-	// Group and sort by status and date
-	const grouped = useMemo(() => {
+	const groupByStatus = (items: any[]) => {
 		const groups: Record<string, any[]> = {
 			today: [],
 			active: [],
@@ -97,22 +105,37 @@ export const SubstitutionsPage = () => {
 			"past-due": [],
 		};
 
-		filtered.forEach((sub: any) => {
+		items.forEach((sub: any) => {
 			if (groups[sub.status]) {
 				groups[sub.status]!.push(sub);
 			}
 		});
 
-		// Sort each group by end date
+		// Sort each group by end date desc
 		Object.values(groups).forEach((group: any[]) => {
-			group.sort(
-				(a: any, b: any) =>
-					new Date(b.endDate).getTime() - new Date(a.endDate).getTime(),
-			);
+			group.sort((a: any, b: any) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
 		});
 
 		return groups;
-	}, [filtered]);
+	};
+
+	// My mentors: those mentors whose counsellorId === me?.id
+	const myMentorIds = useMemo(() => {
+		if (!me) return [] as string[];
+		return mentors.filter((m: any) => m.counsellorId === me.id).map((m: any) => m.id);
+	}, [mentors, me]);
+
+	// Decide source: for 'mine' tab we use activeSubstitutions (already filtered by status on server)
+	const sourceSubstitutions = substitutionsWithStatus;
+
+	const mySubstitutions = useMemo(() => {
+		return sourceSubstitutions.filter((sub: any) => myMentorIds.includes(sub.originalMentorId) || myMentorIds.includes(sub.substituteMentorId));
+	}, [sourceSubstitutions, myMentorIds]);
+
+	const otherSubstitutions = useMemo(() => sourceSubstitutions, [sourceSubstitutions]);
+
+	const groupedMy = useMemo(() => groupByStatus(filterByStatus(mySubstitutions)), [mySubstitutions, statusFilter]);
+	const groupedAll = useMemo(() => groupByStatus(filterByStatus(otherSubstitutions)), [otherSubstitutions, statusFilter]);
 
 	const handleDelete = async (substitutionId: string) => {
 		if (confirm("Are you sure you want to delete this substitution?")) {
@@ -176,59 +199,90 @@ export const SubstitutionsPage = () => {
 				</p>
 			</div>
 
-			{/* Filter buttons */}
-			<div className="flex gap-2 flex-wrap">
+			{/* Tabs: My substitutions | All substitutions */}
+			<div className="flex gap-2 items-center">
 				<button
-					onClick={() => setStatusFilter(null)}
+					onClick={() => setActiveTab("mine")}
 					className={`px-4 py-2 rounded-md transition-colors ${
-						statusFilter === null
-							? "bg-blue-600 text-white"
-							: "bg-gray-200 text-gray-700 hover:bg-gray-300"
+						activeTab === "mine" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
 					}`}
 				>
-					All
+					My substitutions ({mySubstitutions.length})
 				</button>
-				{Object.entries(STATUS_COLORS).map(([key, colors]) => (
-					<button
-						key={key}
-						onClick={() => setStatusFilter(key)}
-						className={`px-4 py-2 rounded-md transition-colors ${
-							statusFilter === key
-								? `${colors.bg} ${colors.text} border-2 border-current`
-								: `bg-gray-200 text-gray-700 hover:bg-gray-300`
-						}`}
-					>
-						{colors.label} ({grouped[key]?.length ?? 0})
-					</button>
-				))}
+				<button
+					onClick={() => setActiveTab("all")}
+					className={`px-4 py-2 rounded-md transition-colors ${
+						activeTab === "all" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+					}`}
+				>
+					All substitutions {allQuery.isFetching ? "..." : allQuery.data ? `(${allQuery.data.length})` : ""}
+				</button>
 			</div>
-
 			{/* Substitutions list */}
 			<div className="space-y-8">
-				{["today", "active", "upcoming", "past-due"].map((status) => {
-					const statusSubs = grouped[status] || [];
-					if (statusSubs.length === 0) return null;
-
-					const colors = STATUS_COLORS[status];
-					if (!colors) return null;
-
-					return (
-						<div key={status}>
-							<div className={`${colors.bg} rounded-t-lg px-4 py-2`}>
-								<h2 className={`font-semibold ${colors.text}`}>
-									{colors.label} ({statusSubs.length})
-								</h2>
-							</div>
-							<div className="bg-white rounded-b-lg p-4 space-y-3">
-								{statusSubs.map((sub: any) => renderSubstitutionRow(sub))}
-							</div>
+				{activeTab === "mine" ? (
+					<div>
+						<div className={`rounded-t-lg px-4 py-2`}>
+							<h2 className={`font-semibold text-slate-800`}>
+								My mentors' substitutions ({mySubstitutions.length})
+							</h2>
 						</div>
-					);
-				})}
-
-				{substitutionsWithStatus.length === 0 && (
-					<div className="text-center py-8 text-gray-500">
-						No substitutions found
+						<div className="bg-white rounded-b-lg p-4 space-y-3">
+							{mySubstitutions.length === 0 ? (
+								<div className="text-sm text-gray-600">No substitutions for your mentors</div>
+							) : (
+								["active", "upcoming", "past-due"].map((status) => {
+									const statusSubs = groupedMy[status] || [];
+									if (statusSubs.length === 0) return null;
+									const colors = STATUS_COLORS[status];
+									if (!colors) return null;
+									return (
+										<div key={`my-${status}`}>
+											<div className={`${colors.bg} rounded-t-lg px-4 py-2`}>
+												<h3 className={`font-semibold ${colors.text}`}>
+													{colors.label} ({statusSubs.length})
+												</h3>
+											</div>
+											<div className="p-4 space-y-3">
+												{statusSubs.map((sub: any) => renderSubstitutionRow(sub))}
+											</div>
+										</div>
+									);
+								})
+							)}
+						</div>
+					</div>
+				) : (
+					<div>
+						<div className={`rounded-t-lg px-4 py-2`}>
+							<h2 className={`font-semibold text-slate-800`}>
+								All substitutions ({otherSubstitutions.length})
+							</h2>
+						</div>
+						<div className="bg-white rounded-b-lg p-4 space-y-3">
+							{otherSubstitutions.length === 0 ? (
+								<div className="text-center py-8 text-gray-500">No substitutions found</div>
+							) : (
+								["active", "upcoming", "past-due"].map((status) => {
+									const statusSubs = groupedAll[status] || [];
+									if (statusSubs.length === 0) return null;
+									const colors = STATUS_COLORS[status];
+									if (!colors) return null;
+									return (
+										<div key={`all-${status}`}>
+											<div className={`${colors.bg} rounded-t-lg px-4 py-2`}>
+												<h3 className={`font-semibold ${colors.text}`}>
+													{colors.label} ({statusSubs.length})
+												</h3>
+											</div>
+											<div className="p-4 space-y-3">
+												{statusSubs.map((sub: any) => renderSubstitutionRow(sub))}
+											</div>
+										</div>
+									);
+								})
+							)}
+						</div>
 					</div>
 				)}
 			</div>

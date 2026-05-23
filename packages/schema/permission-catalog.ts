@@ -11,6 +11,12 @@ export const PERMISSION_CATALOG = {
 		resource: "users",
 		action: "read",
 	},
+	SALES_USERS_READ: {
+		name: "Read Sales Users",
+		description: "View list of users in the sales role",
+		resource: "users",
+		action: "read:sales",
+	},
 	USER_UPDATE: {
 		name: "Update User",
 		description: "Update user information",
@@ -202,6 +208,57 @@ export const PERMISSION_CATALOG = {
 		description: "View reporting dashboards and exports",
 		resource: "reports",
 		action: "view",
+	},
+	// Sales-specific permissions (narrower than USER_* for sales role operations)
+	SALES_CREATE: {
+		name: "Create Sales User",
+		description: "Create a new sales user",
+		resource: "sales",
+		action: "create",
+	},
+	SALES_READ: {
+		name: "Read Sales Users",
+		description: "View sales user information and lists",
+		resource: "sales",
+		action: "read",
+	},
+	SALES_UPDATE: {
+		name: "Update Sales User",
+		description: "Update sales user details",
+		resource: "sales",
+		action: "update",
+	},
+	SALES_DELETE: {
+		name: "Delete Sales User",
+		description: "Remove a user from sales role or delete sales user records",
+		resource: "sales",
+		action: "delete",
+	},
+
+	// Mentor-specific permissions (operations scoped to mentors)
+	MENTOR_CREATE: {
+		name: "Create Mentor",
+		description: "Create a new mentor account",
+		resource: "mentors",
+		action: "create",
+	},
+	MENTOR_READ: {
+		name: "Read Mentors",
+		description: "View mentor information and lists",
+		resource: "mentors",
+		action: "read",
+	},
+	MENTOR_UPDATE: {
+		name: "Update Mentor",
+		description: "Update mentor profile or assignment details",
+		resource: "mentors",
+		action: "update",
+	},
+	MENTOR_DELETE: {
+		name: "Delete Mentor",
+		description: "Remove a mentor or delete mentor records",
+		resource: "mentors",
+		action: "delete",
 	},
 	// Students: additional granular permissions
 	STUDENT_CREATE: {

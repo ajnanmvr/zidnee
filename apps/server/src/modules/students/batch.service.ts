@@ -3,6 +3,7 @@ import type {
 	CreateBatchPayload,
 	UpdateBatchPayload,
 } from "@repo/schema";
+import { Types } from "mongoose";
 import { type BatchDocument, BatchModel } from "./batch.model.js";
 import { BatchIdentityService } from "./batch.identity.js";
 
@@ -52,8 +53,12 @@ export const BatchService = {
 		return batch ? toBatch(batch) : null;
 	},
 
-	findAll: async (): Promise<Batch[]> => {
-		const batches = await BatchModel.find().lean<BatchDocument[]>();
+	findAll: async (filters?: { scope?: "mine" | "all"; userId?: string }): Promise<Batch[]> => {
+		const query: Record<string, unknown> = {};
+		if (filters?.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
+			query.counsellorId = new Types.ObjectId(filters.userId);
+		}
+		const batches = await BatchModel.find(query).lean<BatchDocument[]>();
 		return batches.map(toBatch);
 	},
 

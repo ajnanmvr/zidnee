@@ -19,7 +19,7 @@ type TimeSlotForm = {
 export const CreateTimeSlotsPage = () => {
 	const { token } = useSession();
 	const createTimeSlotMutation = useCreateTimeSlotMutation();
-	const timeSlotsQuery = useTimeSlotsQuery(token ?? "");
+	const timeSlotsQuery = useTimeSlotsQuery(token ?? "", { enabled: Boolean(token) });
 	const [addOpen, setAddOpen] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
 	const [editingSlot, setEditingSlot] = useState<null | {
@@ -143,14 +143,16 @@ export const CreateTimeSlotsPage = () => {
 			title="Time Slots"
 			description="Manage class timing options for the public form"
 			action={
-				<button
-					type="button"
-					onClick={() => setAddOpen(true)}
-					className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a5d4a]"
-				>
-					<HiPlus className="h-4 w-4" aria-hidden="true" />
-					Add slots
-				</button>
+					<div className="flex items-center gap-2">
+						<button
+							type="button"
+							onClick={() => setAddOpen(true)}
+							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a5d4a]"
+						>
+							<HiPlus className="h-4 w-4" aria-hidden="true" />
+							Add slots
+						</button>
+					</div>
 			}
 		>
 			<div className="rounded-3xl border border-gray-200 bg-white p-5">

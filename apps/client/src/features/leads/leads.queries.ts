@@ -7,6 +7,7 @@ import {
 	fetchLeadById,
 	fetchPendingDemoRequests,
 } from "@/features/leads/leads.service";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
 export const leadsQueryKeys = {
 	list: (
@@ -74,7 +75,10 @@ export const useDueLeadFollowUpsQuery = (
 		enabled?: boolean;
 	},
 ) => {
-	const scope = options?.scope ?? "all";
+	const requestedScope = options?.scope ?? "all";
+	// Only allow requesting the full "all" scope if the user has LEAD_READ_ALL
+	const canReadAll = useHasPermission("LEAD_READ_ALL");
+	const scope = requestedScope === "all" && !canReadAll ? "mine" : requestedScope;
 	const timeFilter = options?.timeFilter ?? "all";
 	const status = options?.status;
 	const page = options?.page ?? 1;

@@ -45,7 +45,9 @@ const timeAgo = (dateString?: string | null) => {
 export const StudentProcessesPage = () => {
 	const { token } = useSession();
 	const navigate = useNavigate();
-	const processesQuery = useStudentProcessesQuery(token);
+	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const processesQuery = useStudentProcessesQuery(token, { scope: activeScope });
 	const completeProcess = useCompleteProcessMutation();
 	const [searchTerm, setSearchTerm] = useState("");
 
@@ -130,6 +132,22 @@ export const StudentProcessesPage = () => {
 				description="Browse all active and archived student process records"
 				action={
 					<div className="flex items-center gap-3">
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => setLoadAllRequested(false)}
+								className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:text-emerald-700"}`}
+							>
+								Assigned to me
+							</button>
+							<button
+								type="button"
+								onClick={() => setLoadAllRequested(true)}
+								className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:text-emerald-700"}`}
+							>
+								All processes
+							</button>
+						</div>
 						<Link
 							to="/process-history"
 							className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
