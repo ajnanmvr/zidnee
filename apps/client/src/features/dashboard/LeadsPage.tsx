@@ -101,13 +101,11 @@ export const LeadsPage = () => {
 		meQuery.data?.permissions?.some(
 			(permission) => permission.key === "LEAD_READ_ALL",
 		) ?? false;
-	const scopeParam = searchParams.get("scope");
-	const activeScope = scopeParam === "all" && canReadAllLeads ? "all" : "mine";
-
 	// Don't load the full "all" scope automatically on initial page load.
-	// Only enable fetching `scope=all` when the user explicitly requests it
-	// by clicking the "All users in stage" control.
+	// The page stays on "mine" until the user explicitly clicks
+	// the "All users in stage" control.
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const activeScope = loadAllRequested && canReadAllLeads ? "all" : "mine";
 
 	// Map stage to status for backend filtering
 	const stageToStatus = (stage: LeadStageId): string | undefined => {
