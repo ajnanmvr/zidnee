@@ -6,6 +6,7 @@ import { ReminderService } from "../reminders/reminder.service.js";
 import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
+import { BatchModel } from "./batch.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
 import { deleteObjectFromUrl } from "../../lib/s3.js";
@@ -42,6 +43,8 @@ type StudentListFilters = {
 	sortOrder?: "asc" | "desc";
 	page?: number;
 	limit?: number;
+	scope?: "mine" | "all";
+	userId?: string;
 };
 
 export type StudentProcessListItem = {
@@ -239,6 +242,12 @@ export const StudentService = {
 		filters: StudentListFilters = {},
 	): Promise<Student[]> => {
 		const query: Record<string, unknown> = {};
+		if (filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
+			const batchIds = await BatchModel.find({
+				counsellorId: new Types.ObjectId(filters.userId),
+			}).distinct("_id");
+			query.batchId = { $in: batchIds };
+		}
 
 		if (filters.status) {
 			query.status = filters.status;
@@ -265,7 +274,11 @@ export const StudentService = {
 		return students.map(toStudent);
 	},
 
-	listStudentProcesses: async (): Promise<StudentProcessListItem[]> => {
+	listStudentProcesses: async (filters: { scope?: "mine" | "all"; userId?: string } = {}): Promise<StudentProcessListItem[]> => {
+		const mentorMatch =
+			filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)
+				? new Types.ObjectId(filters.userId)
+				: null;
 		const raw = await StudentProcessModel.aggregate<unknown>([
 			{
 				$match: {
@@ -283,6 +296,21 @@ export const StudentService = {
 			{
 				$unwind: "$student",
 			},
+			{
+				$lookup: {
+					from: BatchModel.collection.name,
+					localField: "student.batchId",
+					foreignField: "_id",
+					as: "batch",
+				},
+			},
+			{
+				$unwind: {
+					path: "$batch",
+					preserveNullAndEmptyArrays: true,
+				},
+			},
+			...(mentorMatch ? [{ $match: { "batch.counsellorId": mentorMatch } }] : []),
 			{
 				$sort: {
 					updatedAt: -1,
@@ -319,7 +347,11 @@ export const StudentService = {
 		return processes;
 	},
 
-	listStudentProcessHistory: async (): Promise<StudentProcessListItem[]> => {
+	listStudentProcessHistory: async (filters: { scope?: "mine" | "all"; userId?: string } = {}): Promise<StudentProcessListItem[]> => {
+		const mentorMatch =
+			filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)
+				? new Types.ObjectId(filters.userId)
+				: null;
 		const raw = await StudentProcessModel.aggregate<unknown>([
 			{
 				$match: {
@@ -337,6 +369,21 @@ export const StudentService = {
 			{
 				$unwind: "$student",
 			},
+			{
+				$lookup: {
+					from: BatchModel.collection.name,
+					localField: "student.batchId",
+					foreignField: "_id",
+					as: "batch",
+				},
+			},
+			{
+				$unwind: {
+					path: "$batch",
+					preserveNullAndEmptyArrays: true,
+				},
+			},
+			...(mentorMatch ? [{ $match: { "batch.counsellorId": mentorMatch } }] : []),
 			{
 				$sort: {
 					archivedAt: -1,

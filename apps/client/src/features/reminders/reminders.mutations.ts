@@ -36,6 +36,7 @@ export const useGetAllReminders = (filters?: {
 	isDone?: boolean;
 	sortBy?: "date" | "createdAt";
 	sortOrder?: "asc" | "desc";
+	scope?: "mine" | "all";
 	enabled?: boolean;
 }) => {
 	const { token } = useSession();

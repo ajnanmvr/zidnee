@@ -31,14 +31,20 @@ export const StudentsPage = () => {
 	const sortOrder = searchParams.get("sortOrder") === "desc" ? "desc" : "asc";
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
+	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const allStudentsQuery = useStudentsQuery(token, {
+		scope: activeScope,
+		search: undefined,
+	});
 	const selectedStatus =
 		currentStage === "all"
 			? undefined
 			: studentStageDefinitions.find((stage) => stage.id === currentStage)
 					?.statusFilter?.[0];
 
-	const allStudentsQuery = useStudentsQuery(token);
 	const studentsQuery = useStudentsQuery(token, {
+		scope: activeScope,
 		status: selectedStatus,
 		search: searchTerm || undefined,
 		sortBy,
@@ -222,6 +228,22 @@ export const StudentsPage = () => {
 						placeholder="Search by name, phone, email, ZID, process"
 						className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500"
 					/>
+				</div>
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setLoadAllRequested(false)}
+						className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "bg-teal-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-teal-500 hover:text-teal-700"}`}
+					>
+						Assigned to me
+					</button>
+					<button
+						type="button"
+						onClick={() => setLoadAllRequested(true)}
+						className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-teal-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-teal-500 hover:text-teal-700"}`}
+					>
+						All students
+					</button>
 				</div>
 				<div className="flex items-end gap-3">
 					<div>

@@ -114,6 +114,8 @@ export const listStudentsController = async (
 			typeof req.query.limit === "string"
 				? parseInt(req.query.limit, 10)
 				: undefined,
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(
 		StudentsResponseSchema.parse({
@@ -124,10 +126,13 @@ export const listStudentsController = async (
 };
 
 export const listStudentProcessesController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const processes = await StudentService.listStudentProcesses();
+	const processes = await StudentService.listStudentProcesses({
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	});
 	res.json(
 		StudentProcessesResponseSchema.parse({
 			ok: true,
@@ -137,10 +142,13 @@ export const listStudentProcessesController = async (
 };
 
 export const listStudentProcessHistoryController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const processes = await StudentService.listStudentProcessHistory();
+	const processes = await StudentService.listStudentProcessHistory({
+		scope: req.query.scope === "mine" ? "mine" : "all",
+		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+	});
 	res.json(
 		StudentProcessesResponseSchema.parse({
 			ok: true,

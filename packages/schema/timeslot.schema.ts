@@ -7,6 +7,7 @@ export const TimeSlotSchema = z.object({
 	durationMinutes: z.number().int().positive(),
 	timesPerWeek: z.number().int().positive(),
 	isActive: z.boolean().default(true),
+	createdBy: ObjectIdStringSchema.optional().nullable(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
@@ -32,6 +33,7 @@ export const TimeSlotResponseSchema = TimeSlotSchema.omit({
 	createdAt: true,
 	updatedAt: true,
 }).extend({
+	createdBy: ObjectIdStringSchema.optional().nullable(),
 	createdAt: z.string().datetime().nullable(),
 	updatedAt: z.string().datetime().nullable(),
 });

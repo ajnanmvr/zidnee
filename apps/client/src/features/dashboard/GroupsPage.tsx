@@ -26,8 +26,10 @@ const formatGroupLevel = (level?: string | null) =>
 
 export const GroupsPage = () => {
 	const { token } = useSession();
-	const batchesQuery = useBatchesQuery(token);
-	const studentsQuery = useStudentsQuery(token);
+	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const batchesQuery = useBatchesQuery(token, { scope: activeScope });
+	const studentsQuery = useStudentsQuery(token, { scope: activeScope });
 	const usersQuery = useUsersQuery(token);
 	const canCreateBatch = useHasPermission("BATCH_CREATE");
 	const canUpdateBatch = useHasPermission("BATCH_UPDATE");
@@ -148,6 +150,22 @@ export const GroupsPage = () => {
 						Each group keeps a mentor, a human-readable code like zg001, and the
 						students assigned to it.
 					</p>
+				</div>
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setLoadAllRequested(false)}
+						className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "bg-emerald-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-emerald-500 hover:text-emerald-700"}`}
+					>
+						Assigned to me
+					</button>
+					<button
+						type="button"
+						onClick={() => setLoadAllRequested(true)}
+						className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-emerald-500 hover:text-emerald-700"}`}
+					>
+						All groups
+					</button>
 				</div>
 				{canCreateBatch ? (
 					<button

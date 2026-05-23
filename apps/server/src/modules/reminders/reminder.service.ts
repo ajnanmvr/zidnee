@@ -62,11 +62,16 @@ export const ReminderService = {
 		isDone?: boolean;
 		sortBy?: "date" | "createdAt";
 		sortOrder?: "asc" | "desc";
+		scope?: "mine" | "all";
+		userId?: string;
 	}): Promise<Reminder[]> => {
 		const query: Record<string, unknown> = {};
 
 		if (filters?.isDone !== undefined) {
 			query.isDone = filters.isDone;
+		}
+		if (filters?.scope === "mine" && filters.userId) {
+			query.assignedTo = filters.userId;
 		}
 
 		const sortField = filters?.sortBy === "createdAt" ? "createdAt" : "date";
