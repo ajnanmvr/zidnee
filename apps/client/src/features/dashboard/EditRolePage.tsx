@@ -14,6 +14,7 @@ import { usePermissionsQuery } from "@/features/permissions/permissions.queries"
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUpdateRoleMutation } from "@/features/roles/use-role-management-mutations";
 import type { UpdateRoleForm } from "@/lib/dashboard-types";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 const normalizeRoleType = (
@@ -31,6 +32,7 @@ export const EditRolePage = () => {
 	const { roleId = "" } = useParams();
 	const navigate = useNavigate();
 	const { token } = useSession();
+	const canUpdateRole = useHasPermission("ROLE_UPDATE");
 	const rolesQuery = useRolesQuery(token);
 	const permissionsQuery = usePermissionsQuery(token);
 	const updateRoleMutation = useUpdateRoleMutation();
@@ -161,6 +163,17 @@ export const EditRolePage = () => {
 				}
 			>
 				<p className="text-sm text-gray-600">Role not found.</p>
+			</Panel>
+		);
+	}
+
+	if (!canUpdateRole) {
+		return (
+			<Panel title="Edit role" description="Access denied">
+				<p className="text-sm text-gray-600">
+					You do not have permission to update roles. Ask an administrator to
+					grant ROLE_UPDATE.
+				</p>
 			</Panel>
 		);
 	}

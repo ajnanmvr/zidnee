@@ -119,6 +119,30 @@ export const PERMISSION_CATALOG = {
 		resource: "leads",
 		action: "demo:assign",
 	},
+	DEMO_UNASSIGNED_READ_MY: {
+		name: "View My Unassigned Demos",
+		description: "View unassigned demo requests assigned to me",
+		resource: "demo-management",
+		action: "unassigned:read:own",
+	},
+	DEMO_UNASSIGNED_READ_ALL: {
+		name: "View All Unassigned Demos",
+		description: "View all unassigned demo requests",
+		resource: "demo-management",
+		action: "unassigned:read:all",
+	},
+	DEMO_SCHEDULED_READ_MY: {
+		name: "View My Scheduled Demos",
+		description: "View scheduled demos assigned to me",
+		resource: "demo-management",
+		action: "scheduled:read:own",
+	},
+	DEMO_SCHEDULED_READ_ALL: {
+		name: "View All Scheduled Demos",
+		description: "View all scheduled demos",
+		resource: "demo-management",
+		action: "scheduled:read:all",
+	},
 	LEAD_DEMO_COMPLETE: {
 		name: "Complete Demo",
 		description: "Mark demo as completed",
@@ -178,6 +202,105 @@ export const PERMISSION_CATALOG = {
 		description: "View reporting dashboards and exports",
 		resource: "reports",
 		action: "view",
+	},
+	// Students: additional granular permissions
+	STUDENT_CREATE: {
+		name: "Create Student",
+		description: "Create a new student record",
+		resource: "students",
+		action: "create",
+	},
+	STUDENT_DELETE: {
+		name: "Delete Student",
+		description: "Delete a student",
+		resource: "students",
+		action: "delete",
+	},
+	STUDENT_EXPORT: {
+		name: "Export Students",
+		description: "Export student data to CSV/XLSX",
+		resource: "students",
+		action: "export",
+	},
+	STUDENT_IMPORT: {
+		name: "Import Students",
+		description: "Import student data from CSV/XLSX",
+		resource: "students",
+		action: "import",
+	},
+	STUDENT_CERTIFICATE_DOWNLOAD: {
+		name: "Download Certificate",
+		description: "Download a student's certificate",
+		resource: "students",
+		action: "certificate:download",
+	},
+	STUDENT_UPLOAD_PROFILE_PIC: {
+		name: "Upload Profile Picture",
+		description: "Upload or change a student's profile picture",
+		resource: "students",
+		action: "upload:profile-pic",
+	},
+	STUDENT_ASSESSMENT_READ: {
+		name: "Read Student Assessments",
+		description: "View assessment status for students",
+		resource: "students",
+		action: "assessment:read",
+	},
+	STUDENT_ASSESSMENT_UPDATE: {
+		name: "Update Student Assessments",
+		description: "Mark assessments as completed or update assessment values",
+		resource: "students",
+		action: "assessment:update",
+	},
+	// Batches
+	BATCH_CREATE: {
+		name: "Create Batch",
+		description: "Create a new batch/group",
+		resource: "batches",
+		action: "create",
+	},
+	BATCH_READ: {
+		name: "Read Batch",
+		description: "Read batch information",
+		resource: "batches",
+		action: "read",
+	},
+	BATCH_UPDATE: {
+		name: "Update Batch",
+		description: "Update batch information",
+		resource: "batches",
+		action: "update",
+	},
+	BATCH_DELETE: {
+		name: "Delete Batch",
+		description: "Delete a batch",
+		resource: "batches",
+		action: "delete",
+	},
+	// Reminders
+	REMINDER_CREATE: {
+		name: "Create Reminder",
+		description: "Create a reminder for a student or lead",
+		resource: "reminders",
+		action: "create",
+	},
+	REMINDER_READ: {
+		name: "Read Reminder",
+		description: "Read reminders",
+		resource: "reminders",
+		action: "read",
+	},
+	REMINDER_UPDATE: {
+		name: "Update Reminder",
+		description: "Update reminder details",
+		resource: "reminders",
+		action: "update",
+	},
+	REMINDER_DELETE: {
+		name: "Delete Reminder",
+		description: "Delete reminders",
+		resource: "reminders",
+		action: "delete",
 	},
 } as const;
 

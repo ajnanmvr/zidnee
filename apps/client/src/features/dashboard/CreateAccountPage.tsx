@@ -21,6 +21,7 @@ import type {
 	CreateMentorForm,
 	CreateUserForm,
 } from "@/lib/dashboard-types";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 export type CreateAccountRoleType = "admin" | "sales" | "mentor" | "counsellor";
@@ -107,6 +108,7 @@ export const CreateAccountPage = ({
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { token } = useSession();
+	const canCreateUser = useHasPermission("USER_CREATE");
 	const usersQuery = useUsersQuery(token);
 	const rolesQuery = useRolesQuery(token);
 	const createUserMutation = useCreateUserMutation();
@@ -305,6 +307,17 @@ export const CreateAccountPage = ({
 		{ value: "mentor", label: "Mentor" },
 		{ value: "counsellor", label: "Counsellor" },
 	];
+
+	if (!canCreateUser) {
+		return (
+			<Panel title={resolvedTitle} description={resolvedDescription}>
+				<p className="text-sm text-gray-600">
+					You do not have permission to create users. Ask an administrator to
+					grant USER_CREATE.
+				</p>
+			</Panel>
+		);
+	}
 
 	return (
 		<Panel title={resolvedTitle} description={resolvedDescription}>

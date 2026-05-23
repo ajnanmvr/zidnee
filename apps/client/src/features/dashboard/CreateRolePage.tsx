@@ -9,6 +9,7 @@ import { Field, SelectField, TextAreaField } from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useCreateRoleMutation } from "@/features/roles/use-create-role-mutation";
 import type { CreateRoleForm } from "@/lib/dashboard-types";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type PermissionGroup = {
@@ -23,13 +24,14 @@ type PermissionGroup = {
 
 export const CreateRolePage = () => {
 	const { token } = useSession();
+	const canCreateRole = useHasPermission("ROLE_CREATE");
 	const permissionsQuery = usePermissionsQuery(token);
 	const createRoleMutation = useCreateRoleMutation();
 	const { control, formState, handleSubmit, reset, setError, setValue, watch } =
 		useForm<CreateRoleForm>({
 			defaultValues: {
 				name: "",
-				type: "admin",
+				type: "",
 				description: "",
 				permissionIds: [],
 			},
@@ -109,7 +111,7 @@ export const CreateRolePage = () => {
 		try {
 			await createRoleMutation.mutateAsync(validation.data);
 			toast.success("Role created successfully.");
-			reset({ name: "", type: "admin", description: "", permissionIds: [] });
+			reset({ name: "", type: "", description: "", permissionIds: [] });
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const serverErrors = error.payload.errors ?? {};
@@ -144,6 +146,18 @@ export const CreateRolePage = () => {
 			);
 		}
 	};
+
+	if (!canCreateRole) {
+		return (
+			<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
+				<h3 className="text-xl font-semibold text-gray-900">Access denied</h3>
+				<p className="mt-2 text-sm text-gray-600">
+					You do not have permission to create roles. Ask an administrator to
+					grant ROLE_CREATE.
+				</p>
+			</section>
+		);
+	}
 
 	return (
 		<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
@@ -182,10 +196,11 @@ export const CreateRolePage = () => {
 						render={({ field, fieldState }) => (
 							<SelectField
 								label="Role Type"
-								value={field.value}
-								onChange={field.onChange}
+								value={field.value ?? ""}
+								onChange={(v) => field.onChange(v)}
 								options={[
-									{ value: "general", label: "General" },
+									{ value: "", label: "Select role type" },
+									{ value: "admin", label: "Admin" },
 									{ value: "mentor", label: "Mentor" },
 									{ value: "counsellor", label: "Counsellor" },
 									{ value: "sales", label: "Sales" },

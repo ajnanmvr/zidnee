@@ -16,7 +16,13 @@ import type {
 } from "@repo/schema";
 
 export type LoginForm = LoginPayload;
-export type CreateRoleForm = CreateRolePayload;
+export type CreateRoleForm = {
+	name: string;
+	// allow empty string while the user hasn't selected a role type yet
+	type?: CreateRolePayload["type"] | "";
+	description?: string;
+	permissionIds: string[];
+};
 export type CreateUserForm = CreateUserPayload;
 export type CreateMentorForm = CreateMentorPayload;
 export type CreateCounsellorForm = CreateCounsellorPayload;

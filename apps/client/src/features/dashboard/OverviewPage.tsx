@@ -20,9 +20,9 @@ export const OverviewPage = () => {
 			description: "Enrolled learners",
 		},
 		{
-			to: "/counsellor/students",
-			label: "My Students",
-			description: "Counsellor workspace",
+			to: "/processes",
+			label: "Processes",
+			description: "Student workflows",
 		},
 		{
 			to: "/time-slots",
@@ -51,10 +51,8 @@ export const OverviewPage = () => {
 			return hasPermission("STUDENT_READ");
 		}
 
-		if (page.to === "/counsellor/students") {
-			return (
-				meQuery.data?.roles?.some((role) => role.name === "Counsellor") ?? false
-			);
+		if (page.to === "/processes") {
+			return hasPermission("STUDENT_READ");
 		}
 
 		if (page.to === "/time-slots") {
@@ -70,11 +68,17 @@ export const OverviewPage = () => {
 		}
 
 		if (page.to === "/demo-management/unassigned") {
-			return hasPermission("LEAD_DEMO_ASSIGN");
+			return (
+				hasPermission("DEMO_UNASSIGNED_READ_MY") ||
+				hasPermission("DEMO_UNASSIGNED_READ_ALL")
+			);
 		}
 
 		if (page.to === "/demo-management/scheduled") {
-			return hasPermission("LEAD_DEMO_COMPLETE");
+			return (
+				hasPermission("DEMO_SCHEDULED_READ_MY") ||
+				hasPermission("DEMO_SCHEDULED_READ_ALL")
+			);
 		}
 
 		return true;

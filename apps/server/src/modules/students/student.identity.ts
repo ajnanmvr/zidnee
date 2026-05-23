@@ -3,7 +3,7 @@ export const STUDENT_IDENTITY_PAD_LENGTH = 3;
 
 export const buildStudentIdentity = (
 	existingIds: Array<string | undefined>,
- 	prefix: string = STUDENT_IDENTITY_PREFIX,
+	prefix: string = STUDENT_IDENTITY_PREFIX,
 ): string => {
 	const normalizedPrefix = prefix.toUpperCase();
 	const highest = existingIds.reduce((max, currentId) => {

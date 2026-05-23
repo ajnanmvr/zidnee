@@ -24,7 +24,14 @@
 
 	"css": {
 		"parser": {
-			"tailwindDirectives": true
+			"tailwindDirectives": true,
+			"cssModules": true
+		},
+		"formatter": {
+			"enabled": true
+		},
+		"linter": {
+			"enabled": false
 		}
 	},
 

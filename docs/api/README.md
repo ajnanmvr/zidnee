@@ -51,6 +51,43 @@ Access the interactive Swagger UI while the server is running:
 http://localhost:3001/api/docs
 ```
 
+## S3 Profile Image Uploads
+
+Student profile pictures are uploaded to AWS S3 under the `profile-images/` prefix.
+
+### Recommended bucket policy
+
+Use a bucket policy instead of ACLs. For public profile images, allow `s3:GetObject` on the prefix:
+
+```json
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "PublicReadGetObject",
+			"Effect": "Allow",
+			"Principal": "*",
+			"Action": "s3:GetObject",
+			"Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/profile-images/*"
+		}
+	]
+}
+```
+
+### Environment variables
+
+The server expects these AWS values in `.env`:
+
+```bash
+AWS_REGION=ap-south-1
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+AWS_S3_BUCKET=your_bucket_name_here
+APP_URL=https://app.zidneestudies.com
+```
+
+If you keep the bucket private, generate signed URLs from the backend instead of exposing the bucket publicly.
+
 ### Direct API Endpoints
 
 - **JSON Spec:** `GET http://localhost:3001/api/docs.json`

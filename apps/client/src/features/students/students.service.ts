@@ -1,11 +1,14 @@
 import {
 	StudentActivitiesResponseSchema,
 	StudentFollowUpPayloadSchema,
+	MessageResponseSchema,
+	StudentProcessesResponseSchema,
 	StudentResponseEnvelopeSchema,
 	StudentsResponseSchema,
 	UpdateStudentAssessmentPayloadSchema,
 	UpdateStudentPayloadSchema,
 } from "@repo/schema";
+import { StudentProcessResponseSchema } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
 export const fetchStudents = async (
@@ -66,10 +69,109 @@ export const fetchStudentActivities = async (
 	);
 };
 
+export const fetchStudentProcesses = async (
+	token: string,
+	options?: { archived?: boolean },
+) => {
+	const query = new URLSearchParams();
+
+	if (options?.archived) {
+		query.set("archived", "true");
+	}
+
+	return requestWithSchema(
+		`/students/processes${query.toString() ? `?${query.toString()}` : ""}`,
+		StudentProcessesResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchStudentProcessHistory = async (token: string) => {
+	return requestWithSchema(
+		`/students/process-history`,
+		StudentProcessesResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchStudentProcess = async (token: string, processId: string) => {
+	const validator = {
+		safeParse: (raw: unknown) => {
+			const candidate = (raw as any)?.process;
+			const parsed = StudentProcessResponseSchema.safeParse(candidate);
+			if (!parsed.success) return { success: false } as const;
+			return { success: true, data: { process: parsed.data } } as const;
+		},
+	} as const;
+
+	return requestWithSchema(`/students/processes/${processId}`, validator as any, "GET", undefined, token);
+};
+
+export const markProcessTaskCompleted = async (
+	token: string,
+	processId: string,
+	taskKey: string,
+) => {
+	const validator = {
+		safeParse: (raw: unknown) => {
+			const candidate = (raw as any)?.process;
+			const parsed = StudentProcessResponseSchema.safeParse(candidate);
+			if (!parsed.success) return { success: false } as const;
+			return { success: true, data: { process: parsed.data } } as const;
+		},
+	} as const;
+
+	return requestWithSchema(
+		`/students/processes/${processId}/tasks/${encodeURIComponent(taskKey)}/complete`,
+		validator as any,
+		"POST",
+		undefined,
+		token,
+	);
+};
+
+export const setProcessTaskCompleted = async (
+	token: string,
+	processId: string,
+	taskKey: string,
+	completed: boolean,
+) => {
+	const validator = {
+		safeParse: (raw: unknown) => {
+			const candidate = (raw as any)?.process;
+			const parsed = StudentProcessResponseSchema.safeParse(candidate);
+			if (!parsed.success) return { success: false } as const;
+			return { success: true, data: { process: parsed.data } } as const;
+		},
+	} as const;
+
+	return requestWithSchema(
+		`/students/processes/${processId}/tasks/${encodeURIComponent(taskKey)}/set`,
+		validator as any,
+		"POST",
+		{ completed },
+		token,
+	);
+};
+
+export const completeStudentProcess = async (token: string, processId: string) => {
+	return requestWithSchema(
+		`/students/processes/${processId}/complete`,
+		MessageResponseSchema,
+		"POST",
+		undefined,
+		token,
+	);
+};
+
 export const recordStudentFollowUp = async (
 	token: string,
 	studentId: string,
-	payload: { note: string },
+	payload: { note: string; nextFollowUpAt?: Date },
 ) => {
 	const validatedPayload = StudentFollowUpPayloadSchema.parse(payload);
 

@@ -12,9 +12,11 @@ export type StudentDocument = Omit<
 	admittedBy: Types.ObjectId;
 	mentorId?: Types.ObjectId;
 	batchId?: Types.ObjectId;
+	breakReminderId?: Types.ObjectId;
 	nextFollowUpAt?: Date;
 	customNextFollowUpAt?: Date;
 	admittedAt: Date;
+	classStartConfirmedAt?: Date;
 };
 
 const studentSchema = new Schema<StudentDocument>(
@@ -174,6 +176,31 @@ const studentSchema = new Schema<StudentDocument>(
 			trim: true,
 			maxlength: 150,
 		},
+		breakReminderId: {
+			type: Schema.Types.ObjectId,
+			ref: "Reminder",
+			required: false,
+			index: true,
+		},
+		inactiveFrom: {
+			type: Date,
+			required: false,
+		},
+		inactiveUntil: {
+			type: Date,
+			required: false,
+		},
+		dropReason: {
+			type: String,
+			required: false,
+			trim: true,
+			maxlength: 255,
+		},
+		dropTemporary: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
 		oralAssessmentDone: {
 			type: Boolean,
 			required: false,
@@ -209,6 +236,10 @@ const studentSchema = new Schema<StudentDocument>(
 		admittedAt: {
 			type: Date,
 			required: true,
+		},
+		classStartConfirmedAt: {
+			type: Date,
+			required: false,
 		},
 	},
 	{

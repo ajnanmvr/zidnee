@@ -52,6 +52,7 @@ export const MentorFollowUpService = {
 	recordMentorFollowUp: async (
 		mentorId: string,
 		note?: string,
+		nextFollowUpAtOverride?: Date,
 	): Promise<User | null> => {
 		const mentor = await UserModel.findById(mentorId).lean<
 			UserDocument | null
@@ -61,7 +62,7 @@ export const MentorFollowUpService = {
 		}
 
 		const now = new Date();
-		const nextFollowUpAt = calculateNextFollowUpDate();
+		const nextFollowUpAt = calculateNextFollowUpDate(nextFollowUpAtOverride);
 
 		const updated = await UserModel.findByIdAndUpdate(
 			mentorId,

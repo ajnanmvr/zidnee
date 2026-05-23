@@ -27,6 +27,10 @@ export const StudentSchema = z.object({
 	leadId: ObjectIdStringSchema,
 	processId: ObjectIdStringSchema.optional(),
 	processLabel: z.string().max(150).optional(),
+	inactiveFrom: z.date().optional(),
+	inactiveUntil: z.date().optional(),
+	dropReason: z.string().max(255).optional(),
+	dropTemporary: z.boolean().optional(),
 	oralAssessmentDone: z.boolean().default(false),
 	writtenAssessmentDone: z.boolean().default(false),
 	levelAssessmentDone: z.boolean().default(false),
@@ -57,6 +61,7 @@ export const StudentSchema = z.object({
 	batchId: ObjectIdStringSchema.optional(),
 	status: StudentStatusSchema,
 	admittedAt: z.date(),
+	classStartConfirmedAt: z.date().optional(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
@@ -97,6 +102,7 @@ export type ConfirmAdmissionPayload = z.infer<
 
 export const StudentFollowUpPayloadSchema = z.object({
 	note: z.string().min(1).max(500),
+	nextFollowUpAt: z.coerce.date().optional(),
 });
 
 export type StudentFollowUpPayload = z.infer<
@@ -107,6 +113,31 @@ export const UpdateStudentPayloadSchema = z.object({
 	mentorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional().nullable(),
 	profilePic: z.string().max(5000000).nullable().optional(),
+	// Allow editing core student fields
+	name: z.string().max(255).optional(),
+	phone: z.string().min(8).max(20).optional(),
+	email: z.string().email().max(255).optional(),
+	courseType: BatchTypeSchema.optional(),
+	level: z.string().max(100).optional(),
+	dateOfBirth: z.coerce.date().optional().nullable(),
+	residingCountry: z.string().max(100).optional(),
+	gender: z.enum(["male", "female"]).optional(),
+	primaryWhatsappNumber: z.string().min(8).max(20).optional(),
+	alternateWhatsappNumber: z.string().min(8).max(20).optional(),
+	studentInfo: z.string().max(1000).optional(),
+	preferredLanguage: z
+		.enum(["Malayalam Only", "English Only", "Malayalam - English Mixed"])
+		.optional(),
+	preferredSchedule: z.string().max(150).optional(),
+	preferredDays: z.array(z.string()).optional(),
+	timeslot: StudentTimeslotSnapshotSchema.optional().nullable(),
+	price: z.number().int().nonnegative().optional().nullable(),
+	hearAboutUs: z.string().max(255).optional(),
+	inactiveFrom: z.coerce.date().optional().nullable(),
+	inactiveUntil: z.coerce.date().optional().nullable(),
+	dropReason: z.string().max(255).optional(),
+	dropTemporary: z.boolean().optional(),
+	status: StudentStatusSchema.optional(),
 });
 
 export type UpdateStudentPayload = z.infer<typeof UpdateStudentPayloadSchema>;
@@ -117,10 +148,15 @@ export const StudentResponseSchema = StudentSchema.omit({
 	createdAt: true,
 	updatedAt: true,
 }).extend({
+	inactiveFrom: z.string().datetime().nullable().optional(),
+	inactiveUntil: z.string().datetime().nullable().optional(),
+	dropReason: z.string().max(255).nullable().optional(),
+	dropTemporary: z.boolean().nullable().optional(),
 	nextFollowUpAt: z.string().datetime().nullable().optional(),
 	customNextFollowUpAt: z.string().datetime().nullable().optional(),
 	dateOfBirth: z.string().datetime().nullable(),
 	admittedAt: z.string().datetime(),
+	classStartConfirmedAt: z.string().datetime().nullable().optional(),
 	createdAt: z.string().datetime().nullable(),
 	updatedAt: z.string().datetime().nullable(),
 });

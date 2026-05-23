@@ -1,6 +1,9 @@
-﻿import { useMemo } from "react";
+﻿import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import { DataTable } from "@/components/DataTable";
+import { Modal } from "@/components/dashboard-ui";
+import { useBatchesQuery } from "@/features/batches/batches.queries";
 import {
 	getStudentStageCounts,
 	type StudentStageId,
@@ -12,8 +15,10 @@ import {
 	getStudentStatusColor,
 	type StudentTableRow,
 } from "@/features/students/student-table";
+import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 export const StudentsPage = () => {
@@ -24,6 +29,8 @@ export const StudentsPage = () => {
 	const searchTerm = searchParams.get("search") ?? "";
 	const sortBy = searchParams.get("sortBy") ?? "nextFollowUpAt";
 	const sortOrder = searchParams.get("sortOrder") === "desc" ? "desc" : "asc";
+	const page = Number(searchParams.get("page") ?? "1");
+	const limit = Number(searchParams.get("limit") ?? "25");
 	const selectedStatus =
 		currentStage === "all"
 			? undefined
@@ -36,8 +43,20 @@ export const StudentsPage = () => {
 		search: searchTerm || undefined,
 		sortBy,
 		sortOrder,
+		page,
+		limit,
 	});
+	const batchesQuery = useBatchesQuery(token);
 	const usersQuery = useUsersQuery(token);
+	const canUpdateStudent = useHasPermission("STUDENT_UPDATE");
+	const updateStudentMutation = useUpdateStudentMutation();
+
+	const [addToGroupModalOpen, setAddToGroupModalOpen] = useState(false);
+	const [selectedStudent, setSelectedStudent] = useState<StudentTableRow | null>(
+		null,
+	);
+	const [groupSearch, setGroupSearch] = useState("");
+	const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
 	const setQueryParam = (key: string, value?: string) => {
 		const next = new URLSearchParams(searchParams);
@@ -125,9 +144,70 @@ export const StudentsPage = () => {
 	);
 
 	const columns = useMemo(
-		() => buildStudentColumns(getStudentStatusColor, mentorNameById),
-		[mentorNameById],
+		() =>
+			buildStudentColumns(getStudentStatusColor, mentorNameById, {
+				canAddToGroup: canUpdateStudent,
+				groupLabelByBatchId: (batchesQuery.data?.batches ?? []).reduce<
+					Record<string, string>
+				>((acc, batch) => {
+					if (batch.type === "GROUP") {
+						acc[batch.id] = (batch.groupId ?? batch.name ?? batch.id).toUpperCase();
+					}
+					return acc;
+				}, {}),
+				onAddToGroup: (student) => {
+					setSelectedStudent(student);
+					setSelectedGroupId("");
+					setGroupSearch("");
+					setAddToGroupModalOpen(true);
+				},
+			}),
+		[batchesQuery.data?.batches, mentorNameById],
 	);
+
+	const availableGroups = useMemo(() => {
+		const groups = (batchesQuery.data?.batches ?? []).filter(
+			(batch) => batch.type === "GROUP" && batch.isActive,
+		);
+
+		const levelFiltered = selectedStudent?.level
+			? groups.filter((batch) => batch.level === selectedStudent.level)
+			: groups;
+
+		const query = groupSearch.trim().toLowerCase();
+		if (!query) {
+			return levelFiltered;
+		}
+
+		return levelFiltered.filter((batch) => {
+			const label = `${batch.groupId ?? ""} ${batch.name ?? ""} ${batch.level}`.toLowerCase();
+			return label.includes(query);
+		});
+	}, [batchesQuery.data?.batches, groupSearch, selectedStudent?.level]);
+
+	const closeAddToGroupModal = () => {
+		setAddToGroupModalOpen(false);
+		setSelectedStudent(null);
+		setSelectedGroupId("");
+		setGroupSearch("");
+	};
+
+	const submitAddToGroup = async () => {
+		if (!selectedStudent || !selectedGroupId) {
+			return;
+		}
+
+		try {
+			await updateStudentMutation.mutateAsync({
+				studentId: selectedStudent.id,
+				payload: { batchId: selectedGroupId },
+			});
+			toast.success("Student added to group");
+			closeAddToGroupModal();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to add student to group");
+		}
+	};
 
 	return (
 		<div className="space-y-4">
@@ -214,6 +294,37 @@ export const StudentsPage = () => {
 				/>
 			</div>
 
+			{/* Pagination */}
+			<div className="flex items-center justify-between py-4">
+				<div className="text-sm text-gray-600">
+					<span>Page {page}</span>
+				</div>
+				<div className="flex items-center gap-2">
+					<select
+						value={String(limit)}
+						onChange={(e) => setQueryParam("limit", e.target.value)}
+						className="rounded-lg border border-gray-300 px-3 py-1 text-sm"
+					>
+						<option value="10">10</option>
+						<option value="25">25</option>
+						<option value="50">50</option>
+						<option value="100">100</option>
+					</select>
+					<button
+						onClick={() => setQueryParam("page", String(Math.max(1, page - 1)))}
+						className="rounded-lg border border-gray-300 px-3 py-1 text-sm"
+					>
+						Prev
+					</button>
+					<button
+						onClick={() => setQueryParam("page", String(page + 1))}
+						className="rounded-lg border border-gray-300 px-3 py-1 text-sm"
+					>
+						Next
+					</button>
+				</div>
+			</div>
+
 			{filteredStudents.length === 0 && !studentsQuery.isLoading && (
 				<div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
 					<div>
@@ -226,6 +337,80 @@ export const StudentsPage = () => {
 					</div>
 				</div>
 			)}
+
+			<Modal
+				open={addToGroupModalOpen}
+				onClose={closeAddToGroupModal}
+				title="Add student to group"
+				description={
+					selectedStudent
+						? `Select a group for ${selectedStudent.name ?? selectedStudent.zid}`
+						: "Select a group"
+				}
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={closeAddToGroupModal}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void submitAddToGroup()}
+							disabled={!selectedGroupId || updateStudentMutation.isPending}
+							className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{updateStudentMutation.isPending ? "Adding..." : "Add to group"}
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<div>
+						<label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+							Search group
+						</label>
+						<input
+							value={groupSearch}
+							onChange={(event) => setGroupSearch(event.target.value)}
+							placeholder="Search by group ID, name, or level"
+							className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500"
+						/>
+					</div>
+
+					<div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-2">
+						{availableGroups.length === 0 ? (
+							<p className="px-2 py-6 text-center text-sm text-gray-500">
+								No matching groups found
+							</p>
+						) : (
+							availableGroups.map((batch) => {
+								const label = (batch.groupId ?? batch.name ?? batch.id).toUpperCase();
+								const isSelected = selectedGroupId === batch.id;
+								return (
+									<button
+										key={batch.id}
+										type="button"
+										onClick={() => setSelectedGroupId(batch.id)}
+										className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+											isSelected
+												? "border-teal-500 bg-teal-50"
+												: "border-gray-200 hover:border-gray-300"
+										}`}
+									>
+										<p className="text-sm font-semibold text-gray-900">{label}</p>
+										<p className="text-xs text-gray-600">
+											{batch.name ?? "Unnamed group"} • Level: {batch.level}
+										</p>
+									</button>
+								);
+							})
+						)}
+					</div>
+				</div>
+			</Modal>
 		</div>
 	);
 };

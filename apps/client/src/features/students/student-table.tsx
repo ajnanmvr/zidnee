@@ -59,6 +59,11 @@ export const getStudentFollowUpState = (
 export const buildStudentColumns = (
 	getColorByStatus: (status: string) => string,
 	mentorNameById: Record<string, string>,
+	options?: {
+		groupLabelByBatchId?: Record<string, string>;
+		onAddToGroup?: (student: StudentTableRow) => void;
+		canAddToGroup?: boolean;
+	},
 ): ColumnDef<StudentTableRow>[] => {
 	return [
 		{
@@ -86,27 +91,69 @@ export const buildStudentColumns = (
 		},
 		{
 			accessorKey: "courseType",
-			header: "Course",
+			header: "batch",
 			size: 100,
-			cell: ({ row }) =>
-				row.original.courseType ? (
-					<span
-						className={`rounded-full px-2 py-1 text-xs font-semibold ${
-							row.original.courseType === "INDIVIDUAL"
-								? "bg-amber-100 text-amber-800"
-								: "bg-blue-100 text-blue-800"
-						}`}
-					>
-						{row.original.courseType}
+			cell: ({ row }) => {
+				const student = row.original;
+
+				if (!student.courseType) {
+					return <span className="text-gray-400">—</span>;
+				}
+
+				if (student.courseType === "GROUP") {
+					if (student.batchId) {
+						const groupLabel =
+							options?.groupLabelByBatchId?.[student.batchId] ?? student.batchId;
+						return (
+							<span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+								{groupLabel}
+							</span>
+						);
+					}
+
+					if (options?.onAddToGroup && options.canAddToGroup) {
+						return (
+							<button
+								type="button"
+								onClick={() => options.onAddToGroup?.(student)}
+								className="inline-flex rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200"
+							>
+								Add to group
+							</button>
+						);
+					}
+				}
+
+				return (
+					<span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+						{student.courseType}
 					</span>
-				) : (
-					<span className="text-gray-400">—</span>
-				),
+				);
+			},
 		},
 		{
 			accessorKey: "level",
 			header: "Level",
 			size: 100,
+			cell: ({ row }) => {
+				const levelValue = row.original.level;
+				const levelMap: Record<string | number, string> = {
+					1: "Seed",
+					2: "Sprout",
+					3: "Root",
+					4: "Leaf",
+					5: "Bud",
+					6: "Bloom",
+					7: "Fruit",
+				};
+
+				if (levelValue === undefined || levelValue === null || levelValue === "") {
+					return <span className="text-gray-400">—</span>;
+				}
+
+				const key = typeof levelValue === "number" ? levelValue : Number(levelValue);
+				return <span className="font-semibold">{levelMap[key] ?? String(levelValue)}</span>;
+			},
 		},
 		{
 			accessorKey: "mentorId",
@@ -130,7 +177,7 @@ export const buildStudentColumns = (
 					<span
 						className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white ${getColorByStatus(
 							row.original.status,
-						)}`}
+						)} ${hasProcess ? "animate-pulse bg-yellow-500" : ""}`}
 					>
 						{hasProcess ? (
 							<HiCog6Tooth
@@ -161,10 +208,10 @@ export const buildStudentColumns = (
 						<p>
 							{followUpDate
 								? new Date(followUpDate).toLocaleDateString("en-IN", {
-										year: "numeric",
-										month: "short",
-										day: "numeric",
-									})
+									year: "numeric",
+									month: "short",
+									day: "numeric",
+								})
 								: "—"}
 						</p>
 						<span
@@ -194,13 +241,13 @@ export const formatUserName = (user: {
 export const getStudentStatusColor = (status: string): string => {
 	switch (status) {
 		case "STUDENT":
-			return "bg-emerald-500";
+			return "bg-emerald-500 border-emerald-700";
 		case "BREAK":
-			return "bg-orange-500";
+			return "bg-purple-500 border-purple-700";
 		case "DROPPED":
-			return "bg-gray-500";
+			return "bg-gray-500 border-gray-700";
 		default:
-			return "bg-gray-500";
+			return "bg-gray-500 border-gray-700";
 	}
 };
 

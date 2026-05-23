@@ -14,15 +14,20 @@ export const useRecordStudentFollowUpMutation = () => {
 		mutationFn: async ({
 			studentId,
 			note,
+			nextFollowUpAt,
 		}: {
 			studentId: string;
 			note: string;
+			nextFollowUpAt?: Date;
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
 			}
 
-			return recordStudentFollowUp(token, studentId, { note });
+			return recordStudentFollowUp(token, studentId, {
+				note,
+				nextFollowUpAt,
+			});
 		},
 		onSuccess: async (_data, variables) => {
 			if (!token) {

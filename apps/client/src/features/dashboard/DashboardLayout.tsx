@@ -42,9 +42,10 @@ const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
 	"/students": "Students",
+	"/processes": "Processes",
+	"/process-history": "Process History",
 	"/mentors": "Mentors",
 	"/counsellor/mentors": "Counsellor Mentors",
-	"/counsellor/students": "Counsellor Students",
 	"/time-slots": "Time Slots",
 	"/users": "Users",
 	"/users/create": "Create User",
@@ -81,10 +82,6 @@ const resolveTitle = (pathname: string, search: string): string => {
 		return "Counsellor Mentors";
 	}
 
-	if (/^\/counsellor\/students$/.test(pathname)) {
-		return "Counsellor Students";
-	}
-
 	if (pathname === "/users/create" && search.includes("role=sales")) {
 		return "Create Sales";
 	}
@@ -117,11 +114,23 @@ export const DashboardLayout = () => {
 	const canReadStudents =
 		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
 		false;
-	const canReadDemos =
+	const canReadBatches =
+		me?.permissions?.some((permission) => permission.key === "BATCH_READ") ??
+		false;
+	const canReadReminders =
+		me?.permissions?.some((permission) => permission.key === "REMINDER_READ") ??
+		false;
+	const canReadUnassignedDemos =
 		me?.permissions?.some(
 			(permission) =>
-				permission.key === "LEAD_DEMO_ASSIGN" ||
-				permission.key === "LEAD_DEMO_COMPLETE",
+				permission.key === "DEMO_UNASSIGNED_READ_MY" ||
+				permission.key === "DEMO_UNASSIGNED_READ_ALL",
+		) ?? false;
+	const canReadScheduledDemos =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "DEMO_SCHEDULED_READ_MY" ||
+				permission.key === "DEMO_SCHEDULED_READ_ALL",
 		) ?? false;
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: canReadAllLeads ? "all" : "mine",
@@ -129,9 +138,9 @@ export const DashboardLayout = () => {
 		enabled: canReadLeads,
 	});
 	const studentsQuery = useStudentsQuery(token, canReadStudents);
-	const remindersQuery = useGetAllReminders({ enabled: canReadStudents });
-	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadDemos);
-	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadDemos);
+	const remindersQuery = useGetAllReminders({ enabled: canReadReminders });
+	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadUnassignedDemos);
+	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadScheduledDemos);
 	const meName = me?.name ?? "User";
 	const currentUserId = me?.id;
 
@@ -139,12 +148,16 @@ export const DashboardLayout = () => {
 	const allReminders = remindersQuery.data ?? [];
 	const allLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
-	const isCounsellor =
-		me?.roles?.some((role) => (role.type ?? "general") === "counsellor") ??
-		false;
-	const currentCounsellorStudents = allStudents.filter(
-		(student) => Boolean(student.mentorId),
-	);
+
+	// Count only leads that are due today or past due for the Follow Up sidebar count
+	const followUpUrgentCount = allLeads.filter((lead) => {
+		if (lead.status !== "FOLLOW_UP") return false;
+		if (!lead.nextFollowUpAt) return false;
+		const d = new Date(String(lead.nextFollowUpAt));
+		if (Number.isNaN(d.getTime())) return false;
+		return isToday(d) || isPast(d);
+	}).length;
+	const currentProcessCount = allStudents.filter((student) => Boolean(student.processId)).length;
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,
 	).length;
@@ -215,7 +228,12 @@ export const DashboardLayout = () => {
 					icon: leadStageIcons[id] || (
 						<HiPhone className="h-5 w-5" aria-hidden="true" />
 					),
-					count: id === "closed" ? undefined : leadStageCounts[id] ?? 0,
+					count:
+						id === "closed"
+							? undefined
+							: id === "followUp"
+							? followUpUrgentCount
+							: leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
 				};
@@ -271,6 +289,27 @@ export const DashboardLayout = () => {
 					section: "Learners",
 				},
 				{
+					to: "/processes",
+					label: "Processes",
+					description: "Student workflows",
+					icon: <HiClipboardDocumentList className="h-5 w-5" aria-hidden="true" />,
+					count: currentProcessCount,
+					accent: "violet",
+					section: "Learners",
+				},
+				{
+					to: "/process-history",
+					label: "Process History",
+					description: "Completed workflows",
+					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
+					accent: "rose",
+					section: "Learners",
+				},
+			]
+			: []),
+		...(canReadBatches
+			? [
+				{
 					to: "/groups",
 					label: "Groups",
 					description: "Mentor groups",
@@ -278,35 +317,26 @@ export const DashboardLayout = () => {
 					accent: "emerald",
 					section: "Learners",
 				},
+			]
+			: []),
+		...(canReadReminders
+			? [
 				{
 					to: "/reminders",
 					label: "Reminders",
-						description: "Open reminders",
+					description: "Open reminders",
 					icon: <HiOutlineBellAlert className="h-5 w-5" aria-hidden="true" />,
 					count: reminderUrgentCount,
 					accent: "amber",
 					section: "Learners",
 				},
-					{
-						to: "/reminders/closed",
-						label: "Closed Tasks",
-						description: "Completed reminders",
-						icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-						accent: "rose",
-						section: "Learners",
-					},
-			]
-			: []),
-		...(isCounsellor
-			? [
 				{
-					to: "/counsellor/students",
-					label: "My Students",
-					description: "Under my mentors",
-					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count: currentCounsellorStudents.length,
-					accent: "cyan",
-					section: "Counsellor Workspace",
+					to: "/reminders/closed",
+					label: "Closed Tasks",
+					description: "Completed reminders",
+					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
+					accent: "rose",
+					section: "Learners",
 				},
 			]
 			: []),
@@ -354,7 +384,7 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("LEAD_DEMO_ASSIGN")
+		...(hasPermission("DEMO_UNASSIGNED_READ_MY") || hasPermission("DEMO_UNASSIGNED_READ_ALL")
 			? [
 				{
 					to: "/demo-management/unassigned",
@@ -367,7 +397,7 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("LEAD_DEMO_COMPLETE")
+		...(hasPermission("DEMO_SCHEDULED_READ_MY") || hasPermission("DEMO_SCHEDULED_READ_ALL")
 			? [
 				{
 					to: "/demo-management/scheduled",

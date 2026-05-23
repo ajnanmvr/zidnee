@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { HiArrowsRightLeft, HiEye, HiTrash } from "react-icons/hi2";
 import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -79,6 +79,66 @@ export const GroupDetailPage = () => {
 	} | null>(null);
 	const [activeTab, setActiveTab] = useState<"students" | "assessment">("students");
 
+	const openMove = useCallback((studentId: string) => {
+		setConfirmAction("move");
+		setConfirmStudentId(studentId);
+	}, []);
+
+	const closeMove = useCallback(() => {
+		setSelectedStudentId(null);
+		setTargetBatchId(null);
+		setMoveModalOpen(false);
+	}, []);
+
+	const confirmRemove = useCallback((studentId: string) => {
+		setConfirmAction("remove");
+		setConfirmStudentId(studentId);
+	}, []);
+
+	const confirmMove = useCallback((studentId: string) => {
+		setSelectedStudentId(studentId);
+		setTargetBatchId(null);
+		setMoveModalOpen(true);
+		setConfirmAction(null);
+		setConfirmStudentId(null);
+	}, []);
+
+	const activeStudentColumns = useMemo<ColumnDef<StudentTableRow>[]>(() => {
+		const sharedColumns = buildStudentColumns(getStudentStatusColor, mentorNameById);
+
+		return [
+			...sharedColumns,
+			{
+				id: "actions",
+				header: "Actions",
+				cell: ({ row }) => (
+					<div className="flex items-center gap-2">
+						<Link
+							to={`/students/${row.original.id}`}
+							aria-label="View student"
+							title="View student"
+							className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300 text-cyan-700 transition-colors hover:bg-cyan-50"
+						>
+							<HiEye className="h-4 w-4" aria-hidden="true" />
+						</Link>
+						<ActionButton
+							icon={<HiTrash className="h-4 w-4" aria-hidden="true" />}
+							tooltip="Remove from group"
+							color="red"
+							onClick={() => confirmRemove(row.original.id)}
+						/>
+						<ActionButton
+							icon={<HiArrowsRightLeft className="h-4 w-4" aria-hidden="true" />}
+							tooltip="Move to another group"
+							color="orange"
+							onClick={() => openMove(row.original.id)}
+						/>
+					</div>
+				),
+			},
+		];
+	}, [confirmRemove, mentorNameById, openMove]);
+
 	if (!group) {
 		return (
 			<div className="py-12 text-center text-gray-600">Group not found</div>
@@ -87,30 +147,6 @@ export const GroupDetailPage = () => {
 
 	const mentorName = mentors.find((m) => m.id === group.mentorId)?.name ?? "-";
 	const counsellorName = group.counsellorId ? mentors.find((m) => m.id === group.counsellorId)?.name ?? "-" : null;
-
-	const openMove = (studentId: string) => {
-		setConfirmAction("move");
-		setConfirmStudentId(studentId);
-	};
-
-	const closeMove = () => {
-		setSelectedStudentId(null);
-		setTargetBatchId(null);
-		setMoveModalOpen(false);
-	};
-
-	const confirmRemove = (studentId: string) => {
-		setConfirmAction("remove");
-		setConfirmStudentId(studentId);
-	};
-
-	const confirmMove = (studentId: string) => {
-		setSelectedStudentId(studentId);
-		setTargetBatchId(null);
-		setMoveModalOpen(true);
-		setConfirmAction(null);
-		setConfirmStudentId(null);
-	};
 
 	const submitRemove = async (studentId: string) => {
 		try {
@@ -163,19 +199,19 @@ export const GroupDetailPage = () => {
 	const assessmentConfig = [
 		{
 			assessmentType: "oral" as const,
-			label: "Oral Assessment",
+			label: "Quarterly Oral Assessment",
 			value: group.oralAssessmentDone ?? false,
 			description: "Speaking and pronunciation check",
 		},
 		{
 			assessmentType: "written" as const,
-			label: "Written Assessment",
+			label: "MID Term Assessment",
 			value: group.writtenAssessmentDone ?? false,
 			description: "Reading and writing check",
 		},
 		{
 			assessmentType: "level" as const,
-			label: "Level Assessment",
+			label: "Term End  Assessment",
 			value: group.levelAssessmentDone ?? false,
 			description: "Final placement and level check",
 		},
@@ -228,42 +264,6 @@ export const GroupDetailPage = () => {
 			toast.error(err instanceof Error ? err.message : "Unable to update assessment");
 		}
 	};
-
-	const activeStudentColumns = useMemo<ColumnDef<StudentTableRow>[]>(() => {
-		const sharedColumns = buildStudentColumns(getStudentStatusColor, mentorNameById);
-
-		return [
-			...sharedColumns,
-			{
-				id: "actions",
-				header: "Actions",
-				cell: ({ row }) => (
-					<div className="flex items-center gap-2">
-						<Link
-							to={`/students/${row.original.id}`}
-							aria-label="View student"
-							title="View student"
-							className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300 text-cyan-700 transition-colors hover:bg-cyan-50"
-						>
-							<HiEye className="h-4 w-4" aria-hidden="true" />
-						</Link>
-						<ActionButton
-							icon={<HiTrash className="h-4 w-4" aria-hidden="true" />}
-							tooltip="Remove from group"
-							color="red"
-							onClick={() => confirmRemove(row.original.id)}
-						/>
-						<ActionButton
-							icon={<HiArrowsRightLeft className="h-4 w-4" aria-hidden="true" />}
-							tooltip="Move to another group"
-							color="orange"
-							onClick={() => openMove(row.original.id)}
-						/>
-					</div>
-				),
-			},
-		];
-	}, [mentorNameById]);
 
 	return (
 		<div className="grid gap-6">

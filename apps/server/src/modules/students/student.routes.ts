@@ -7,12 +7,24 @@ import {
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	listStudentsController,
+	listStudentProcessesController,
+	listStudentProcessHistoryController,
+	getStudentProcessController,
+	markStudentProcessTaskController,
+	setStudentProcessTaskCompletionController,
+	completeStudentProcessController,
 	recordStudentFollowUpController,
 	updateStudentAssessmentController,
  	updateStudentController,
 	uploadStudentProfilePicController,
 } from "./student.controller.js";
 import { getStudentActivitiesController } from "./student-activity.controller.js";
+import {
+	uploadStudentProfilePicController as publicUploadStudentProfilePicController,
+	getStudentPublicProfileStatusController,
+	confirmStudentClassStartController,
+	getStudentPublicProfileImageController,
+} from "./student-profile-upload.controller.js";
 import { upload } from "../../middlewares/upload.middleware.js";
 
 const router: ReturnType<typeof Router> = Router();
@@ -63,6 +75,42 @@ router.get(
 );
 
 router.get(
+	"/processes",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(listStudentProcessesController),
+);
+
+router.get(
+	"/process-history",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(listStudentProcessHistoryController),
+);
+
+router.get(
+	"/processes/:processId",
+	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	asyncHandler(getStudentProcessController),
+);
+
+router.post(
+    "/processes/:processId/tasks/:taskKey/complete",
+    requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
+    asyncHandler(markStudentProcessTaskController),
+);
+
+router.post(
+	"/processes/:processId/tasks/:taskKey/set",
+	requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
+	asyncHandler(setStudentProcessTaskCompletionController),
+);
+
+router.post(
+	"/processes/:processId/complete",
+	requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
+	asyncHandler(completeStudentProcessController),
+);
+
+router.get(
 	"/:studentId/activities",
 	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
 	asyncHandler(getStudentActivitiesController),
@@ -94,3 +142,59 @@ router.post(
 );
 
 export default router;
+
+// Public routes (no authentication required)
+export const publicStudentRoutes: ReturnType<typeof Router> = Router();
+
+/**
+ * @swagger
+ * /form/student/{studentId}/profile-upload:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Upload student profile picture (public)
+ *     description: Upload profile picture for a student without authentication
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile picture uploaded successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Student not found
+ */
+publicStudentRoutes.post(
+	"/student/:studentId/profile-upload",
+	upload.single("profilePic"),
+	asyncHandler(publicUploadStudentProfilePicController),
+);
+
+publicStudentRoutes.get(
+	"/student/:studentId/profile-status",
+	asyncHandler(getStudentPublicProfileStatusController),
+);
+
+publicStudentRoutes.get(
+	"/student/:studentId/profile-image",
+	asyncHandler(getStudentPublicProfileImageController),
+);
+
+publicStudentRoutes.post(
+  "/student/:studentId/confirm-class-start",
+  asyncHandler(confirmStudentClassStartController),
+);

@@ -11,6 +11,7 @@ import { useLeadDetailQuery } from "@/features/leads/leads.queries";
 import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import type { ConfirmAdmissionForm } from "@/lib/dashboard-types";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 const isCounsellorRole = (roleType: string) => roleType === "counsellor";
@@ -20,6 +21,7 @@ export const AdmissionDetailPage = () => {
 	const { leadId } = useParams<{ leadId: string }>();
 	const { token } = useSession();
 	const navigate = useNavigate();
+	const canConfirmAdmission = useHasPermission("LEAD_ADMISSION_CONFIRM");
 	const leadQuery = useLeadDetailQuery(token, leadId ?? "");
 	const usersQuery = useUsersQuery(token);
 	const confirmAdmissionMutation = useConfirmAdmissionMutation();
@@ -120,6 +122,17 @@ export const AdmissionDetailPage = () => {
 		return (
 			<Panel title="Admission" description="Lead not found">
 				Lead not found.
+			</Panel>
+		);
+	}
+
+	if (!canConfirmAdmission) {
+		return (
+			<Panel title="Admission" description="Access denied">
+				<p className="text-sm text-gray-600">
+					You do not have permission to confirm admissions. Ask an
+					administrator to grant LEAD_ADMISSION_CONFIRM.
+				</p>
 			</Panel>
 		);
 	}

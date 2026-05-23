@@ -362,6 +362,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	id: doc._id.toString(),
 	name: doc.name,
 	phone: doc.phone,
+	isOrganic: doc.isOrganic ?? false,
 	slNo: doc.slNo,
 	level: doc.level,
 	assignedTo: toObjectIdString(doc.assignedTo),
@@ -401,6 +402,7 @@ export const LeadService = {
 		phone: string;
 		name?: string;
 		assignedTo?: string;
+		isOrganic?: boolean;
 		customNextFollowUpAt?: Date;
 		createdBy: string;
 		createdByName?: string;
@@ -413,6 +415,7 @@ export const LeadService = {
 			slNo,
 			phone: lead.phone,
 			name: lead.name,
+			isOrganic: lead.isOrganic ?? false,
 			assignedTo: lead.assignedTo
 				? new Types.ObjectId(lead.assignedTo)
 				: new Types.ObjectId(lead.createdBy),

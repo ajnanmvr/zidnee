@@ -1,12 +1,16 @@
 import {
 	StudentFollowUpPayloadSchema,
+	MessageResponseSchema,
 	StudentsResponseSchema,
+	StudentProcessesResponseSchema,
+	StudentProcessResponseSchema,
+    StudentProcessEnvelopeSchema,
 	UpdateStudentAssessmentPayloadSchema,
  	UpdateStudentPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
-import { StudentService } from "./student.service.js";
+import { StudentService, type StudentProcessListItem } from "./student.service.js";
 import { uploadBuffer } from "../../lib/s3.js";
 
 const toStudentResponse = (
@@ -39,6 +43,10 @@ const toStudentResponse = (
 		batchId: student.batchId,
 		processId: student.processId,
 		processLabel: student.processLabel,
+		inactiveFrom: student.inactiveFrom?.toISOString() ?? null,
+		inactiveUntil: student.inactiveUntil?.toISOString() ?? null,
+		dropReason: student.dropReason ?? null,
+		dropTemporary: student.dropTemporary ?? null,
 		oralAssessmentDone: student.oralAssessmentDone,
 		writtenAssessmentDone: student.writtenAssessmentDone,
 		levelAssessmentDone: student.levelAssessmentDone,
@@ -48,6 +56,40 @@ const toStudentResponse = (
 		admittedAt: student.admittedAt.toISOString(),
 		createdAt: student.createdAt?.toISOString() ?? null,
 		updatedAt: student.updatedAt?.toISOString() ?? null,
+	};
+};
+
+const toStudentProcessResponse = (process: StudentProcessListItem) => {
+	return {
+		id: process.id.toString(),
+		studentId: process.studentId.toString(),
+		status: process.status,
+		label: process.label,
+		archivedAt: process.archivedAt?.toISOString() ?? null,
+			tasks: process.tasks.map((task) => ({
+				key: task.key,
+				label: task.label,
+				completed: task.completed,
+				completedAt: task.completedAt?.toISOString() ?? null,
+				actionType: (task as any).actionType ?? undefined,
+				whatsappMessage: (task as any).whatsappMessage ?? undefined,
+			})),
+		student: {
+			id: process.student.id.toString(),
+			leadId: process.student.leadId?.toString(),
+			zid: process.student.zid,
+			name: process.student.name ?? null,
+			phone: process.student.phone,
+			primaryWhatsappNumber: process.student.primaryWhatsappNumber,
+			email: process.student.email,
+			status: process.student.status,
+			courseType: process.student.courseType,
+			level: process.student.level,
+			mentorId: process.student.mentorId?.toString(),
+			batchId: process.student.batchId?.toString(),
+		},
+		createdAt: process.createdAt.toISOString(),
+		updatedAt: process.updatedAt.toISOString(),
 	};
 };
 
@@ -77,6 +119,199 @@ export const listStudentsController = async (
 	);
 };
 
+export const listStudentProcessesController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const processes = await StudentService.listStudentProcesses();
+	res.json(
+		StudentProcessesResponseSchema.parse({
+			ok: true,
+			processes: processes.map(toStudentProcessResponse),
+		}),
+	);
+};
+
+export const listStudentProcessHistoryController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const processes = await StudentService.listStudentProcessHistory();
+	res.json(
+		StudentProcessesResponseSchema.parse({
+			ok: true,
+			processes: processes.map(toStudentProcessResponse),
+		}),
+	);
+};
+
+export const getStudentProcessController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const process = await StudentService.getStudentProcessById(processId);
+	if (!process) {
+		res.status(404).json({ ok: false, error: "Process not found" });
+		return;
+	}
+
+	// reuse response mapping used for list
+	const mapped = {
+			archivedAt: process.archivedAt?.toISOString() ?? null,
+		id: process.id.toString(),
+		studentId: process.studentId.toString(),
+		status: process.status,
+		label: process.label,
+		tasks: process.tasks.map((task) => ({
+				key: task.key,
+				label: task.label,
+				completed: task.completed,
+				completedAt: task.completedAt?.toISOString() ?? null,
+				actionType: (task as any).actionType ?? undefined,
+				whatsappMessage: (task as any).whatsappMessage ?? undefined,
+			})),
+		student: {
+			id: process.student.id.toString(),
+			leadId: process.student.leadId?.toString(),
+			zid: process.student.zid,
+			name: process.student.name ?? null,
+			phone: process.student.phone,
+			primaryWhatsappNumber: process.student.primaryWhatsappNumber,
+			email: process.student.email,
+			status: process.student.status,
+			courseType: process.student.courseType,
+			level: process.student.level,
+			mentorId: process.student.mentorId?.toString(),
+			batchId: process.student.batchId?.toString(),
+		},
+		createdAt: process.createdAt.toISOString(),
+		updatedAt: process.updatedAt.toISOString(),
+	};
+
+	// validate the single-process shape before returning
+	const validated = StudentProcessResponseSchema.parse(mapped as any);
+	res.json({ ok: true, process: validated });
+};
+
+export const markStudentProcessTaskController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const taskKey = requireStringValue(req.params.taskKey, "taskKey");
+
+	const updated = await StudentService.markProcessTaskCompleted(processId, taskKey);
+	if (!updated) {
+		res.status(404).json({ ok: false, error: "Process or task not found" });
+		return;
+	}
+
+	const mapped = {
+		id: updated.id.toString(),
+			archivedAt: updated.archivedAt?.toISOString() ?? null,
+		studentId: updated.studentId.toString(),
+		status: updated.status,
+		label: updated.label,
+			tasks: updated.tasks.map((task) => ({
+				key: task.key,
+				label: task.label,
+				completed: task.completed,
+				completedAt: task.completedAt?.toISOString() ?? null,
+				actionType: (task as any).actionType ?? undefined,
+				whatsappMessage: (task as any).whatsappMessage ?? undefined,
+			})),
+		student: {
+			id: updated.student.id.toString(),
+			leadId: updated.student.leadId?.toString(),
+			zid: updated.student.zid,
+			name: updated.student.name ?? null,
+			phone: updated.student.phone,
+			primaryWhatsappNumber: updated.student.primaryWhatsappNumber,
+			email: updated.student.email,
+			status: updated.student.status,
+			courseType: updated.student.courseType,
+			level: updated.student.level,
+			mentorId: updated.student.mentorId?.toString(),
+			batchId: updated.student.batchId?.toString(),
+		},
+		createdAt: updated.createdAt.toISOString(),
+		updatedAt: updated.updatedAt.toISOString(),
+	};
+
+	const validated = StudentProcessEnvelopeSchema.parse({ ok: true, process: mapped });
+	res.json({ ok: true, process: validated.process });
+};
+
+export const setStudentProcessTaskCompletionController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const taskKey = requireStringValue(req.params.taskKey, "taskKey");
+	const completed = typeof req.body?.completed === "boolean" ? req.body.completed : undefined;
+
+	if (completed === undefined) {
+		res.status(400).json({ ok: false, error: "Missing 'completed' boolean in request body" });
+		return;
+	}
+
+	const updated = await StudentService.setProcessTaskCompletion(processId, taskKey, completed);
+	if (!updated) {
+		res.status(404).json({ ok: false, error: "Process or task not found" });
+		return;
+	}
+
+	const mapped = {
+		id: updated.id.toString(),
+		studentId: updated.studentId.toString(),
+		status: updated.status,
+		label: updated.label,
+		archivedAt: updated.archivedAt?.toISOString() ?? null,
+		tasks: updated.tasks.map((task) => ({
+				key: task.key,
+				label: task.label,
+				completed: task.completed,
+				completedAt: task.completedAt?.toISOString() ?? null,
+				actionType: (task as any).actionType ?? undefined,
+				whatsappMessage: (task as any).whatsappMessage ?? undefined,
+			})),
+		student: {
+			id: updated.student.id.toString(),
+			leadId: updated.student.leadId?.toString(),
+			zid: updated.student.zid,
+			name: updated.student.name ?? null,
+			phone: updated.student.phone,
+			primaryWhatsappNumber: updated.student.primaryWhatsappNumber,
+			email: updated.student.email,
+			status: updated.student.status,
+			courseType: updated.student.courseType,
+			level: updated.student.level,
+			mentorId: updated.student.mentorId?.toString(),
+			batchId: updated.student.batchId?.toString(),
+		},
+		createdAt: updated.createdAt.toISOString(),
+		updatedAt: updated.updatedAt.toISOString(),
+	};
+
+	const validated = StudentProcessEnvelopeSchema.parse({ ok: true, process: mapped });
+	res.json({ ok: true, process: validated.process });
+};
+
+export const completeStudentProcessController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const completed = await StudentService.completeStudentProcess(processId);
+
+	if (!completed) {
+		res.status(404).json({ ok: false, error: "Process not found" });
+		return;
+	}
+
+	res.json(MessageResponseSchema.parse({ ok: true, message: "Process moved to history" }));
+};
 export const recordStudentFollowUpController = async (
 	req: Request,
 	res: Response,
@@ -88,6 +323,7 @@ export const recordStudentFollowUpController = async (
 		studentId,
 		performedBy,
 		payload.note,
+		payload.nextFollowUpAt,
 	);
 
 	res.json({
@@ -123,7 +359,11 @@ export const updateStudentController = async (
 ): Promise<void> => {
  	const studentId = requireStringValue(req.params.studentId, "studentId");
  	const payload = UpdateStudentPayloadSchema.parse(req.body);
- 	const student = await StudentService.update(studentId, payload);
+	const student = await StudentService.update(
+		studentId,
+		payload,
+		req.user?.userId,
+	);
 
  	res.json({
  		ok: true,
@@ -143,10 +383,10 @@ export const uploadStudentProfilePicController = async (
 		res.status(400).json({ ok: false, error: "No file provided" });
 		return;
 	}
-	// construct a key for S3: students/{studentId}/{timestamp}_{filename}
+	// store profile images under a dedicated public prefix
 	const timestamp = Date.now();
 	const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-	const key = `students/${studentId}/${timestamp}_${safeName}`;
+	const key = `profile-images/students/${studentId}/${timestamp}_${safeName}`;
 
 	const url = await uploadBuffer(file.buffer, key, file.mimetype);
 

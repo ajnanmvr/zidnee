@@ -33,6 +33,11 @@ const leadSchema = new Schema(
 			trim: true,
 			index: true,
 		},
+		isOrganic: {
+			type: Boolean,
+			required: true,
+			default: false,
+		},
 		email: {
 			type: String,
 			required: false,
@@ -236,6 +241,10 @@ const leadSchema = new Schema(
 		studentId: {
 			type: Schema.Types.ObjectId,
 			ref: "Student",
+			required: false,
+		},
+		profilePic: {
+			type: String,
 			required: false,
 		},
 	},

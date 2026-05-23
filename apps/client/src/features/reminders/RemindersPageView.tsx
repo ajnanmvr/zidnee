@@ -7,6 +7,8 @@ import {
     HiArchiveBox,
     HiCheckCircle,
     HiOutlineCalendarDays,
+    HiMagnifyingGlass,
+    HiSparkles,
     HiTrash,
 } from "react-icons/hi2";
 import { Link, useNavigate } from "react-router-dom";
@@ -24,6 +26,7 @@ import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries.js";
 import { useStudentsQuery } from "@/features/students/students.queries.js";
 import { useUsersQuery } from "@/features/users/users.queries.js";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session.js";
 
 type ReminderPageMode = "open" | "closed";
@@ -46,6 +49,9 @@ export const RemindersPageView = ({
     const navigate = useNavigate();
     const { token } = useSession();
     const meQuery = useMeQuery(token);
+    const canCreateReminder = useHasPermission("REMINDER_CREATE");
+    const canUpdateReminder = useHasPermission("REMINDER_UPDATE");
+    const canDeleteReminder = useHasPermission("REMINDER_DELETE");
     const studentsQuery = useStudentsQuery(token);
     const usersQuery = useUsersQuery(token);
     const [sortBy, setSortBy] = useState<"date" | "createdAt">("date");
@@ -139,7 +145,6 @@ export const RemindersPageView = ({
         setCurrentPage(1);
     }, [mode, scope, searchTerm, sortBy, sortOrder]);
 
-    const statusLabel = mode === "closed" ? "Closed" : "Pending";
     const emptyMessage =
         mode === "closed"
             ? "No closed reminders yet"
@@ -147,142 +152,162 @@ export const RemindersPageView = ({
                 ? "No reminders assigned to you yet"
                 : "No active reminders yet";
 
+    const heroTone = mode === "closed" ? "from-slate-950 via-slate-900 to-emerald-900" : "from-emerald-950 via-slate-900 to-cyan-900";
+    const heroTag = mode === "closed" ? "Closed reminders" : "Open reminders";
+
     return (
-        <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="mb-4 flex items-center gap-3">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="text-gray-600 hover:text-gray-900"
-                    >
-                        <HiArrowLeft className="h-5 w-5" />
-                    </button>
-                    <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                        <p className="text-sm text-gray-500">{description}</p>
+        <div className="space-y-6">
+            <section className={`overflow-hidden rounded-4xl border border-white/10 bg-linear-to-br ${heroTone} text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]`}>
+                <div className="relative overflow-hidden px-6 py-7 sm:px-8 sm:py-8">
+                    <div className="pointer-events-none absolute inset-0 opacity-60">
+                        <div className="absolute -left-20 top-0 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+                        <div className="absolute right-0 top-10 h-44 w-44 rounded-full bg-emerald-300/10 blur-3xl" />
                     </div>
-                    <Link
-                        to={actionTo}
-                        className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-                    >
-                        <HiArchiveBox className="h-4 w-4" />
-                        {actionLabel}
-                    </Link>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                            Pending
-                        </p>
-                        <p className="mt-1 text-2xl font-bold text-gray-900">{pendingCount}</p>
+                    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-3xl">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-200">
+                                <HiSparkles className="h-3.5 w-3.5" />
+                                {heroTag}
+                            </div>
+                            <div className="mt-4 flex items-center gap-3">
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white transition hover:bg-white/15"
+                                >
+                                    <HiArrowLeft className="h-5 w-5" />
+                                </button>
+                                <div>
+                                    <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                                        {title}
+                                    </h1>
+                                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200/90 sm:text-base">
+                                        {description}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                            {canCreateReminder ? (
+                                <Link
+                                    to={actionTo}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-black/10 transition hover:bg-emerald-50"
+                                >
+                                    <HiArchiveBox className="h-4 w-4" />
+                                    {actionLabel}
+                                </Link>
+                            ) : null}
+                        </div>
                     </div>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                            Closed
-                        </p>
-                        <p className="mt-1 text-2xl font-bold text-gray-900">{doneCount}</p>
-                    </div>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                            Total
-                        </p>
-                        <p className="mt-1 text-2xl font-bold text-gray-900">
-                            {pendingCount + doneCount}
-                        </p>
+
+                    <div className="relative mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {[
+                            { label: "Pending", value: pendingCount, tone: "emerald" },
+                            { label: "Closed", value: doneCount, tone: "cyan" },
+                            { label: "Total", value: pendingCount + doneCount, tone: "white" },
+                            { label: "Scope", value: scope === "assignedToMe" ? "Mine" : "All", tone: "amber" },
+                        ].map((item) => (
+                            <div
+                                key={item.label}
+                                className="rounded-3xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur"
+                            >
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-200/80">
+                                    {item.label}
+                                </p>
+                                <p className={`mt-2 text-2xl font-semibold ${item.tone === "white" ? "text-white" : "text-white"}`}>
+                                    {item.value}
+                                </p>
+                            </div>
+                        ))}
                     </div>
                 </div>
+            </section>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                        onClick={() => setScope("assignedToMe")}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                            scope === "assignedToMe"
-                                ? "bg-blue-600 text-white"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                    >
-                        Assigned to me ({assignedToMeReminders.length})
-                    </button>
-                    <button
-                        onClick={() => setScope("allAssignments")}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                            scope === "allAssignments"
-                                ? "bg-blue-600 text-white"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                    >
-                        All assignments ({listReminders.length})
-                    </button>
-                </div>
-            </div>
+            <section className="rounded-4xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setScope("assignedToMe")}
+                            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                                scope === "assignedToMe"
+                                    ? "bg-slate-950 text-white shadow-sm"
+                                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                        >
+                            Assigned to me ({assignedToMeReminders.length})
+                        </button>
+                        <button
+                            onClick={() => setScope("allAssignments")}
+                            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                                scope === "allAssignments"
+                                    ? "bg-slate-950 text-white shadow-sm"
+                                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                        >
+                            All assignments ({listReminders.length})
+                        </button>
+                    </div>
 
-            <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="min-w-60 flex-1">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Search
+                    <div className="grid gap-3 sm:grid-cols-2 lg:min-w-md">
+                        <label className="relative block">
+                            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Search
+                            </span>
+                            <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-[2.6rem] h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="search"
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                placeholder="Search reminders, students, or users"
+                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
                         </label>
-                        <input
-                            type="search"
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
-                            placeholder="Search reminders, students, or users"
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div className="min-w-45">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            List type
-                        </label>
-                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700">
-                            {statusLabel}
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    Sort by
+                                </label>
+                                <select
+                                    value={sortBy}
+                                    onChange={(event) =>
+                                        setSortBy(event.target.value as "date" | "createdAt")
+                                    }
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                >
+                                    <option value="date">Due Date</option>
+                                    <option value="createdAt">Created Date</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    Order
+                                </label>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(event) =>
+                                        setSortOrder(event.target.value as "asc" | "desc")
+                                    }
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                >
+                                    <option value="asc">Ascending</option>
+                                    <option value="desc">Descending</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Sort By
-                        </label>
-                        <select
-                            value={sortBy}
-                            onChange={(event) =>
-                                setSortBy(event.target.value as "date" | "createdAt")
-                            }
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="date">Due Date</option>
-                            <option value="createdAt">Created Date</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Order
-                        </label>
-                        <select
-                            value={sortOrder}
-                            onChange={(event) =>
-                                setSortOrder(event.target.value as "asc" | "desc")
-                            }
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="asc">Ascending</option>
-                            <option value="desc">Descending</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
                 {remindersQuery.isLoading ? (
-                    <div className="p-8 text-center text-gray-500">Loading reminders...</div>
+                    <div className="p-10 text-center text-slate-500">Loading reminders...</div>
                 ) : visibleReminders.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">{emptyMessage}</div>
+                    <div className="p-10 text-center text-slate-500">{emptyMessage}</div>
                 ) : (
-                    <div className="divide-y">
+                    <div className="divide-y divide-slate-100">
                         {pagedReminders.map((reminder) => (
                             <ReminderRow
                                 key={reminder.id}
@@ -290,6 +315,8 @@ export const RemindersPageView = ({
                                 users={usersQuery.data?.users ?? []}
                                 students={studentsQuery.data?.students ?? []}
                                 showDueStatus={mode !== "closed"}
+                                canUpdateReminder={canUpdateReminder}
+                                canDeleteReminder={canDeleteReminder}
                             />
                         ))}
                     </div>
@@ -297,8 +324,8 @@ export const RemindersPageView = ({
             </div>
 
             {visibleReminders.length > pageSize ? (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                    <p className="text-sm text-gray-600">
+                <div className="flex items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p className="text-sm text-slate-600">
                         Page {safeCurrentPage} of {totalPages}
                     </p>
                     <div className="flex items-center gap-2">
@@ -306,7 +333,7 @@ export const RemindersPageView = ({
                             type="button"
                             disabled={safeCurrentPage <= 1}
                             onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Previous
                         </button>
@@ -316,7 +343,7 @@ export const RemindersPageView = ({
                             onClick={() =>
                                 setCurrentPage((page) => Math.min(totalPages, page + 1))
                             }
-                            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Next
                         </button>
@@ -332,6 +359,8 @@ interface ReminderRowProps {
     users: Array<{ id: string; name: string; username: string }>;
     students: Array<{ id: string; name?: string; zid: string }>;
     showDueStatus?: boolean;
+    canUpdateReminder?: boolean;
+    canDeleteReminder?: boolean;
 }
 
 const ReminderRow: React.FC<ReminderRowProps> = ({
@@ -339,6 +368,8 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
     users,
     students,
     showDueStatus = true,
+    canUpdateReminder = false,
+    canDeleteReminder = false,
 }) => {
     const linkedPersonId = reminder.linkedPerson.id;
     const linkedPersonType = reminder.linkedPerson.type;
@@ -367,6 +398,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
             ? users.find((item) => item.id === linkedPersonId)
             : undefined;
     }, [users, linkedPersonId, linkedPersonType]);
+
     const dueStatus = getReminderDueStatus(reminder.date);
     const dueTone = getReminderDueToneClasses(dueStatus);
 
@@ -408,65 +440,60 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
 
     return (
         <div
-            className={`flex items-start justify-between gap-4 p-4 transition hover:bg-gray-50 ${
-                reminder.isDone
-                    ? "border-gray-200 bg-gray-50"
-                    : `${dueTone.background} ${dueTone.border}`
+            className={`flex flex-col gap-4 px-5 py-4 transition hover:bg-slate-50/70 sm:flex-row sm:items-start sm:justify-between ${
+                reminder.isDone ? "bg-slate-50" : `${dueTone.background} ${dueTone.border}`
             }`}
         >
             <div className="flex-1">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    {linkedPersonType === "mentor" ? "Mentor" : "Student"}
-                </div>
-                <div className="mb-2 flex items-center gap-2">
-                    <HiOutlineCalendarDays className="h-4 w-4 text-gray-500" />
-                    <span
-                        className={`text-sm font-medium ${
-                            reminder.isDone ? "text-gray-700" : dueTone.date
-                        }`}
-                    >
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        {linkedPersonType === "mentor" ? "Mentor" : "Student"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm ring-1 ring-slate-200">
+                        <HiOutlineCalendarDays className="h-4 w-4 text-slate-500" />
                         {formatReminderDate(dueDate)}
                     </span>
-
-                    {showDueStatus && !reminder.isDone ? (
-                        <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${dueTone.badge}`}
-                        >
-                            {dueStatus === "pastDue"
-                                ? "Past due"
-                                : dueStatus === "today"
-                                    ? "Today"
-                                    : dueStatus === "tomorrow"
-                                        ? "Tomorrow"
-                                        : "Upcoming"}
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                            Done
-                        </span>
-                    )}
+                    <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            reminder.isDone ? "bg-emerald-100 text-emerald-700" : dueTone.badge
+                        }`}
+                    >
+                        {reminder.isDone
+                            ? "Done"
+                            : showDueStatus
+                                ? dueStatus === "pastDue"
+                                    ? "Past due"
+                                    : dueStatus === "today"
+                                        ? "Today"
+                                        : dueStatus === "tomorrow"
+                                            ? "Tomorrow"
+                                            : "Upcoming"
+                                : "Pending"}
+                    </span>
                 </div>
+
                 <p
-                    className={`text-sm ${
-                        reminder.isDone ? "text-gray-600 line-through" : "text-gray-900"
+                    className={`text-sm leading-6 ${
+                        reminder.isDone ? "text-slate-500 line-through" : "text-slate-900"
                     }`}
                 >
                     {reminder.note}
                 </p>
-                <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
+
+                <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
                     {linkedPersonType === "mentor" && mentor ? (
                         <span>
                             Mentor: {mentor.name ?? mentor.username}
                         </span>
                     ) : student ? (
                         <span>
-                            Student: <Link to={`/students/${student.id}`} className="text-blue-600 hover:underline">
+                            Student: <Link to={`/students/${student.id}`} className="font-semibold text-emerald-700 hover:underline">
                                 {student.name ?? student.zid}
                             </Link>
                         </span>
                     ) : null}
                     <span>
-                        Created by {createdByUser?.name ?? createdByUser?.username ?? "Unknown"} • {new Date(reminder.createdAt).toLocaleDateString()}
+                        Created by {createdByUser?.name ?? createdByUser?.username ?? "Unknown"} · {new Date(reminder.createdAt).toLocaleDateString()}
                     </span>
                     {reminder.assignedTo !== reminder.createdBy ? (
                         <span>
@@ -476,29 +503,33 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
                 </div>
             </div>
 
-            <div className="flex items-center gap-2">
-                <button
-                    onClick={requestToggleDone}
-                    disabled={updateMutation.isPending}
-                    className={`rounded-md p-2 transition ${
-                        reminder.isDone
-                            ? "bg-green-50 text-green-600 hover:bg-green-100"
-                            : "text-gray-400 hover:bg-gray-100"
-                    }`}
-                    title={reminder.isDone ? "Mark as pending" : "Mark as done"}
-                >
-                    <HiCheckCircle className="h-5 w-5" />
-                </button>
-                <button
-                    onClick={() => {
-                        setConfirmDeleteOpen(true);
-                    }}
-                    disabled={deleteMutation.isPending}
-                    className="rounded-md p-2 text-red-500 transition hover:bg-red-50"
-                    title="Delete reminder"
-                >
-                    <HiTrash className="h-5 w-5" />
-                </button>
+            <div className="flex items-center gap-2 self-start">
+                {canUpdateReminder ? (
+                    <button
+                        onClick={requestToggleDone}
+                        disabled={updateMutation.isPending}
+                        className={`rounded-2xl border p-2 transition ${
+                            reminder.isDone
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                        }`}
+                        title={reminder.isDone ? "Mark as pending" : "Mark as done"}
+                    >
+                        <HiCheckCircle className="h-5 w-5" />
+                    </button>
+                ) : null}
+                {canDeleteReminder ? (
+                    <button
+                        onClick={() => {
+                            setConfirmDeleteOpen(true);
+                        }}
+                        disabled={deleteMutation.isPending}
+                        className="rounded-2xl border border-red-200 bg-white p-2 text-red-500 transition hover:bg-red-50"
+                        title="Delete reminder"
+                    >
+                        <HiTrash className="h-5 w-5" />
+                    </button>
+                ) : null}
             </div>
 
             <Modal

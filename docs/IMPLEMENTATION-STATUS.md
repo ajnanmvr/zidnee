@@ -1,6 +1,6 @@
 # Zidnee Implementation Tracker
 
-Last updated: 2026-05-16
+Last updated: 2026-05-19
 Reference: [docs/ZIDNEE-MASTER-PLAN.md](docs/ZIDNEE-MASTER-PLAN.md)
 
 ## How To Use This File
@@ -89,6 +89,9 @@ Features Added (Active Work):
 - **Student Lifecycle Statuses**: Student status now uses `ADMISSION_PROCESS | STUDENT | BREAK | DROPPED`.
 - **Student Follow-up Action**: Student detail now includes a mandatory-note follow-up modal that records student history and advances the next follow-up date.
 - **Student Assessments Tracking**: Student detail now shows Oral/Written/Level assessment status and supports confirmation-based done/undone toggles via `PATCH /students/:studentId/assessments`.
+- **Process Task Catalog**: Student process templates now come from a shared task library, with per-status subsets configured for admission, break, and drop flows.
+- **Welcome Message Automation**: Admission templates now include a WhatsApp welcome task that opens a prefilled `wa.me` message to the student’s primary number.
+- **Profile Form Automation**: Admission templates now include a WhatsApp form-link task that generates the public form URL and shares it to the student’s primary number for profile image collection.
 - **Lead Detail Redesign**: Detailed lead profile now surfaces identity, contact, form, schedule, ownership, and demo history sections in a light UI
 - **Lead Response Timestamps**: Shared lead response schema now includes `createdAt` and `updatedAt` for history-aware screens
 

@@ -49,3 +49,12 @@ export const MentorActivitiesResponseSchema = z.object({
 export type MentorActivitiesResponse = z.infer<
 	typeof MentorActivitiesResponseSchema
 >;
+
+export const RecordMentorFollowUpPayloadSchema = z.object({
+	note: z.string().max(500).optional(),
+	nextFollowUpAt: z.coerce.date().optional(),
+});
+
+export type RecordMentorFollowUpPayload = z.infer<
+	typeof RecordMentorFollowUpPayloadSchema
+>;

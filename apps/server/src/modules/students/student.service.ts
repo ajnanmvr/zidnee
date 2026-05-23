@@ -1,6 +1,8 @@
 import type { Student } from "@repo/schema";
 import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
+import { Types } from "mongoose";
 import { AppError } from "../../utils/errors.util.js";
+import { ReminderService } from "../reminders/reminder.service.js";
 import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
@@ -13,7 +15,9 @@ import {
 } from "./student-activity.model.js";
 import {
 	getStudentProcessTemplate,
+	getAdmissionProcessTemplate,
 	type StudentProcessDocument,
+	type StudentProcessTaskDocument,
 	StudentProcessModel,
 } from "./student-process.model.js";
 
@@ -23,6 +27,14 @@ const resolveStudentZidPrefix = (courseType?: LeadDocument["courseType"]): strin
 		: ZID_CONSTANTS.prefixes.student;
 };
 
+const normalizeStudentStatus = (status: unknown): Student["status"] => {
+	if (status === "BREAK" || status === "DROPPED") {
+		return status;
+	}
+
+	return "STUDENT";
+};
+
 type StudentListFilters = {
 	status?: string;
 	search?: string;
@@ -30,6 +42,36 @@ type StudentListFilters = {
 	sortOrder?: "asc" | "desc";
 	page?: number;
 	limit?: number;
+};
+
+export type StudentProcessListItem = {
+	id: Types.ObjectId;
+	studentId: Types.ObjectId;
+	status: Student["status"];
+	label: string;
+	tasks: Array<{
+		key: string;
+		label: string;
+		completed: boolean;
+		completedAt?: Date | null;
+	}>;
+	archivedAt?: Date | null;
+	createdAt: Date;
+	updatedAt: Date;
+	student: {
+		id: Types.ObjectId;
+		leadId?: Types.ObjectId;
+		zid: string;
+		name?: string;
+		phone: string;
+		primaryWhatsappNumber?: string;
+		email: string;
+		status: Student["status"];
+		courseType?: Student["courseType"];
+		level?: string;
+		mentorId?: Types.ObjectId;
+		batchId?: Types.ObjectId;
+	};
 };
 
 const getDefaultStudentFollowUpAt = (source?: Date | null): Date => {
@@ -94,6 +136,9 @@ const toStudent = (doc: StudentDocument): Student => {
 		batchId: doc.batchId?.toString(),
 		processId: doc.processId?.toString(),
 		processLabel: doc.processLabel,
+		inactiveFrom: doc.inactiveFrom,
+		inactiveUntil: doc.inactiveUntil,
+	dropReason: doc.dropReason,
 		oralAssessmentDone: doc.oralAssessmentDone ?? false,
 		writtenAssessmentDone: doc.writtenAssessmentDone ?? false,
 		levelAssessmentDone: doc.levelAssessmentDone ?? false,
@@ -146,6 +191,7 @@ const logStudentActivity = async (params: {
 
 const syncStudentProcess = async (
 	studentId: string,
+	explicitTemplate?: { label: string; tasks: StudentProcessTaskDocument[] },
 ): Promise<StudentDocument | null> => {
 	const student = await StudentModel.findById(
 		studentId,
@@ -154,7 +200,7 @@ const syncStudentProcess = async (
 		return null;
 	}
 
-	const template = getStudentProcessTemplate(student.status);
+	const template = explicitTemplate ?? getStudentProcessTemplate(student.status);
 	const process = await StudentProcessModel.findOneAndUpdate(
 		{ studentId: student._id },
 		{
@@ -217,6 +263,241 @@ export const StudentService = {
 			.limit(filters.limit && filters.limit > 0 ? filters.limit : 0)
 			.lean<StudentDocument[]>();
 		return students.map(toStudent);
+	},
+
+	listStudentProcesses: async (): Promise<StudentProcessListItem[]> => {
+		const raw = await StudentProcessModel.aggregate<unknown>([
+			{
+				$match: {
+					$or: [{ archivedAt: null }, { archivedAt: { $exists: false } }],
+				},
+			},
+			{
+				$lookup: {
+					from: StudentModel.collection.name,
+					localField: "studentId",
+					foreignField: "_id",
+					as: "student",
+				},
+			},
+			{
+				$unwind: "$student",
+			},
+			{
+				$sort: {
+					updatedAt: -1,
+				},
+			},
+		])
+		// Normalize aggregation result: map MongoDB's `_id` fields to `id` so
+		// controller code can safely call `.toString()` on expected fields.
+		const processes = (raw as any[]).map((p) => ({
+			id: p._id,
+			studentId: p.studentId,
+			status: normalizeStudentStatus(p.student?.status ?? p.status),
+			label: p.label,
+			tasks: p.tasks ?? [],
+			archivedAt: p.archivedAt ?? null,
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			student: {
+				id: p.student?._id,
+				leadId: p.student?.leadId,
+				zid: p.student?.zid,
+				name: p.student?.name,
+				phone: p.student?.phone,
+				primaryWhatsappNumber: p.student?.primaryWhatsappNumber,
+				email: p.student?.email,
+				status: p.student?.status,
+				courseType: p.student?.courseType,
+				level: p.student?.level,
+				mentorId: p.student?.mentorId,
+				batchId: p.student?.batchId,
+			},
+		} as StudentProcessListItem));
+
+		return processes;
+	},
+
+	listStudentProcessHistory: async (): Promise<StudentProcessListItem[]> => {
+		const raw = await StudentProcessModel.aggregate<unknown>([
+			{
+				$match: {
+					archivedAt: { $ne: null },
+				},
+			},
+			{
+				$lookup: {
+					from: StudentModel.collection.name,
+					localField: "studentId",
+					foreignField: "_id",
+					as: "student",
+				},
+			},
+			{
+				$unwind: "$student",
+			},
+			{
+				$sort: {
+					archivedAt: -1,
+				},
+			},
+		]);
+
+		return (raw as any[]).map((p) => ({
+			id: p._id,
+			studentId: p.studentId,
+			status: normalizeStudentStatus(p.student?.status ?? p.status),
+			label: p.label,
+			tasks: p.tasks ?? [],
+			archivedAt: p.archivedAt ?? null,
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			student: {
+				id: p.student?._id,
+				leadId: p.student?.leadId,
+				zid: p.student?.zid,
+				name: p.student?.name,
+				phone: p.student?.phone,
+				primaryWhatsappNumber: p.student?.primaryWhatsappNumber,
+				email: p.student?.email,
+				status: p.student?.status,
+				courseType: p.student?.courseType,
+				level: p.student?.level,
+				mentorId: p.student?.mentorId,
+				batchId: p.student?.batchId,
+			},
+		} as StudentProcessListItem));
+	},
+
+	getStudentProcessById: async (processId: string): Promise<StudentProcessListItem | null> => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		const raw = await StudentProcessModel.aggregate<unknown>([
+			{ $match: { _id: objectId } },
+			{
+				$lookup: {
+					from: StudentModel.collection.name,
+					localField: "studentId",
+					foreignField: "_id",
+					as: "student",
+				},
+			},
+			{ $unwind: "$student" },
+		]);
+
+		if (!raw || (raw as any[]).length === 0) return null;
+
+		const p = (raw as any[])[0];
+		return {
+			id: p._id,
+			studentId: p.studentId,
+			status: normalizeStudentStatus(p.student?.status ?? p.status),
+			label: p.label,
+			tasks: p.tasks ?? [],
+			archivedAt: p.archivedAt ?? null,
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			student: {
+				id: p.student?._id,
+				leadId: p.student?.leadId,
+				zid: p.student?.zid,
+				name: p.student?.name,
+				phone: p.student?.phone,
+				primaryWhatsappNumber: p.student?.primaryWhatsappNumber,
+				email: p.student?.email,
+				status: p.student?.status,
+				courseType: p.student?.courseType,
+				level: p.student?.level,
+				mentorId: p.student?.mentorId,
+				batchId: p.student?.batchId,
+			},
+		};
+	},
+
+	markProcessTaskCompleted: async (processId: string, taskKey: string) => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		// Update the matching task in-place
+		await StudentProcessModel.findOneAndUpdate(
+			{ _id: objectId },
+			{
+				$set: {
+					"tasks.$[t].completed": true,
+					"tasks.$[t].completedAt": new Date(),
+				},
+			},
+			{ arrayFilters: [{ "t.key": taskKey }], new: true },
+		).exec();
+
+		// return the updated mapped process
+		return await StudentService.getStudentProcessById(processId);
+	},
+
+	setProcessTaskCompletion: async (processId: string, taskKey: string, completed: boolean) => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return null;
+
+		await StudentProcessModel.findOneAndUpdate(
+			{ _id: objectId },
+			{
+				$set: {
+					"tasks.$[t].completed": completed,
+					"tasks.$[t].completedAt": completed ? new Date() : null,
+				},
+			},
+			{ arrayFilters: [{ "t.key": taskKey }], new: true },
+		).exec();
+
+		return await StudentService.getStudentProcessById(processId);
+	},
+
+	completeStudentProcess: async (processId: string): Promise<boolean> => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return false;
+
+		const existingProcess = await StudentProcessModel.findById(objectId).lean<StudentProcessDocument | null>();
+		if (!existingProcess) {
+			return false;
+		}
+
+		const hasIncompleteTasks = (existingProcess.tasks ?? []).some((task) => !task.completed);
+		if (hasIncompleteTasks) {
+			throw new AppError(400, "Complete all tasks before marking the process as completed");
+		}
+
+		await StudentModel.findByIdAndUpdate(
+			existingProcess.studentId,
+			{
+				$unset: {
+					processId: 1,
+					processLabel: 1,
+				},
+			},
+			{ returnDocument: "after" },
+		).exec();
+
+		await StudentProcessModel.findByIdAndUpdate(
+			objectId,
+			{
+				$set: {
+					archivedAt: new Date(),
+				},
+			},
+			{ new: true },
+		).exec();
+
+		return true;
 	},
 
 	findByLeadId: async (leadId: string): Promise<Student | null> => {
@@ -289,6 +570,7 @@ export const StudentService = {
 		studentId: string,
 		performedBy: string,
 		note: string,
+		nextFollowUpAtOverride?: Date,
 	): Promise<Student | null> => {
 		const student = await StudentModel.findById(
 			studentId,
@@ -297,7 +579,9 @@ export const StudentService = {
 			throw new AppError(404, "Student not found");
 		}
 
-		const nextFollowUpAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+		const nextFollowUpAt = getDefaultStudentFollowUpAt(
+			nextFollowUpAtOverride,
+		);
 		const updatedStudent = await StudentModel.findByIdAndUpdate(
 			student._id,
 			{
@@ -407,6 +691,7 @@ export const StudentService = {
 					}
 				: undefined,
 			price: existingLead.price,
+			mentorId: resolvedMentorId,
 
 			nextFollowUpAt,
 			admittedAt,
@@ -421,6 +706,7 @@ export const StudentService = {
 
 		const syncedStudent = await syncStudentProcess(
 			createdStudent._id.toString(),
+			getAdmissionProcessTemplate(existingLead.courseType, createdStudent._id.toString()),
 		);
 
 		await logStudentActivity({
@@ -550,6 +836,7 @@ export const StudentService = {
 					}
 				: undefined,
 			price: existingLead.price,
+			mentorId: resolvedMentorId,
 
 			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
 			admittedAt,
@@ -567,6 +854,7 @@ export const StudentService = {
 
 		const syncedStudent = await syncStudentProcess(
 			createdStudent._id.toString(),
+			getAdmissionProcessTemplate(existingLead.courseType, createdStudent._id.toString()),
 		);
 
 		await logStudentActivity({
@@ -621,10 +909,33 @@ export const StudentService = {
 	update: async (
 		studentId: string,
 		payload: Partial<{
-			batchId?: string | null;
 			mentorId?: string;
+			batchId?: string | null;
 			profilePic?: string | null;
+			name?: string;
+			phone?: string;
+			email?: string;
+			courseType?: Student["courseType"];
+			level?: string;
+			dateOfBirth?: Date | null;
+			residingCountry?: string;
+			gender?: Student["gender"];
+			primaryWhatsappNumber?: string;
+			alternateWhatsappNumber?: string;
+			studentInfo?: string;
+			preferredLanguage?: Student["preferredLanguage"];
+			preferredSchedule?: string;
+			preferredDays?: string[];
+			timeslot?: Student["timeslot"] | null;
+			price?: number | null;
+			hearAboutUs?: string;
+			status?: Student["status"];
+			inactiveFrom?: Date | null;
+			inactiveUntil?: Date | null;
+			dropReason?: string;
+			dropTemporary?: boolean;
 		}>,
+		performedBy?: string,
 	): Promise<Student | null> => {
 		const student = await StudentModel.findById(studentId).lean<StudentDocument | null>();
 		if (!student) {
@@ -633,9 +944,144 @@ export const StudentService = {
 
 		const $set: Record<string, unknown> = {
 			mentorId: payload.mentorId ?? student.mentorId,
-			batchId: payload.batchId === null ? undefined : payload.batchId ?? student.batchId,
 		};
 		const $unset: Record<string, 1> = {};
+
+		if (payload.name !== undefined) {
+			$set.name = payload.name;
+		}
+
+		if (payload.phone !== undefined) {
+			$set.phone = payload.phone;
+		}
+
+		if (payload.email !== undefined) {
+			$set.email = payload.email;
+		}
+
+		if (payload.courseType !== undefined) {
+			$set.courseType = payload.courseType;
+		}
+
+		if (payload.level !== undefined) {
+			$set.level = payload.level;
+		}
+
+		if (payload.dateOfBirth !== undefined) {
+			if (payload.dateOfBirth === null) {
+				$unset.dateOfBirth = 1;
+			} else {
+				$set.dateOfBirth = payload.dateOfBirth;
+			}
+		}
+
+		if (payload.residingCountry !== undefined) {
+			$set.residingCountry = payload.residingCountry;
+		}
+
+		if (payload.gender !== undefined) {
+			$set.gender = payload.gender;
+		}
+
+		if (payload.primaryWhatsappNumber !== undefined) {
+			$set.primaryWhatsappNumber = payload.primaryWhatsappNumber;
+		}
+
+		if (payload.alternateWhatsappNumber !== undefined) {
+			$set.alternateWhatsappNumber = payload.alternateWhatsappNumber;
+		}
+
+		if (payload.studentInfo !== undefined) {
+			$set.studentInfo = payload.studentInfo;
+		}
+
+		if (payload.preferredLanguage !== undefined) {
+			$set.preferredLanguage = payload.preferredLanguage;
+		}
+
+		if (payload.preferredSchedule !== undefined) {
+			$set.preferredSchedule = payload.preferredSchedule;
+		}
+
+		if (payload.preferredDays !== undefined) {
+			$set.preferredDays = payload.preferredDays;
+		}
+
+		if (payload.timeslot !== undefined) {
+			if (payload.timeslot === null) {
+				$unset.timeslot = 1;
+			} else {
+				$set.timeslot = payload.timeslot;
+			}
+		}
+
+		if (payload.price !== undefined) {
+			if (payload.price === null) {
+				$unset.price = 1;
+			} else {
+				$set.price = payload.price;
+			}
+		}
+
+		if (payload.hearAboutUs !== undefined) {
+			$set.hearAboutUs = payload.hearAboutUs;
+		}
+
+		const effectiveStatus = payload.status ?? student.status;
+
+		if (payload.status !== undefined) {
+			$set.status = payload.status;
+			if (payload.status === "STUDENT") {
+				$unset.inactiveFrom = 1;
+				$unset.inactiveUntil = 1;
+				$unset.dropReason = 1;
+				$unset.dropTemporary = 1;
+			} else if (payload.status === "BREAK") {
+				$unset.dropReason = 1;
+				$unset.dropTemporary = 1;
+			} else if (payload.status === "DROPPED") {
+				$unset.inactiveFrom = 1;
+				$unset.inactiveUntil = 1;
+			}
+		}
+
+		if (effectiveStatus === "BREAK") {
+			if (payload.inactiveFrom !== undefined) {
+				if (payload.inactiveFrom === null) {
+					$unset.inactiveFrom = 1;
+				} else {
+					$set.inactiveFrom = payload.inactiveFrom;
+				}
+			}
+
+			if (payload.inactiveUntil !== undefined) {
+				if (payload.inactiveUntil === null) {
+					$unset.inactiveUntil = 1;
+				} else {
+					$set.inactiveUntil = payload.inactiveUntil;
+				}
+			}
+		} else if (effectiveStatus === "DROPPED" && payload.dropReason !== undefined) {
+			if (payload.dropReason.trim()) {
+				$set.dropReason = payload.dropReason.trim();
+			} else {
+				$unset.dropReason = 1;
+			}
+		}
+
+		if (effectiveStatus === "DROPPED" && payload.dropTemporary !== undefined) {
+			if (payload.dropTemporary) {
+				$set.dropTemporary = true;
+			} else {
+				$unset.dropTemporary = 1;
+			}
+		}
+
+		if (payload.batchId === null) {
+			$unset.batchId = 1;
+		} else if (payload.batchId !== undefined) {
+			$set.batchId = payload.batchId;
+		}
 
 		if (payload.profilePic !== undefined) {
 			if (payload.profilePic === null) {
@@ -649,7 +1095,7 @@ export const StudentService = {
 			student._id,
 			{
 				$set,
-				...($unset.profilePic ? { $unset } : {}),
+				...(Object.keys($unset).length > 0 ? { $unset } : {}),
 			},
 			{ returnDocument: "after" },
 		).lean<StudentDocument | null>();
@@ -665,17 +1111,67 @@ export const StudentService = {
 
 		if (!updatedStudent) return null;
 
+		const actorId = performedBy ?? student.admittedBy.toString();
+		const breakReminderId = student.breakReminderId?.toString();
+		const breakEndDate = updatedStudent.inactiveUntil ?? payload.inactiveUntil ?? student.inactiveUntil;
+
+		if (updatedStudent.status === "BREAK" && breakEndDate) {
+			const reminderNote = `Break ends for ${updatedStudent.name ?? updatedStudent.zid}`;
+			if (breakReminderId) {
+				const reminder = await ReminderService.updateReminder(breakReminderId, {
+					date: breakEndDate,
+					note: reminderNote,
+					isDone: false,
+				}).catch(() => null);
+
+				if (!reminder) {
+					const createdReminder = await ReminderService.createReminder(
+						updatedStudent._id.toString(),
+						"student",
+						actorId,
+						{ date: breakEndDate, note: reminderNote },
+					);
+					await StudentModel.findByIdAndUpdate(updatedStudent._id, {
+						$set: { breakReminderId: createdReminder.id },
+					});
+				}
+			} else {
+				const createdReminder = await ReminderService.createReminder(
+					updatedStudent._id.toString(),
+					"student",
+					actorId,
+					{ date: breakEndDate, note: reminderNote },
+				);
+				await StudentModel.findByIdAndUpdate(updatedStudent._id, {
+					$set: { breakReminderId: createdReminder.id },
+				});
+			}
+		} else if ((updatedStudent.status === "STUDENT" || updatedStudent.status === "DROPPED") && breakReminderId) {
+			await ReminderService.updateReminder(breakReminderId, {
+				isDone: true,
+			}).catch(() => undefined);
+			await StudentModel.findByIdAndUpdate(updatedStudent._id, {
+				$unset: { breakReminderId: 1 },
+			});
+		}
+
 		await logStudentActivity({
 			studentId: student._id.toString(),
 			type: "UPDATED",
 			performedBy: student.admittedBy.toString(),
 			description: "Student updated",
 			oldValue: {
+				name: student.name ?? null,
+				phone: student.phone,
+				email: student.email,
 				mentorId: student.mentorId?.toString(),
 				batchId: student.batchId?.toString(),
 				profilePic: student.profilePic ?? null,
 			},
 			newValue: {
+				name: updatedStudent.name ?? null,
+				phone: updatedStudent.phone,
+				email: updatedStudent.email,
 				mentorId: updatedStudent.mentorId?.toString(),
 				batchId: updatedStudent.batchId?.toString(),
 				profilePic: updatedStudent.profilePic ?? null,
