@@ -11,6 +11,12 @@ export const PERMISSION_CATALOG = {
 		resource: "users",
 		action: "read",
 	},
+	SALES_USERS_READ: {
+		name: "Read Sales Users",
+		description: "View list of users in the sales role",
+		resource: "users",
+		action: "read:sales",
+	},
 	USER_UPDATE: {
 		name: "Update User",
 		description: "Update user information",

@@ -4,6 +4,7 @@ import {
 	authMiddleware,
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
+import { RoleService, UserService, getUserWithRelations } from "../rbac/rbac.service.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	assignRoleController,
@@ -83,6 +84,27 @@ router.get(
 	"/",
 	requirePermissionKey("USER_READ" satisfies PermissionKey),
 	asyncHandler(listUsersController),
+);
+
+router.get(
+	"/sales",
+	requirePermissionKey("SALES_USERS_READ" satisfies PermissionKey),
+	asyncHandler(async (_req, res): Promise<void> => {
+		// Return users that have the sales role
+		const salesRole = (await RoleService.findAll()).find((r) => r.type === "sales");
+		if (!salesRole) {
+			res.json({ ok: true, users: [] });
+			return;
+		}
+
+		const users = await UserService.findAll();
+		const sales = users.filter((u) => (u.roleIds ?? []).some((id) => id === salesRole.id));
+		const usersWithRelations = await Promise.all(
+			sales.map((user) => getUserWithRelations(user)),
+		);
+
+		res.json({ ok: true, users: usersWithRelations });
+	}),
 );
 
 /**

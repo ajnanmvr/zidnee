@@ -28,6 +28,16 @@ const normalizeRoleType = (
 	return "admin";
 };
 
+type PermissionGroup = {
+	resource: string;
+	items: Array<{
+		id: string;
+		name: string;
+		key: string;
+		action: string;
+	}>;
+};
+
 export const EditRolePage = () => {
 	const { roleId = "" } = useParams();
 	const navigate = useNavigate();
@@ -47,6 +57,39 @@ export const EditRolePage = () => {
 		});
 	const selectedPermissionIds = watch("permissionIds") ?? [];
 
+	const groupedPermissions = useMemo<PermissionGroup[]>(() => {
+		const groups = new Map<string, PermissionGroup["items"]>();
+
+		for (const permission of permissionsQuery.data?.permissions ?? []) {
+			const resource = permission.resource.toUpperCase();
+			const existing = groups.get(resource) ?? [];
+			existing.push({
+				id: permission.id,
+				name: permission.name,
+				key: permission.key,
+				action: permission.action,
+			});
+			groups.set(resource, existing);
+		}
+
+		return Array.from(groups.entries())
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([resource, items]) => ({
+				resource,
+				items: items.sort((left, right) => left.name.localeCompare(right.name)),
+			}));
+	}, [permissionsQuery.data?.permissions]);
+
+	const togglePermission = (permissionId: string) => {
+		const nextPermissionIds = selectedPermissionIds.includes(permissionId)
+			? selectedPermissionIds.filter((id) => id !== permissionId)
+			: [...selectedPermissionIds, permissionId];
+
+		setValue("permissionIds", nextPermissionIds, {
+			shouldValidate: true,
+			shouldDirty: true,
+		});
+	};
 	const role = useMemo(
 		() => rolesQuery.data?.roles.find((row) => row.id === roleId) ?? null,
 		[roleId, rolesQuery.data?.roles],
@@ -239,38 +282,43 @@ export const EditRolePage = () => {
 					)}
 				/>
 
-				<div className="mt-4 grid gap-2 text-sm font-medium text-gray-600">
-					<span>Permissions</span>
-					<div className="flex flex-wrap gap-2">
-						{permissionsQuery.data?.permissions.map((permission) => {
-							const selected = selectedPermissionIds.includes(permission.id);
-							return (
-								<button
-									type="button"
-									key={permission.id}
-									className={
-										selected
-											? "rounded-full border border-blue-600 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-600"
-											: "rounded-full border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600"
-									}
-									onClick={() => {
-										const nextPermissionIds = selected
-											? selectedPermissionIds.filter(
-													(id) => id !== permission.id,
-												)
-											: [...selectedPermissionIds, permission.id];
+				<div className="grid gap-3">
+					<p className="text-sm font-semibold text-gray-900">Permissions</p>
+					{groupedPermissions.map((group) => (
+						<div
+							key={group.resource}
+							className="rounded-3xl border border-gray-300 bg-gray-50 p-4"
+						>
+							<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-600">
+								{group.resource}
+							</p>
+							<div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+								{group.items.map((permission) => {
+									const selected = selectedPermissionIds.includes(permission.id);
 
-										setValue("permissionIds", nextPermissionIds, {
-											shouldValidate: true,
-											shouldDirty: true,
-										});
-									}}
-								>
-									{permission.name}
-								</button>
-							);
-						})}
-					</div>
+									return (
+										<button
+											type="button"
+											key={permission.id}
+											className={
+												selected
+													? "rounded-2xl border border-blue-600 bg-blue-100 px-3 py-2 text-left transition"
+													: "rounded-2xl border border-gray-300 bg-white px-3 py-2 text-left transition hover:border-blue-600/30"
+											}
+											onClick={() => togglePermission(permission.id)}
+										>
+											<p className="text-xs font-semibold text-gray-900">
+												{permission.name}
+											</p>
+											<p className="mt-0.5 text-[11px] text-gray-600">
+												{permission.action} • {permission.key}
+											</p>
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					))}
 					{formState.errors.permissionIds?.message ? (
 						<p className="rounded-2xl border border-red-600/20 bg-red-600-soft px-4 py-3 text-sm text-gray-900">
 							{formState.errors.permissionIds.message}

@@ -21,6 +21,7 @@ import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
 import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import { useUsersQuery, useSalesUsersQuery } from "@/features/users/users.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	buildLeadColumns,
@@ -44,7 +45,6 @@ import {
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
-import { useUsersQuery } from "@/features/users/users.queries";
 import type {
 	ConfirmAdmissionForm,
 	CreateLeadForm,
@@ -70,7 +70,6 @@ const toInputDateTimeLocal = (value: string | null): string => {
 };
 
 const isCounsellorRole = (roleType: string) => roleType === "counsellor";
-const isSalesRole = (roleType: string) => roleType === "sales";
 
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
@@ -83,6 +82,10 @@ export const LeadsPage = () => {
 
 	const hasPermission = (key?: string) =>
 		Boolean(meQuery.data?.permissions?.some((p) => p.key === key));
+	const canAssignLeadToOthers =
+		hasPermission("LEAD_READ_ALL") || hasPermission("LEAD_UPDATE_ALL");
+	const canReadUsers = hasPermission("USER_READ");
+	const canReadSalesUsers = hasPermission("SALES_USERS_READ");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
 	// Default sort: past → future (ascending)
@@ -100,6 +103,11 @@ export const LeadsPage = () => {
 		) ?? false;
 	const scopeParam = searchParams.get("scope");
 	const activeScope = scopeParam === "all" && canReadAllLeads ? "all" : "mine";
+
+	// Don't load the full "all" scope automatically on initial page load.
+	// Only enable fetching `scope=all` when the user explicitly requests it
+	// by clicking the "All users in stage" control.
+	const [loadAllRequested, setLoadAllRequested] = useState(false);
 
 	// Map stage to status for backend filtering
 	const stageToStatus = (stage: LeadStageId): string | undefined => {
@@ -123,6 +131,9 @@ export const LeadsPage = () => {
 		}
 	};
 
+	const shouldEnableLeadsQuery =
+		activeScope === "mine" || (activeScope === "all" && loadAllRequested);
+
 	const activeLeadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: activeScope,
 		timeFilter: "all",
@@ -130,8 +141,9 @@ export const LeadsPage = () => {
 		page: currentPage,
 		sortBy,
 		sortOrder,
+		enabled: shouldEnableLeadsQuery,
 	});
-	const usersQuery = useUsersQuery(token);
+	const usersQuery = useUsersQuery(token, canReadUsers);
 	const createLeadMutation = useCreateLeadMutation();
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
@@ -312,13 +324,8 @@ export const LeadsPage = () => {
 			),
 		[allUsers],
 	);
-	const salesUsers = useMemo(
-		() =>
-			allUsers.filter((user) =>
-				user.roles.some((role) => isSalesRole(role.type ?? "general")),
-			),
-		[allUsers],
-	);
+	const salesUsersQuery = useSalesUsersQuery(token, canReadSalesUsers);
+	const salesUsers = salesUsersQuery.data?.users ?? [];
 	const userNameById = useMemo(
 		() =>
 			new Map(
@@ -361,11 +368,11 @@ export const LeadsPage = () => {
 			return;
 		}
 
-		const defaultAssignedTo = salesUsers.some(
-			(user) => user.id === currentUserId,
-		)
-			? (currentUserId ?? "")
-			: "";
+		const defaultAssignedTo = canAssignLeadToOthers
+			? (salesUsers.some((user: any) => user.id === currentUserId)
+					? (currentUserId ?? "")
+					: "")
+			: (currentUserId ?? "");
 
 		resetCreate({
 			phone: "",
@@ -374,7 +381,7 @@ export const LeadsPage = () => {
 			isOrganic: false,
 			customNextFollowUpAt: undefined,
 		});
-	}, [createOpen, currentUserId, resetCreate, salesUsers]);
+	}, [canAssignLeadToOthers, createOpen, currentUserId, resetCreate, salesUsers]);
 
 	const onCreateLead = async (payload: CreateLeadForm) => {
 		const validation = CreateLeadPayloadSchema.safeParse(payload);
@@ -834,6 +841,7 @@ export const LeadsPage = () => {
 						</Link>
 						<Link
 							to={buildSearch(activeStage, "all")}
+							onClick={() => setLoadAllRequested(true)}
 							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "all" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
 						>
 							All users in stage
@@ -978,33 +986,35 @@ export const LeadsPage = () => {
 					className="grid gap-4"
 					onSubmit={handleCreateSubmit(onCreateLead)}
 				>
-					<Controller
-						name="assignedTo"
-						control={createControl}
-						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
-								<span>Assign to</span>
-								<select
-									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-									value={field.value ?? ""}
-									onChange={(event) => field.onChange(event.target.value)}
-								>
-									<option value="">Select user</option>
-									{salesUsers.map((user) => (
-										<option key={user.id} value={user.id}>
-											{formatUserName(user.name ?? user.username)}
-											{user.id === currentUserId ? " (You)" : ""}
-										</option>
-									))}
-								</select>
-								{fieldState.error?.message ? (
-									<p className="text-xs text-red-600">
-										{fieldState.error.message}
-									</p>
-								) : null}
-							</label>
-						)}
-					/>
+					{canAssignLeadToOthers ? (
+						<Controller
+							name="assignedTo"
+							control={createControl}
+							render={({ field, fieldState }) => (
+								<label className="grid gap-2 text-sm font-medium text-gray-600">
+									<span>Assign to</span>
+									<select
+										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+										value={field.value ?? ""}
+										onChange={(event) => field.onChange(event.target.value)}
+									>
+										<option value="">Select user</option>
+										{salesUsers.map((user: any) => (
+											<option key={user.id} value={user.id}>
+												{formatUserName(user.name ?? user.username)}
+												{user.id === currentUserId ? " (You)" : ""}
+											</option>
+										))}
+									</select>
+									{fieldState.error?.message ? (
+										<p className="text-xs text-red-600">
+											{fieldState.error.message}
+										</p>
+									) : null}
+								</label>
+							)}
+						/>
+					) : null}
 					<Controller
 						name="phone"
 						control={createControl}

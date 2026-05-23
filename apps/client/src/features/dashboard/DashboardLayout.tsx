@@ -94,6 +94,10 @@ const resolveTitle = (pathname: string, search: string): string => {
 		return "Sales";
 	}
 
+	if (pathname === "/sales-users") {
+		return "Sales Users";
+	}
+
 	return titles[pathname] ?? "Overview";
 };
 
@@ -362,6 +366,22 @@ export const DashboardLayout = () => {
 					accent: "cyan",
 					section: "Management",
 				},
+			]
+			: []),
+		...(hasPermission("SALES_USERS_READ")
+			? [
+				{
+					to: "/sales-users",
+					label: "Sales Users",
+					description: "Sales team",
+					icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
+					accent: "amber",
+					section: "Management",
+				},
+			]
+			: []),
+		...(hasPermission("USER_READ")
+			? [
 				{
 					to: "/mentors",
 					label: "Mentors",

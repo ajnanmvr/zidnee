@@ -21,6 +21,16 @@ export const fetchUsers = async (token: string) => {
 	);
 };
 
+export const fetchSalesUsers = async (token: string) => {
+	return requestWithSchema(
+		"/users/sales",
+		UsersResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
 export const createUser = async (token: string, payload: CreateUserPayload) => {
 	return requestWithSchema(
 		"/users",
