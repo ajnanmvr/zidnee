@@ -21,9 +21,29 @@ export const fetchUsers = async (token: string) => {
 	);
 };
 
+export const fetchMentors = async (token: string) => {
+	return requestWithSchema(
+		"/users/mentors",
+		UsersResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
 export const fetchSalesUsers = async (token: string) => {
 	return requestWithSchema(
 		"/users/sales",
+		UsersResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchCounsellors = async (token: string) => {
+	return requestWithSchema(
+		"/users/counsellors",
 		UsersResponseSchema,
 		"GET",
 		undefined,
@@ -77,6 +97,20 @@ export const updateUser = async (
 		UserResponseSchema,
 		"PATCH",
 		payload,
+		token,
+	);
+};
+
+export const assignUserCounsellor = async (
+	token: string,
+	userId: string,
+	counsellorId: string,
+) => {
+	return requestWithSchema(
+		`/users/${userId}/counsellor`,
+		UserResponseSchema,
+		"PATCH",
+		{ counsellorId },
 		token,
 	);
 };

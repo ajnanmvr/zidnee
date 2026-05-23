@@ -90,21 +90,21 @@ export const RoleUsersPage = ({
 		const q = query.trim().toLowerCase();
 		const searched = q
 			? filtered.filter((user) => {
-					const identity =
-						(user.zids && (user.zids as any)[roleType]) ??
-						user.mentorId ??
-						user.counsellorId ??
-						user.username ??
-						"";
-					const counsellorName = getCounsellorName(
-						user.counsellorId,
-					).toLowerCase();
-					return (
-						identity.toLowerCase().includes(q) ||
-						(user.name ?? "").toLowerCase().includes(q) ||
-						counsellorName.includes(q)
-					);
-				})
+				const identity =
+					(user.zids && (user.zids as any)[roleType]) ??
+					user.mentorId ??
+					user.counsellorId ??
+					user.username ??
+					"";
+				const counsellorName = getCounsellorName(
+					user.counsellorId,
+				).toLowerCase();
+				return (
+					identity.toLowerCase().includes(q) ||
+					(user.name ?? "").toLowerCase().includes(q) ||
+					counsellorName.includes(q)
+				);
+			})
 			: filtered;
 
 		const sorted = searched.slice().sort((a, b) => {
@@ -296,7 +296,6 @@ export const RoleUsersPage = ({
 												? user.mentorId
 												: user.counsellorId) ??
 											"-"}
-											.toUpperCase?.()
 									</td>
 									<td className="px-4 py-3 font-semibold text-gray-900">
 										{user.name}

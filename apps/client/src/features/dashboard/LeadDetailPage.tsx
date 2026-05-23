@@ -6,7 +6,7 @@
 	RedemoLeadPayloadSchema,
 	UpdateLeadPayloadSchema,
 } from "@repo/schema";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import toast from "react-hot-toast";
 import {
@@ -41,7 +41,10 @@ import {
 	useRevokeFormLinkMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
-import { useUsersQuery } from "@/features/users/users.queries";
+import {
+	useCounsellorsQuery,
+	useUsersQuery,
+} from "@/features/users/users.queries";
 import type {
 	ConfirmAdmissionForm,
 	PostponeLeadFollowUpForm,
@@ -247,18 +250,13 @@ export const LeadDetailPage = () => {
 	const lead = leadQuery.data?.lead ?? null;
 	const latestDemo = lead ? getLatestLeadDemo(lead) : null;
 	const allUsers = usersQuery.data?.users ?? [];
+	const counsellorsQuery = useCounsellorsQuery(token);
 	const currentUserId = meQuery.data?.id ?? "";
 	const currentAssigneeId = lead?.assignedTo ?? "";
 	const currentAssignee = currentAssigneeId
 		? (allUsers.find((user) => user.id === currentAssigneeId) ?? null)
 		: null;
-	const counsellors = useMemo(
-		() =>
-			allUsers.filter((user) =>
-				user.roles.some((role) => (role.type ?? "general") === "counsellor"),
-			),
-		[allUsers],
-	);
+	const counsellors = counsellorsQuery.data?.users ?? [];
 	const defaultCounsellorId = latestDemo?.mentorId
 		? allUsers.find((user) => user.id === latestDemo.mentorId)?.counsellorId
 		: undefined;

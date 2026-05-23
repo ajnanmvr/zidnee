@@ -2,6 +2,7 @@ import type { PermissionKey } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
+	requireAnyPermissionKey,
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { RoleService, UserService, getUserWithRelations } from "../rbac/rbac.service.js";
@@ -13,8 +14,11 @@ import {
 	createCounsellorController,
 	createMentorController,
 	createUserController,
+	assignUserCounsellorController,
 	deleteUserController,
 	getUserController,
+	listCounsellorsController,
+	listMentorsController,
 	listUsersController,
 	removeRoleController,
 	setUserStatusController,
@@ -87,8 +91,29 @@ router.get(
 );
 
 router.get(
+	"/counsellors",
+	requireAnyPermissionKey([
+		"LEAD_DEMO_REQUEST" satisfies PermissionKey,
+		"LEAD_DEMO_ASSIGN" satisfies PermissionKey,
+	]),
+	asyncHandler(listCounsellorsController),
+);
+
+router.get(
+	"/mentors",
+	requireAnyPermissionKey([
+		"LEAD_ASSIGN" satisfies PermissionKey,
+		"LEAD_DEMO_ASSIGN" satisfies PermissionKey,
+	]),
+	asyncHandler(listMentorsController),
+);
+
+router.get(
 	"/sales",
-	requirePermissionKey("SALES_USERS_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"SALES_USERS_READ" satisfies PermissionKey,
+		"LEAD_ASSIGN" satisfies PermissionKey,
+	]),
 	asyncHandler(async (_req, res): Promise<void> => {
 		// Return users that have the sales role
 		const salesRole = (await RoleService.findAll()).find((r) => r.type === "sales");
@@ -196,6 +221,14 @@ router.get(
 	"/:userId",
 	requirePermissionKey("USER_READ" satisfies PermissionKey),
 	asyncHandler(getUserController),
+);
+router.patch(
+	"/:userId/counsellor",
+	requireAnyPermissionKey([
+		"LEAD_ASSIGN" satisfies PermissionKey,
+		"USER_UPDATE" satisfies PermissionKey,
+	]),
+	asyncHandler(assignUserCounsellorController),
 );
 router.patch(
 	"/:userId",

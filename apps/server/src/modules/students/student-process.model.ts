@@ -64,8 +64,7 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 		label: "Level & Teaching Guide Link Shared To Ongoing Mentor",
 	},
 	"confirmed-data-shared-to-new-mentor": {
-		label:
-			"Confirmed Following Data Shared To New Mentor: ID & Counselor Name and Contact, Class Room Group Awareness (Google Meet Link, Attendance Form), level and teaching guide Drive Link, SOP and General Mentor Guide Awareness",
+		label: "Confirmed data shared to new mentor",
 	},
 	"added-in-parents-group": {
 		label: "Added in parent's Group",

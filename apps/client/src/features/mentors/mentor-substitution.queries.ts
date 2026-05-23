@@ -16,7 +16,7 @@ import { useSession } from "@/lib/session";
 
 const SUBSTITUTIONS_QUERY_KEY = ["mentor-substitutions"];
 
-export const useGetAllSubstitutions = (token: string) => {
+export const useGetAllSubstitutions = (token: string, enabled = true) => {
 	return useQuery({
 		queryKey: [...SUBSTITUTIONS_QUERY_KEY, "all"],
 		queryFn: async () => {
@@ -29,7 +29,7 @@ export const useGetAllSubstitutions = (token: string) => {
 			);
 			return response.substitutions;
 		},
-		enabled: !!token,
+		enabled: !!token && Boolean(enabled),
 	});
 };
 

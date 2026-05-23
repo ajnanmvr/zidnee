@@ -4,7 +4,7 @@ import {
 	useGetMentorAsOriginal,
 	useGetMentorAsSubstitute,
 } from "./mentor-substitution.queries";
-import { useUsersQuery } from "../users/users.queries";
+import { useMentorsQuery } from "../users/users.queries";
 import { useSession } from "@/lib/session";
 
 interface MentorSubstitutionInfoProps {
@@ -15,7 +15,7 @@ export const MentorSubstitutionInfo = ({
 	mentorId,
 }: MentorSubstitutionInfoProps) => {
 	const { token } = useSession();
-	const { data: usersData } = useUsersQuery(token);
+	const { data: usersData } = useMentorsQuery(token);
 	const mentors = usersData?.users ?? [];
 
 	const { data: asOriginal = [] } = useGetMentorAsOriginal(token, mentorId);

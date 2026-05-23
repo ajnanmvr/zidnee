@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { HiClock, HiCheckCircle, HiPlusCircle, HiUserGroup, HiXCircle } from "react-icons/hi2";
 import { Panel, Modal } from "@/components/dashboard-ui";
 import { useSession } from "@/lib/session";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { useMentorsQuery } from "@/features/users/users.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { getStudentStatusColor, getStudentStatusLabel } from "@/features/students/student-table";
 import { CreateSubstitutionModal } from "./CreateSubstitutionModal";
@@ -56,7 +56,7 @@ type StudentStatusTabKey = "STUDENT" | "BREAK" | "DROPPED";
 export const MentorDetailPage = () => {
 	const { mentorId } = useParams<{ mentorId: string }>();
 	const { token } = useSession();
-	const usersQuery = useUsersQuery(token);
+	const usersQuery = useMentorsQuery(token);
 	const studentsQuery = useStudentsQuery(token);
 	const mentorFollowUpQuery = useMentorFollowUpQuery(
 		token,
