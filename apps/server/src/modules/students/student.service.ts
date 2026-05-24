@@ -7,6 +7,7 @@ import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { BatchModel } from "./batch.model.js";
+import { UserModel } from "../users/user.model.js";
 import { buildStudentIdentity } from "./student.identity.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
 import { deleteObjectFromUrl } from "../../lib/s3.js";
@@ -101,6 +102,29 @@ const getStudentSort = (
 const getLatestLeadDemo = (lead: LeadDocument) => {
 	const demos = lead.demos ?? [];
 	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
+};
+
+const buildMineStudentProcessMatch = async (userId: string) => {
+	if (!Types.ObjectId.isValid(userId)) {
+		return null;
+	}
+
+	const mentorIds = await UserModel.find({
+		counsellorId: userId,
+	} as any).distinct("_id");
+
+	const counsellorObjectId = new Types.ObjectId(userId);
+
+	if (mentorIds.length === 0) {
+		return { "batch.counsellorId": counsellorObjectId };
+	}
+
+	return {
+		$or: [
+			{ "student.mentorId": { $in: mentorIds } },
+			{ "batch.counsellorId": counsellorObjectId },
+		],
+	};
 };
 
 const assessmentFieldByType = {
@@ -243,10 +267,18 @@ export const StudentService = {
 	): Promise<Student[]> => {
 		const query: Record<string, unknown> = {};
 		if (filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
+			const mentorIds = await UserModel.find({
+				counsellorId: filters.userId,
+			} as any).distinct("_id");
+
 			const batchIds = await BatchModel.find({
 				counsellorId: new Types.ObjectId(filters.userId),
 			} as any).distinct("_id");
-			query.batchId = { $in: batchIds };
+
+			query.$or = [
+				{ mentorId: { $in: mentorIds } },
+				{ batchId: { $in: batchIds } },
+			];
 		}
 
 		if (filters.status) {
@@ -255,13 +287,20 @@ export const StudentService = {
 
 		if (filters.search?.trim()) {
 			const search = filters.search.trim();
-			query.$or = [
+			const searchOr = [
 				{ name: { $regex: search, $options: "i" } },
 				{ phone: { $regex: search, $options: "i" } },
 				{ email: { $regex: search, $options: "i" } },
 				{ zid: { $regex: search, $options: "i" } },
 				{ processLabel: { $regex: search, $options: "i" } },
 			];
+
+			if (Array.isArray(query.$or)) {
+				query.$and = [{ $or: query.$or }, { $or: searchOr }];
+				delete query.$or;
+			} else {
+				query.$or = searchOr;
+			}
 		}
 
 		const students = await StudentModel.find(query)
@@ -275,9 +314,9 @@ export const StudentService = {
 	},
 
 	listStudentProcesses: async (filters: { scope?: "mine" | "all"; userId?: string } = {}): Promise<StudentProcessListItem[]> => {
-		const mentorMatch =
-			filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)
-				? new Types.ObjectId(filters.userId)
+		const mineMatch =
+			filters.scope === "mine" && filters.userId
+				? await buildMineStudentProcessMatch(filters.userId)
 				: null;
 		const raw = await StudentProcessModel.aggregate<unknown>([
 			{
@@ -310,7 +349,7 @@ export const StudentService = {
 					preserveNullAndEmptyArrays: true,
 				},
 			},
-			...(mentorMatch ? [{ $match: { "batch.counsellorId": mentorMatch } }] : []),
+			...(mineMatch ? [{ $match: mineMatch }] : []),
 			{
 				$sort: {
 					updatedAt: -1,
@@ -348,9 +387,9 @@ export const StudentService = {
 	},
 
 	listStudentProcessHistory: async (filters: { scope?: "mine" | "all"; userId?: string } = {}): Promise<StudentProcessListItem[]> => {
-		const mentorMatch =
-			filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)
-				? new Types.ObjectId(filters.userId)
+		const mineMatch =
+			filters.scope === "mine" && filters.userId
+				? await buildMineStudentProcessMatch(filters.userId)
 				: null;
 		const raw = await StudentProcessModel.aggregate<unknown>([
 			{
@@ -383,7 +422,7 @@ export const StudentService = {
 					preserveNullAndEmptyArrays: true,
 				},
 			},
-			...(mentorMatch ? [{ $match: { "batch.counsellorId": mentorMatch } }] : []),
+			...(mineMatch ? [{ $match: mineMatch }] : []),
 			{
 				$sort: {
 					archivedAt: -1,

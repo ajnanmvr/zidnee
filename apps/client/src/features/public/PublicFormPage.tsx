@@ -1007,7 +1007,7 @@ const PublicFormPage = () => {
 						<img
 							src="/zidnee-typography.png"
 							alt="Zidnee"
-							className="h-24 w-auto"
+							className="h-16 w-auto sm:h-24"
 						/>
 					</div>
 				</div>
@@ -1362,7 +1362,7 @@ const PublicFormPage = () => {
 											Tap one or more hourly tiles to select preferred timings for group classes.
 										</p>
 
-										<div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+										<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
 											{Array.from({ length: 20 }).map((_, i) => {
 												const hour = 4 + i; // 4..23
 												const start = `${hour.toString().padStart(2, "0")}:00`;
@@ -1404,15 +1404,15 @@ const PublicFormPage = () => {
 								) : null}
 
 									{courseType === "INDIVIDUAL" && (
-										<div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-											<div className="md:col-span-2">
+										<div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+											<div className="sm:col-span-2">
 												<label className="mb-2 block text-sm font-semibold text-slate-700">
 													Choose a plan
 												</label>
 												<p className="mb-3 text-xs text-slate-500">
 													Select the plan that matches how often and how long you want classes.
 												</p>
-												<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+												<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 items-stretch">
 													{formOptions.timeslots.map((timeslot) => {
 														const isSelected =
 															selectedPlanSnapshot?.timesPerWeek === timeslot.timesPerWeek &&
@@ -1432,9 +1432,9 @@ const PublicFormPage = () => {
 																	{ shouldDirty: true, shouldValidate: true },
 																);
 															}}
-															className={`rounded-3xl border p-4 text-left transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
+															className={`w-full min-w-0 rounded-3xl border p-4 text-left transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
 														>
-															<div className="flex items-start justify-between gap-3">
+															<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
 																<div>
 																	<p className="text-sm font-semibold text-slate-950">
 																		{timeslot.timesPerWeek} time{timeslot.timesPerWeek > 1 ? "s" : ""} per week
@@ -1443,7 +1443,7 @@ const PublicFormPage = () => {
 																		Duration: {timeslot.durationMinutes} minutes
 																	</p>
 																</div>
-																<span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${isSelected ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
+																<span className={`mt-3 sm:mt-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${isSelected ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
 																	{isSelected ? "Selected" : "Choose"}
 																</span>
 															</div>
@@ -1487,7 +1487,7 @@ const PublicFormPage = () => {
 											</div>
 
 											{selectedStartTime && calculatedEndTime ? (
-												<div className="md:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
+												<div className="sm:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
 													<div>
 														<p className="text-xs font-semibold text-slate-600">Start time</p>
 														<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(selectedStartTime)}</p>
@@ -1499,7 +1499,7 @@ const PublicFormPage = () => {
 												</div>
 											) : null}
 
-											<div className="col-span-2">
+											<div className="sm:col-span-2">
 												<label className="mb-2 block text-sm font-semibold text-slate-700">
 													Preferred mentor gender
 												</label>

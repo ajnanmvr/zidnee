@@ -42,6 +42,7 @@ export const getAllReminders = async (
 		isDone?: boolean;
 		sortBy?: "date" | "createdAt";
 		sortOrder?: "asc" | "desc";
+		scope?: "mine" | "all";
 	},
 ) => {
 	const params = new URLSearchParams();
@@ -53,6 +54,9 @@ export const getAllReminders = async (
 	}
 	if (filters?.sortOrder) {
 		params.append("sortOrder", filters.sortOrder);
+	}
+	if (filters?.scope) {
+		params.append("scope", filters.scope);
 	}
 
 	const response = await requestWithSchema(
