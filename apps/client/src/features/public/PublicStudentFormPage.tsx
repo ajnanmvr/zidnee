@@ -596,7 +596,7 @@ export function PublicStudentFormPage() {
         <div className="mx-auto max-w-2xl">
           {/* Header */}
           <div className="mb-8 flex items-center justify-center">
-            <img src="/zidnee-typography.png" alt="Zidnee" className="h-16 w-auto" />
+            <img src="/zidnee-typography.png" alt="Zidnee" className="h-12 w-auto sm:h-16" />
           </div>
 
           {/* Main Card */}

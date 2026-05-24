@@ -224,7 +224,7 @@ export const StudentProcessesPage = () => {
 															onClick={async () => {
 															if (confirm("Mark this process as completed?")) {
 																await completeProcess.mutateAsync({ processId: process.id });
-																navigate("/process-history");
+																navigate("/processes");
 															}
 															}}
 															disabled={completeProcess.isPending}

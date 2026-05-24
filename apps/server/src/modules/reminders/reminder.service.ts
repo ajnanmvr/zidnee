@@ -5,6 +5,8 @@ import type {
 } from "@repo/schema";
 import { AppError } from "../../utils/errors.util.js";
 import { type ReminderDocument, ReminderModel } from "./reminder.model.js";
+import { UserModel } from "../users/user.model.js";
+import { StudentModel } from "../students/student.model.js";
 
 const toReminder = (doc: ReminderDocument): Reminder => {
 	const assignedTo = doc.assignedTo?.toString() ?? doc.createdBy.toString();
@@ -71,7 +73,34 @@ export const ReminderService = {
 			query.isDone = filters.isDone;
 		}
 		if (filters?.scope === "mine" && filters.userId) {
-			query.assignedTo = filters.userId;
+			const mentorIds = await UserModel.find({
+				counsellorId: filters.userId,
+			} as any).distinct("_id");
+
+			const studentIds =
+				mentorIds.length > 0
+					? await StudentModel.find({ mentorId: { $in: mentorIds } }).distinct("_id")
+					: [];
+
+			const scopeOr: Array<Record<string, unknown>> = [
+				{ assignedTo: filters.userId },
+			];
+
+			if (mentorIds.length > 0) {
+				scopeOr.push({
+					linkedPersonType: "mentor",
+					linkedPersonId: { $in: mentorIds },
+				});
+			}
+
+			if (studentIds.length > 0) {
+				scopeOr.push({
+					linkedPersonType: "student",
+					linkedPersonId: { $in: studentIds },
+				});
+			}
+
+			query.$or = scopeOr;
 		}
 
 		const sortField = filters?.sortBy === "createdAt" ? "createdAt" : "date";

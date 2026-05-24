@@ -6,6 +6,7 @@ import type {
 import { Types } from "mongoose";
 import { type BatchDocument, BatchModel } from "./batch.model.js";
 import { BatchIdentityService } from "./batch.identity.js";
+import { UserModel } from "../users/user.model.js";
 
 const toBatch = (doc: BatchDocument): Batch => {
 	return {
@@ -56,7 +57,14 @@ export const BatchService = {
 	findAll: async (filters?: { scope?: "mine" | "all"; userId?: string }): Promise<Batch[]> => {
 		const query: Record<string, unknown> = {};
 		if (filters?.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
-			query.counsellorId = new Types.ObjectId(filters.userId);
+			const mentorIds = await UserModel.find({
+				counsellorId: filters.userId,
+			} as any).distinct("_id");
+
+			query.$or = [
+				{ counsellorId: new Types.ObjectId(filters.userId) },
+				{ mentorId: { $in: mentorIds } },
+			];
 		}
 		const batches = await BatchModel.find(query).lean<BatchDocument[]>();
 		return batches.map(toBatch);

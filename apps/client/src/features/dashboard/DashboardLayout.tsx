@@ -141,8 +141,8 @@ export const DashboardLayout = () => {
 		timeFilter: "all",
 		enabled: canReadLeads,
 	});
-	const studentsQuery = useStudentsQuery(token, canReadStudents);
-	const remindersQuery = useGetAllReminders({ enabled: canReadReminders });
+	const studentsQuery = useStudentsQuery(token, { scope: "mine" }, canReadStudents);
+	const remindersQuery = useGetAllReminders({ scope: "mine", enabled: canReadReminders });
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadUnassignedDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadScheduledDemos);
 	const meName = me?.name ?? "User";

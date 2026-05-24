@@ -146,6 +146,16 @@ export const StudentDetailPage = () => {
 		return user?.name ?? user?.username ?? "Unknown";
 	}, [student?.mentorId, usersQuery.data?.users]);
 
+	const counsellorName = useMemo(() => {
+		if (!student?.mentorId) return "-";
+		const mentorUser = usersQuery.data?.users.find((u) => u.id === student.mentorId);
+		if (!mentorUser?.counsellorId) return "-";
+		const counsellorUser = usersQuery.data?.users.find(
+			(u) => u.id === mentorUser.counsellorId,
+		);
+		return counsellorUser?.name ?? counsellorUser?.username ?? "Unknown";
+	}, [student?.mentorId, usersQuery.data?.users]);
+
 	const admittedByName = useMemo(() => {
 		if (!student?.admittedBy) return "-";
 		const user = usersQuery.data?.users.find((u) => u.id === student.admittedBy);
@@ -817,8 +827,12 @@ export const StudentDetailPage = () => {
 					</div>
 				</div>
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Owner</p>
+					<p className="text-xs text-gray-600 uppercase tracking-wide">Mentor</p>
 					<p className="text-lg font-semibold text-gray-900 mt-1">{mentorName}</p>
+				</div>
+				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+					<p className="text-xs text-gray-600 uppercase tracking-wide">Counsellor</p>
+					<p className="text-lg font-semibold text-gray-900 mt-1">{counsellorName}</p>
 				</div>
 				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
 					<p className="text-xs text-gray-600 uppercase tracking-wide">Status</p>

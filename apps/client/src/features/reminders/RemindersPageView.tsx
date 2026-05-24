@@ -23,7 +23,6 @@ import {
     getReminderDueToneClasses,
 } from "./reminders.utils.js";
 import { Modal } from "@/components/dashboard-ui";
-import { useMeQuery } from "@/features/auth/auth.queries.js";
 import { useStudentsQuery } from "@/features/students/students.queries.js";
 import { useUsersQuery } from "@/features/users/users.queries.js";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
@@ -48,7 +47,6 @@ export const RemindersPageView = ({
 }: RemindersPageViewProps) => {
     const navigate = useNavigate();
     const { token } = useSession();
-    const meQuery = useMeQuery(token);
     const canCreateReminder = useHasPermission("REMINDER_CREATE");
     const canUpdateReminder = useHasPermission("REMINDER_UPDATE");
     const canDeleteReminder = useHasPermission("REMINDER_DELETE");
@@ -62,7 +60,6 @@ export const RemindersPageView = ({
     );
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 8;
-    const currentUserId = meQuery.data?.id ?? "";
 
     const remindersQuery = useGetAllReminders({
         scope: scope === "assignedToMe" ? "mine" : "all",
@@ -83,12 +80,7 @@ export const RemindersPageView = ({
     const pendingCount = activeReminders.length;
     const doneCount = closedReminders.length;
 
-    const assignedToMeReminders = useMemo(
-        () => listReminders.filter((reminder) => reminder.assignedTo === currentUserId),
-        [listReminders, currentUserId],
-    );
-    const scopedReminders =
-        scope === "assignedToMe" ? assignedToMeReminders : listReminders;
+    const scopedReminders = listReminders;
 
     const sortedReminders = useMemo(() => {
         const sorted = [...scopedReminders];
@@ -238,7 +230,7 @@ export const RemindersPageView = ({
                                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                             }`}
                         >
-                            Assigned to me ({assignedToMeReminders.length})
+                            Assigned to me ({scope === "assignedToMe" ? listReminders.length : 0})
                         </button>
                         <button
                             onClick={() => setScope("allAssignments")}
@@ -248,7 +240,7 @@ export const RemindersPageView = ({
                                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                             }`}
                         >
-                            All assignments ({listReminders.length})
+                            All assignments ({scope === "allAssignments" ? listReminders.length : 0})
                         </button>
                     </div>
 
