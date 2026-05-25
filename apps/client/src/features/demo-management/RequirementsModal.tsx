@@ -101,7 +101,7 @@ export const RequirementsModal = ({
 
 		// Plan for copy: show as "<timesPerWeek> days <durationMinutes>" when available
 		const planForCopy = lead.preferredPlan
-			? `${lead.preferredPlan.timesPerWeek} days ${lead.preferredPlan.durationMinutes}`
+			? `${lead.preferredPlan.durationMinutes} mins for ${lead.preferredPlan.timesPerWeek} days in a week`
 			: lead.preferredSchedule || "N/A";
 
 		// Demo time: format as readable date + am/pm when present
