@@ -530,7 +530,9 @@ export const CreateAccountPage = ({
 										<option value="">No counsellor</option>
 										{counsellors.map((counsellor) => (
 											<option key={counsellor.id} value={counsellor.id}>
-												{counsellor.name}
+												{counsellor.zids?.counsellor
+													? `${counsellor.zids.counsellor} - ${counsellor.name ?? counsellor.username}`
+													: counsellor.name ?? counsellor.username}
 											</option>
 										))}
 									</select>

@@ -1054,7 +1054,9 @@ export const LeadsPage = () => {
 										<option value="">Select user</option>
 										{salesUsers.map((user: any) => (
 											<option key={user.id} value={user.id}>
-												{formatUserName(user.name ?? user.username)}
+												{user.zids?.sales
+													? `${user.zids.sales} - ${formatUserName(user.name ?? user.username)}`
+													: formatUserName(user.name ?? user.username)}
 												{user.id === currentUserId ? " (You)" : ""}
 											</option>
 										))}
@@ -1219,7 +1221,7 @@ export const LeadsPage = () => {
 							</option>
 							{counsellors.map((c) => (
 								<option key={c.id} value={c.id}>
-									{c.name || c.username}
+									{c.zids?.counsellor ? `${c.zids.counsellor} - ${c.name ?? c.username}` : c.name || c.username}
 								</option>
 							))}
 						</select>
@@ -1726,7 +1728,9 @@ export const LeadsPage = () => {
 										<option value="">Select counsellor</option>
 										{counsellors.map((counsellor: any) => (
 											<option key={counsellor.id} value={counsellor.id}>
-												{formatUserName(counsellor.name ?? counsellor.username)}
+												{counsellor.zids?.counsellor
+													? `${counsellor.zids.counsellor} - ${formatUserName(counsellor.name ?? counsellor.username)}`
+													: formatUserName(counsellor.name ?? counsellor.username)}
 											</option>
 										))}
 									</select>

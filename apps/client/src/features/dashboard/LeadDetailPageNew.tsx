@@ -1,4 +1,4 @@
-import { format, formatDistance, isPast } from "date-fns";
+import { format, formatDistance, isPast, isValid } from "date-fns";
 import { formatRelativeDateTime } from "@/lib/utils/date";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -64,6 +64,51 @@ const getStatusColor = (status?: string): { badge: string } => {
 	return selected ?? fallback;
 };
 
+const PostponeDateTimeField = ({
+	value,
+	onChange,
+}: {
+	value?: Date;
+	onChange: (value?: Date) => void;
+}) => {
+	const [inputValue, setInputValue] = useState(() =>
+		value && isValid(value)
+			? format(value, "yyyy-MM-dd'T'HH:mm")
+			: "",
+	);
+
+	useEffect(() => {
+		setInputValue(
+			value && isValid(value)
+				? format(value, "yyyy-MM-dd'T'HH:mm")
+				: "",
+		);
+	}, [value]);
+
+	return (
+		<input
+			type="datetime-local"
+			value={inputValue}
+			onChange={(event) => {
+				const nextValue = event.target.value;
+				setInputValue(nextValue);
+
+				if (!nextValue) {
+					onChange(undefined);
+					return;
+				}
+
+				const parsedValue = new Date(nextValue);
+
+				if (isValid(parsedValue)) {
+					onChange(parsedValue);
+				}
+			}}
+			className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+		/>
+	);
+};
+
 const StatCard = ({
 	icon: Icon,
 	label,
@@ -81,9 +126,11 @@ const StatCard = ({
 				<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
 					{label}
 				</p>
-				<p className="mt-1 text-lg font-bold text-gray-900">{value}</p>
+				<p className="mt-1 text-lg font-bold text-gray-900">
+					{value}
+				</p>
 			</div>
-		</div>
+		</div>	
 	</div>
 );
 
@@ -1396,17 +1443,9 @@ export const LeadDetailPageNew = () => {
 								<span className="text-sm font-semibold text-gray-700">
 									Schedule For
 								</span>
-								<input
-									type="datetime-local"
-									value={
-										field.value instanceof Date
-											? format(field.value, "yyyy-MM-dd'T'HH:mm")
-											: ""
-									}
-									onChange={(event) =>
-										field.onChange(new Date(event.target.value))
-									}
-									className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+								<PostponeDateTimeField
+									value={field.value}
+									onChange={field.onChange}
 								/>
 							</label>
 						)}

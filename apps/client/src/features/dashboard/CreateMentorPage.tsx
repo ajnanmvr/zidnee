@@ -6,7 +6,8 @@ import { useCreateMentorMutation } from "@/features/users/use-create-mentor-muta
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useMeQuery } from "@/features/auth/auth.queries";
 
 type FormValues = {
 	name: string;
@@ -26,9 +27,21 @@ export const CreateMentorPage = () => {
 		return all.filter((u: any) => u.roles.some((r: any) => r.type === "counsellor"));
 	}, [usersQuery.data]);
 
-	const { register, handleSubmit } = useForm<FormValues>({
+	const { register, handleSubmit, setValue, getValues, watch } = useForm<FormValues>({
 		defaultValues: { gender: "male", name: "" },
 	});
+	const selectedCounsellorId = watch("counsellorId");
+
+	const meQuery = useMeQuery(token);
+
+	useEffect(() => {
+		const me = meQuery.data;
+		if (!me) return;
+		const isCounsellor = me.roles?.some((r: any) => r.type === "counsellor");
+		if (isCounsellor && getValues("counsellorId") !== me.id) {
+			setValue("counsellorId", me.id);
+		}
+	}, [getValues, meQuery.data, setValue]);
 
 	const onSubmit = async (data: FormValues) => {
 		try {
@@ -74,7 +87,7 @@ export const CreateMentorPage = () => {
 
 					<div>
 						<label className="block text-sm font-medium text-gray-700">Assign counsellor (optional)</label>
-						<select {...register("counsellorId")} className="mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2">
+						<select {...register("counsellorId")} value={selectedCounsellorId ?? ""} className="mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2">
 							<option value="">— none —</option>
 							{counsellors.map((c: any) => (
 								<option key={c.id} value={c.id}>
