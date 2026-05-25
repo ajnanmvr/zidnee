@@ -1,8 +1,9 @@
 import { format, formatDistance, isPast } from "date-fns";
+import { formatRelativeDateTime } from "@/lib/utils/date";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS, type LeadStatus } from "@repo/schema";
 import {
 	HiAcademicCap,
 	HiArrowLeft,
@@ -134,6 +135,18 @@ const tabs: Array<{ id: LeadDetailTab; label: string }> = [
 	{ id: "activities", label: "Activities" },
 ];
 
+const LEAD_STAGE_OPTIONS: LeadStatus[] = [
+	"FOLLOW_UP",
+	"FORM_SENT",
+	"FORM_FILLED",
+	"DEMO_REQUEST",
+	"DEMO_ASSIGNED",
+	"DEMO_COMPLETED",
+	"DEMO_CANCELLED",
+	"CONVERTED",
+	"CLOSED",
+];
+
 export const LeadDetailPageNew = () => {
 	const navigate = useNavigate();
 	const { token } = useSession();
@@ -148,7 +161,7 @@ export const LeadDetailPageNew = () => {
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
 	const revokeFormLinkMutation = useRevokeFormLinkMutation();
 
-	const [activeTab, setActiveTab] = useState<LeadDetailTab>("overview");
+	const [activeTab, setActiveTab] = useState<LeadDetailTab>("activities");
 	const [editOpen, setEditOpen] = useState(false);
 	const [postponeOpen, setPostponeOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -163,6 +176,9 @@ export const LeadDetailPageNew = () => {
 	const [courseTypeSelection, setCourseTypeSelection] = useState<
 		"GROUP" | "INDIVIDUAL" | ""
 	>("");
+	const [stageChangeOpen, setStageChangeOpen] = useState(false);
+	const [selectedStage, setSelectedStage] = useState<LeadStatus>("FOLLOW_UP");
+	const [stageChangeConfirmed, setStageChangeConfirmed] = useState(false);
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
 
@@ -405,6 +421,48 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
+	const onOpenStageChange = () => {
+		setSelectedStage((lead?.status as LeadStatus) ?? "FOLLOW_UP");
+		setStageChangeConfirmed(false);
+		setStageChangeOpen(true);
+	};
+
+	const onConfirmStageChange = async () => {
+		if (!lead) {
+			return;
+		}
+
+		const currentStage = (lead.status as LeadStatus) ?? "FOLLOW_UP";
+		if (selectedStage === currentStage) {
+			toast.error("Please choose a different stage.");
+			return;
+		}
+
+		if (!stageChangeConfirmed) {
+			toast.error("Please confirm the warning before changing stage.");
+			return;
+		}
+
+		try {
+			await updateMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { status: selectedStage },
+			});
+			toast.success("Lead stage updated successfully.");
+			setStageChangeOpen(false);
+			setStageChangeConfirmed(false);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to change lead stage");
+				return;
+			}
+
+			toast.error(
+				error instanceof Error ? error.message : "Unable to change lead stage",
+			);
+		}
+	};
+
 	if (!leadId) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
@@ -488,6 +546,14 @@ export const LeadDetailPageNew = () => {
 						>
 							<HiClock className="h-4 w-4" />
 							Postpone
+						</button>
+						<button
+							type="button"
+							onClick={onOpenStageChange}
+							className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+						>
+							<HiCheckCircle className="h-4 w-4" />
+							Change Stage
 						</button>
 						{!lead.formSent ? (
 							<button
@@ -825,7 +891,7 @@ export const LeadDetailPageNew = () => {
 									/>
 									<DetailRow
 										label="Demo Availability"
-										value={lead.demoAvailability ?? "-"}
+										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
 									/>
 									<DetailRow
 										label="Hear About Us"
@@ -1139,6 +1205,85 @@ export const LeadDetailPageNew = () => {
 					</div>
 				) : null}
 			</div>
+
+			<Modal
+				open={stageChangeOpen}
+				onClose={() => {
+					setStageChangeOpen(false);
+					setStageChangeConfirmed(false);
+				}}
+				title="Change Lead Stage"
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setStageChangeOpen(false);
+								setStageChangeConfirmed(false);
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void onConfirmStageChange()}
+							disabled={
+								updateMutation.isPending ||
+								selectedStage === ((lead?.status as LeadStatus) ?? "FOLLOW_UP") ||
+								!stageChangeConfirmed
+							}
+							className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{updateMutation.isPending ? "Updating..." : "Confirm Change"}
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+						Manual stage changes can affect lead workflow automation. Please confirm
+						before continuing.
+					</div>
+					<div className="grid gap-2">
+						<label
+							className="text-sm font-semibold text-gray-700"
+							htmlFor="lead-stage-picker"
+						>
+							Select Stage
+						</label>
+						<select
+							id="lead-stage-picker"
+							value={selectedStage}
+							onChange={(event) =>
+								setSelectedStage(event.target.value as LeadStatus)
+							}
+							className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+						>
+							{LEAD_STAGE_OPTIONS.map((stage) => (
+								<option key={stage} value={stage}>
+									{stage.replace(/_/g, " ")}
+								</option>
+							))}
+						</select>
+					</div>
+					<div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+						Current: {(lead?.status ?? "FOLLOW_UP").replace(/_/g, " ")}<br />
+						New: {selectedStage.replace(/_/g, " ")}
+					</div>
+					<label className="inline-flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2">
+						<input
+							type="checkbox"
+							checked={stageChangeConfirmed}
+							onChange={(event) => setStageChangeConfirmed(event.target.checked)}
+							className="mt-1 h-4 w-4"
+						/>
+						<span className="text-sm text-gray-700">
+							I understand this change is manual and I want to continue.
+						</span>
+					</label>
+				</div>
+			</Modal>
 
 			<Modal
 				open={editOpen}

@@ -200,6 +200,7 @@ export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
 
 export const UpdateLeadPayloadSchema = z
 	.object({
+		status: LeadStatusSchema.optional(),
 		phone: PhoneNumberSchema.optional(),
 		name: OptionalTextSchema,
 		level: OptionalTextSchema,

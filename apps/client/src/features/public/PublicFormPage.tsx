@@ -268,7 +268,7 @@ const DEFAULT_FORM_OPTIONS: FormOptions = {
 		"Zimbabwe",
 		"Other",
 	],
-	standards: ["1", "2", "3", "4", "5", "6", "7", "7+"],
+	standards: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
 	days: [
 		"Monday",
 		"Tuesday",

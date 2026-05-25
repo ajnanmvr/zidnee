@@ -8,6 +8,7 @@ import { ApiError } from "@/api/request";
 import { Panel, TextAreaField } from "@/components/dashboard-ui";
 import { useBatchesByMentorQuery } from "@/features/batches/batches.queries";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
+import { formatRelativeDateTime } from "@/lib/utils/date";
 import { useLeadDetailQuery } from "@/features/leads/leads.queries";
 import { useConfirmAdmissionMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -201,7 +202,7 @@ export const AdmissionDetailPageEnhanced = () => {
 						</p>
 						<p>
 							<span className="font-medium text-gray-900">Demo availability:</span>{" "}
-							{lead.demoAvailability || "-"}
+							{formatRelativeDateTime(lead.demoAvailability ?? "")}
 						</p>
 						<p>
 							<span className="font-medium text-gray-900">Preferred Plan:</span>{" "}
