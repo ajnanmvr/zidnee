@@ -109,30 +109,7 @@ const PostponeDateTimeField = ({
 	);
 };
 
-const StatCard = ({
-	icon: Icon,
-	label,
-	value,
-}: {
-	icon: typeof HiUser;
-	label: string;
-	value: React.ReactNode;
-	accent?: string;
-}) => (
-	<div className="rounded-2xl border border-gray-100 bg-white p-4">
-		<div className="flex items-center gap-3">
-			<Icon className="h-6 w-6 text-blue-600" />
-			<div>
-				<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-					{label}
-				</p>
-				<p className="mt-1 text-lg font-bold text-gray-900">
-					{value}
-				</p>
-			</div>
-		</div>	
-	</div>
-);
+
 
 const SectionCard = ({
 	title,
@@ -173,7 +150,6 @@ const DetailRow = ({
 );
 
 const tabs: Array<{ id: LeadDetailTab; label: string }> = [
-	{ id: "overview", label: "Overview" },
 	{ id: "details", label: "Lead Details" },
 	{ id: "demos", label: "Demo History" },
 	{ id: "activities", label: "Activities" },
@@ -276,6 +252,16 @@ export const LeadDetailPageNew = () => {
 		const meridiem = hours >= 12 ? "PM" : "AM";
 		const hour12 = hours % 12 || 12;
 		return `${hour12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${meridiem}`;
+	};
+	const formatPreferredPlanValue = (
+		plan?: { timesPerWeek: number; durationMinutes: number },
+	) => {
+		if (!plan) {
+			return "-";
+		}
+
+		const dayLabel = plan.timesPerWeek === 1 ? "day" : "days";
+		return `${plan.durationMinutes} min · ${plan.timesPerWeek} ${dayLabel} a week`;
 	};
 	const latestDemo = useMemo(
 		() => (lead?.demos?.length ? lead.demos[lead.demos.length - 1] : null),
@@ -565,6 +551,25 @@ export const LeadDetailPageNew = () => {
 									{lead.name || "Lead Profile"}
 								</h1>
 								<p className="mt-1 text-sm text-gray-600">{lead.phone}</p>
+								<div className="mt-2 flex items-center gap-2">
+									{lead.price ? (
+										<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+											<span className="text-sm">₹</span>
+											<span>{lead.price}</span>
+										</span>
+									) : (
+										<button
+											type="button"
+											onClick={() => setPriceEditOpen(true)}
+											className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+										>
+											Set amount
+										</button>
+									)}
+									<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+										<span>{lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "Not specified"}</span>
+									</span>
+								</div>
 								<p className="mt-1 text-xs text-gray-500">
 									Created:{" "}
 									{lead.createdAt
@@ -670,136 +675,53 @@ export const LeadDetailPageNew = () => {
 					))}
 				</div>
 
-				{activeTab === "overview" && (
-					<div className="space-y-6">
-						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-							<StatCard
-								icon={HiCalendarDays}
-								label="Demo Attempts"
-								value={demoCount}
-								accent="violet"
-							/>
-							<StatCard
-								icon={HiCheckCircle}
-								label="Form Status"
-								value={
-									lead.formCompleted
-										? "Completed"
-										: lead.formSent
-											? "Sent"
-											: "Pending"
-								}
-								accent="cyan"
-							/>
-							<StatCard
-								icon={HiUser}
-								label="Assigned To"
-								value={assignedToUser?.name ?? "Unassigned"}
-								accent="blue"
-							/>
-							<StatCard
-								icon={HiAcademicCap}
-								label="Level"
-								value={lead.level ?? "Not specified"}
-								accent="amber"
-							/>
-							<StatCard
-								icon={HiUsers}
-								label="Course Type"
-								value={
-									lead.courseType
-										? lead.courseType === "GROUP"
-											? "Group"
-											: "Individual"
-										: "Not specified"
-								}
-								accent="emerald"
-							/>
-							<StatCard
-								icon={HiUser}
-								label="Price"
-								value={
-									lead.price ? (
-										<button
-											type="button"
-											onClick={() => setPriceEditOpen(true)}
-											className="font-semibold text-gray-900 hover:text-blue-600 transition-colors inline-flex items-center gap-2"
-										>
-											₹{lead.price}
-											<HiPencilSquare className="h-3 w-3" />
-										</button>
-									) : (
-										<button
-											type="button"
-											onClick={() => setPriceEditOpen(true)}
-											className="font-semibold text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-2"
-										>
-											Add price
-											<HiPencilSquare className="h-3 w-3" />
-										</button>
-									)
-								}
-								accent="violet"
-							/>
-						</div>
-
-						<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-								<div>
-									<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-										Snapshot
-									</p>
-									<h2 className="mt-2 text-xl font-bold text-gray-900">
-										Key lead summary
-									</h2>
-									<p className="mt-1 text-sm text-gray-600">
-										Quick view of assignment and current workflow state.
-									</p>
-								</div>
-								<div className="grid gap-3 sm:grid-cols-2 lg:w-3/4 lg:grid-cols-4">
-									<StatCard
-										icon={HiUser}
-										label="Owner"
-										value={assignedToUser?.name ?? "Unassigned"}
-										accent="blue"
-									/>
-									<StatCard
-										icon={HiUsers}
-										label="Demo Owner"
-										value={demoRequestAssignedToUser?.name ?? "Not assigned"}
-										accent="amber"
-									/>
-									<StatCard
-										icon={HiClock}
-										label="Next Follow-up"
-										value={
-											lead.nextFollowUpAt
-												? formatDistance(
-														new Date(lead.nextFollowUpAt),
-														new Date(),
-														{ addSuffix: true },
-													)
-												: "-"
-										}
-										accent="cyan"
-									/>
-									<StatCard
-										icon={HiAcademicCap}
-										label="Latest Demo"
-										value={latestDemo ? `Attempt ${demoCount}` : "None"}
-										accent="violet"
-									/>
-								</div>
-							</div>
-						</div>
-					</div>
-				)}
+				{/* Overview removed per request */}
 
 				{activeTab === "details" && (
 					<div className="grid gap-6 lg:grid-cols-3">
 						<div className="lg:col-span-2 space-y-6">
 							<SectionCard title="Lead Identity" icon={HiUser}>
 								<div className="space-y-3">
+									<DetailRow
+										label="SL No"
+										value={lead.slNo ? String(lead.slNo) : "-"}
+										icon={HiAcademicCap}
+									/>
+									<DetailRow
+										label="Phone"
+										value={lead.phone ?? "-"}
+										icon={HiPhone}
+									/>
+									<DetailRow
+										label="Email"
+										value={lead.email ?? "-"}
+										icon={HiLink}
+									/>
+									<DetailRow
+										label="Is Organic"
+										value={lead.isOrganic ? "Yes" : "No"}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Assigned To"
+										value={formatUserIdentity(assignedToUser, "mentor")}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Created By"
+										value={lead.createdBy ? (allUsers.find((u) => u.id === lead.createdBy)?.name ?? lead.createdBy) : "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Student ID"
+										value={lead.studentId ?? "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Preferred Plan"
+										value={formatPreferredPlanValue(lead.preferredPlan)}
+										icon={HiClock}
+									/>
 									<DetailRow
 										label="Name"
 										value={lead.name ?? "-"}
@@ -960,7 +882,7 @@ export const LeadDetailPageNew = () => {
 												{preferredPlan ? (
 													<div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
 														<span className="font-medium text-gray-900">
-															{preferredPlan.timesPerWeek}x/week · {preferredPlan.durationMinutes} min
+															{formatPreferredPlanValue(preferredPlan)}
 														</span>
 													</div>
 												) : null}

@@ -195,6 +195,7 @@ export const LeadsPage = () => {
 	const [selectedCounsellorForMentor, setSelectedCounsellorForMentor] = useState<
 		string | null
 	>(null);
+	const [admissionPriceInput, setAdmissionPriceInput] = useState<string>("");
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
@@ -599,60 +600,78 @@ export const LeadsPage = () => {
 		}
 	};
 
-	const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
-		if (!admissionLeadId) return;
+		const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
+			if (!admissionLeadId) return;
 
-		const mentorId = admissionMentorId ?? undefined;
-		// Determine counsellor ID: use either mentor's existing or newly assigned
-		const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
-		if (!counsellorId) {
-			toast.error("Please assign a counsellor to the mentor first");
-			return;
-		}
-
-		const finalPayload = {
-			...payload,
-			mentorId,
-			counsellorId,
-		};
-
-		const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
-		if (!validation.success) {
-			const errors = validation.error.flatten().fieldErrors;
-			if (errors.counsellorId?.[0]) {
-				toast.error(errors.counsellorId[0]);
-			}
-			if (errors.note?.[0]) {
-				toast.error(errors.note[0]);
-			}
-			return;
-		}
-		try {
-			await requestAdmissionMutation.mutateAsync({
-				leadId: admissionLeadId,
-				payload: validation.data,
-			});
-			toast.success("Lead moved to for admission.");
-			closeAdmissionModal();
-			navigate("/leads?stage=converted");
-		} catch (error) {
-			if (error instanceof ApiError) {
-				const counsellorError = error.payload.errors?.counsellorId?.[0];
-				if (counsellorError) {
-					toast.error(counsellorError);
-				}
-				toast.error(
-					error.payload.message ?? "Unable to move lead to admission",
-				);
+			const mentorId = admissionMentorId ?? undefined;
+			// Determine counsellor ID: use either mentor's existing or newly assigned
+			const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
+			if (!counsellorId) {
+				toast.error("Please assign a counsellor to the mentor first");
 				return;
 			}
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Unable to move lead to admission",
-			);
-		}
-	};
+
+			// Ensure price exists: use admissionLead.price or admissionPriceInput
+			const currentPrice = admissionLead?.price;
+			const enteredPrice = admissionPriceInput.trim() ? parseInt(admissionPriceInput, 10) : undefined;
+
+			if (!currentPrice && (enteredPrice === undefined || Number.isNaN(enteredPrice))) {
+				toast.error("Please enter a valid price before moving to admission.");
+				return;
+			}
+
+			try {
+				// If user entered a price (and it's different), update the lead first
+				if (enteredPrice !== undefined && enteredPrice !== currentPrice) {
+					await updateLeadMutation.mutateAsync({
+						leadId: admissionLeadId,
+						payload: { price: enteredPrice },
+					});
+				}
+
+				const finalPayload = {
+					...payload,
+					mentorId,
+					counsellorId,
+				};
+
+				const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
+				if (!validation.success) {
+					const errors = validation.error.flatten().fieldErrors;
+					if (errors.counsellorId?.[0]) {
+						toast.error(errors.counsellorId[0]);
+					}
+					if (errors.note?.[0]) {
+						toast.error(errors.note[0]);
+					}
+					return;
+				}
+
+				await requestAdmissionMutation.mutateAsync({
+					leadId: admissionLeadId,
+					payload: validation.data,
+				});
+				toast.success("Lead moved to for admission.");
+				closeAdmissionModal();
+				navigate("/leads?stage=converted");
+			} catch (error) {
+				if (error instanceof ApiError) {
+					const counsellorError = error.payload.errors?.counsellorId?.[0];
+					if (counsellorError) {
+						toast.error(counsellorError);
+					}
+					toast.error(
+						error.payload.message ?? "Unable to move lead to admission",
+					);
+					return;
+				}
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Unable to move lead to admission",
+				);
+			}
+		};
 
 	const selectedLead = leads.find((lead) => lead.id === postponeLeadId) ?? null;
 	const admissionLead =
@@ -1774,6 +1793,26 @@ export const LeadsPage = () => {
 							/>
 						)}
 					/>
+
+					{/* Price input for admission - required if lead has no price */}
+					<div>
+						<label className="block text-sm font-medium text-slate-600 mb-2">Price (₹)</label>
+						{admissionLead?.price ? (
+							<div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+								<span className="text-sm">₹</span>
+								<span>{admissionLead.price}</span>
+							</div>
+						) : (
+							<input
+								type="number"
+								min="0"
+								value={admissionPriceInput}
+								onChange={(e) => setAdmissionPriceInput(e.target.value)}
+								placeholder="Enter price to proceed"
+								className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none"
+							/>
+						)}
+					</div>
 				</form>
 			</Modal>
 
