@@ -17,7 +17,6 @@ import {
 	HiTrash,
 	HiUser,
 	HiUsers,
-	HiXMark,
 } from "react-icons/hi2";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
@@ -29,7 +28,6 @@ import {
 	useGenerateFormLinkMutation,
 	usePostponeLeadFollowUpMutation,
 	useRequestLeadDemoMutation,
-	useRevokeFormLinkMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -159,7 +157,6 @@ export const LeadDetailPageNew = () => {
 	const postponeMutation = usePostponeLeadFollowUpMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
-	const revokeFormLinkMutation = useRevokeFormLinkMutation();
 
 	const [activeTab, setActiveTab] = useState<LeadDetailTab>("activities");
 	const [editOpen, setEditOpen] = useState(false);
@@ -381,17 +378,6 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
-	const onRevokeFormLink = async () => {
-		if (!leadId) return;
-		try {
-			await revokeFormLinkMutation.mutateAsync(leadId);
-			toast.success("Form link revoked");
-			setFormLinkOpen(false);
-		} catch {
-			toast.error("Failed to revoke form link");
-		}
-	};
-
 	const onSavePrice = async () => {
 		if (!lead || !priceInput.trim()) {
 			toast.error("Please enter a valid price");
@@ -573,14 +559,6 @@ export const LeadDetailPageNew = () => {
 								>
 									<HiLink className="h-4 w-4" />
 									Form Link
-								</button>
-								<button
-									type="button"
-									onClick={onRevokeFormLink}
-									className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-								>
-									<HiXMark className="h-4 w-4" />
-									Revoke
 								</button>
 							</>
 						)}
