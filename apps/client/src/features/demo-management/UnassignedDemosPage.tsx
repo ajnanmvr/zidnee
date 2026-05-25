@@ -25,19 +25,21 @@ import { RequirementsModal } from "./RequirementsModal";
 		const canAssignDemo = useHasPermission("LEAD_DEMO_ASSIGN");
 		const canViewMyUnassignedDemos = useHasPermission("DEMO_UNASSIGNED_READ_MY");
 		const canViewAllUnassignedDemos = useHasPermission("DEMO_UNASSIGNED_READ_ALL");
-		const demosQuery = usePendingDemoRequestsQuery(token);
-		const usersQuery = useUsersQuery(token);
-		const assignDemoMutation = useAssignDemoMentorMutation();
-		const currentUserId = meQuery.data?.id ?? "";
+	const usersQuery = useUsersQuery(token);
+	const assignDemoMutation = useAssignDemoMentorMutation();
+	const currentUserId = meQuery.data?.id ?? "";
 
-		const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
-		const [assignOpen, setAssignOpen] = useState(false);
-		const [requirementsOpen, setRequirementsOpen] = useState(false);
-		const [selectedRequirements, setSelectedRequirements] =
-			useState<LeadResponse | null>(null);
-		const [viewScope, setViewScope] = useState<"mine" | "all">(
-			canViewMyUnassignedDemos ? "mine" : "all",
-		);
+	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
+	const [assignOpen, setAssignOpen] = useState(false);
+	const [requirementsOpen, setRequirementsOpen] = useState(false);
+	const [selectedRequirements, setSelectedRequirements] =
+		useState<LeadResponse | null>(null);
+	const [viewScope, setViewScope] = useState<"mine" | "all">(
+		canViewMyUnassignedDemos ? "mine" : "all",
+	);
+
+	// Only fetch "all" data when user switches to that view
+	const demosQuery = usePendingDemoRequestsQuery(token, viewScope === "all" || !canViewMyUnassignedDemos);
 
 		const canToggleScope = canViewMyUnassignedDemos && canViewAllUnassignedDemos;
 
@@ -350,7 +352,9 @@ import { RequirementsModal } from "./RequirementsModal";
 										<option value="">Choose a mentor...</option>
 										{mentors.map((mentor) => (
 											<option key={mentor.id} value={mentor.id}>
-												{mentor.name || mentor.username}
+												{mentor.zids?.mentor
+													? `${mentor.zids.mentor} - ${mentor.name || mentor.username}`
+													: mentor.name || mentor.username}
 											</option>
 										))}
 									</select>

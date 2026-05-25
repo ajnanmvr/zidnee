@@ -1653,7 +1653,9 @@ export const LeadsPage = () => {
 										<option value="">Select mentor</option>
 										{allMentors.map((mentor) => (
 											<option key={mentor.id} value={mentor.id}>
-												{formatUserName(mentor.name ?? mentor.username)}
+												{mentor.zids?.mentor
+													? `${mentor.zids.mentor} - ${formatUserName(mentor.name ?? mentor.username)}`
+													: formatUserName(mentor.name ?? mentor.username)}
 											</option>
 										))}
 									</select>
