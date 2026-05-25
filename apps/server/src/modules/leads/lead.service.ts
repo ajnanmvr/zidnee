@@ -82,6 +82,12 @@ const leadFieldPatch = (
 		newValue.level = updates.level;
 	}
 
+	if (updates.status !== undefined && updates.status !== existingLead.status) {
+		patch.status = updates.status;
+		oldValue.status = existingLead.status ?? null;
+		newValue.status = updates.status;
+	}
+
 	const currentAssignedTo = toObjectIdString(existingLead.assignedTo);
 	if (
 		updates.assignedTo !== undefined &&
@@ -474,14 +480,18 @@ export const LeadService = {
 			const type =
 				Object.hasOwn(patch, "assignedTo") && Object.keys(patch).length === 1
 					? "ASSIGNED"
-					: "UPDATED";
+					: Object.hasOwn(patch, "status") && Object.keys(patch).length === 1
+						? "STATUS_CHANGED"
+						: "UPDATED";
 			await ActivityService.logActivity(
 				leadId,
 				type,
 				performedBy,
 				type === "ASSIGNED"
 					? `Reassigned lead ${existingLead.phone}`
-					: `Updated lead ${existingLead.phone}`,
+					: type === "STATUS_CHANGED"
+						? `Changed lead stage for ${existingLead.phone}`
+						: `Updated lead ${existingLead.phone}`,
 				Object.keys(oldValue).length > 0 ? oldValue : undefined,
 				Object.keys(newValue).length > 0 ? newValue : undefined,
 			);

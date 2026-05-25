@@ -129,7 +129,6 @@ const tabs: Array<{ id: LeadDetailTab; label: string }> = [
 	{ id: "overview", label: "Overview" },
 	{ id: "details", label: "Lead Details" },
 	{ id: "demos", label: "Demo History" },
-	{ id: "ownership", label: "Ownership" },
 	{ id: "activities", label: "Activities" },
 ];
 
@@ -200,6 +199,24 @@ export const LeadDetailPageNew = () => {
 
 	const lead = leadQuery.data?.lead ?? null;
 	const allUsers = usersQuery.data?.users ?? [];
+	const findUserById = (id?: string | null) =>
+		id ? (allUsers.find((user) => user.id === id) ?? null) : null;
+	const formatUserIdentity = (
+		user: (typeof allUsers)[number] | null,
+		role: "mentor" | "counsellor",
+	) => {
+		if (!user) {
+			return "-";
+		}
+
+		const displayName = user.name || user.username || "Unknown";
+		const roleCode =
+			role === "mentor"
+				? (user.zids?.mentor ?? user.mentorId)
+				: (user.zids?.counsellor ?? user.counsellorId);
+
+		return `${displayName} (${roleCode ?? user.id})`;
+	};
 	const formatTimeValue = (value: string) => {
 		const [hoursText, minutesText] = value.split(":");
 		const hours = Number(hoursText);
@@ -225,6 +242,14 @@ export const LeadDetailPageNew = () => {
 		| { timesPerWeek: number; durationMinutes: number }
 		| undefined;
 	const demoCount = useMemo(() => lead?.demos?.length ?? 0, [lead?.demos]);
+	const latestDemoMentor = useMemo(
+		() => findUserById(latestDemo?.mentorId ?? null),
+		[allUsers, latestDemo?.mentorId],
+	);
+	const latestDemoCounsellor = useMemo(
+		() => findUserById(latestDemoMentor?.counsellorId ?? null),
+		[allUsers, latestDemoMentor?.counsellorId],
+	);
 
 	const assignedToUser = useMemo(
 		() => allUsers.find((user) => user.id === lead?.assignedTo) ?? null,
@@ -923,7 +948,7 @@ export const LeadDetailPageNew = () => {
 										label="Scheduled For"
 										value={
 											lead.nextFollowUpAt
-												? format(new Date(lead.nextFollowUpAt), "MMM dd, HH:mm")
+												? format(new Date(lead.nextFollowUpAt), "MMM dd, hh:mm a")
 												: "-"
 										}
 										icon={HiCalendarDays}
@@ -957,15 +982,14 @@ export const LeadDetailPageNew = () => {
 									<div className="space-y-3">
 										<DetailRow
 											label="Mentor"
-											value={
-												latestDemo.mentorId
-													? (allUsers.find((u) => u.id === latestDemo.mentorId)
-															?.name ?? latestDemo.mentorId)
-													: "-"
-											}
+											value={formatUserIdentity(latestDemoMentor, "mentor")}
 											icon={HiUser}
 										/>
-										<DetailRow label="Counsellor" value="-" icon={HiUser} />
+										<DetailRow
+											label="Counsellor"
+											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
+											icon={HiUser}
+										/>
 										{lead.nextFollowUpAt ? (
 											<DetailRow
 												label="Next Follow-up"
@@ -1022,12 +1046,15 @@ export const LeadDetailPageNew = () => {
 											<div className="flex gap-6 text-sm text-gray-700">
 												<div>
 													Mentor:{" "}
-													{demo.mentorId
-														? (allUsers.find((u) => u.id === demo.mentorId)
-																?.name ?? demo.mentorId)
-														: "-"}
+													{formatUserIdentity(findUserById(demo.mentorId), "mentor")}
 												</div>
-												<div>Counsellor: -</div>
+												<div>
+													Counsellor:{" "}
+													{formatUserIdentity(
+														findUserById(findUserById(demo.mentorId)?.counsellorId ?? null),
+														"counsellor",
+													)}
+												</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
 												<div>
@@ -1035,7 +1062,7 @@ export const LeadDetailPageNew = () => {
 													{demo.demoScheduledFor
 														? format(
 																new Date(demo.demoScheduledFor),
-																"MMM dd, HH:mm",
+																"MMM dd, hh:mm a",
 															)
 														: "-"}
 												</div>
@@ -1044,7 +1071,7 @@ export const LeadDetailPageNew = () => {
 													{demo.completedAt
 														? format(
 																new Date(demo.completedAt),
-																"MMM dd, HH:mm",
+																"MMM dd, hh:mm a",
 															)
 														: "-"}
 												</div>
@@ -1061,7 +1088,7 @@ export const LeadDetailPageNew = () => {
 					</div>
 				)}
 
-				{activeTab === "ownership" && (
+				{activeTab === "overview" && (
 					<div className="grid gap-6 lg:grid-cols-3">
 						<div className="lg:col-span-2 space-y-6">
 							<SectionCard title="Ownership History" icon={HiUsers}>
@@ -1131,15 +1158,14 @@ export const LeadDetailPageNew = () => {
 									<div className="space-y-3">
 										<DetailRow
 											label="Mentor"
-											value={
-												latestDemo.mentorId
-													? (allUsers.find((u) => u.id === latestDemo.mentorId)
-															?.name ?? latestDemo.mentorId)
-													: "-"
-											}
+											value={formatUserIdentity(latestDemoMentor, "mentor")}
 											icon={HiUser}
 										/>
-										<DetailRow label="Counsellor" value="-" icon={HiUser} />
+										<DetailRow
+											label="Counsellor"
+											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
+											icon={HiUser}
+										/>
 										<DetailRow
 											label="Next Follow-up"
 											value={
