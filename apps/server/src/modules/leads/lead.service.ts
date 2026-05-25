@@ -82,6 +82,12 @@ const leadFieldPatch = (
 		newValue.level = updates.level;
 	}
 
+	if (updates.status !== undefined && updates.status !== existingLead.status) {
+		patch.status = updates.status;
+		oldValue.status = existingLead.status ?? null;
+		newValue.status = updates.status;
+	}
+
 	const currentAssignedTo = toObjectIdString(existingLead.assignedTo);
 	if (
 		updates.assignedTo !== undefined &&
@@ -474,14 +480,18 @@ export const LeadService = {
 			const type =
 				Object.hasOwn(patch, "assignedTo") && Object.keys(patch).length === 1
 					? "ASSIGNED"
-					: "UPDATED";
+					: Object.hasOwn(patch, "status") && Object.keys(patch).length === 1
+						? "STATUS_CHANGED"
+						: "UPDATED";
 			await ActivityService.logActivity(
 				leadId,
 				type,
 				performedBy,
 				type === "ASSIGNED"
 					? `Reassigned lead ${existingLead.phone}`
-					: `Updated lead ${existingLead.phone}`,
+					: type === "STATUS_CHANGED"
+						? `Changed lead stage for ${existingLead.phone}`
+						: `Updated lead ${existingLead.phone}`,
 				Object.keys(oldValue).length > 0 ? oldValue : undefined,
 				Object.keys(newValue).length > 0 ? newValue : undefined,
 			);
@@ -1069,31 +1079,35 @@ export const LeadService = {
 		const updatedLead = await LeadModel.findByIdAndUpdate(
 			leadId,
 			{
-				formCompleted: true,
-				status: "FORM_FILLED",
-				// keep `formSent` as true to indicate a form was sent historically
-				formSent: true,
-				name: data.name,
-				dateOfBirth: data.dateOfBirth,
-				residingCountry: data.residingCountry,
-				level: data.level,
-				gender: data.gender,
-				primaryWhatsappNumber: data.primaryWhatsappNumber,
-				alternateWhatsappNumber: data.alternateWhatsappNumber,
-				studentInfo: data.studentInfo,
-				preferredLanguage: data.preferredLanguage,
-				preferredSchedule: data.preferredSchedule,
-				preferredDays: data.preferredDays,
-				preferredPlan,
-				preferredTimeslots,
-				price: data.price,
-				hearAboutUs: data.hearAboutUs,
-				demoAvailability: data.demoAvailability,
-				preferredMentorGender: data.preferredMentorGender,
-				email: (data as any).email,
-				courseType: (data as any).courseType,
-				formToken: undefined,
-				formTokenExpiresAt: new Date(),
+				$set: {
+					formCompleted: true,
+					status: "FORM_FILLED",
+					// keep `formSent` as true to indicate a form was sent historically
+					formSent: true,
+					name: data.name,
+					dateOfBirth: data.dateOfBirth,
+					residingCountry: data.residingCountry,
+					level: data.level,
+					gender: data.gender,
+					primaryWhatsappNumber: data.primaryWhatsappNumber,
+					alternateWhatsappNumber: data.alternateWhatsappNumber,
+					studentInfo: data.studentInfo,
+					preferredLanguage: data.preferredLanguage,
+					preferredSchedule: data.preferredSchedule,
+					preferredDays: data.preferredDays,
+					preferredPlan,
+					preferredTimeslots,
+					price: data.price,
+					hearAboutUs: data.hearAboutUs,
+					demoAvailability: data.demoAvailability,
+					preferredMentorGender: data.preferredMentorGender,
+					email: (data as any).email,
+					courseType: (data as any).courseType,
+				},
+				$unset: {
+					formToken: "",
+					formTokenExpiresAt: "",
+				},
 			},
 			{ returnDocument: "after" },
 		);

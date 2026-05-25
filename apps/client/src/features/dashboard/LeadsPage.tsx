@@ -14,6 +14,7 @@ import {
 	HiArrowPath,
 	HiCalendarDays,
 	HiPlusCircle,
+	HiPencilSquare,
 	HiTrash,
 } from "react-icons/hi2";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -181,11 +182,20 @@ export const LeadsPage = () => {
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 	const [deleteNote, setDeleteNote] = useState("");
 	const [admissionLeadId, setAdmissionLeadId] = useState<string | null>(null);
+	const [selectedAdmissionMentorId, setSelectedAdmissionMentorId] = useState<
+		string | null
+	>(null);
+	const [isChangingAdmissionMentor, setIsChangingAdmissionMentor] =
+		useState(false);
+	const [mentorCounsellorOverrideId, setMentorCounsellorOverrideId] = useState<
+		string | null
+	>(null);
 	const [assigningCounsellorToMentor, setAssigningCounsellorToMentor] =
 		useState(false);
 	const [selectedCounsellorForMentor, setSelectedCounsellorForMentor] = useState<
 		string | null
 	>(null);
+	const [admissionPriceInput, setAdmissionPriceInput] = useState<string>("");
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
@@ -343,6 +353,16 @@ export const LeadsPage = () => {
 			),
 		[counsellorsQuery.data, combinedUsers],
 	);
+
+	const closeAdmissionModal = () => {
+		setAdmissionLeadId(null);
+		setSelectedAdmissionMentorId(null);
+		setIsChangingAdmissionMentor(false);
+		setMentorCounsellorOverrideId(null);
+		resetAdmission({ counsellorId: undefined, note: "" });
+		setAssigningCounsellorToMentor(false);
+		setSelectedCounsellorForMentor(null);
+	};
 
 	const userNameById = useMemo(
 		() =>
@@ -561,79 +581,97 @@ export const LeadsPage = () => {
 
 	const handleAssignCounsellorToMentor = async () => {
 		if (
-			!admissionLeadLatestDemo?.mentorId ||
+			!admissionMentorId ||
 			!selectedCounsellorForMentor
 		) {
 			return;
 		}
 		try {
 			await assignUserCounsellorMutation.mutateAsync({
-				userId: admissionLeadLatestDemo.mentorId,
+				userId: admissionMentorId,
 				counsellorId: selectedCounsellorForMentor,
 			});
 			toast.success("Counsellor assigned to mentor.");
 			setAssigningCounsellorToMentor(false);
+			setMentorCounsellorOverrideId(selectedCounsellorForMentor);
 			setSelectedCounsellorForMentor(null);
 		} catch (error) {
 			toast.error("Failed to assign counsellor");
 		}
 	};
 
-	const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
-		if (!admissionLeadId) return;
+		const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
+			if (!admissionLeadId) return;
 
-		// Determine counsellor ID: use either mentor's existing or newly assigned
-		const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
-		if (!counsellorId) {
-			toast.error("Please assign a counsellor to the mentor first");
-			return;
-		}
-
-		const finalPayload = {
-			...payload,
-			counsellorId,
-		};
-
-		const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
-		if (!validation.success) {
-			const errors = validation.error.flatten().fieldErrors;
-			if (errors.counsellorId?.[0]) {
-				toast.error(errors.counsellorId[0]);
-			}
-			if (errors.note?.[0]) {
-				toast.error(errors.note[0]);
-			}
-			return;
-		}
-		try {
-			await requestAdmissionMutation.mutateAsync({
-				leadId: admissionLeadId,
-				payload: validation.data,
-			});
-			toast.success("Lead moved to for admission.");
-			setAdmissionLeadId(null);
-			resetAdmission({ counsellorId: undefined, note: "" });
-			setAssigningCounsellorToMentor(false);
-			setSelectedCounsellorForMentor(null);
-			navigate("/leads?stage=converted");
-		} catch (error) {
-			if (error instanceof ApiError) {
-				const counsellorError = error.payload.errors?.counsellorId?.[0];
-				if (counsellorError) {
-					toast.error(counsellorError);
-				}
-				toast.error(
-					error.payload.message ?? "Unable to move lead to admission",
-				);
+			const mentorId = admissionMentorId ?? undefined;
+			// Determine counsellor ID: use either mentor's existing or newly assigned
+			const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
+			if (!counsellorId) {
+				toast.error("Please assign a counsellor to the mentor first");
 				return;
 			}
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Unable to move lead to admission",
-			);
-		}
-	};
+
+			// Ensure price exists: use admissionLead.price or admissionPriceInput
+			const currentPrice = admissionLead?.price;
+			const enteredPrice = admissionPriceInput.trim() ? parseInt(admissionPriceInput, 10) : undefined;
+
+			if (!currentPrice && (enteredPrice === undefined || Number.isNaN(enteredPrice))) {
+				toast.error("Please enter a valid price before moving to admission.");
+				return;
+			}
+
+			try {
+				// If user entered a price (and it's different), update the lead first
+				if (enteredPrice !== undefined && enteredPrice !== currentPrice) {
+					await updateLeadMutation.mutateAsync({
+						leadId: admissionLeadId,
+						payload: { price: enteredPrice },
+					});
+				}
+
+				const finalPayload = {
+					...payload,
+					mentorId,
+					counsellorId,
+				};
+
+				const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
+				if (!validation.success) {
+					const errors = validation.error.flatten().fieldErrors;
+					if (errors.counsellorId?.[0]) {
+						toast.error(errors.counsellorId[0]);
+					}
+					if (errors.note?.[0]) {
+						toast.error(errors.note[0]);
+					}
+					return;
+				}
+
+				await requestAdmissionMutation.mutateAsync({
+					leadId: admissionLeadId,
+					payload: validation.data,
+				});
+				toast.success("Lead moved to for admission.");
+				closeAdmissionModal();
+				navigate("/leads?stage=converted");
+			} catch (error) {
+				if (error instanceof ApiError) {
+					const counsellorError = error.payload.errors?.counsellorId?.[0];
+					if (counsellorError) {
+						toast.error(counsellorError);
+					}
+					toast.error(
+						error.payload.message ?? "Unable to move lead to admission",
+					);
+					return;
+				}
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Unable to move lead to admission",
+				);
+			}
+		};
 
 	const selectedLead = leads.find((lead) => lead.id === postponeLeadId) ?? null;
 	const admissionLead =
@@ -641,13 +679,16 @@ export const LeadsPage = () => {
 	const admissionLeadLatestDemo = admissionLead
 		? getLatestLeadDemo(admissionLead)
 		: null;
-	const admissionLeadMentor = admissionLeadLatestDemo?.mentorId
-		? allMentors.find((mentor) => mentor.id === admissionLeadLatestDemo.mentorId) ??
-		  allUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId) ??
-		  salesUsers.find((user) => user.id === admissionLeadLatestDemo.mentorId) ??
+	const admissionMentorId =
+		selectedAdmissionMentorId ?? admissionLeadLatestDemo?.mentorId ?? null;
+	const admissionLeadMentor = admissionMentorId
+		? allMentors.find((mentor) => mentor.id === admissionMentorId) ??
+		  allUsers.find((user) => user.id === admissionMentorId) ??
+		  salesUsers.find((user) => user.id === admissionMentorId) ??
 		  null
 		: null;
-	const defaultCounsellorId = admissionLeadMentor?.counsellorId;
+	const defaultCounsellorId =
+		admissionLeadMentor?.counsellorId ?? mentorCounsellorOverrideId;
 
 	const columns = useMemo(
 		() =>
@@ -819,7 +860,16 @@ export const LeadsPage = () => {
 								{
 									key: "toAdmission",
 									label: "To Admission",
-									onClick: (item) => setAdmissionLeadId(item.id),
+									onClick: (item) => {
+										const latestDemo = getLatestLeadDemo(item);
+										setAdmissionLeadId(item.id);
+										setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
+										setIsChangingAdmissionMentor(!latestDemo?.mentorId);
+										setMentorCounsellorOverrideId(null);
+										setAssigningCounsellorToMentor(false);
+										setSelectedCounsellorForMentor(null);
+										resetAdmission({ counsellorId: undefined, note: "" });
+									},
 									className:
 										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
 								},
@@ -1023,7 +1073,9 @@ export const LeadsPage = () => {
 										<option value="">Select user</option>
 										{salesUsers.map((user: any) => (
 											<option key={user.id} value={user.id}>
-												{formatUserName(user.name ?? user.username)}
+												{user.zids?.sales
+													? `${user.zids.sales} - ${formatUserName(user.name ?? user.username)}`
+													: formatUserName(user.name ?? user.username)}
 												{user.id === currentUserId ? " (You)" : ""}
 											</option>
 										))}
@@ -1188,7 +1240,7 @@ export const LeadsPage = () => {
 							</option>
 							{counsellors.map((c) => (
 								<option key={c.id} value={c.id}>
-									{c.name || c.username}
+									{c.zids?.counsellor ? `${c.zids.counsellor} - ${c.name ?? c.username}` : c.name || c.username}
 								</option>
 							))}
 						</select>
@@ -1539,23 +1591,13 @@ export const LeadsPage = () => {
 				open={Boolean(admissionLeadId)}
 				title="Move to for admission"
 				description="Preselecting the counsellor linked to the last demo mentor."
-				onClose={() => {
-					setAdmissionLeadId(null);
-					resetAdmission({ counsellorId: undefined, note: "" });
-					setAssigningCounsellorToMentor(false);
-					setSelectedCounsellorForMentor(null);
-				}}
+				onClose={closeAdmissionModal}
 				footer={
 					<>
 						<button
 							type="button"
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
-							onClick={() => {
-								setAdmissionLeadId(null);
-								resetAdmission({ counsellorId: undefined, note: "" });
-								setAssigningCounsellorToMentor(false);
-								setSelectedCounsellorForMentor(null);
-							}}
+							onClick={closeAdmissionModal}
 						>
 							Cancel
 						</button>
@@ -1577,14 +1619,70 @@ export const LeadsPage = () => {
 					className="grid gap-4"
 					onSubmit={handleAdmissionSubmit(onRequestAdmission)}
 				>
-					{canRequestOrConfirmAdmission && admissionLeadLatestDemo?.mentorId ? (
+					{canRequestOrConfirmAdmission ? (
 						<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-							<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-								Last demo mentor
-							</p>
-							<p className="mt-2 text-sm font-medium text-slate-900">
-								{userNameById.get(admissionLeadLatestDemo.mentorId) ?? "-"}
-							</p>
+							<div className="flex items-start justify-between gap-3">
+								<div>
+									<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+										Last demo mentor
+									</p>
+									<p className="mt-2 text-sm font-medium text-slate-900">
+										{admissionLeadLatestDemo?.mentorId
+											? userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
+											  "-"
+											: "No demo mentor found"}
+									</p>
+								</div>
+								{admissionLeadLatestDemo?.mentorId ? (
+									<button
+										type="button"
+										className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+										onClick={() => {
+											if (isChangingAdmissionMentor) {
+												setSelectedAdmissionMentorId(admissionLeadLatestDemo.mentorId ?? null);
+												setMentorCounsellorOverrideId(null);
+												setAssigningCounsellorToMentor(false);
+												setSelectedCounsellorForMentor(null);
+											}
+											setIsChangingAdmissionMentor((current) => !current);
+										}}
+									>
+										<HiPencilSquare className="h-3.5 w-3.5" aria-hidden="true" />
+										{isChangingAdmissionMentor
+											? "Use last demo mentor"
+											: "Change mentor"}
+									</button>
+								) : null}
+							</div>
+							{isChangingAdmissionMentor || !admissionLeadLatestDemo?.mentorId ? (
+								<div className="mt-4 grid gap-2">
+									<label className="text-xs font-medium uppercase tracking-wide text-slate-500">
+										Mentor
+									</label>
+									<select
+										value={admissionMentorId ?? ""}
+										onChange={(e) => {
+											setSelectedAdmissionMentorId(e.target.value || null);
+											setMentorCounsellorOverrideId(null);
+											setAssigningCounsellorToMentor(false);
+											setSelectedCounsellorForMentor(null);
+										}}
+										className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+									>
+										<option value="">Select mentor</option>
+										{allMentors.map((mentor) => (
+											<option key={mentor.id} value={mentor.id}>
+												{mentor.zids?.mentor
+													? `${mentor.zids.mentor} - ${formatUserName(mentor.name ?? mentor.username)}`
+													: formatUserName(mentor.name ?? mentor.username)}
+											</option>
+										))}
+									</select>
+									<p className="text-xs text-slate-500">
+										The counsellor updates from the selected mentor automatically.
+									</p>
+								</div>
+							) : null}
 						</div>
 					) : null}
 
@@ -1651,7 +1749,9 @@ export const LeadsPage = () => {
 										<option value="">Select counsellor</option>
 										{counsellors.map((counsellor: any) => (
 											<option key={counsellor.id} value={counsellor.id}>
-												{formatUserName(counsellor.name ?? counsellor.username)}
+												{counsellor.zids?.counsellor
+													? `${counsellor.zids.counsellor} - ${formatUserName(counsellor.name ?? counsellor.username)}`
+													: formatUserName(counsellor.name ?? counsellor.username)}
 											</option>
 										))}
 									</select>
@@ -1693,6 +1793,26 @@ export const LeadsPage = () => {
 							/>
 						)}
 					/>
+
+					{/* Price input for admission - required if lead has no price */}
+					<div>
+						<label className="block text-sm font-medium text-slate-600 mb-2">Price (₹)</label>
+						{admissionLead?.price ? (
+							<div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+								<span className="text-sm">₹</span>
+								<span>{admissionLead.price}</span>
+							</div>
+						) : (
+							<input
+								type="number"
+								min="0"
+								value={admissionPriceInput}
+								onChange={(e) => setAdmissionPriceInput(e.target.value)}
+								placeholder="Enter price to proceed"
+								className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none"
+							/>
+						)}
+					</div>
 				</form>
 			</Modal>
 

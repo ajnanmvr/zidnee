@@ -7,11 +7,13 @@ import { useMeQuery } from "@/features/auth/auth.queries";
 import { useChangeMyPasswordMutation } from "@/features/users/use-user-management-mutations";
 import type { ChangePasswordForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 // icons intentionally omitted to keep design lightweight
 
+
 export const MePage = () => {
-	const { token } = useSession();
+	const { token, clearToken } = useSession();
+	const navigate = useNavigate();
 	const meQuery = useMeQuery(token);
 	const changeMyPasswordMutation = useChangeMyPasswordMutation();
 	const { control, handleSubmit, reset, setError } =
@@ -236,6 +238,19 @@ export const MePage = () => {
 					</div>
 				</form>
 			</Modal>
+
+			<div className="mt-6">
+				<button
+					type="button"
+					className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+					onClick={() => {
+						clearToken();
+						navigate("/login", { replace: true });
+					}}
+				>
+					Logout
+				</button>
+			</div>
 		</div>
 	);
 };

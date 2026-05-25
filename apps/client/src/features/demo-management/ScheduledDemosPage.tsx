@@ -35,7 +35,6 @@ export const ScheduledDemosPage = () => {
 	const canCompleteDemo = useHasPermission("LEAD_DEMO_COMPLETE");
 	const canViewMyScheduledDemos = useHasPermission("DEMO_SCHEDULED_READ_MY");
 	const canViewAllScheduledDemos = useHasPermission("DEMO_SCHEDULED_READ_ALL");
-	const demosQuery = useDemoRequestsQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const reassignDemoMutation = useAssignDemoMentorMutation();
@@ -53,6 +52,9 @@ export const ScheduledDemosPage = () => {
 	const [viewScope, setViewScope] = useState<"mine" | "all">(
 		canViewMyScheduledDemos ? "mine" : "all",
 	);
+
+	// Only fetch "all" data when user switches to that view
+	const demosQuery = useDemoRequestsQuery(token, viewScope === "all" || !canViewMyScheduledDemos);
 
 	const canToggleScope = canViewMyScheduledDemos && canViewAllScheduledDemos;
 
@@ -828,7 +830,9 @@ export const ScheduledDemosPage = () => {
 									<option value="">Choose a mentor...</option>
 									{mentors.map((mentor) => (
 										<option key={mentor.id} value={mentor.id}>
-											{mentor.name || mentor.username}
+											{mentor.zids?.mentor
+												? `${mentor.zids.mentor} - ${mentor.name || mentor.username}`
+												: mentor.name || mentor.username}
 										</option>
 									))}
 								</select>

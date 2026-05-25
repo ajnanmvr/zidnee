@@ -23,10 +23,14 @@ type LeadEditFormState = {
 	courseType: string;
 	primaryWhatsappNumber: string;
 	alternateWhatsappNumber: string;
+	price: string;
 	studentInfo: string;
 	preferredLanguage: string;
 	preferredSchedule: string;
 	preferredDays: string[];
+	preferredPlanTimesPerWeek: string;
+	preferredPlanDurationMinutes: string;
+	preferredTimeslots: Array<{ startTime: string; endTime: string }>;
 	hearAboutUs: string;
 	demoAvailability: string;
 	preferredMentorGender: string;
@@ -71,10 +75,14 @@ export const LeadEditPage = () => {
 				courseType: "",
 				primaryWhatsappNumber: "",
 				alternateWhatsappNumber: "",
+				price: "",
 				studentInfo: "",
 				preferredLanguage: "",
 				preferredSchedule: "",
 				preferredDays: [],
+				preferredPlanTimesPerWeek: "",
+				preferredPlanDurationMinutes: "",
+				preferredTimeslots: [],
 
 				hearAboutUs: "",
 				demoAvailability: "",
@@ -103,10 +111,18 @@ export const LeadEditPage = () => {
 			courseType: lead.courseType ?? "",
 			primaryWhatsappNumber: lead.primaryWhatsappNumber ?? "",
 			alternateWhatsappNumber: lead.alternateWhatsappNumber ?? "",
+			price: lead.price?.toString() ?? "",
 			studentInfo: lead.studentInfo ?? "",
 			preferredLanguage: lead.preferredLanguage ?? "",
 			preferredSchedule: lead.preferredSchedule ?? "",
 			preferredDays: lead.preferredDays ?? [],
+			preferredPlanTimesPerWeek: lead.preferredPlan?.timesPerWeek?.toString() ?? "",
+			preferredPlanDurationMinutes:
+				lead.preferredPlan?.durationMinutes?.toString() ?? "",
+			preferredTimeslots: (lead.preferredTimeslots ?? []).map((slot) => ({
+				startTime: slot.startTime,
+				endTime: slot.endTime,
+			})),
 
 			hearAboutUs: lead.hearAboutUs ?? "",
 			demoAvailability: lead.demoAvailability
@@ -137,11 +153,26 @@ export const LeadEditPage = () => {
 			courseType: payload.courseType || undefined,
 			primaryWhatsappNumber: payload.primaryWhatsappNumber || undefined,
 			alternateWhatsappNumber: payload.alternateWhatsappNumber || undefined,
+			price:
+				payload.price.trim().length > 0 && !Number.isNaN(Number(payload.price))
+					? Number(payload.price)
+					: undefined,
 			studentInfo: payload.studentInfo || undefined,
 			preferredLanguage: payload.preferredLanguage || undefined,
 			preferredSchedule: payload.preferredSchedule || undefined,
 			preferredDays: payload.preferredDays?.length
 				? payload.preferredDays
+				: undefined,
+			preferredPlan:
+				payload.preferredPlanTimesPerWeek.trim().length > 0 &&
+				payload.preferredPlanDurationMinutes.trim().length > 0
+					? {
+						timesPerWeek: Number(payload.preferredPlanTimesPerWeek),
+						durationMinutes: Number(payload.preferredPlanDurationMinutes),
+					}
+					: undefined,
+			preferredTimeslots: payload.preferredTimeslots.length
+				? payload.preferredTimeslots
 				: undefined,
 
 			hearAboutUs: payload.hearAboutUs || undefined,
@@ -384,6 +415,21 @@ export const LeadEditPage = () => {
 						/>
 
 						<Controller
+							name="price"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Price"
+									type="number"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="Course price"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+
+						<Controller
 							name="preferredLanguage"
 							control={control}
 							render={({ field, fieldState }) => (
@@ -446,6 +492,119 @@ export const LeadEditPage = () => {
 								/>
 							)}
 						/>
+
+						<div className="md:col-span-2 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+							<p className="mb-3 block text-sm font-semibold text-gray-700">
+								Preferred Plan
+							</p>
+							<div className="grid gap-4 md:grid-cols-2">
+								<Controller
+									name="preferredPlanTimesPerWeek"
+									control={control}
+									render={({ field, fieldState }) => (
+										<Field
+											label="Times per week"
+											type="number"
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="e.g. 5"
+											error={fieldState.error?.message}
+										/>
+									)}
+								/>
+								<Controller
+									name="preferredPlanDurationMinutes"
+									control={control}
+									render={({ field, fieldState }) => (
+										<Field
+											label="Duration (minutes)"
+											type="number"
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="e.g. 45"
+											error={fieldState.error?.message}
+										/>
+									)}
+								/>
+							</div>
+						</div>
+
+						<div className="md:col-span-2 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+							<div className="mb-3 flex items-center justify-between gap-3">
+								<p className="block text-sm font-semibold text-gray-700">
+									Preferred Timeslots
+								</p>
+							</div>
+							<Controller
+								name="preferredTimeslots"
+								control={control}
+								render={({ field, fieldState }) => (
+									<div className="space-y-3">
+										{(field.value ?? []).map((slot, index) => (
+											<div
+												key={`${slot.startTime}-${slot.endTime}-${index}`}
+												className="grid gap-3 md:grid-cols-[1fr_1fr_auto]"
+											>
+												<Field
+													label={`Start time ${index + 1}`}
+													type="time"
+													value={slot.startTime}
+													onChange={(value) => {
+														const next = [...(field.value ?? [])];
+														next[index] = {
+														startTime: value,
+														endTime: next[index]?.endTime ?? "",
+													};
+														field.onChange(next);
+													}}
+												/>
+												<Field
+													label={`End time ${index + 1}`}
+													type="time"
+													value={slot.endTime}
+													onChange={(value) => {
+														const next = [...(field.value ?? [])];
+														next[index] = {
+														startTime: next[index]?.startTime ?? "",
+														endTime: value,
+													};
+														field.onChange(next);
+													}}
+												/>
+												<div className="flex items-end">
+													<button
+														type="button"
+														onClick={() => {
+															field.onChange(
+																(field.value ?? []).filter((_, slotIndex) => slotIndex !== index),
+															);
+														}}
+														className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+													>
+														Remove
+													</button>
+												</div>
+											</div>
+										))}
+										<button
+											type="button"
+											onClick={() =>
+												field.onChange([
+													...(field.value ?? []),
+													{ startTime: "", endTime: "" },
+												])
+											}
+											className="rounded-xl border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-white"
+										>
+											Add slot
+										</button>
+										{fieldState.error?.message ? (
+											<p className="text-xs text-red-600">{fieldState.error.message}</p>
+										) : null}
+									</div>
+								)}
+							/>
+						</div>
 
 						<Controller
 							name="preferredMentorGender"

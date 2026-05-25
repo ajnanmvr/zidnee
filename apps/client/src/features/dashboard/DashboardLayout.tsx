@@ -112,9 +112,6 @@ export const DashboardLayout = () => {
 			(permission) =>
 				permission.key === "LEAD_READ_MY" || permission.key === "LEAD_READ_ALL",
 		) ?? false;
-	const canReadAllLeads =
-		me?.permissions?.some((permission) => permission.key === "LEAD_READ_ALL") ??
-		false;
 	const canReadStudents =
 		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
 		false;
@@ -137,7 +134,7 @@ export const DashboardLayout = () => {
 				permission.key === "DEMO_SCHEDULED_READ_ALL",
 		) ?? false;
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: canReadAllLeads ? "all" : "mine",
+		scope: "mine",
 		timeFilter: "all",
 		enabled: canReadLeads,
 	});
@@ -150,11 +147,11 @@ export const DashboardLayout = () => {
 
 	const allStudents = studentsQuery.data?.students ?? [];
 	const allReminders = remindersQuery.data ?? [];
-	const allLeads = leadsQuery.data?.leads ?? [];
-	const leadStageCounts = getLeadStageCounts(allLeads, currentUserId);
+	const myLeads = leadsQuery.data?.leads ?? [];
+	const leadStageCounts = getLeadStageCounts(myLeads, currentUserId);
 
 	// Count only leads that are due today or past due for the Follow Up sidebar count
-	const followUpUrgentCount = allLeads.filter((lead) => {
+	const followUpUrgentCount = myLeads.filter((lead) => {
 		if (lead.status !== "FOLLOW_UP") return false;
 		if (!lead.nextFollowUpAt) return false;
 		const d = new Date(String(lead.nextFollowUpAt));

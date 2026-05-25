@@ -325,7 +325,9 @@ export const GroupsPage = () => {
 									<option value="">Select mentor</option>
 									{mentors.map((m) => (
 										<option key={m.id} value={m.id}>
-											{m.name}
+											{m.zids?.mentor
+												? `${m.zids.mentor} - ${m.name}`
+												: m.name}
 										</option>
 									))}
 								</select>
@@ -394,7 +396,9 @@ export const GroupsPage = () => {
 									<option value="">Select mentor</option>
 									{mentors.map((m) => (
 										<option key={m.id} value={m.id}>
-											{m.name}
+											{m.zids?.mentor
+												? `${m.zids.mentor} - ${m.name}`
+												: m.name}
 										</option>
 									))}
 								</select>

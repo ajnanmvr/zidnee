@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { HiCheck, HiClipboard } from "react-icons/hi2";
 import { Modal } from "@/components/dashboard-ui";
 import { formatRelativeDateTime, getDateLabel } from "@/lib/utils/date";
+import { format } from "date-fns";
 
 interface RequirementsModalProps {
 	open: boolean;
@@ -88,24 +89,7 @@ export const RequirementsModal = ({
 			.join(", ");
 	};
 
-	const formatAttemptLabel = (attemptNumber: number) => {
-		if (attemptNumber <= 0) {
-			return "N/A";
-		}
 
-		const remainder = attemptNumber % 10;
-		const tens = attemptNumber % 100;
-		const suffix =
-			remainder === 1 && tens !== 11
-				? "st"
-				: remainder === 2 && tens !== 12
-					? "nd"
-					: remainder === 3 && tens !== 13
-						? "rd"
-						: "th";
-
-		return `${attemptNumber}${suffix} attempt`;
-	};
 
 	const formatDataForWhatsApp = (): string => {
 		if (!lead) return "";
@@ -113,23 +97,39 @@ export const RequirementsModal = ({
 		const preferredDays = lead.preferredDays?.length
 			? lead.preferredDays.join(", ")
 			: "N/A";
-		const attemptLabel = formatAttemptLabel(lead.demos?.length ?? 0);
-		const plan = lead.preferredSchedule || "N/A";
 		const timing = formatTimingLabel();
-		const demoTime =
-			latestDemo?.demoScheduledFor || lead.demoAvailability || "N/A";
+
+		// Plan for copy: show as "<timesPerWeek> days <durationMinutes>" when available
+		const planForCopy = lead.preferredPlan
+			? `${lead.preferredPlan.durationMinutes} mins for ${lead.preferredPlan.timesPerWeek} days in a week`
+			: lead.preferredSchedule || "N/A";
+
+		// Demo time: format as readable date + am/pm when present
+		const rawDemoTime = latestDemo?.demoScheduledFor ?? lead.demoAvailability ?? null;
+		const demoTimeForCopy = rawDemoTime
+			? (() => {
+				try {
+					const d = new Date(rawDemoTime);
+					return format(d, "dd MMM yyyy, hh:mm a");
+				} catch {
+					return String(rawDemoTime);
+				}
+			})()
+			: "N/A";
+
+		const contact = lead.primaryWhatsappNumber || lead.phone || "N/A";
 
 		const lines = [
 			`📋 *Student Requirements*`,
 			` `,
 			`*Name:* ${lead.name || "N/A"}`,
+			`*Contact Number:* ${contact}`,
+			`*Level:* ${lead.level || "N/A"}`,
 			`*Tutor Preference:* ${formatReadableGender(lead.preferredMentorGender)}`,
 			`*Preferred Days:* ${preferredDays}`,
-			`*Plan:* ${plan}`,
+			`*Plan:* ${planForCopy}`,
 			`*Timing:* ${timing}`,
-
-			`*Demo Time:* ${demoTime}`,
-			`*Attempt:* ${attemptLabel}`,
+			`*Demo Time:* ${demoTimeForCopy}`,
 			latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
 		]
 			.filter(Boolean)
@@ -409,124 +409,77 @@ export const RequirementsModal = ({
 						/>
 					</form>
 				) : (
-					<div className="space-y-4">
-						<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-							<div className="flex items-start justify-between gap-3">
-								<div>
-									<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-										Student
-									</p>
-									<h4 className="mt-1 text-lg font-semibold text-slate-900">
-										{lead.name || "N/A"}
-									</h4>
-									<p className="mt-1 text-sm text-slate-600">
-										{lead.primaryWhatsappNumber || lead.phone}
-									</p>
-								</div>
-								<div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
-									{lead.gender
-										? lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)
-										: "Gender N/A"}
-								</div>
-							</div>
-						</div>
-
-						<div className="grid gap-4 md:grid-cols-2">
-							<div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-								<h4 className="font-semibold text-slate-900 mb-3">
-									Learning Plan
-								</h4>
-								<div className="grid gap-3 text-sm">
-									<div className="flex items-start justify-between gap-3">
-										<span className="text-slate-600">Level</span>
-										<span className="font-semibold text-slate-900 text-right">
-											{lead.level || "N/A"}
-										</span>
-									</div>
-									<div className="flex items-start justify-between gap-3">
-										<span className="text-slate-600">Language</span>
-										<span className="font-semibold text-slate-900 text-right">
-											{lead.preferredLanguage || "N/A"}
-										</span>
-									</div>
-									<div className="flex items-start justify-between gap-3">
-										<span className="text-slate-600">Tutor Preference</span>
-										<span className="font-semibold text-slate-900 text-right">
-											{formatReadableGender(lead.preferredMentorGender)}
-										</span>
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
-								<h4 className="font-semibold text-slate-900 mb-3">Schedule</h4>
-								<div className="grid gap-3 text-sm">
-									<div className="flex items-start justify-between gap-3">
-										<span className="text-slate-600">Preferred Days</span>
-										<span className="font-semibold text-slate-900 text-right">
-											{lead.preferredDays?.length
-												? lead.preferredDays.join(", ")
-												: "N/A"}
-										</span>
-									</div>
-									<div className="flex items-start justify-between gap-3">
-										<span className="text-slate-600">Plans</span>
-										<span className="font-semibold text-slate-900 text-right">
-											{formatPlanLabel()}
-										</span>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-							<h4 className="font-semibold text-slate-900 mb-3">
-								Demo Details
-							</h4>
-							<div className="grid gap-3 md:grid-cols-2 text-sm">
-								<div className="flex items-start justify-between gap-3">
-									<span className="text-slate-600">Demo Availability</span>
-									<span className="font-semibold text-slate-900 text-right">
-										{formatReadableDateTime(lead.demoAvailability)}
-									</span>
-								</div>
-								<div className="flex items-start justify-between gap-3">
-									<span className="text-slate-600">Preferred Schedule</span>
-									<span className="font-semibold text-slate-900 text-right">
-										{lead.preferredSchedule || "N/A"}
-									</span>
-								</div>
+					<div className="overflow-x-auto">
+						<table className="w-full text-sm">
+							<tbody>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50 w-1/3">Student</td>
+									<td className="px-4 py-3 text-gray-900">{lead.name || "N/A"}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Contact</td>
+									<td className="px-4 py-3 text-gray-900">{lead.primaryWhatsappNumber || lead.phone}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Gender</td>
+									<td className="px-4 py-3 text-gray-900">
+										{lead.gender
+											? lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)
+											: "N/A"}
+									</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Level</td>
+									<td className="px-4 py-3 text-gray-900">{lead.level || "N/A"}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Language</td>
+									<td className="px-4 py-3 text-gray-900">{lead.preferredLanguage || "N/A"}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Tutor Preference</td>
+									<td className="px-4 py-3 text-gray-900">{formatReadableGender(lead.preferredMentorGender)}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Preferred Days</td>
+									<td className="px-4 py-3 text-gray-900">
+										{lead.preferredDays?.length ? lead.preferredDays.join(", ") : "N/A"}
+									</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Plan</td>
+									<td className="px-4 py-3 text-gray-900">{formatPlanLabel()}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Demo Availability</td>
+									<td className="px-4 py-3 text-gray-900">{formatReadableDateTime(lead.demoAvailability)}</td>
+								</tr>
+								<tr className="border-b border-gray-200">
+									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Preferred Schedule</td>
+									<td className="px-4 py-3 text-gray-900">{lead.preferredSchedule || "N/A"}</td>
+								</tr>
 								{latestDemo?.demoScheduledFor && (
-									<div className="md:col-span-2 flex items-start justify-between gap-3">
-										<span className="text-slate-600">Demo Scheduled For</span>
-										<span
-											className="font-semibold text-slate-900 text-right"
-											title={getDateLabel(latestDemo.demoScheduledFor)}
-										>
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Demo Scheduled For</td>
+										<td className="px-4 py-3 text-gray-900" title={getDateLabel(latestDemo.demoScheduledFor)}>
 											{formatRelativeDateTime(latestDemo.demoScheduledFor)}
-										</span>
-									</div>
+										</td>
+									</tr>
 								)}
-							</div>
-						</div>
-
-						{/* Additional Info */}
-						{lead.studentInfo && (
-							<div className="rounded-lg bg-green-50 p-4 border border-green-200">
-								<h4 className="font-semibold text-gray-900 mb-2">
-									Additional Information
-								</h4>
-								<p className="text-sm text-gray-700">{lead.studentInfo}</p>
-							</div>
-						)}
-
-						{/* Demo Note */}
-						{latestDemo?.note && (
-							<div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
-								<h4 className="font-semibold text-gray-900 mb-2">Demo Note</h4>
-								<p className="text-sm text-gray-700">{latestDemo.note}</p>
-							</div>
-						)}
+								{lead.studentInfo && (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Additional Info</td>
+										<td className="px-4 py-3 text-gray-900">{lead.studentInfo}</td>
+									</tr>
+								)}
+								{latestDemo?.note && (
+									<tr>
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Demo Note</td>
+										<td className="px-4 py-3 text-gray-900">{latestDemo.note}</td>
+									</tr>
+								)}
+							</tbody>
+						</table>
 					</div>
 				)}
 			</div>

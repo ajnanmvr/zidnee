@@ -1,8 +1,9 @@
-import { format, formatDistance, isPast } from "date-fns";
+import { format, formatDistance, isPast, isValid } from "date-fns";
+import { formatRelativeDateTime } from "@/lib/utils/date";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS, type LeadStatus } from "@repo/schema";
 import {
 	HiAcademicCap,
 	HiArrowLeft,
@@ -16,7 +17,6 @@ import {
 	HiTrash,
 	HiUser,
 	HiUsers,
-	HiXMark,
 } from "react-icons/hi2";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
@@ -28,7 +28,6 @@ import {
 	useGenerateFormLinkMutation,
 	usePostponeLeadFollowUpMutation,
 	useRequestLeadDemoMutation,
-	useRevokeFormLinkMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -65,28 +64,52 @@ const getStatusColor = (status?: string): { badge: string } => {
 	return selected ?? fallback;
 };
 
-const StatCard = ({
-	icon: Icon,
-	label,
+const PostponeDateTimeField = ({
 	value,
+	onChange,
 }: {
-	icon: typeof HiUser;
-	label: string;
-	value: React.ReactNode;
-	accent?: string;
-}) => (
-	<div className="rounded-2xl border border-gray-100 bg-white p-4">
-		<div className="flex items-center gap-3">
-			<Icon className="h-6 w-6 text-blue-600" />
-			<div>
-				<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-					{label}
-				</p>
-				<p className="mt-1 text-lg font-bold text-gray-900">{value}</p>
-			</div>
-		</div>
-	</div>
-);
+	value?: Date;
+	onChange: (value?: Date) => void;
+}) => {
+	const [inputValue, setInputValue] = useState(() =>
+		value && isValid(value)
+			? format(value, "yyyy-MM-dd'T'HH:mm")
+			: "",
+	);
+
+	useEffect(() => {
+		setInputValue(
+			value && isValid(value)
+				? format(value, "yyyy-MM-dd'T'HH:mm")
+				: "",
+		);
+	}, [value]);
+
+	return (
+		<input
+			type="datetime-local"
+			value={inputValue}
+			onChange={(event) => {
+				const nextValue = event.target.value;
+				setInputValue(nextValue);
+
+				if (!nextValue) {
+					onChange(undefined);
+					return;
+				}
+
+				const parsedValue = new Date(nextValue);
+
+				if (isValid(parsedValue)) {
+					onChange(parsedValue);
+				}
+			}}
+			className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+		/>
+	);
+};
+
+
 
 const SectionCard = ({
 	title,
@@ -127,11 +150,21 @@ const DetailRow = ({
 );
 
 const tabs: Array<{ id: LeadDetailTab; label: string }> = [
-	{ id: "overview", label: "Overview" },
 	{ id: "details", label: "Lead Details" },
 	{ id: "demos", label: "Demo History" },
-	{ id: "ownership", label: "Ownership" },
 	{ id: "activities", label: "Activities" },
+];
+
+const LEAD_STAGE_OPTIONS: LeadStatus[] = [
+	"FOLLOW_UP",
+	"FORM_SENT",
+	"FORM_FILLED",
+	"DEMO_REQUEST",
+	"DEMO_ASSIGNED",
+	"DEMO_COMPLETED",
+	"DEMO_CANCELLED",
+	"CONVERTED",
+	"CLOSED",
 ];
 
 export const LeadDetailPageNew = () => {
@@ -146,9 +179,8 @@ export const LeadDetailPageNew = () => {
 	const postponeMutation = usePostponeLeadFollowUpMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
-	const revokeFormLinkMutation = useRevokeFormLinkMutation();
 
-	const [activeTab, setActiveTab] = useState<LeadDetailTab>("overview");
+	const [activeTab, setActiveTab] = useState<LeadDetailTab>("activities");
 	const [editOpen, setEditOpen] = useState(false);
 	const [postponeOpen, setPostponeOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -163,6 +195,9 @@ export const LeadDetailPageNew = () => {
 	const [courseTypeSelection, setCourseTypeSelection] = useState<
 		"GROUP" | "INDIVIDUAL" | ""
 	>("");
+	const [stageChangeOpen, setStageChangeOpen] = useState(false);
+	const [selectedStage, setSelectedStage] = useState<LeadStatus>("FOLLOW_UP");
+	const [stageChangeConfirmed, setStageChangeConfirmed] = useState(false);
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
 
@@ -187,6 +222,24 @@ export const LeadDetailPageNew = () => {
 
 	const lead = leadQuery.data?.lead ?? null;
 	const allUsers = usersQuery.data?.users ?? [];
+	const findUserById = (id?: string | null) =>
+		id ? (allUsers.find((user) => user.id === id) ?? null) : null;
+	const formatUserIdentity = (
+		user: (typeof allUsers)[number] | null,
+		role: "mentor" | "counsellor",
+	) => {
+		if (!user) {
+			return "-";
+		}
+
+		const displayName = user.name || user.username || "Unknown";
+		const roleCode =
+			role === "mentor"
+				? (user.zids?.mentor ?? user.mentorId)
+				: (user.zids?.counsellor ?? user.counsellorId);
+
+		return `${displayName} (${roleCode ?? user.id})`;
+	};
 	const formatTimeValue = (value: string) => {
 		const [hoursText, minutesText] = value.split(":");
 		const hours = Number(hoursText);
@@ -200,6 +253,16 @@ export const LeadDetailPageNew = () => {
 		const hour12 = hours % 12 || 12;
 		return `${hour12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${meridiem}`;
 	};
+	const formatPreferredPlanValue = (
+		plan?: { timesPerWeek: number; durationMinutes: number },
+	) => {
+		if (!plan) {
+			return "-";
+		}
+
+		const dayLabel = plan.timesPerWeek === 1 ? "day" : "days";
+		return `${plan.durationMinutes} min · ${plan.timesPerWeek} ${dayLabel} a week`;
+	};
 	const latestDemo = useMemo(
 		() => (lead?.demos?.length ? lead.demos[lead.demos.length - 1] : null),
 		[lead?.demos],
@@ -212,6 +275,14 @@ export const LeadDetailPageNew = () => {
 		| { timesPerWeek: number; durationMinutes: number }
 		| undefined;
 	const demoCount = useMemo(() => lead?.demos?.length ?? 0, [lead?.demos]);
+	const latestDemoMentor = useMemo(
+		() => findUserById(latestDemo?.mentorId ?? null),
+		[allUsers, latestDemo?.mentorId],
+	);
+	const latestDemoCounsellor = useMemo(
+		() => findUserById(latestDemoMentor?.counsellorId ?? null),
+		[allUsers, latestDemoMentor?.counsellorId],
+	);
 
 	const assignedToUser = useMemo(
 		() => allUsers.find((user) => user.id === lead?.assignedTo) ?? null,
@@ -365,17 +436,6 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
-	const onRevokeFormLink = async () => {
-		if (!leadId) return;
-		try {
-			await revokeFormLinkMutation.mutateAsync(leadId);
-			toast.success("Form link revoked");
-			setFormLinkOpen(false);
-		} catch {
-			toast.error("Failed to revoke form link");
-		}
-	};
-
 	const onSavePrice = async () => {
 		if (!lead || !priceInput.trim()) {
 			toast.error("Please enter a valid price");
@@ -401,6 +461,48 @@ export const LeadDetailPageNew = () => {
 
 			toast.error(
 				error instanceof Error ? error.message : "Unable to update price",
+			);
+		}
+	};
+
+	const onOpenStageChange = () => {
+		setSelectedStage((lead?.status as LeadStatus) ?? "FOLLOW_UP");
+		setStageChangeConfirmed(false);
+		setStageChangeOpen(true);
+	};
+
+	const onConfirmStageChange = async () => {
+		if (!lead) {
+			return;
+		}
+
+		const currentStage = (lead.status as LeadStatus) ?? "FOLLOW_UP";
+		if (selectedStage === currentStage) {
+			toast.error("Please choose a different stage.");
+			return;
+		}
+
+		if (!stageChangeConfirmed) {
+			toast.error("Please confirm the warning before changing stage.");
+			return;
+		}
+
+		try {
+			await updateMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { status: selectedStage },
+			});
+			toast.success("Lead stage updated successfully.");
+			setStageChangeOpen(false);
+			setStageChangeConfirmed(false);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to change lead stage");
+				return;
+			}
+
+			toast.error(
+				error instanceof Error ? error.message : "Unable to change lead stage",
 			);
 		}
 	};
@@ -449,6 +551,25 @@ export const LeadDetailPageNew = () => {
 									{lead.name || "Lead Profile"}
 								</h1>
 								<p className="mt-1 text-sm text-gray-600">{lead.phone}</p>
+								<div className="mt-2 flex items-center gap-2">
+									{lead.price ? (
+										<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+											<span className="text-sm">₹</span>
+											<span>{lead.price}</span>
+										</span>
+									) : (
+										<button
+											type="button"
+											onClick={() => setPriceEditOpen(true)}
+											className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+										>
+											Set amount
+										</button>
+									)}
+									<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+										<span>{lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "Not specified"}</span>
+									</span>
+								</div>
 								<p className="mt-1 text-xs text-gray-500">
 									Created:{" "}
 									{lead.createdAt
@@ -489,6 +610,14 @@ export const LeadDetailPageNew = () => {
 							<HiClock className="h-4 w-4" />
 							Postpone
 						</button>
+						<button
+							type="button"
+							onClick={onOpenStageChange}
+							className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+						>
+							<HiCheckCircle className="h-4 w-4" />
+							Change Stage
+						</button>
 						{!lead.formSent ? (
 							<button
 								type="button"
@@ -507,14 +636,6 @@ export const LeadDetailPageNew = () => {
 								>
 									<HiLink className="h-4 w-4" />
 									Form Link
-								</button>
-								<button
-									type="button"
-									onClick={onRevokeFormLink}
-									className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-								>
-									<HiXMark className="h-4 w-4" />
-									Revoke
 								</button>
 							</>
 						)}
@@ -554,136 +675,53 @@ export const LeadDetailPageNew = () => {
 					))}
 				</div>
 
-				{activeTab === "overview" && (
-					<div className="space-y-6">
-						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-							<StatCard
-								icon={HiCalendarDays}
-								label="Demo Attempts"
-								value={demoCount}
-								accent="violet"
-							/>
-							<StatCard
-								icon={HiCheckCircle}
-								label="Form Status"
-								value={
-									lead.formCompleted
-										? "Completed"
-										: lead.formSent
-											? "Sent"
-											: "Pending"
-								}
-								accent="cyan"
-							/>
-							<StatCard
-								icon={HiUser}
-								label="Assigned To"
-								value={assignedToUser?.name ?? "Unassigned"}
-								accent="blue"
-							/>
-							<StatCard
-								icon={HiAcademicCap}
-								label="Level"
-								value={lead.level ?? "Not specified"}
-								accent="amber"
-							/>
-							<StatCard
-								icon={HiUsers}
-								label="Course Type"
-								value={
-									lead.courseType
-										? lead.courseType === "GROUP"
-											? "Group"
-											: "Individual"
-										: "Not specified"
-								}
-								accent="emerald"
-							/>
-							<StatCard
-								icon={HiUser}
-								label="Price"
-								value={
-									lead.price ? (
-										<button
-											type="button"
-											onClick={() => setPriceEditOpen(true)}
-											className="font-semibold text-gray-900 hover:text-blue-600 transition-colors inline-flex items-center gap-2"
-										>
-											₹{lead.price}
-											<HiPencilSquare className="h-3 w-3" />
-										</button>
-									) : (
-										<button
-											type="button"
-											onClick={() => setPriceEditOpen(true)}
-											className="font-semibold text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-2"
-										>
-											Add price
-											<HiPencilSquare className="h-3 w-3" />
-										</button>
-									)
-								}
-								accent="violet"
-							/>
-						</div>
-
-						<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-								<div>
-									<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-										Snapshot
-									</p>
-									<h2 className="mt-2 text-xl font-bold text-gray-900">
-										Key lead summary
-									</h2>
-									<p className="mt-1 text-sm text-gray-600">
-										Quick view of assignment and current workflow state.
-									</p>
-								</div>
-								<div className="grid gap-3 sm:grid-cols-2 lg:w-3/4 lg:grid-cols-4">
-									<StatCard
-										icon={HiUser}
-										label="Owner"
-										value={assignedToUser?.name ?? "Unassigned"}
-										accent="blue"
-									/>
-									<StatCard
-										icon={HiUsers}
-										label="Demo Owner"
-										value={demoRequestAssignedToUser?.name ?? "Not assigned"}
-										accent="amber"
-									/>
-									<StatCard
-										icon={HiClock}
-										label="Next Follow-up"
-										value={
-											lead.nextFollowUpAt
-												? formatDistance(
-														new Date(lead.nextFollowUpAt),
-														new Date(),
-														{ addSuffix: true },
-													)
-												: "-"
-										}
-										accent="cyan"
-									/>
-									<StatCard
-										icon={HiAcademicCap}
-										label="Latest Demo"
-										value={latestDemo ? `Attempt ${demoCount}` : "None"}
-										accent="violet"
-									/>
-								</div>
-							</div>
-						</div>
-					</div>
-				)}
+				{/* Overview removed per request */}
 
 				{activeTab === "details" && (
 					<div className="grid gap-6 lg:grid-cols-3">
 						<div className="lg:col-span-2 space-y-6">
 							<SectionCard title="Lead Identity" icon={HiUser}>
 								<div className="space-y-3">
+									<DetailRow
+										label="SL No"
+										value={lead.slNo ? String(lead.slNo) : "-"}
+										icon={HiAcademicCap}
+									/>
+									<DetailRow
+										label="Phone"
+										value={lead.phone ?? "-"}
+										icon={HiPhone}
+									/>
+									<DetailRow
+										label="Email"
+										value={lead.email ?? "-"}
+										icon={HiLink}
+									/>
+									<DetailRow
+										label="Is Organic"
+										value={lead.isOrganic ? "Yes" : "No"}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Assigned To"
+										value={formatUserIdentity(assignedToUser, "mentor")}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Created By"
+										value={lead.createdBy ? (allUsers.find((u) => u.id === lead.createdBy)?.name ?? lead.createdBy) : "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Student ID"
+										value={lead.studentId ?? "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Preferred Plan"
+										value={formatPreferredPlanValue(lead.preferredPlan)}
+										icon={HiClock}
+									/>
 									<DetailRow
 										label="Name"
 										value={lead.name ?? "-"}
@@ -825,7 +863,7 @@ export const LeadDetailPageNew = () => {
 									/>
 									<DetailRow
 										label="Demo Availability"
-										value={lead.demoAvailability ?? "-"}
+										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
 									/>
 									<DetailRow
 										label="Hear About Us"
@@ -844,7 +882,7 @@ export const LeadDetailPageNew = () => {
 												{preferredPlan ? (
 													<div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
 														<span className="font-medium text-gray-900">
-															{preferredPlan.timesPerWeek}x/week · {preferredPlan.durationMinutes} min
+															{formatPreferredPlanValue(preferredPlan)}
 														</span>
 													</div>
 												) : null}
@@ -879,7 +917,7 @@ export const LeadDetailPageNew = () => {
 										label="Scheduled For"
 										value={
 											lead.nextFollowUpAt
-												? format(new Date(lead.nextFollowUpAt), "MMM dd, HH:mm")
+												? format(new Date(lead.nextFollowUpAt), "MMM dd, hh:mm a")
 												: "-"
 										}
 										icon={HiCalendarDays}
@@ -913,15 +951,14 @@ export const LeadDetailPageNew = () => {
 									<div className="space-y-3">
 										<DetailRow
 											label="Mentor"
-											value={
-												latestDemo.mentorId
-													? (allUsers.find((u) => u.id === latestDemo.mentorId)
-															?.name ?? latestDemo.mentorId)
-													: "-"
-											}
+											value={formatUserIdentity(latestDemoMentor, "mentor")}
 											icon={HiUser}
 										/>
-										<DetailRow label="Counsellor" value="-" icon={HiUser} />
+										<DetailRow
+											label="Counsellor"
+											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
+											icon={HiUser}
+										/>
 										{lead.nextFollowUpAt ? (
 											<DetailRow
 												label="Next Follow-up"
@@ -978,12 +1015,15 @@ export const LeadDetailPageNew = () => {
 											<div className="flex gap-6 text-sm text-gray-700">
 												<div>
 													Mentor:{" "}
-													{demo.mentorId
-														? (allUsers.find((u) => u.id === demo.mentorId)
-																?.name ?? demo.mentorId)
-														: "-"}
+													{formatUserIdentity(findUserById(demo.mentorId), "mentor")}
 												</div>
-												<div>Counsellor: -</div>
+												<div>
+													Counsellor:{" "}
+													{formatUserIdentity(
+														findUserById(findUserById(demo.mentorId)?.counsellorId ?? null),
+														"counsellor",
+													)}
+												</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
 												<div>
@@ -991,7 +1031,7 @@ export const LeadDetailPageNew = () => {
 													{demo.demoScheduledFor
 														? format(
 																new Date(demo.demoScheduledFor),
-																"MMM dd, HH:mm",
+																"MMM dd, hh:mm a",
 															)
 														: "-"}
 												</div>
@@ -1000,7 +1040,7 @@ export const LeadDetailPageNew = () => {
 													{demo.completedAt
 														? format(
 																new Date(demo.completedAt),
-																"MMM dd, HH:mm",
+																"MMM dd, hh:mm a",
 															)
 														: "-"}
 												</div>
@@ -1017,7 +1057,7 @@ export const LeadDetailPageNew = () => {
 					</div>
 				)}
 
-				{activeTab === "ownership" && (
+				{activeTab === "overview" && (
 					<div className="grid gap-6 lg:grid-cols-3">
 						<div className="lg:col-span-2 space-y-6">
 							<SectionCard title="Ownership History" icon={HiUsers}>
@@ -1087,15 +1127,14 @@ export const LeadDetailPageNew = () => {
 									<div className="space-y-3">
 										<DetailRow
 											label="Mentor"
-											value={
-												latestDemo.mentorId
-													? (allUsers.find((u) => u.id === latestDemo.mentorId)
-															?.name ?? latestDemo.mentorId)
-													: "-"
-											}
+											value={formatUserIdentity(latestDemoMentor, "mentor")}
 											icon={HiUser}
 										/>
-										<DetailRow label="Counsellor" value="-" icon={HiUser} />
+										<DetailRow
+											label="Counsellor"
+											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
+											icon={HiUser}
+										/>
 										<DetailRow
 											label="Next Follow-up"
 											value={
@@ -1139,6 +1178,85 @@ export const LeadDetailPageNew = () => {
 					</div>
 				) : null}
 			</div>
+
+			<Modal
+				open={stageChangeOpen}
+				onClose={() => {
+					setStageChangeOpen(false);
+					setStageChangeConfirmed(false);
+				}}
+				title="Change Lead Stage"
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setStageChangeOpen(false);
+								setStageChangeConfirmed(false);
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void onConfirmStageChange()}
+							disabled={
+								updateMutation.isPending ||
+								selectedStage === ((lead?.status as LeadStatus) ?? "FOLLOW_UP") ||
+								!stageChangeConfirmed
+							}
+							className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{updateMutation.isPending ? "Updating..." : "Confirm Change"}
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+						Manual stage changes can affect lead workflow automation. Please confirm
+						before continuing.
+					</div>
+					<div className="grid gap-2">
+						<label
+							className="text-sm font-semibold text-gray-700"
+							htmlFor="lead-stage-picker"
+						>
+							Select Stage
+						</label>
+						<select
+							id="lead-stage-picker"
+							value={selectedStage}
+							onChange={(event) =>
+								setSelectedStage(event.target.value as LeadStatus)
+							}
+							className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+						>
+							{LEAD_STAGE_OPTIONS.map((stage) => (
+								<option key={stage} value={stage}>
+									{stage.replace(/_/g, " ")}
+								</option>
+							))}
+						</select>
+					</div>
+					<div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+						Current: {(lead?.status ?? "FOLLOW_UP").replace(/_/g, " ")}<br />
+						New: {selectedStage.replace(/_/g, " ")}
+					</div>
+					<label className="inline-flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2">
+						<input
+							type="checkbox"
+							checked={stageChangeConfirmed}
+							onChange={(event) => setStageChangeConfirmed(event.target.checked)}
+							className="mt-1 h-4 w-4"
+						/>
+						<span className="text-sm text-gray-700">
+							I understand this change is manual and I want to continue.
+						</span>
+					</label>
+				</div>
+			</Modal>
 
 			<Modal
 				open={editOpen}
@@ -1247,17 +1365,9 @@ export const LeadDetailPageNew = () => {
 								<span className="text-sm font-semibold text-gray-700">
 									Schedule For
 								</span>
-								<input
-									type="datetime-local"
-									value={
-										field.value instanceof Date
-											? format(field.value, "yyyy-MM-dd'T'HH:mm")
-											: ""
-									}
-									onChange={(event) =>
-										field.onChange(new Date(event.target.value))
-									}
-									className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+								<PostponeDateTimeField
+									value={field.value}
+									onChange={field.onChange}
 								/>
 							</label>
 						)}
