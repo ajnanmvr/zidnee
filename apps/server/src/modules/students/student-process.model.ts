@@ -1,5 +1,6 @@
 import type { StudentStatus } from "@repo/schema";
 import mongoose, { type Model, Schema, type Types } from "mongoose";
+import { env } from "../../config/env.js";
 
 export type StudentProcessTaskDocument = {
 	key: string;
@@ -123,7 +124,7 @@ const buildTask = (key: StudentProcessTaskKey, studentId?: string): StudentProce
 
 	if (definition.dynamic && studentId) {
 		if (key === "send-welcome-message") {
-			const formLink = `http://localhost:5173/form/student/${studentId}`;
+			const formLink = `${env.APP_URL}/form/student/${studentId}`;
 			whatsappMessage = `Assalamu Alaikum,
 We are contacting you from Zidnee Online Islamic School.
 Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will
