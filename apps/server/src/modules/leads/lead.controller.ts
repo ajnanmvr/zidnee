@@ -260,6 +260,27 @@ export const listLeadsController = async (
 	});
 };
 
+export const listSimilarLeadsController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new AuthenticationError("User not authenticated");
+	}
+
+	const phone = typeof req.query.phone === "string" ? req.query.phone : "";
+	const digits = phone.replace(/\D/g, "");
+
+	if (!digits) {
+		res.json({ ok: true, leads: [] });
+		return;
+	}
+
+	const leads = await LeadService.searchByPhone(digits);
+
+	res.json({ ok: true, leads: leads.map((l) => toLeadResponse((l as unknown) as Lead)) });
+};
+
 export const listPendingDemoRequestsController = async (
 	_req: Request,
 	res: Response,

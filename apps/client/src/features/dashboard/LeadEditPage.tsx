@@ -34,6 +34,7 @@ type LeadEditFormState = {
 	hearAboutUs: string;
 	demoAvailability: string;
 	preferredMentorGender: string;
+	isOrganic: boolean;
 };
 
 const DetailCard = ({
@@ -87,6 +88,7 @@ export const LeadEditPage = () => {
 				hearAboutUs: "",
 				demoAvailability: "",
 				preferredMentorGender: "",
+				isOrganic: false,
 			},
 		});
 
@@ -129,6 +131,7 @@ export const LeadEditPage = () => {
 				? format(new Date(lead.demoAvailability), "yyyy-MM-dd'T'HH:mm")
 				: "",
 			preferredMentorGender: lead.preferredMentorGender ?? "",
+			isOrganic: lead.isOrganic ?? false,
 		});
 	}, [lead, reset]);
 
@@ -178,7 +181,11 @@ export const LeadEditPage = () => {
 			hearAboutUs: payload.hearAboutUs || undefined,
 			demoAvailability: payload.demoAvailability || undefined,
 			preferredMentorGender: payload.preferredMentorGender || undefined,
+			isOrganic: payload.isOrganic,
 		};
+
+		// Debug: log updates being sent to the server
+		console.debug("Lead update payload:", updates);
 
 		const validation = UpdateLeadPayloadSchema.safeParse(updates);
 
@@ -196,10 +203,11 @@ export const LeadEditPage = () => {
 		}
 
 		try {
-			await updateMutation.mutateAsync({
+			const result = await updateMutation.mutateAsync({
 				leadId: lead.id,
 				payload: validation.data,
 			});
+			console.debug("update result:", result);
 			navigate(`/leads/${lead.id}`);
 		} catch (error) {
 			if (error instanceof ApiError) {
@@ -278,6 +286,28 @@ export const LeadEditPage = () => {
 								)}
 							/>
 						</div>
+
+						<Controller
+							name="isOrganic"
+							control={control}
+							render={({ field }) => (
+								<label className="md:col-span-2 flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm font-medium text-amber-900">
+									<div>
+										<div className="font-semibold">Organic lead</div>
+										<div className="mt-1 text-xs font-normal text-amber-700">
+											Mark this if the lead came in organically.
+										</div>
+										<div className="mt-2 text-xs text-gray-700">Current: {field.value ? "Yes" : "No"}</div>
+									</div>
+									<input
+										type="checkbox"
+										checked={Boolean(field.value)}
+										onChange={(event) => field.onChange(event.target.checked)}
+										className="h-5 w-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+									/>
+								</label>
+							)}
+						/>
 
 						<Controller
 							name="phone"

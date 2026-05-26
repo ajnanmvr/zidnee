@@ -413,6 +413,21 @@ const mapLead = (doc: LeadDocument): Lead => ({
 });
 
 export const LeadService = {
+	/**
+	 * Search leads by phone digits. Normalizes stored phones and filters
+	 * by substring match. Returns up to 10 results.
+	 */
+	searchByPhone: async (digits: string): Promise<Lead[]> => {
+		if (!digits) return [];
+		const all = await LeadModel.find().lean<LeadDocument[]>();
+		const normalize = (p: unknown) =>
+			(typeof p === "string" ? p.replace(/\D/g, "") : "");
+		const results = all
+			.filter((doc) => normalize(doc.phone).includes(digits))
+			.slice(0, 10)
+			.map(mapLead);
+		return results;
+	},
 	create: async (lead: {
 		phone: string;
 		name?: string;
