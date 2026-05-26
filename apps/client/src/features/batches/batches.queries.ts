@@ -1,6 +1,7 @@
 import { BatchesResponseSchema } from "@repo/schema";
 import { useQuery } from "@tanstack/react-query";
 import { requestWithSchema } from "@/api/request";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
 export const batchesQueryKeys = {
 	batches: (token: string, scope: "mine" | "all" = "all") => ["batches", token, scope] as const,
@@ -10,11 +11,13 @@ export const batchesQueryKeys = {
 };
 
 export const useBatchesQuery = (token: string, options?: { scope?: "mine" | "all" }) => {
+	const canReadAll = useHasPermission("BATCH_READ_ALL");
+	const scope = options?.scope === "all" && !canReadAll ? "mine" : options?.scope;
 	return useQuery({
-		queryKey: batchesQueryKeys.batches(token, options?.scope ?? "all"),
+		queryKey: batchesQueryKeys.batches(token, scope ?? "all"),
 		queryFn: () =>
 			requestWithSchema(
-				`/batches${options?.scope ? `?scope=${options.scope}` : ""}`,
+				`/batches${scope ? `?scope=${scope}` : ""}`,
 				BatchesResponseSchema,
 				"GET",
 				undefined,

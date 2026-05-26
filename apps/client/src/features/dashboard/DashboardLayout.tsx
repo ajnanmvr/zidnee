@@ -113,13 +113,35 @@ export const DashboardLayout = () => {
 				permission.key === "LEAD_READ_MY" || permission.key === "LEAD_READ_ALL",
 		) ?? false;
 	const canReadStudents =
-		me?.permissions?.some((permission) => permission.key === "STUDENT_READ") ??
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "STUDENT_READ_MY" || permission.key === "STUDENT_READ_ALL",
+		) ??
+		false;
+	const canReadStudentProcesses =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "STUDENT_PROCESS_READ_MY" || permission.key === "STUDENT_PROCESS_READ_ALL",
+		) ??
+		false;
+	const canReadProcessHistory =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "STUDENT_PROCESS_HISTORY_READ_MY" ||
+				permission.key === "STUDENT_PROCESS_HISTORY_READ_ALL",
+		) ??
 		false;
 	const canReadBatches =
-		me?.permissions?.some((permission) => permission.key === "BATCH_READ") ??
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "BATCH_READ_MY" || permission.key === "BATCH_READ_ALL",
+		) ??
 		false;
 	const canReadReminders =
-		me?.permissions?.some((permission) => permission.key === "REMINDER_READ") ??
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "REMINDER_READ_MY" || permission.key === "REMINDER_READ_ALL",
+		) ??
 		false;
 	const canReadUnassignedDemos =
 		me?.permissions?.some(
@@ -138,7 +160,8 @@ export const DashboardLayout = () => {
 		timeFilter: "all",
 		enabled: canReadLeads,
 	});
-	const studentsQuery = useStudentsQuery(token, { scope: "mine" }, canReadStudents);
+	const canReadLearnerData = canReadStudents || canReadStudentProcesses || canReadProcessHistory;
+	const studentsQuery = useStudentsQuery(token, { scope: "mine" }, canReadLearnerData);
 	const remindersQuery = useGetAllReminders({ scope: "mine", enabled: canReadReminders });
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadUnassignedDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadScheduledDemos);
@@ -289,7 +312,7 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("STUDENT_READ")
+		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
 			? [
 				{
 					to: "/students?type=group&stage=active",
@@ -315,6 +338,10 @@ export const DashboardLayout = () => {
 					accent: "cyan",
 					section: "Learners",
 				},
+			]
+			: []),
+		...(hasPermission("STUDENT_PROCESS_READ_MY") || hasPermission("STUDENT_PROCESS_READ_ALL")
+			? [
 				{
 					to: "/processes",
 					label: "Processes",
@@ -324,6 +351,10 @@ export const DashboardLayout = () => {
 					accent: "violet",
 					section: "Learners",
 				},
+			]
+			: []),
+		...(hasPermission("STUDENT_PROCESS_HISTORY_READ_MY") || hasPermission("STUDENT_PROCESS_HISTORY_READ_ALL")
+			? [
 				{
 					to: "/process-history",
 					label: "Process History",

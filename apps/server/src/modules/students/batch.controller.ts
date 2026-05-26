@@ -4,7 +4,8 @@ import {
 	CreateBatchPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
-import { ValidationError } from "../../utils/errors.util.js";
+import { AuthorizationError, ValidationError } from "../../utils/errors.util.js";
+import { getEffectivePermissions } from "../rbac/rbac.service.js";
 import { BatchService } from "./batch.service.js";
 import { UpdateBatchPayloadSchema } from "@repo/schema";
 
@@ -31,8 +32,17 @@ export const listBatchesController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
+	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
+	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
+	if (
+		requestedScope === "all" &&
+		!effectivePermissions.some((permission) => permission.key === "BATCH_READ_ALL")
+	) {
+		throw new AuthorizationError("Insufficient permissions to view all groups");
+	}
+
 	const batches = await BatchService.findAll({
-		scope: req.query.scope === "mine" ? "mine" : "all",
+		scope: requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(

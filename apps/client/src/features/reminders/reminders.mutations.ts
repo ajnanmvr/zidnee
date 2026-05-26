@@ -11,6 +11,7 @@ import {
 	getStudentReminders,
 	updateReminder,
 } from "./reminders.service.js";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
 export const reminderQueryKeys = {
 	all: ["reminders"] as const,
@@ -41,12 +42,14 @@ export const useGetAllReminders = (filters?: {
 }) => {
 	const { token } = useSession();
 	const enabled = filters?.enabled ?? true;
+	const canReadAll = useHasPermission("REMINDER_READ_ALL");
+	const scope = filters?.scope === "all" && !canReadAll ? "mine" : filters?.scope;
 
 	return useQuery({
-		queryKey: [...reminderQueryKeys.allReminders(), filters],
+		queryKey: [...reminderQueryKeys.allReminders(), { ...filters, scope }],
 		queryFn: async () => {
 			if (!token) return [];
-			return getAllReminders(token, filters);
+			return getAllReminders(token, { ...filters, scope });
 		},
 		enabled: Boolean(token) && enabled,
 	});

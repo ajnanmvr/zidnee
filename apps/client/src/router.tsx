@@ -279,23 +279,23 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "students",
-						element: withPermissions(["STUDENT_READ"], <StudentsPage />),
+						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentsPage />),
 					},
 					{
 						path: "processes",
-						element: withPermissions(["STUDENT_READ"], <StudentProcessesPage />),
+						element: withPermissions(["STUDENT_PROCESS_READ_MY", "STUDENT_PROCESS_READ_ALL"], <StudentProcessesPage />),
 					},
 					{
 						path: "process-history",
-						element: withPermissions(["STUDENT_READ"], <ProcessHistoryPage />),
+						element: withPermissions(["STUDENT_PROCESS_HISTORY_READ_MY", "STUDENT_PROCESS_HISTORY_READ_ALL"], <ProcessHistoryPage />),
 					},
 					{
 						path: "processes/:processId",
-						element: withPermissions(["STUDENT_READ"], <StudentProcessDetailPage />),
+						element: withPermissions(["STUDENT_PROCESS_READ_MY", "STUDENT_PROCESS_READ_ALL"], <StudentProcessDetailPage />),
 					},
 					{
 						path: "students/:studentId",
-						element: withPermissions(["STUDENT_READ"], <StudentDetailPage />),
+						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentDetailPage />),
 					},
 					{
 						path: "students/:studentId/edit",
@@ -323,11 +323,11 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "groups",
-						element: withPermissions(["BATCH_READ"], <GroupsPage />),
+						element: withPermissions(["BATCH_READ_MY", "BATCH_READ_ALL"], <GroupsPage />),
 					},
 					{
 						path: "groups/:groupId",
-						element: withPermissions(["BATCH_READ"], <GroupDetailPage />),
+						element: withPermissions(["BATCH_READ_MY", "BATCH_READ_ALL"], <GroupDetailPage />),
 					},
 					{
 						path: "time-slots",
@@ -401,11 +401,11 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "reminders",
-						element: withPermissions(["REMINDER_READ"], <RemindersPage />),
+						element: withPermissions(["REMINDER_READ_MY", "REMINDER_READ_ALL"], <RemindersPage />),
 					},
 					{
 						path: "reminders/closed",
-						element: withPermissions(["REMINDER_READ"], <ClosedRemindersPage />),
+						element: withPermissions(["REMINDER_READ_MY", "REMINDER_READ_ALL"], <ClosedRemindersPage />),
 					},
 				],
 			},

@@ -27,7 +27,8 @@ const formatGroupLevel = (level?: string | null) =>
 export const GroupsPage = () => {
 	const { token } = useSession();
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const canReadAllGroups = useHasPermission("BATCH_READ_ALL") && useHasPermission("STUDENT_READ_ALL");
+	const activeScope: "mine" | "all" = loadAllRequested && canReadAllGroups ? "all" : "mine";
 	const batchesQuery = useBatchesQuery(token, { scope: activeScope });
 	const studentsQuery = useStudentsQuery(token, { scope: activeScope });
 	const usersQuery = useUsersQuery(token);
@@ -162,6 +163,7 @@ export const GroupsPage = () => {
 					<button
 						type="button"
 						onClick={() => setLoadAllRequested(true)}
+						disabled={!canReadAllGroups}
 						className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-emerald-500 hover:text-emerald-700"}`}
 					>
 						All groups

@@ -225,6 +225,7 @@ export const UpdateLeadPayloadSchema = z
 		hearAboutUs: z.string().max(255).optional(),
 		demoAvailability: z.string().max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
+		isOrganic: z.boolean().optional(),
 	})
 	.refine((value) => Object.values(value).some((v) => v !== undefined), {
 		message: "At least one field must be provided",

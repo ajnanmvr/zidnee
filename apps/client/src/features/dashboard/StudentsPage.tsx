@@ -32,7 +32,8 @@ export const StudentsPage = () => {
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const canReadAllStudents = useHasPermission("STUDENT_READ_ALL");
+	const activeScope: "mine" | "all" = loadAllRequested && canReadAllStudents ? "all" : "mine";
 	const allStudentsQuery = useStudentsQuery(token, {
 		scope: activeScope,
 		search: undefined,
@@ -240,6 +241,7 @@ export const StudentsPage = () => {
 					<button
 						type="button"
 						onClick={() => setLoadAllRequested(true)}
+						disabled={!canReadAllStudents}
 						className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-teal-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-teal-500 hover:text-teal-700"}`}
 					>
 						All students

@@ -6,6 +6,7 @@ import {
 	fetchStudents,
 	fetchStudentProcess,
 } from "@/features/students/students.service";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
 export const studentsQueryKeys = {
 	list: (
@@ -47,10 +48,12 @@ export const useStudentsQuery = (
 		typeof optionsOrEnabled === "boolean"
 			? optionsOrEnabled && enabled
 			: enabled;
+	const canReadAll = useHasPermission("STUDENT_READ_ALL");
+	const scope = options?.scope === "all" && !canReadAll ? "mine" : options?.scope;
 
 	return useQuery({
 		queryKey: studentsQueryKeys.list(token, options),
-		queryFn: () => fetchStudents(token, options),
+		queryFn: () => fetchStudents(token, { ...options, scope }),
 		enabled: Boolean(token) && queryEnabled,
 	});
 };
@@ -75,9 +78,11 @@ export const useStudentProcessesQuery = (
 	const options = typeof optionsOrEnabled === "boolean" ? undefined : optionsOrEnabled;
 	const queryEnabled =
 		typeof optionsOrEnabled === "boolean" ? optionsOrEnabled && enabled : enabled;
+	const canReadAll = useHasPermission("STUDENT_PROCESS_READ_ALL");
+	const scope = options?.scope === "all" && !canReadAll ? "mine" : options?.scope;
 	return useQuery({
-		queryKey: [...studentsQueryKeys.processes(token, false), options?.scope ?? "all"],
-		queryFn: () => fetchStudentProcesses(token, { scope: options?.scope ?? "all" }),
+		queryKey: [...studentsQueryKeys.processes(token, false), scope ?? "all"],
+		queryFn: () => fetchStudentProcesses(token, { scope: scope ?? "all" }),
 		enabled: Boolean(token) && queryEnabled,
 	});
 };
@@ -90,9 +95,11 @@ export const useStudentProcessHistoryQuery = (
 	const options = typeof optionsOrEnabled === "boolean" ? undefined : optionsOrEnabled;
 	const queryEnabled =
 		typeof optionsOrEnabled === "boolean" ? optionsOrEnabled && enabled : enabled;
+	const canReadAll = useHasPermission("STUDENT_PROCESS_HISTORY_READ_ALL");
+	const scope = options?.scope === "all" && !canReadAll ? "mine" : options?.scope;
 	return useQuery({
-		queryKey: [...studentsQueryKeys.processes(token, true), options?.scope ?? "all"],
-		queryFn: () => fetchStudentProcessHistory(token, { scope: options?.scope ?? "all" }),
+		queryKey: [...studentsQueryKeys.processes(token, true), scope ?? "all"],
+		queryFn: () => fetchStudentProcessHistory(token, { scope: scope ?? "all" }),
 		enabled: Boolean(token) && queryEnabled,
 	});
 };

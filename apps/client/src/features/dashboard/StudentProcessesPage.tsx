@@ -7,6 +7,7 @@ import {
 	useCompleteProcessMutation,
 } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
 const timeAgo = (dateString?: string | null) => {
 	if (!dateString) return "-";
@@ -46,7 +47,8 @@ export const StudentProcessesPage = () => {
 	const { token } = useSession();
 	const navigate = useNavigate();
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const canReadAllProcesses = useHasPermission("STUDENT_PROCESS_READ_ALL");
+	const activeScope: "mine" | "all" = loadAllRequested && canReadAllProcesses ? "all" : "mine";
 	const processesQuery = useStudentProcessesQuery(token, { scope: activeScope });
 	const completeProcess = useCompleteProcessMutation();
 	const [searchTerm, setSearchTerm] = useState("");
@@ -143,6 +145,7 @@ export const StudentProcessesPage = () => {
 							<button
 								type="button"
 								onClick={() => setLoadAllRequested(true)}
+								disabled={!canReadAllProcesses}
 								className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:text-emerald-700"}`}
 							>
 								All processes

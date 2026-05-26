@@ -258,6 +258,15 @@ const leadFieldPatch = (
 		newValue.preferredMentorGender = updates.preferredMentorGender;
 	}
 
+	if (
+		updates.isOrganic !== undefined &&
+		updates.isOrganic !== existingLead.isOrganic
+	) {
+		patch.isOrganic = updates.isOrganic;
+		oldValue.isOrganic = existingLead.isOrganic ?? false;
+		newValue.isOrganic = updates.isOrganic;
+	}
+
 	return { patch, oldValue, newValue };
 };
 

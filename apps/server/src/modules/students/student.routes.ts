@@ -2,6 +2,7 @@ import type { PermissionKey } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
+	requireAnyPermissionKey,
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
@@ -70,25 +71,37 @@ router.use(authMiddleware);
  */
 router.get(
 	"/",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(listStudentsController),
 );
 
 router.get(
 	"/processes",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_PROCESS_READ_MY" satisfies PermissionKey,
+		"STUDENT_PROCESS_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(listStudentProcessesController),
 );
 
 router.get(
 	"/process-history",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_PROCESS_HISTORY_READ_MY" satisfies PermissionKey,
+		"STUDENT_PROCESS_HISTORY_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(listStudentProcessHistoryController),
 );
 
 router.get(
 	"/processes/:processId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_PROCESS_READ_MY" satisfies PermissionKey,
+		"STUDENT_PROCESS_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(getStudentProcessController),
 );
 
@@ -112,31 +125,46 @@ router.post(
 
 router.get(
 	"/:studentId/activities",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(getStudentActivitiesController),
 );
 
 router.patch(
 	"/:studentId/follow-up",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(recordStudentFollowUpController),
 );
 
 router.patch(
 	"/:studentId/assessments",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(updateStudentAssessmentController),
 );
 
 router.patch(
 	"/:studentId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(updateStudentController),
 );
 
 router.post(
 	"/:studentId/profile-pic",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	upload.single("file"),
 	asyncHandler(uploadStudentProfilePicController),
 );

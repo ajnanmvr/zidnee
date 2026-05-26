@@ -400,6 +400,20 @@ export const LeadsPage = () => {
 	const postponeSuggestions = postponeNoteValue
 		? formatSuggestionsForUI(postponeNoteValue)
 		: [];
+	const createPhoneValue = useWatch({
+		control: createControl,
+		name: "phone",
+	});
+	const duplicateLeadCount = useMemo(() => {
+		const normalizedPhone = getWhatsappNumber(createPhoneValue);
+		if (!normalizedPhone) {
+			return 0;
+		}
+
+		return scopeLeads.filter(
+			(lead) => getWhatsappNumber(lead.phone) === normalizedPhone,
+		).length;
+	}, [createPhoneValue, scopeLeads]);
 
 	useEffect(() => {
 		if (!createOpen) {
@@ -1093,13 +1107,20 @@ export const LeadsPage = () => {
 						name="phone"
 						control={createControl}
 						render={({ field, fieldState }) => (
-							<Field
-								label="Phone"
-								value={field.value ?? ""}
-								onChange={field.onChange}
-								placeholder="+919876543210"
-								error={fieldState.error?.message}
-							/>
+							<div className="grid gap-2">
+								<Field
+									label="Phone"
+									value={field.value ?? ""}
+									onChange={field.onChange}
+									placeholder="+919876543210"
+									error={fieldState.error?.message}
+								/>
+								{duplicateLeadCount > 0 ? (
+									<p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+										A lead with this phone already exists. Creating again will add another lead record.
+									</p>
+								) : null}
+							</div>
 						)}
 					/>
 					<Controller
