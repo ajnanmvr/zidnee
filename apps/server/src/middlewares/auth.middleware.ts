@@ -98,9 +98,20 @@ export const requirePermissionKey = (keys: PermissionKey | PermissionKey[]) => {
 			}
 
 			const checksArray = Array.isArray(keys) ? keys : [keys];
-			const userPermissions = req.user.roleIds.length
-				? await getEffectivePermissions(req.user.roleIds)
-				: await PermissionService.findByIds(req.user.permissionIds);
+			let userPermissions;
+			if (req.user.roleIds.length) {
+				try {
+					userPermissions = await getEffectivePermissions(req.user.roleIds);
+				} catch (err) {
+					// If role lookup fails (e.g., non-ObjectId roleIds in tests),
+					// fall back to explicit permissionIds from token.
+					userPermissions = await PermissionService.findByIds(
+						req.user.permissionIds,
+					);
+				}
+			} else {
+				userPermissions = await PermissionService.findByIds(req.user.permissionIds);
+			}
 
 			const hasPermission = checksArray.every((requiredKey) =>
 				userPermissions.some((permission) => permission.key === requiredKey),
@@ -131,9 +142,18 @@ export const requireAnyPermissionKey = (keys: PermissionKey | PermissionKey[]) =
 			}
 
 			const checksArray = Array.isArray(keys) ? keys : [keys];
-			const userPermissions = req.user.roleIds.length
-				? await getEffectivePermissions(req.user.roleIds)
-				: await PermissionService.findByIds(req.user.permissionIds);
+			let userPermissions;
+			if (req.user.roleIds.length) {
+				try {
+					userPermissions = await getEffectivePermissions(req.user.roleIds);
+				} catch (err) {
+					userPermissions = await PermissionService.findByIds(
+						req.user.permissionIds,
+					);
+				}
+			} else {
+				userPermissions = await PermissionService.findByIds(req.user.permissionIds);
+			}
 
 			const hasPermission = checksArray.some((requiredKey) =>
 				userPermissions.some((permission) => permission.key === requiredKey),

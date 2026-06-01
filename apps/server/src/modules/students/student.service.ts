@@ -37,6 +37,29 @@ const normalizeStudentStatus = (status: unknown): Student["status"] => {
 	return "STUDENT";
 };
 
+const hasProfileFieldChange = (payload: Record<string, unknown>) => {
+	return [
+		"name",
+		"phone",
+		"email",
+		"courseType",
+		"level",
+		"dateOfBirth",
+		"residingCountry",
+		"gender",
+		"primaryWhatsappNumber",
+		"alternateWhatsappNumber",
+		"studentInfo",
+		"preferredLanguage",
+		"preferredSchedule",
+		"preferredDays",
+		"timeslot",
+		"price",
+		"hearAboutUs",
+		"profilePic",
+	].some((key) => payload[key] !== undefined);
+};
+
 type StudentListFilters = {
 	status?: string;
 	search?: string;
@@ -225,6 +248,18 @@ const syncStudentProcess = async (
 	).lean<StudentDocument | null>();
 	if (!student) {
 		return null;
+	}
+
+	// Do not create or maintain a student process for BREAK status. Remove any
+	// existing linked process and clear the student's process fields.
+	if (student.status === "BREAK") {
+		await StudentProcessModel.findOneAndDelete({ studentId: student._id }).exec();
+		await StudentModel.findByIdAndUpdate(
+			student._id,
+			{ $unset: { processId: 1, processLabel: 1 } },
+			{ returnDocument: "after" },
+		).exec();
+		return student;
 	}
 
 	const template = explicitTemplate ?? getStudentProcessTemplate(student.status);
@@ -546,7 +581,7 @@ export const StudentService = {
 		return await StudentService.getStudentProcessById(processId);
 	},
 
-	completeStudentProcess: async (processId: string): Promise<boolean> => {
+	completeStudentProcess: async (processId: string, performedBy: string): Promise<boolean> => {
 		const objectId = Types.ObjectId.isValid(processId)
 			? new Types.ObjectId(processId)
 			: null;
@@ -582,6 +617,24 @@ export const StudentService = {
 			},
 			{ new: true },
 		).exec();
+
+		const student = await StudentModel.findById(existingProcess.studentId).lean<StudentDocument | null>();
+		if (student) {
+			await logStudentActivity({
+				studentId: student._id.toString(),
+				type: "PROCESS_UPDATED",
+				performedBy,
+				description: "Process completed",
+				oldValue: {
+					processId: student.processId?.toString() ?? null,
+					processLabel: student.processLabel ?? null,
+				},
+				newValue: {
+					processId: null,
+					processLabel: null,
+				},
+			});
+		}
 
 		return true;
 	},
@@ -1128,6 +1181,8 @@ export const StudentService = {
 			} else if (payload.status === "DROPPED") {
 				$unset.inactiveFrom = 1;
 				$unset.inactiveUntil = 1;
+				$unset.nextFollowUpAt = 1;
+				$unset.customNextFollowUpAt = 1;
 			}
 		}
 
@@ -1147,12 +1202,19 @@ export const StudentService = {
 					$set.inactiveUntil = payload.inactiveUntil;
 				}
 			}
+
+			if (payload.inactiveUntil !== undefined && payload.inactiveUntil !== null) {
+				$set.nextFollowUpAt = payload.inactiveUntil;
+				$unset.customNextFollowUpAt = 1;
+			}
 		} else if (effectiveStatus === "DROPPED" && payload.dropReason !== undefined) {
 			if (payload.dropReason.trim()) {
 				$set.dropReason = payload.dropReason.trim();
 			} else {
 				$unset.dropReason = 1;
 			}
+			$unset.nextFollowUpAt = 1;
+			$unset.customNextFollowUpAt = 1;
 		}
 
 		if (effectiveStatus === "DROPPED" && payload.dropTemporary !== undefined) {
@@ -1243,9 +1305,25 @@ export const StudentService = {
 
 		await logStudentActivity({
 			studentId: student._id.toString(),
-			type: "UPDATED",
-			performedBy: student.admittedBy.toString(),
-			description: "Student updated",
+			type:
+				payload.status !== undefined
+					? "STATUS_CHANGED"
+					: payload.batchId !== undefined || payload.mentorId !== undefined
+						? "PROCESS_UPDATED"
+						: "UPDATED",
+			performedBy: performedBy ?? student.admittedBy.toString(),
+			description:
+				payload.status === "BREAK"
+					? "Student put on break"
+					: payload.status === "DROPPED"
+						? "Student dropped"
+						: payload.status === "STUDENT"
+							? "Student marked active"
+							: payload.batchId !== undefined || payload.mentorId !== undefined
+								? "Admission process updated"
+								: hasProfileFieldChange(payload as unknown as Record<string, unknown>)
+									? "Profile updated"
+									: "Student updated",
 			oldValue: {
 				name: student.name ?? null,
 				phone: student.phone,

@@ -25,8 +25,8 @@ export const RoleSchema = z.object({
 	id: ObjectIdStringSchema,
 	name: z.string().min(1).max(100),
 	type: z
-		.enum(["admin", "mentor", "counsellor", "sales"] as const)
-		.default("admin"),
+		.enum(["general", "admin", "mentor", "counsellor", "sales"] as const)
+		.default("general"),
 	description: z.string().max(500).optional(),
 	permissionIds: z.array(ObjectIdStringSchema),
 	isSystem: z.boolean().default(false), // System roles cannot be deleted

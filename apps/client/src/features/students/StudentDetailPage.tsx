@@ -796,9 +796,9 @@ export const StudentDetailPage = () => {
 				<nav className="flex gap-8">
 					{[
 						{ key: "follow-up", label: "Follow-up" },
-						{ key: "assessment", label: "Assessment" },
 						{ key: "profile", label: "Profile" },
-						{ key: "reminders", label: "Reminders" },
+						{ key: "reminders", label: "Reminder" },
+						{ key: "assessment", label: "Assessment" },
 					].map((tab) => (
 						<button
 							key={tab.key}

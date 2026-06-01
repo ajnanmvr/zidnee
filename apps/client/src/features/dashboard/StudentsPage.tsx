@@ -32,6 +32,7 @@ export const StudentsPage = () => {
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const [showProcessStudents, setShowProcessStudents] = useState(false);
 	const canReadAllStudents = useHasPermission("STUDENT_READ_ALL");
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllStudents ? "all" : "mine";
 	const allStudentsQuery = useStudentsQuery(token, {
@@ -80,6 +81,11 @@ export const StudentsPage = () => {
 
 		const transformed = studentsQuery.data.students
 			.filter((student) => {
+				const hasProcess = Boolean(student.processId || student.processLabel);
+				if (!showProcessStudents && hasProcess) {
+					return false;
+				}
+
 				if (studentType === "group") {
 					return student.courseType === "GROUP";
 				}
@@ -122,7 +128,7 @@ export const StudentsPage = () => {
 
 			return leftDate - rightDate;
 		});
-	}, [studentType, studentsQuery.data?.students]);
+	}, [showProcessStudents, studentType, studentsQuery.data?.students]);
 
 	// Build name lookup tables
 	const mentorNameById = useMemo(() => {
@@ -138,6 +144,18 @@ export const StudentsPage = () => {
 		() =>
 			getStudentStageCounts(
 				(allStudentsQuery.data?.students ?? []).filter((student) => {
+					const hasProcess = Boolean(student.processId || student.processLabel);
+					// Exclude in-process students from sidebar counts when viewing group
+					// or individual filters so those counts reflect only regular
+					// group/individual students.
+					if ((studentType === "group" || studentType === "individual") && hasProcess) {
+						return false;
+					}
+
+					if (!showProcessStudents && hasProcess) {
+						return false;
+					}
+
 					if (studentType === "group") {
 						return student.courseType === "GROUP";
 					}
@@ -147,7 +165,7 @@ export const StudentsPage = () => {
 					return true;
 				}),
 			),
-		[allStudentsQuery.data?.students, studentType],
+		[allStudentsQuery.data?.students, showProcessStudents, studentType],
 	);
 
 	const columns = useMemo(
@@ -231,6 +249,13 @@ export const StudentsPage = () => {
 					/>
 				</div>
 				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setShowProcessStudents((current) => !current)}
+						className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${showProcessStudents ? "bg-amber-500 text-white" : "border border-gray-300 bg-white text-gray-700 hover:border-amber-500 hover:text-amber-700"}`}
+					>
+						{showProcessStudents ? "Showing process students" : "Show process students"}
+					</button>
 					<button
 						type="button"
 						onClick={() => setLoadAllRequested(false)}

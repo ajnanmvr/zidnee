@@ -30,6 +30,10 @@ const getActivityIcon = (type: string) => {
 	switch (type) {
 		case "CREATED":
 			return <HiCheckCircle className="h-4 w-4" />;
+			case "UPDATED":
+			case "PROCESS_UPDATED":
+			case "ASSESSMENT_UPDATED":
+				return <HiPencil className="h-4 w-4" />;
 		case "FORM_SENT":
 			return <HiGlobeAlt className="h-4 w-4" />;
 		case "FOLLOW_UP_POSTPONED":
@@ -81,6 +85,15 @@ const getActivityColor = (type: string) => {
 				badge: "bg-teal-100",
 				text: "text-teal-700",
 			};
+		case "UPDATED":
+		case "PROCESS_UPDATED":
+		case "ASSESSMENT_UPDATED":
+			return {
+				gradient: "from-amber-50 to-amber-100/50",
+				border: "border-amber-200",
+				badge: "bg-amber-100",
+				text: "text-amber-700",
+			};
 		case "STATUS_CHANGED":
 			return {
 				gradient: "from-blue-50 to-blue-100/50",
@@ -129,10 +142,13 @@ const getActivityColor = (type: string) => {
 const getActivityTypeLabel = (type: string): string => {
 	const labels: Record<string, string> = {
 		CREATED: "Created",
+		UPDATED: "Profile Updated",
 		FORM_SENT: "Form Sent",
 		FOLLOW_UP_POSTPONED: "Follow-up Postponed",
 		FOLLOW_UP_RECORDED: "Follow-up Recorded",
 		STATUS_CHANGED: "Status Changed",
+		PROCESS_UPDATED: "Process Updated",
+		ASSESSMENT_UPDATED: "Assessment Updated",
 		ASSIGNED: "Assigned",
 		FORM_REVOKED: "Form Revoked",
 		DEMO_SCHEDULED: "Demo Scheduled",

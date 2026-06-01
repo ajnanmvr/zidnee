@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 export type StudentTableRow = Student;
 
 type FollowUpState = {
-	label: "Today" | "Past Due" | "Valid" | "No Follow-up";
+	label: "Today" | "Past Due" | "Upcoming" | "No Follow-up";
 	className: string;
 	priority: number;
 };
@@ -50,7 +50,7 @@ export const getStudentFollowUpState = (
 	}
 
 	return {
-		label: "Valid",
+		label: "Upcoming",
 		className: "bg-emerald-100 text-emerald-800",
 		priority: 2,
 	};
@@ -172,6 +172,7 @@ export const buildStudentColumns = (
 				const hasProcess = Boolean(
 					row.original.processId || row.original.processLabel,
 				);
+				const processLabel = row.original.processLabel ?? "In process";
 
 				return (
 					<span
@@ -182,11 +183,11 @@ export const buildStudentColumns = (
 						{hasProcess ? (
 							<HiCog6Tooth
 								className="h-3.5 w-3.5"
-								title={row.original.processLabel ?? "Process linked"}
+								title={processLabel}
 								aria-label="Process linked"
 							/>
 						) : null}
-						{row.original.status}
+						{hasProcess ? processLabel : row.original.status}
 					</span>
 				);
 			},
