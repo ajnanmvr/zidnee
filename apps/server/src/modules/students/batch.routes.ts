@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { authMiddleware, requireAnyPermissionKey } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	createBatchController,
@@ -29,7 +29,11 @@ const router: ReturnType<typeof Router> = Router();
  */
 router.use(authMiddleware);
 
-router.get("/", asyncHandler(listBatchesController));
+router.get(
+	"/",
+	requireAnyPermissionKey(["BATCH_READ_MY", "BATCH_READ_ALL"]),
+	asyncHandler(listBatchesController),
+);
 
 router.post("/", asyncHandler(createBatchController));
 

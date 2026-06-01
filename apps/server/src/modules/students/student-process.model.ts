@@ -125,11 +125,15 @@ const buildTask = (key: StudentProcessTaskKey, studentId?: string): StudentProce
 	if (definition.dynamic && studentId) {
 		if (key === "send-welcome-message") {
 			const formLink = `${env.APP_URL}/form/student/${studentId}`;
-			whatsappMessage = `Assalamu Alaikum,
-We are contacting you from Zidnee Online Islamic School.
-Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will
-now proceed with the final admission process.
-Please save this number as Zidnee's official contact number.
+			whatsappMessage = `*Assalamu Alaikum*, 🤝
+
+We are contacting you from *Zidnee Online Islamic School*.
+
+Alhamdulillah, the demo session has been completed and approved. In shaa Allah, we will now proceed with the final admission process.
+
+📌 *Kindly save this number as Zidnee’s official contact number for all future communications and support*. 🤝
+
+📝 Please fill the form using the link given below:
 
 ${formLink}`;
 		}

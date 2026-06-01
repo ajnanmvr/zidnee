@@ -5,7 +5,9 @@ import {
 	UpdateReminderPayloadSchema,
 } from "@repo/schema";
 import type { Request, Response } from "express";
+import { AuthorizationError } from "../../utils/errors.util.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
+import { getEffectivePermissions } from "../rbac/rbac.service.js";
 import { ReminderService } from "./reminder.service.js";
 
 export const createReminderController = async (
@@ -66,13 +68,20 @@ export const getAllRemindersController = async (
 	const isDone = req.query.isDone ? req.query.isDone === "true" : undefined;
 	const sortBy = req.query.sortBy === "createdAt" ? "createdAt" : "date";
 	const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
-	const scope = req.query.scope === "mine" ? "mine" : "all";
+	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
+	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
+	if (
+		requestedScope === "all" &&
+		!effectivePermissions.some((permission) => permission.key === "REMINDER_READ_ALL")
+	) {
+		throw new AuthorizationError("Insufficient permissions to view all reminders");
+	}
 
 	const reminders = await ReminderService.getAllReminders({
 		isDone,
 		sortBy,
 		sortOrder,
-		scope,
+		scope: requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 

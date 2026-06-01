@@ -258,6 +258,15 @@ const leadFieldPatch = (
 		newValue.preferredMentorGender = updates.preferredMentorGender;
 	}
 
+	if (
+		updates.isOrganic !== undefined &&
+		updates.isOrganic !== existingLead.isOrganic
+	) {
+		patch.isOrganic = updates.isOrganic;
+		oldValue.isOrganic = existingLead.isOrganic ?? false;
+		newValue.isOrganic = updates.isOrganic;
+	}
+
 	return { patch, oldValue, newValue };
 };
 
@@ -404,6 +413,21 @@ const mapLead = (doc: LeadDocument): Lead => ({
 });
 
 export const LeadService = {
+	/**
+	 * Search leads by phone digits. Normalizes stored phones and filters
+	 * by substring match. Returns up to 10 results.
+	 */
+	searchByPhone: async (digits: string): Promise<Lead[]> => {
+		if (!digits) return [];
+		const all = await LeadModel.find().lean<LeadDocument[]>();
+		const normalize = (p: unknown) =>
+			(typeof p === "string" ? p.replace(/\D/g, "") : "");
+		const results = all
+			.filter((doc) => normalize(doc.phone).includes(digits))
+			.slice(0, 10)
+			.map(mapLead);
+		return results;
+	},
 	create: async (lead: {
 		phone: string;
 		name?: string;
@@ -708,10 +732,12 @@ export const LeadService = {
 		const now = new Date();
 		const previousMentorId = getLatestDemo(existingLead)?.mentorId?.toString();
 		const effectiveMentorId = mentorId ?? previousMentorId;
+		const effectiveNote = note?.trim() || undefined;
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
 			mentorId: effectiveMentorId,
 			requestedAt: now,
+			note: effectiveNote,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -741,7 +767,7 @@ export const LeadService = {
 					requestedAt: now.toISOString(),
 					counsellorId,
 				},
-				note,
+				effectiveNote,
 			);
 		}
 

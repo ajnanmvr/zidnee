@@ -41,7 +41,8 @@ export function PublicStudentFormPage() {
   const [squareSize, setSquareSize] = useState(200);
   const [squareX, setSquareX] = useState(0);
   const [squareY, setSquareY] = useState(0);
-  const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [, setIsResizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -237,6 +238,7 @@ export function PublicStudentFormPage() {
     setSquareSize(200);
     setSquareX(0);
     setSquareY(0);
+    setIsDragging(false);
     setIsResizing(false);
   };
 
@@ -784,13 +786,15 @@ export function PublicStudentFormPage() {
                   left: squareX,
                   top: squareY,
                   userSelect: "none",
+                  touchAction: "none",
                 }}
-                onMouseDown={(e) => {
+                onPointerDown={(e) => {
                   if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-                  setIsResizing(true);
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  setIsDragging(true);
                 }}
-                onMouseMove={(e) => {
-                  if (!isResizing) return;
+                onPointerMove={(e) => {
+                  if (!isDragging) return;
                   const container = e.currentTarget.parentElement as HTMLElement;
                   const rect = container.getBoundingClientRect();
                   const newX = Math.max(
@@ -804,19 +808,23 @@ export function PublicStudentFormPage() {
                   setSquareX(newX);
                   setSquareY(newY);
                 }}
-                onMouseUp={() => setIsResizing(false)}
-                onMouseLeave={() => setIsResizing(false)}
+                onPointerUp={() => setIsDragging(false)}
+                onPointerCancel={() => setIsDragging(false)}
               >
                 <div
                   className="resize-handle absolute w-4 h-4 bg-brand bottom-0 right-0 cursor-se-resize transform translate-x-1/2 translate-y-1/2 rounded-full"
-                  onMouseDown={(e) => {
+                  style={{ touchAction: "none" }}
+                  onPointerDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                     const startX = e.clientX;
                     const startY = e.clientY;
                     const startSize = squareSize;
 
-                    const handleMouseMove = (moveEvent: MouseEvent) => {
+                    setIsResizing(true);
+
+                    const handlePointerMove = (moveEvent: PointerEvent) => {
                       const delta = Math.max(moveEvent.clientX - startX, moveEvent.clientY - startY);
                       const newSize = Math.max(
                         50,
@@ -825,13 +833,16 @@ export function PublicStudentFormPage() {
                       setSquareSize(newSize);
                     };
 
-                    const handleMouseUp = () => {
-                      document.removeEventListener("mousemove", handleMouseMove);
-                      document.removeEventListener("mouseup", handleMouseUp);
+                    const handlePointerUp = () => {
+                      setIsResizing(false);
+                      document.removeEventListener("pointermove", handlePointerMove);
+                      document.removeEventListener("pointerup", handlePointerUp);
+                      document.removeEventListener("pointercancel", handlePointerUp);
                     };
 
-                    document.addEventListener("mousemove", handleMouseMove);
-                    document.addEventListener("mouseup", handleMouseUp);
+                    document.addEventListener("pointermove", handlePointerMove);
+                    document.addEventListener("pointerup", handlePointerUp);
+                    document.addEventListener("pointercancel", handlePointerUp);
                   }}
                 />
               </div>

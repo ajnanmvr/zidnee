@@ -17,6 +17,7 @@ import {
 	generateFormLinkController,
 	getLeadByIdController,
 	listAdmissionLeadsController,
+    listSimilarLeadsController,
 	listDemoRequestsController,
 	listLeadsController,
 	listPendingDemoRequestsController,
@@ -94,6 +95,12 @@ router.get(
 	"/",
 	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
 	asyncHandler(listLeadsController),
+);
+
+router.get(
+	"/search",
+	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	asyncHandler(listSimilarLeadsController),
 );
 
 /**

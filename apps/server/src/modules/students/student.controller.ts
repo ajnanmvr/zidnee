@@ -10,6 +10,8 @@ import {
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
+import { AuthorizationError } from "../../utils/errors.util.js";
+import { getEffectivePermissions } from "../rbac/rbac.service.js";
 import { StudentService, type StudentProcessListItem } from "./student.service.js";
 import { uploadBuffer } from "../../lib/s3.js";
 
@@ -101,6 +103,15 @@ export const listStudentsController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
+	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
+	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
+	if (
+		requestedScope === "all" &&
+		!effectivePermissions.some((permission) => permission.key === "STUDENT_READ_ALL")
+	) {
+		throw new AuthorizationError("Insufficient permissions to view all students");
+	}
+
 	const students = await StudentService.listStudents({
 		status: typeof req.query.status === "string" ? req.query.status : undefined,
 		search: typeof req.query.search === "string" ? req.query.search : undefined,
@@ -114,7 +125,7 @@ export const listStudentsController = async (
 			typeof req.query.limit === "string"
 				? parseInt(req.query.limit, 10)
 				: undefined,
-		scope: req.query.scope === "mine" ? "mine" : "all",
+		scope: requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(
@@ -129,8 +140,17 @@ export const listStudentProcessesController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
+	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
+	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
+	if (
+		requestedScope === "all" &&
+		!effectivePermissions.some((permission) => permission.key === "STUDENT_PROCESS_READ_ALL")
+	) {
+		throw new AuthorizationError("Insufficient permissions to view all student processes");
+	}
+
 	const processes = await StudentService.listStudentProcesses({
-		scope: req.query.scope === "mine" ? "mine" : "all",
+		scope: requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(
@@ -145,8 +165,17 @@ export const listStudentProcessHistoryController = async (
 	req: Request,
 	res: Response,
 ): Promise<void> => {
+	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
+	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
+	if (
+		requestedScope === "all" &&
+		!effectivePermissions.some((permission) => permission.key === "STUDENT_PROCESS_HISTORY_READ_ALL")
+	) {
+		throw new AuthorizationError("Insufficient permissions to view all process history");
+	}
+
 	const processes = await StudentService.listStudentProcessHistory({
-		scope: req.query.scope === "mine" ? "mine" : "all",
+		scope: requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(

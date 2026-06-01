@@ -45,6 +45,7 @@ type EditLeadFormState = {
 	name?: string;
 	phone?: string;
 	level?: string;
+	isOrganic?: boolean;
 };
 
 const getStatusColor = (status?: string): { badge: string } => {
@@ -300,6 +301,7 @@ export const LeadDetailPageNew = () => {
 				name: lead.name ?? "",
 				phone: lead.phone ?? "",
 				level: lead.level ?? "",
+				isOrganic: lead.isOrganic ?? false,
 			});
 		}
 	}, [editOpen, lead, resetEdit]);
@@ -1326,6 +1328,26 @@ export const LeadDetailPageNew = () => {
 									{...field}
 									type="text"
 									className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+								/>
+							</label>
+						)}
+					/>
+					<Controller
+						name="isOrganic"
+						control={editControl}
+						render={({ field }) => (
+							<label className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm font-medium text-amber-900">
+								<span>
+									Organic lead
+									<span className="mt-1 block text-xs font-normal text-amber-700">
+										Mark this when the lead was added organically.
+									</span>
+								</span>
+								<input
+									type="checkbox"
+									checked={Boolean(field.value)}
+									onChange={(event) => field.onChange(event.target.checked)}
+									className="h-5 w-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
 								/>
 							</label>
 						)}

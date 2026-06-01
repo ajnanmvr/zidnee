@@ -2,6 +2,7 @@ import type { PermissionKey } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
+	requireAnyPermissionKey,
 	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
@@ -42,13 +43,19 @@ router.use(authMiddleware);
  */
 router.post(
 	"/students/:studentId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(createReminderController),
 );
 
 router.post(
 	"/mentors/:mentorId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(createReminderController),
 );
 
@@ -71,13 +78,19 @@ router.post(
  */
 router.get(
 	"/students/:studentId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"REMINDER_READ_MY" satisfies PermissionKey,
+		"REMINDER_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(getStudentRemindersController),
 );
 
 router.get(
 	"/mentors/:mentorId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"REMINDER_READ_MY" satisfies PermissionKey,
+		"REMINDER_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(getStudentRemindersController),
 );
 
@@ -109,7 +122,10 @@ router.get(
  */
 router.get(
 	"/",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"REMINDER_READ_MY" satisfies PermissionKey,
+		"REMINDER_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(getAllRemindersController),
 );
 
@@ -138,7 +154,10 @@ router.get(
  */
 router.patch(
 	"/:reminderId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"REMINDER_READ_MY" satisfies PermissionKey,
+		"REMINDER_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(updateReminderController),
 );
 
@@ -161,7 +180,10 @@ router.patch(
  */
 router.delete(
 	"/:reminderId",
-	requirePermissionKey("STUDENT_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"REMINDER_READ_MY" satisfies PermissionKey,
+		"REMINDER_READ_ALL" satisfies PermissionKey,
+	]),
 	asyncHandler(deleteReminderController),
 );
 

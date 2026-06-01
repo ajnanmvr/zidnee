@@ -95,6 +95,8 @@ export const updateLead = async (
 	payload: unknown,
 ) => {
 	const parsedPayload = UpdateLeadPayloadSchema.parse(payload);
+	// Debug: log the parsed payload being sent to the server
+	console.debug("updateLead parsedPayload:", parsedPayload);
 	return requestWithSchema(
 		`/leads/${leadId}`,
 		LeadResponseEnvelopeSchema,
@@ -275,6 +277,17 @@ export const fetchLeadById = async (token: string, leadId: string) => {
 	return requestWithSchema(
 		`/leads/${leadId}`,
 		LeadResponseEnvelopeSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchSimilarLeads = async (token: string, phone: string) => {
+	const q = encodeURIComponent(phone ?? "");
+	return requestWithSchema(
+		`/leads/search?phone=${q}`,
+		LeadsResponseSchema,
 		"GET",
 		undefined,
 		token,

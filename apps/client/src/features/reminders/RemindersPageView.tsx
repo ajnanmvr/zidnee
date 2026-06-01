@@ -55,6 +55,7 @@ export const RemindersPageView = ({
     const [sortBy, setSortBy] = useState<"date" | "createdAt">("date");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
     const [searchTerm, setSearchTerm] = useState("");
+    const canReadAllReminders = useHasPermission("REMINDER_READ_ALL");
     const [scope, setScope] = useState<"assignedToMe" | "allAssignments">(
         "assignedToMe",
     );
@@ -62,7 +63,7 @@ export const RemindersPageView = ({
     const pageSize = 8;
 
     const remindersQuery = useGetAllReminders({
-        scope: scope === "assignedToMe" ? "mine" : "all",
+        scope: scope === "assignedToMe" || !canReadAllReminders ? "mine" : "all",
         enabled: Boolean(token),
     });
     const reminders = remindersQuery.data ?? [];
@@ -234,6 +235,7 @@ export const RemindersPageView = ({
                         </button>
                         <button
                             onClick={() => setScope("allAssignments")}
+                            disabled={!canReadAllReminders}
                             className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
                                 scope === "allAssignments"
                                     ? "bg-slate-950 text-white shadow-sm"

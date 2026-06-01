@@ -107,6 +107,42 @@ export const PERMISSION_CATALOG = {
 		resource: "leads",
 		action: "update:all",
 	},
+	STUDENT_READ_MY: {
+		name: "Read My Students",
+		description: "Read students assigned to the current user",
+		resource: "students",
+		action: "read:own",
+	},
+	STUDENT_READ_ALL: {
+		name: "Read All Students",
+		description: "Read all students in the system",
+		resource: "students",
+		action: "read:all",
+	},
+	STUDENT_PROCESS_READ_MY: {
+		name: "Read My Processes",
+		description: "Read student processes assigned to the current user",
+		resource: "student-processes",
+		action: "read:own",
+	},
+	STUDENT_PROCESS_READ_ALL: {
+		name: "Read All Processes",
+		description: "Read all student processes",
+		resource: "student-processes",
+		action: "read:all",
+	},
+	STUDENT_PROCESS_HISTORY_READ_MY: {
+		name: "Read My Process History",
+		description: "Read archived student processes assigned to the current user",
+		resource: "student-process-history",
+		action: "read:own",
+	},
+	STUDENT_PROCESS_HISTORY_READ_ALL: {
+		name: "Read All Process History",
+		description: "Read all archived student processes",
+		resource: "student-process-history",
+		action: "read:all",
+	},
 	LEAD_FORM_MANAGE: {
 		name: "Manage Lead Form",
 		description: "Send or revoke public form links",
@@ -197,6 +233,30 @@ export const PERMISSION_CATALOG = {
 		resource: "students",
 		action: "update",
 	},
+	BATCH_READ_MY: {
+		name: "Read My Groups",
+		description: "Read groups visible to the current user",
+		resource: "batches",
+		action: "read:own",
+	},
+	BATCH_READ_ALL: {
+		name: "Read All Groups",
+		description: "Read all groups in the system",
+		resource: "batches",
+		action: "read:all",
+	},
+	REMINDER_READ_MY: {
+		name: "Read My Reminders",
+		description: "Read reminders assigned to the current user",
+		resource: "reminders",
+		action: "read:own",
+	},
+	REMINDER_READ_ALL: {
+		name: "Read All Reminders",
+		description: "Read all reminders in the system",
+		resource: "reminders",
+		action: "read:all",
+	},
 	ORDER_DELETE: {
 		name: "Delete Order",
 		description: "Delete order records",
@@ -258,6 +318,57 @@ export const PERMISSION_CATALOG = {
 		name: "Delete Mentor",
 		description: "Remove a mentor or delete mentor records",
 		resource: "mentors",
+		action: "delete",
+	},
+	// Counsellor-specific permissions
+	COUNSELLOR_CREATE: {
+		name: "Create Counsellor",
+		description: "Create a new counsellor account",
+		resource: "counsellors",
+		action: "create",
+	},
+	COUNSELLOR_READ: {
+		name: "Read Counsellors",
+		description: "View counsellor information and lists",
+		resource: "counsellors",
+		action: "read",
+	},
+	COUNSELLOR_UPDATE: {
+		name: "Update Counsellor",
+		description: "Update counsellor profile or assignment details",
+		resource: "counsellors",
+		action: "update",
+	},
+	COUNSELLOR_DELETE: {
+		name: "Delete Counsellor",
+		description: "Remove a counsellor or delete counsellor records",
+		resource: "counsellors",
+		action: "delete",
+	},
+
+	// Admin-specific permissions
+	ADMIN_CREATE: {
+		name: "Create Admin",
+		description: "Create a new admin user",
+		resource: "admins",
+		action: "create",
+	},
+	ADMIN_READ: {
+		name: "Read Admins",
+		description: "View admin user information and lists",
+		resource: "admins",
+		action: "read",
+	},
+	ADMIN_UPDATE: {
+		name: "Update Admin",
+		description: "Update admin user details",
+		resource: "admins",
+		action: "update",
+	},
+	ADMIN_DELETE: {
+		name: "Delete Admin",
+		description: "Delete admin user",
+		resource: "admins",
 		action: "delete",
 	},
 	// Students: additional granular permissions

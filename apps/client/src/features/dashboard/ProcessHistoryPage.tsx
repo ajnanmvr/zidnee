@@ -3,12 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import { useStudentProcessHistoryQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
 
 export const ProcessHistoryPage = () => {
 	const { token } = useSession();
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const canReadAllHistory = useHasPermission("STUDENT_PROCESS_HISTORY_READ_ALL");
+	const activeScope: "mine" | "all" = loadAllRequested && canReadAllHistory ? "all" : "mine";
 	const historyQuery = useStudentProcessHistoryQuery(token, { scope: activeScope });
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -84,6 +86,7 @@ export const ProcessHistoryPage = () => {
 						<button
 							type="button"
 							onClick={() => setLoadAllRequested(true)}
+							disabled={!canReadAllHistory}
 							className={`rounded-md px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-700"}`}
 						>
 							All history

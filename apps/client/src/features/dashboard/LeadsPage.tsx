@@ -28,6 +28,7 @@ import {
 	useSalesUsersQuery,
 	useUsersQuery,
 } from "@/features/users/users.queries";
+import { fetchSimilarLeads } from "@/features/leads/leads.service";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import {
 	buildLeadColumns,
@@ -400,6 +401,57 @@ export const LeadsPage = () => {
 	const postponeSuggestions = postponeNoteValue
 		? formatSuggestionsForUI(postponeNoteValue)
 		: [];
+	const createPhoneValue = useWatch({
+		control: createControl,
+		name: "phone",
+	});
+    const [similarLeads, setSimilarLeads] = useState<LeadResponse[] | null>(null);
+    const [isSearchingSimilar, setIsSearchingSimilar] = useState(false);
+	const duplicateLeadCount = useMemo(() => {
+		const normalizedPhone = getWhatsappNumber(createPhoneValue);
+		if (!normalizedPhone) {
+			return 0;
+		}
+
+		return scopeLeads.filter(
+			(lead) => getWhatsappNumber(lead.phone) === normalizedPhone,
+		).length;
+	}, [createPhoneValue, scopeLeads]);
+
+	useEffect(() => {
+		if (!createOpen) {
+			setSimilarLeads(null);
+			setIsSearchingSimilar(false);
+			return;
+		}
+
+		const normalized = (createPhoneValue ?? "").replace(/\D/g, "");
+		if (normalized.length < 6) {
+			setSimilarLeads(null);
+			setIsSearchingSimilar(false);
+			return;
+		}
+
+		let cancelled = false;
+		setIsSearchingSimilar(true);
+		const t = setTimeout(async () => {
+			try {
+				const res = await fetchSimilarLeads(token ?? "", normalized);
+				if (cancelled) return;
+				setSimilarLeads(res.leads ?? []);
+			} catch (err) {
+				// ignore errors for duplicate check
+				setSimilarLeads(null);
+			} finally {
+				if (!cancelled) setIsSearchingSimilar(false);
+			}
+		}, 500);
+
+		return () => {
+			cancelled = true;
+			clearTimeout(t);
+		};
+	}, [createPhoneValue, createOpen, token]);
 
 	useEffect(() => {
 		if (!createOpen) {
@@ -686,6 +738,9 @@ export const LeadsPage = () => {
 		  allUsers.find((user) => user.id === admissionMentorId) ??
 		  salesUsers.find((user) => user.id === admissionMentorId) ??
 		  null
+		: null;
+	const admissionLeadMentorName = admissionLeadMentor
+		? formatUserName(admissionLeadMentor.name ?? admissionLeadMentor.username)
 		: null;
 	const defaultCounsellorId =
 		admissionLeadMentor?.counsellorId ?? mentorCounsellorOverrideId;
@@ -1093,13 +1148,47 @@ export const LeadsPage = () => {
 						name="phone"
 						control={createControl}
 						render={({ field, fieldState }) => (
-							<Field
-								label="Phone"
-								value={field.value ?? ""}
-								onChange={field.onChange}
-								placeholder="+919876543210"
-								error={fieldState.error?.message}
-							/>
+							<div className="grid gap-2">
+								<Field
+									label="Phone"
+									value={field.value ?? ""}
+									onChange={field.onChange}
+									placeholder="+919876543210"
+									error={fieldState.error?.message}
+								/>
+								{duplicateLeadCount > 0 ? (
+									<p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+										A lead with this phone already exists. Creating again will add another lead record.
+									</p>
+								) : null}
+
+								{isSearchingSimilar ? (
+									<p className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-700">Searching for similar leads…</p>
+								) : null}
+
+								{similarLeads && similarLeads.length > 0 ? (
+									<div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+										<div className="font-medium">Matching leads found</div>
+										<ul className="mt-2 space-y-2">
+											{similarLeads.map((l) => (
+												<li key={l.id} className="flex items-center justify-between">
+													<span>{l.phone} — {l.name ?? "(no name)"}</span>
+													<button
+														type="button"
+														className="ml-4 rounded px-3 py-1 text-xs bg-white border"
+														onClick={() => {
+														navigate(`/leads/${l.id}`);
+														setCreateOpen(false);
+														}}
+													>
+														Open
+													</button>
+												</li>
+											))}
+										</ul>
+									</div>
+								) : null}
+							</div>
 						)}
 					/>
 					<Controller
@@ -1628,7 +1717,8 @@ export const LeadsPage = () => {
 									</p>
 									<p className="mt-2 text-sm font-medium text-slate-900">
 										{admissionLeadLatestDemo?.mentorId
-											? userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
+											? admissionLeadMentorName ??
+											  userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
 											  "-"
 											: "No demo mentor found"}
 									</p>
