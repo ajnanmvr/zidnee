@@ -739,6 +739,9 @@ export const LeadsPage = () => {
 		  salesUsers.find((user) => user.id === admissionMentorId) ??
 		  null
 		: null;
+	const admissionLeadMentorName = admissionLeadMentor
+		? formatUserName(admissionLeadMentor.name ?? admissionLeadMentor.username)
+		: null;
 	const defaultCounsellorId =
 		admissionLeadMentor?.counsellorId ?? mentorCounsellorOverrideId;
 
@@ -1714,7 +1717,8 @@ export const LeadsPage = () => {
 									</p>
 									<p className="mt-2 text-sm font-medium text-slate-900">
 										{admissionLeadLatestDemo?.mentorId
-											? userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
+											? admissionLeadMentorName ??
+											  userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
 											  "-"
 											: "No demo mentor found"}
 									</p>

@@ -13,9 +13,7 @@ import routes from "./routes/index.js";
 const app: Express = express();
 
 const allowedOrigins = new Set<string>([
-	new URL(env.APP_URL).origin,
-	"http://localhost:5173",
-]);
+	new URL(env.APP_URL).origin,"http://192.168.220.52:5173"]);
 
 const corsOptions: cors.CorsOptions = {
 	origin: (origin, callback) => {

@@ -434,6 +434,30 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
+		...(hasPermission("COUNSELLOR_READ")
+			? [
+				{
+					to: "/users?role=counsellor",
+					label: "Counsellors",
+					description: "Counsellor accounts",
+					icon: <HiUsers className="h-5 w-5" aria-hidden="true" />,
+					accent: "emerald",
+					section: "Management",
+				},
+			]
+			: []),
+		...(hasPermission("ADMIN_READ")
+			? [
+				{
+					to: "/users?role=admin",
+					label: "Admins",
+					description: "Admin users",
+					icon: <HiIdentification className="h-5 w-5" aria-hidden="true" />,
+					accent: "violet",
+					section: "Management",
+				},
+			]
+			: []),
 		...(hasPermission("USER_READ")
 			? [
 				{

@@ -42,6 +42,15 @@ export const ZidService = {
 			throw new Error(`Failed to generate ZID for prefix ${prefix}`);
 		}
 
-		return `${prefix}${sequence.nextNumber}`;
+		// Ensure minimum total length for generated ZID (prefix + number)
+		// e.g. prefix 'ZID' (3) -> want minimum 5 chars total -> number should be at least 2 digits
+		const minTotalLength = 5;
+		let numStr = String(sequence.nextNumber);
+		const padNeeded = Math.max(0, minTotalLength - prefix.length - numStr.length);
+		if (padNeeded > 0) {
+			numStr = numStr.padStart(numStr.length + padNeeded, "0");
+		}
+
+		return `${prefix}${numStr}`;
 	},
 };

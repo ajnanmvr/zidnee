@@ -732,10 +732,12 @@ export const LeadService = {
 		const now = new Date();
 		const previousMentorId = getLatestDemo(existingLead)?.mentorId?.toString();
 		const effectiveMentorId = mentorId ?? previousMentorId;
+		const effectiveNote = note?.trim() || undefined;
 		const demos = [...(existingLead.demos ?? [])];
 		demos.push({
 			mentorId: effectiveMentorId,
 			requestedAt: now,
+			note: effectiveNote,
 		});
 
 		const updatedLead = await LeadModel.findByIdAndUpdate(
@@ -765,7 +767,7 @@ export const LeadService = {
 					requestedAt: now.toISOString(),
 					counsellorId,
 				},
-				note,
+				effectiveNote,
 			);
 		}
 

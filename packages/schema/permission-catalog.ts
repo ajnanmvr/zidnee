@@ -320,6 +320,57 @@ export const PERMISSION_CATALOG = {
 		resource: "mentors",
 		action: "delete",
 	},
+	// Counsellor-specific permissions
+	COUNSELLOR_CREATE: {
+		name: "Create Counsellor",
+		description: "Create a new counsellor account",
+		resource: "counsellors",
+		action: "create",
+	},
+	COUNSELLOR_READ: {
+		name: "Read Counsellors",
+		description: "View counsellor information and lists",
+		resource: "counsellors",
+		action: "read",
+	},
+	COUNSELLOR_UPDATE: {
+		name: "Update Counsellor",
+		description: "Update counsellor profile or assignment details",
+		resource: "counsellors",
+		action: "update",
+	},
+	COUNSELLOR_DELETE: {
+		name: "Delete Counsellor",
+		description: "Remove a counsellor or delete counsellor records",
+		resource: "counsellors",
+		action: "delete",
+	},
+
+	// Admin-specific permissions
+	ADMIN_CREATE: {
+		name: "Create Admin",
+		description: "Create a new admin user",
+		resource: "admins",
+		action: "create",
+	},
+	ADMIN_READ: {
+		name: "Read Admins",
+		description: "View admin user information and lists",
+		resource: "admins",
+		action: "read",
+	},
+	ADMIN_UPDATE: {
+		name: "Update Admin",
+		description: "Update admin user details",
+		resource: "admins",
+		action: "update",
+	},
+	ADMIN_DELETE: {
+		name: "Delete Admin",
+		description: "Delete admin user",
+		resource: "admins",
+		action: "delete",
+	},
 	// Students: additional granular permissions
 	STUDENT_CREATE: {
 		name: "Create Student",
