@@ -9,8 +9,10 @@ import {
 	HiTrash,
 	HiXMark,
 } from "react-icons/hi2";
+import { useEffect, useState } from "react";
 import { useLeadActivitiesQuery } from "@/features/leads/leads.queries";
 import { useSession } from "@/lib/session";
+import { formatActivityChangeList } from "@/lib/activity-display";
 import { formatActivityDateTime, getDateLabel } from "@/lib/utils/date";
 
 interface ActivityFeedProps {
@@ -162,6 +164,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 		);
 	}
 
+	const [expandedId, setExpandedId] = useState<string | null>(null);
+
+	useEffect(() => {
+		const lastFollowUp = [...activities].reverse().find((a) => String(a.type) === "FOLLOW_UP_RECORDED");
+		setExpandedId(lastFollowUp?.id ?? activities[0]?.id ?? null);
+	}, [activities]);
+
 	const getActivityDescription = (activity: LeadActivityResponse): string => {
 		if (
 			activity.type === "DEMO_SCHEDULED" &&
@@ -185,6 +194,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 			<div className="space-y-4">
 				{activities.map((activity) => {
 					const colorClasses = getActivityColor(activity.type);
+					const isExpanded = expandedId === activity.id;
 
 					return (
 						<div key={activity.id} className="relative">
@@ -218,46 +228,67 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 
 										{/* Meta */}
 										<div className="mt-2 flex items-center gap-1 text-xs text-gray-600">
-											<span className="font-medium">
-												{activity.performedByName}
-											</span>
+											<span className="font-medium">{activity.performedByName}</span>
 											<span>·</span>
 											<span title={getDateLabel(activity.createdAt)}>
 												{formatActivityDateTime(activity.createdAt)}
 											</span>
 										</div>
 
-										{/* Old/New values - more compact */}
-										{activity.oldValue && activity.newValue && (
-											<div className="mt-3 text-xs space-y-1">
-												<div className="flex gap-2">
-													<span className="font-semibold text-gray-600 min-w-fit">
-														Before:
-													</span>
-													<span className="text-gray-700 font-mono bg-white/40 rounded px-2 py-1">
-														{JSON.stringify(activity.oldValue)}
-													</span>
-												</div>
-												<div className="flex gap-2">
-													<span className="font-semibold text-gray-600 min-w-fit">
-														After:
-													</span>
-													<span className="text-gray-700 font-mono bg-white/40 rounded px-2 py-1">
-														{JSON.stringify(activity.newValue)}
-													</span>
-												</div>
-											</div>
-										)}
+										{isExpanded ? (
+											<>
+												{/* Old/New values - more compact */}
+												{activity.oldValue && activity.newValue && (
+													<div className="mt-3 space-y-2 text-xs">
+														<p className="font-semibold text-gray-600">Changes</p>
+														<div className="space-y-2">
+															{formatActivityChangeList(activity.oldValue, activity.newValue).map(
+																(change) => (
+																	<div
+																		key={change.label}
+																		className="rounded-lg border border-white/50 bg-white/50 px-3 py-2"
+																	>
+																		<div className="font-semibold text-gray-700">{change.label}</div>
+																		<div className="mt-1 text-gray-700">
+																			<span className="font-medium text-gray-600">Before:</span> {change.before}
+																		</div>
+																		<div className="text-gray-700">
+																			<span className="font-medium text-gray-600">After:</span> {change.after}
+																		</div>
+																	</div>
+																),
+															)}
+														</div>
+													</div>
+												)}
 
-										{/* Note */}
-										{activity.note && (
-											<div className="mt-3 bg-white/60 rounded-lg px-3 py-2 border border-current border-opacity-10">
-												<p className="text-xs font-semibold text-gray-700 mb-1">
-													Note
-												</p>
-												<p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-													{activity.note}
-												</p>
+												{/* Note */}
+												{activity.note && (
+													<div className="mt-3 bg-white/60 rounded-lg px-3 py-2 border border-current border-opacity-10">
+														<p className="text-xs font-semibold text-gray-700 mb-1">Note</p>
+														<p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{activity.note}</p>
+													</div>
+												)}
+											</>
+										) : (
+											<div className="mt-3 flex items-center justify-between">
+												<div className="text-sm text-gray-700">
+													{activity.oldValue && activity.newValue ? (
+														<span className="text-xs text-gray-500">{Object.keys(activity.newValue).length} changes</span>
+													) : (
+														<span className="text-xs text-gray-500">Details hidden</span>
+													)}
+												</div>
+
+												<div>
+													<button
+														aria-expanded={isExpanded}
+														onClick={() => setExpandedId(isExpanded ? null : activity.id)}
+														className="text-xs font-medium text-blue-600 hover:underline"
+													>
+														Show details
+													</button>
+												</div>
 											</div>
 										)}
 									</div>

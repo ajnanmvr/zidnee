@@ -721,6 +721,9 @@ export const StudentService = {
 		const nextFollowUpAt = getDefaultStudentFollowUpAt(
 			nextFollowUpAtOverride,
 		);
+		if (nextFollowUpAtOverride && nextFollowUpAt.getTime() < Date.now()) {
+			throw new AppError(400, "Next follow-up date cannot be in the past");
+		}
 		const updatedStudent = await StudentModel.findByIdAndUpdate(
 			student._id,
 			{

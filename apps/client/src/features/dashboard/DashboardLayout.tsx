@@ -169,6 +169,8 @@ export const DashboardLayout = () => {
 	const currentUserId = me?.id;
 
 	const allStudents = studentsQuery.data?.students ?? [];
+	const isInProcess = (student: (typeof allStudents)[number]) =>
+		Boolean(student.processId || student.processLabel);
 	const allReminders = remindersQuery.data ?? [];
 	const myLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(myLeads, currentUserId);
@@ -321,7 +323,7 @@ export const DashboardLayout = () => {
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 					count:
 						studentsQuery.data?.students.filter(
-							(student) => student.courseType === "GROUP",
+							(student) => student.courseType === "GROUP" && !isInProcess(student),
 						).length ?? 0,
 					accent: "cyan",
 					section: "Learners",
@@ -333,7 +335,7 @@ export const DashboardLayout = () => {
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 					count:
 						studentsQuery.data?.students.filter(
-							(student) => student.courseType === "INDIVIDUAL",
+							(student) => student.courseType === "INDIVIDUAL" && !isInProcess(student),
 						).length ?? 0,
 					accent: "cyan",
 					section: "Learners",

@@ -299,7 +299,7 @@ export const StudentProcessDetailPage = () => {
                         >
                             {modalPhone ? "Send to WhatsApp" : modalTaskCompleted ? "Mark as not done" : "Mark as done"}
                         </button>
-                        {modalMessage ? (
+                        {modalTaskKey === "send-welcome-message" && modalMessage ? (
                             <button
                                 type="button"
                                 onClick={async () => {

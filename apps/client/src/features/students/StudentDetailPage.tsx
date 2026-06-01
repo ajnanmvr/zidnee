@@ -76,6 +76,11 @@ const parseDateInputValue = (value: string) => {
 	return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const getDateTimeLocalInputValue = (value: Date = new Date()) => {
+	const offsetMs = value.getTimezoneOffset() * 60_000;
+	return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
 const dropReasonOptions = [
 	{ value: "Student requested break permanently", label: "Student requested break permanently" },
 	{ value: "Not enough time for classes", label: "Not enough time for classes" },
@@ -227,6 +232,10 @@ export const StudentDetailPage = () => {
 			const parsedDate = new Date(followUpNextDate);
 			if (Number.isNaN(parsedDate.getTime())) {
 				setFollowUpError("Please provide a valid next follow-up date.");
+				return;
+			}
+			if (parsedDate.getTime() < Date.now()) {
+				setFollowUpError("Past dates are not allowed for follow-up.");
 				return;
 			}
 			nextFollowUpAt = parsedDate;
@@ -1265,6 +1274,7 @@ export const StudentDetailPage = () => {
 						<label className="text-sm font-medium text-gray-700">Next follow-up date (optional)</label>
 						<input
 							type="datetime-local"
+							min={getDateTimeLocalInputValue()}
 							value={followUpNextDate}
 							onChange={(event) => {
 								setFollowUpNextDate(event.target.value);
