@@ -11,6 +11,15 @@ type FollowUpState = {
 	priority: number;
 };
 
+const toValidDate = (value?: Date | string | null): Date | null => {
+	if (!value) {
+		return null;
+	}
+
+	const date = value instanceof Date ? value : new Date(value);
+	return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const isSameDay = (left: Date, right: Date) => {
 	return (
 		left.getFullYear() === right.getFullYear() &&
@@ -20,10 +29,10 @@ const isSameDay = (left: Date, right: Date) => {
 };
 
 export const getStudentFollowUpState = (
-	customNextFollowUpAt?: Date,
-	nextFollowUpAt?: Date,
+	customNextFollowUpAt?: Date | string | null,
+	nextFollowUpAt?: Date | string | null,
 ): FollowUpState => {
-	const followUpDate = customNextFollowUpAt ?? nextFollowUpAt;
+	const followUpDate = toValidDate(customNextFollowUpAt) ?? toValidDate(nextFollowUpAt);
 	if (!followUpDate) {
 		return {
 			label: "No Follow-up",

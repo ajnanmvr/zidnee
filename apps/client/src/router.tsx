@@ -29,7 +29,6 @@ const LeadsPage = lazy(() =>
 		default: module.LeadsPage,
 	})),
 );
-const ClosedLeadsPage = lazy(() => import("@/features/dashboard/ClosedLeadsPage").then((m) => ({ default: m.ClosedLeadsPage })));
 const ConvertedLeadsPage = lazy(() => import("@/features/dashboard/ConvertedLeadsPage").then((m) => ({ default: m.ConvertedLeadsPage })));
 const StudentsPage = lazy(() =>
 	import("@/features/dashboard/StudentsPage").then((module) => ({
@@ -269,10 +268,6 @@ export const router = createBrowserRouter([
 					{
 						path: "leads",
 						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadsPage />),
-					},
-					{
-						path: "leads/closed",
-						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <ClosedLeadsPage />),
 					},
 					{
 						path: "leads/converted",

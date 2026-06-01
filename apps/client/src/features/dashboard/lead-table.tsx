@@ -118,14 +118,6 @@ export const buildLeadColumns = (options?: {
 		id: "urgency",
 		header: "Status",
 		cell: (info) => {
-			if (options?.activeStage === "closed") {
-				return (
-					<span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-						Closed
-					</span>
-				);
-			}
-
 			return <UrgencyIndicator lead={info.row.original} />;
 		},
 		enableSorting: false,

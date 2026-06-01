@@ -127,8 +127,11 @@ const getActivityTypeLabel = (type: string): string => {
 
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 	const { token } = useSession();
+	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	const activitiesQuery = useLeadActivitiesQuery(token, leadId);
+	const activities: LeadActivityResponse[] =
+		activitiesQuery.data?.activities ?? [];
 
 	if (activitiesQuery.isLoading) {
 		return <div className="text-sm text-gray-600">Loading activities...</div>;
@@ -151,9 +154,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 		);
 	}
 
-	const activities: LeadActivityResponse[] =
-		activitiesQuery.data?.activities ?? [];
-
 	if (activities.length === 0) {
 		return (
 			<div className="text-center py-12">
@@ -163,13 +163,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ leadId }) => {
 			</div>
 		);
 	}
-
-	const [expandedId, setExpandedId] = useState<string | null>(null);
-
-	useEffect(() => {
-		const lastFollowUp = [...activities].reverse().find((a) => String(a.type) === "FOLLOW_UP_RECORDED");
-		setExpandedId(lastFollowUp?.id ?? activities[0]?.id ?? null);
-	}, [activities]);
 
 	const getActivityDescription = (activity: LeadActivityResponse): string => {
 		if (

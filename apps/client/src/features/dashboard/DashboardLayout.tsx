@@ -36,6 +36,7 @@ import {
 import { useGetAllReminders } from "@/features/reminders/reminders.mutations";
 import { getReminderDueStatus } from "@/features/reminders/reminders.utils";
 import { useStudentsQuery } from "@/features/students/students.queries";
+import { getStudentFollowUpState } from "@/features/students/student-table";
 import { useSession } from "@/lib/session";
 
 const titles: Record<string, string> = {
@@ -171,6 +172,22 @@ export const DashboardLayout = () => {
 	const allStudents = studentsQuery.data?.students ?? [];
 	const isInProcess = (student: (typeof allStudents)[number]) =>
 		Boolean(student.processId || student.processLabel);
+	const getUrgentStudentCount = (courseType: "GROUP" | "INDIVIDUAL") =>
+		allStudents.filter((student) => {
+			if (student.courseType !== courseType) {
+				return false;
+			}
+
+			if (isInProcess(student)) {
+				return false;
+			}
+
+			const followUpState = getStudentFollowUpState(
+				student.customNextFollowUpAt,
+				student.nextFollowUpAt,
+			);
+			return followUpState.label === "Today" || followUpState.label === "Past Due";
+		}).length;
 	const allReminders = remindersQuery.data ?? [];
 	const myLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(myLeads, currentUserId);
@@ -288,6 +305,31 @@ export const DashboardLayout = () => {
 				...getLeadStageItems(),
 			]
 			: []),
+		// Lead overview and reports
+		...(hasPermission("LEADS_OVERVIEW_READ") || hasPermission("LEAD_READ_ALL")
+			? [
+				{
+					to: "/leads/overview",
+					label: "Lead Overview",
+					description: "Reports and charts",
+					icon: <HiPresentationChartLine className="h-5 w-5" aria-hidden="true" />,
+					accent: "teal",
+					section: "Reports",
+				},
+			]
+			: []),
+		...(hasPermission("LEADS_CONVERTED_READ") || hasPermission("LEAD_READ_ALL")
+			? [
+				{
+					to: "/leads/converted",
+					label: "Converted Leads",
+					description: "Leads converted to students",
+					icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+					accent: "emerald",
+					section: "Lead Pipeline",
+				},
+			]
+			: []),
 		...(hasPermission("DEMO_UNASSIGNED_READ_MY") || hasPermission("DEMO_UNASSIGNED_READ_ALL")
 			? [
 				{
@@ -321,10 +363,7 @@ export const DashboardLayout = () => {
 					label: "Group Students",
 					description: "Enrolled in groups",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count:
-						studentsQuery.data?.students.filter(
-							(student) => student.courseType === "GROUP" && !isInProcess(student),
-						).length ?? 0,
+					count: getUrgentStudentCount("GROUP"),
 					accent: "cyan",
 					section: "Learners",
 				},
@@ -333,10 +372,7 @@ export const DashboardLayout = () => {
 					label: "Individual Students",
 					description: "One-to-one learners",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count:
-						studentsQuery.data?.students.filter(
-							(student) => student.courseType === "INDIVIDUAL" && !isInProcess(student),
-						).length ?? 0,
+					count: getUrgentStudentCount("INDIVIDUAL"),
 					accent: "cyan",
 					section: "Learners",
 				},

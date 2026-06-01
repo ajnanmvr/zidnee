@@ -21,6 +21,7 @@ export const fetchDueLeadFollowUps = async (
 		timeFilter?: "all" | "today";
 		status?: string;
 		page?: number;
+		limit?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
 	},
@@ -29,9 +30,9 @@ export const fetchDueLeadFollowUps = async (
 	const timeFilter = options?.timeFilter ?? "all";
 	const status = options?.status ?? "";
 	const page = options?.page ?? 1;
+	const limit = options?.limit ?? 25;
 	const sortBy = options?.sortBy ?? "nextFollowUpAt";
 	const sortOrder = options?.sortOrder ?? "desc";
-	const limit = 25;
 	const offset = (page - 1) * limit;
 
 	let query = `?scope=${scope}&timeFilter=${timeFilter}&limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortOrder=${sortOrder}`;

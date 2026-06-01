@@ -70,6 +70,7 @@ export const useDueLeadFollowUpsQuery = (
 		timeFilter?: "all" | "today";
 		status?: string;
 		page?: number;
+		limit?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
 		enabled?: boolean;
@@ -82,6 +83,7 @@ export const useDueLeadFollowUpsQuery = (
 	const timeFilter = options?.timeFilter ?? "all";
 	const status = options?.status;
 	const page = options?.page ?? 1;
+	const limit = options?.limit ?? 25;
 	const sortBy = options?.sortBy ?? "nextFollowUpAt";
 	const sortOrder = options?.sortOrder ?? "desc";
 	const enabled = options?.enabled ?? true;
@@ -93,6 +95,7 @@ export const useDueLeadFollowUpsQuery = (
 			timeFilter,
 			status,
 			page,
+			limit,
 			sortBy,
 			sortOrder,
 		),
@@ -102,6 +105,7 @@ export const useDueLeadFollowUpsQuery = (
 				timeFilter,
 				status,
 				page,
+				limit,
 				sortBy,
 				sortOrder,
 			}),
