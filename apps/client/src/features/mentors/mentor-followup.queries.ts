@@ -5,6 +5,7 @@ import {
 	MentorFollowUpsResponseSchema,
 } from "@repo/schema";
 import { useSession } from "@/lib/session";
+import { usersQueryKeys } from "@/features/users/users.queries";
 
 export const mentorQueryKeys = {
 	all: ["mentors"] as const,
@@ -65,9 +66,8 @@ export const useRecordMentorFollowUpMutation = () => {
 			);
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: mentorQueryKeys.all,
-			});
+			queryClient.invalidateQueries({ queryKey: mentorQueryKeys.all });
+			queryClient.invalidateQueries({ queryKey: usersQueryKeys.users(token) });
 		},
 	});
 };
@@ -91,9 +91,8 @@ export const useSetMentorCustomFollowUpMutation = () => {
 			);
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: mentorQueryKeys.all,
-			});
+			queryClient.invalidateQueries({ queryKey: mentorQueryKeys.all });
+			queryClient.invalidateQueries({ queryKey: usersQueryKeys.users(token) });
 		},
 	});
 };
@@ -114,9 +113,8 @@ export const useClearMentorCustomFollowUpMutation = () => {
 			);
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: mentorQueryKeys.all,
-			});
+			queryClient.invalidateQueries({ queryKey: mentorQueryKeys.all });
+			queryClient.invalidateQueries({ queryKey: usersQueryKeys.users(token) });
 		},
 	});
 };

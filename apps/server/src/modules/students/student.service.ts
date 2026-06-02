@@ -535,6 +535,8 @@ export const StudentService = {
 				level: p.student?.level,
 				mentorId: p.student?.mentorId,
 				batchId: p.student?.batchId,
+				profilePic: p.student?.profilePic ?? null,
+				classStartConfirmedAt: p.student?.classStartConfirmedAt ?? null,
 			},
 		};
 	},
