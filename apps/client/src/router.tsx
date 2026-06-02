@@ -159,6 +159,7 @@ const ClosedRemindersPage = lazy(() =>
 		default: module.ClosedRemindersPage,
 	})),
 );
+const ClosedLeadsPage = lazy(() => import("@/features/leads/ClosedLeadsPage").then((m) => ({ default: m.ClosedLeadsPage })));
 const SubstitutionsPage = lazy(() =>
 	import("@/features/mentors/SubstitutionsPage").then((module) => ({
 		default: module.SubstitutionsPage,
@@ -264,6 +265,10 @@ export const router = createBrowserRouter([
 					{
 						path: "leads/overview",
 						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadOverviewPage />),
+					},
+					{
+						path: "leads/closed",
+						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <ClosedLeadsPage />),
 					},
 					{
 						path: "leads",

@@ -1,22 +1,4 @@
-﻿import { useEffect, useState } from "react";
-import { isPast, isToday } from "date-fns";
-import {
-	HiAcademicCap,
-	HiArchiveBox,
-	HiBookmarkSquare,
-	HiCalendarDays,
-	HiCheckCircle,
-	HiClipboardDocumentList,
-	HiIdentification,
-	HiPhone,
-	HiPresentationChartLine,
-	HiSquares2X2,
-	HiLockClosed,
-	HiUsers,
-	HiOutlineBellAlert,
-} from "react-icons/hi2";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ApiError } from "@/api/request";
+﻿import { ApiError } from "@/api/request";
 import {
 	DashboardHeader,
 	type NavigationItem,
@@ -25,8 +7,8 @@ import {
 import { useMeQuery } from "@/features/auth/auth.queries";
 import {
 	getLeadStageCounts,
-	type LeadStageId,
 	leadStageDefinitions,
+	type LeadStageId,
 } from "@/features/leads/lead-stage-filters";
 import {
 	useDemoRequestsQuery,
@@ -35,9 +17,27 @@ import {
 } from "@/features/leads/leads.queries";
 import { useGetAllReminders } from "@/features/reminders/reminders.mutations";
 import { getReminderDueStatus } from "@/features/reminders/reminders.utils";
-import { useStudentsQuery } from "@/features/students/students.queries";
 import { getStudentFollowUpState } from "@/features/students/student-table";
+import { useStudentsQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
+import { isPast, isToday } from "date-fns";
+import { useEffect, useState } from "react";
+import {
+	HiAcademicCap,
+	HiArchiveBox,
+	HiBookmarkSquare,
+	HiCalendarDays,
+	HiCheckCircle,
+	HiClipboardDocumentList,
+	HiIdentification,
+	HiLockClosed,
+	HiOutlineBellAlert,
+	HiPhone,
+	HiPresentationChartLine,
+	HiSquares2X2,
+	HiUsers,
+} from "react-icons/hi2";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const titles: Record<string, string> = {
 	"/": "Overview",
@@ -242,9 +242,8 @@ export const DashboardLayout = () => {
 		converted: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
 		closed: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
 	} as const;
-	const leadStageAccents: Record<
-		LeadStageId,
-		NonNullable<NavigationItem["accent"]>
+	const leadStageAccents: Partial<
+		Record<LeadStageId, NonNullable<NavigationItem["accent"]>>
 	> = {
 		all: "teal",
 		followUp: "lime",
@@ -253,7 +252,6 @@ export const DashboardLayout = () => {
 		demoRequest: "orange",
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
-		closed: "teal",
 	};
 
 	const hasPermission = (key: string): boolean =>
@@ -271,12 +269,7 @@ export const DashboardLayout = () => {
 					icon: leadStageIcons[id] || (
 						<HiPhone className="h-5 w-5" aria-hidden="true" />
 					),
-					count:
-						id === "closed"
-							? undefined
-							: id === "followUp"
-							? followUpUrgentCount
-							: leadStageCounts[id] ?? 0,
+					count: id === "followUp" ? followUpUrgentCount : leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
 				};
@@ -302,7 +295,16 @@ export const DashboardLayout = () => {
 					accent: "teal",
 					section: "Lead Pipeline",
 				},
+
 				...getLeadStageItems(),
+				{
+					to: "/leads/closed",
+					label: "Closed Leads",
+					description: "Leads closed/deleted",
+					icon: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
+					accent: "teal",
+					section: "Lead Pipeline",
+				},
 			]
 			: []),
 		// Lead overview and reports

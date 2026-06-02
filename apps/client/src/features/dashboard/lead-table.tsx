@@ -231,6 +231,16 @@ export const buildLeadColumns = (options?: {
 		enableSorting: true,
 	},
 	{
+		accessorKey: "closeReason",
+		header: "Close Reason",
+		cell: (info) => {
+			const val = info.getValue() as string | undefined | null;
+			if (!val || String(val).trim() === "") return <span className="text-sm text-slate-500">-</span>;
+			return <div className="text-sm text-gray-700 max-w-xs truncate">{String(val)}</div>;
+		},
+		enableSorting: false,
+	},
+	{
 		id: "viewAction",
 		header: "",
 		cell: (info) => {

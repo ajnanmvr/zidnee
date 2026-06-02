@@ -7,7 +7,9 @@ export type LeadStageId =
 	| "formFilled"
 	| "demoRequest"
 	| "demoAssigned"
-	| "demoCompleted";
+	| "demoCompleted"
+	| "closed";
+
 
 export type LeadStageDefinition = {
 	id: LeadStageId;
@@ -82,7 +84,8 @@ export const getLeadStageCounts = (
 			formFilled: 0,
 			demoRequest: 0,
 			demoAssigned: 0,
-			demoCompleted: 0,
+				demoCompleted: 0,
+				closed: 0,
 		},
 	);
 };
