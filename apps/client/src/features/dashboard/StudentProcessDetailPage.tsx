@@ -2,6 +2,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useCompleteProcessMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { HiArrowLeft, HiClipboardDocument } from "react-icons/hi2";
 import { Panel } from "@/components/dashboard-ui";
 import { useStudentProcessQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
@@ -38,6 +39,7 @@ export const StudentProcessDetailPage = () => {
     const [modalTaskKey, setModalTaskKey] = useState<string | null>(null);
     const [modalTaskLabel, setModalTaskLabel] = useState<string | null>(null);
     const [modalTaskCompleted, setModalTaskCompleted] = useState(false);
+    const [isCopyingMessage, setIsCopyingMessage] = useState(false);
     const setTaskMutation = useSetTaskCompletedMutation();
     const completeProcessMutation = useCompleteProcessMutation();
 
@@ -126,6 +128,22 @@ export const StudentProcessDetailPage = () => {
 
     return (
         <div className="grid gap-6">
+            <div className="flex items-center justify-between gap-3">
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                >
+                    <HiArrowLeft className="h-4 w-4" />
+                    Back
+                </button>
+                <Link
+                    to={`/students/${process.student.id}`}
+                    className="text-sm font-semibold text-emerald-600 hover:underline"
+                >
+                    Open student profile
+                </Link>
+            </div>
             <Panel
                 title={process.label}
                 description={`Process for ${process.student.zid} — ${process.student.name ?? "Unnamed"}`}
@@ -134,6 +152,7 @@ export const StudentProcessDetailPage = () => {
                     <div className="mb-4 flex items-center justify-between gap-4">
                         <div>
                             <p className="text-sm">Student: <Link to={`/students/${process.student.id}`} className="text-emerald-600 font-semibold">{process.student.zid} · {process.student.name ?? process.student.phone}</Link></p>
+                            <p className="text-sm text-slate-600">Phone: {process.student.phone}</p>
                             <p className="text-sm">Status: <span className="font-semibold">{process.status}</span></p>
                             <p className="text-sm text-gray-600">Completed: {new Date(process.archivedAt as any).toLocaleString()}</p>
                         </div>
@@ -142,6 +161,7 @@ export const StudentProcessDetailPage = () => {
                 ) : (
                     <div className="mb-4">
                         <p className="text-sm">Student: <Link to={`/students/${process.student.id}`} className="text-emerald-600 font-semibold">{process.student.zid} · {process.student.name ?? process.student.phone}</Link></p>
+                        <p className="text-sm text-slate-600">Phone: {process.student.phone}</p>
                         <p className="text-sm">Status: <span className="font-semibold">{process.status}</span></p>
                     </div>
                 )}
@@ -279,6 +299,27 @@ export const StudentProcessDetailPage = () => {
                         >
                             {modalPhone ? "Send to WhatsApp" : modalTaskCompleted ? "Mark as not done" : "Mark as done"}
                         </button>
+                        {modalTaskKey === "send-welcome-message" && modalMessage ? (
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        setIsCopyingMessage(true);
+                                        await navigator.clipboard.writeText(modalMessage);
+                                        toast.success("Message copied");
+                                    } catch {
+                                        toast.error("Unable to copy message");
+                                    } finally {
+                                        setIsCopyingMessage(false);
+                                    }
+                                }}
+                                disabled={isCopyingMessage}
+                                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <HiClipboardDocument className="h-4 w-4" />
+                                {isCopyingMessage ? "Copying..." : "Copy message"}
+                            </button>
+                        ) : null}
                     </div>
                 </div>
             ) : null}

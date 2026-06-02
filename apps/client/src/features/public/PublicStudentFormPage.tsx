@@ -1,6 +1,9 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import type { Area } from "react-easy-crop";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
+import { MobileImageCropModal } from "@/components/MobileImageCropModal";
+import { cropImageToBlob } from "@/lib/image-crop";
 
 type StudentProfileStatus = {
   id: string;
@@ -32,17 +35,10 @@ export function PublicStudentFormPage() {
   const [croppedImagePreview, setCroppedImagePreview] = useState<string | null>(null);
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imageDimensions, setImageDimensions] = useState<{
-    width: number;
-    height: number;
-    displayWidth: number;
-    displayHeight: number;
-  } | null>(null);
-  const [squareSize, setSquareSize] = useState(200);
-  const [squareX, setSquareX] = useState(0);
-  const [squareY, setSquareY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [, setIsResizing] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,49 +72,6 @@ export function PublicStudentFormPage() {
 
     void fetchStudentStatus();
   }, [studentId]);
-
-  const autoCropToSquare = (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          if (!imageDimensions) {
-            reject(new Error("Image dimensions not available"));
-            return;
-          }
-
-          const scaleX = imageDimensions.width / imageDimensions.displayWidth;
-          const scaleY = imageDimensions.height / imageDimensions.displayHeight;
-
-          const actualX = squareX * scaleX;
-          const actualY = squareY * scaleY;
-          const actualSize = squareSize * Math.min(scaleX, scaleY);
-
-          const canvas = document.createElement("canvas");
-          canvas.width = 400;
-          canvas.height = 400;
-
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            reject(new Error("Failed to get canvas context"));
-            return;
-          }
-
-          ctx.drawImage(img, actualX, actualY, actualSize, actualSize, 0, 0, 400, 400);
-
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("Failed to create blob"));
-          }, "image/jpeg", 0.8);
-        };
-        img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-  };
 
   const submitForm = async () => {
     if (!studentId) return;
@@ -186,38 +139,16 @@ export function PublicStudentFormPage() {
   };
 
   const openCropForFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxDim = 500;
-        let displayWidth = img.width;
-        let displayHeight = img.height;
+    if (selectedImageUrl) {
+      URL.revokeObjectURL(selectedImageUrl);
+    }
 
-        if (img.width > maxDim || img.height > maxDim) {
-          const ratio = Math.max(img.width, img.height) / maxDim;
-          displayWidth = img.width / ratio;
-          displayHeight = img.height / ratio;
-        }
-
-        const initialSize = Math.min(displayWidth, displayHeight) * 0.6;
-
-        setImageDimensions({
-          width: img.width,
-          height: img.height,
-          displayWidth,
-          displayHeight,
-        });
-        setSquareSize(initialSize);
-        setSquareX((displayWidth - initialSize) / 2);
-        setSquareY((displayHeight - initialSize) / 2);
-        setIsResizing(false);
-        setSelectedImageFile(file);
-        setCropModalOpen(true);
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+    setSelectedImageFile(file);
+    setSelectedImageUrl(URL.createObjectURL(file));
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setCropModalOpen(true);
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -234,19 +165,20 @@ export function PublicStudentFormPage() {
   const closeCropModal = () => {
     setCropModalOpen(false);
     setSelectedImageFile(null);
-    setImageDimensions(null);
-    setSquareSize(200);
-    setSquareX(0);
-    setSquareY(0);
-    setIsDragging(false);
-    setIsResizing(false);
+    if (selectedImageUrl) {
+      URL.revokeObjectURL(selectedImageUrl);
+      setSelectedImageUrl(null);
+    }
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
   };
 
   const confirmCrop = async () => {
-    if (!selectedImageFile || !studentId) return;
+    if (!selectedImageUrl || !selectedImageFile || !studentId || !croppedAreaPixels) return;
 
     try {
-      const croppedBlob = await autoCropToSquare(selectedImageFile);
+      const croppedBlob = await cropImageToBlob(selectedImageUrl, croppedAreaPixels);
       setCroppedImageBlob(croppedBlob);
       setCroppedImagePreview(URL.createObjectURL(croppedBlob));
       closeCropModal();
@@ -722,164 +654,22 @@ export function PublicStudentFormPage() {
       </div>
 
       {/* Crop Modal */}
-      {cropModalOpen && selectedImageFile && imageDimensions ? (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <button
-            onClick={closeCropModal}
-            className="absolute top-4 right-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-          >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          <div className="flex flex-col items-center justify-center flex-1 mb-6">
-            <p className="mb-4 text-sm font-medium text-white">Adjust your profile picture</p>
-            <div className="relative bg-black flex items-center justify-center rounded-3xl overflow-hidden" style={{ maxWidth: "500px", maxHeight: "500px" }}>
-              <img
-                src={URL.createObjectURL(selectedImageFile)}
-                alt="Crop preview"
-                className="max-w-full max-h-full object-contain"
-                draggable={false}
-                style={{
-                  width: imageDimensions.displayWidth,
-                  height: imageDimensions.displayHeight,
-                }}
-              />
-
-              <svg
-                className="absolute top-0 left-0 pointer-events-none"
-                style={{
-                  width: imageDimensions.displayWidth,
-                  height: imageDimensions.displayHeight,
-                }}
-                viewBox={`0 0 ${imageDimensions.displayWidth} ${imageDimensions.displayHeight}`}
-              >
-                <defs>
-                  <mask id="cropMaskPublicStudent">
-                    <rect width={imageDimensions.displayWidth} height={imageDimensions.displayHeight} fill="white" />
-                    <rect x={squareX} y={squareY} width={squareSize} height={squareSize} fill="black" />
-                  </mask>
-                </defs>
-                <rect
-                  width={imageDimensions.displayWidth}
-                  height={imageDimensions.displayHeight}
-                  fill="rgba(0, 0, 0, 0.7)"
-                  mask="url(#cropMaskPublicStudent)"
-                />
-                <rect
-                  x={squareX}
-                  y={squareY}
-                  width={squareSize}
-                  height={squareSize}
-                  fill="none"
-                  stroke="#206f59"
-                  strokeWidth="2"
-                />
-              </svg>
-
-              <div
-                className="absolute cursor-move"
-                style={{
-                  width: squareSize,
-                  height: squareSize,
-                  left: squareX,
-                  top: squareY,
-                  userSelect: "none",
-                  touchAction: "none",
-                }}
-                onPointerDown={(e) => {
-                  if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                  setIsDragging(true);
-                }}
-                onPointerMove={(e) => {
-                  if (!isDragging) return;
-                  const container = e.currentTarget.parentElement as HTMLElement;
-                  const rect = container.getBoundingClientRect();
-                  const newX = Math.max(
-                    0,
-                    Math.min(e.clientX - rect.left - squareSize / 2, imageDimensions.displayWidth - squareSize),
-                  );
-                  const newY = Math.max(
-                    0,
-                    Math.min(e.clientY - rect.top - squareSize / 2, imageDimensions.displayHeight - squareSize),
-                  );
-                  setSquareX(newX);
-                  setSquareY(newY);
-                }}
-                onPointerUp={() => setIsDragging(false)}
-                onPointerCancel={() => setIsDragging(false)}
-              >
-                <div
-                  className="resize-handle absolute w-4 h-4 bg-brand bottom-0 right-0 cursor-se-resize transform translate-x-1/2 translate-y-1/2 rounded-full"
-                  style={{ touchAction: "none" }}
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                    const startX = e.clientX;
-                    const startY = e.clientY;
-                    const startSize = squareSize;
-
-                    setIsResizing(true);
-
-                    const handlePointerMove = (moveEvent: PointerEvent) => {
-                      const delta = Math.max(moveEvent.clientX - startX, moveEvent.clientY - startY);
-                      const newSize = Math.max(
-                        50,
-                        Math.min(startSize + delta, Math.min(imageDimensions.displayWidth - squareX, imageDimensions.displayHeight - squareY)),
-                      );
-                      setSquareSize(newSize);
-                    };
-
-                    const handlePointerUp = () => {
-                      setIsResizing(false);
-                      document.removeEventListener("pointermove", handlePointerMove);
-                      document.removeEventListener("pointerup", handlePointerUp);
-                      document.removeEventListener("pointercancel", handlePointerUp);
-                    };
-
-                    document.addEventListener("pointermove", handlePointerMove);
-                    document.addEventListener("pointerup", handlePointerUp);
-                    document.addEventListener("pointercancel", handlePointerUp);
-                  }}
-                />
-              </div>
-            </div>
-            <p className="mt-4 text-xs text-slate-400">Drag to reposition • Corner to resize</p>
-          </div>
-
-          <div className="flex w-full max-w-sm gap-3">
-            <button
-              type="button"
-              onClick={closeCropModal}
-              className="flex-1 rounded-2xl border border-white/30 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void confirmCrop()}
-              disabled={submitting}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/30 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Crop & Save
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+      {cropModalOpen && selectedImageUrl ? (
+        <MobileImageCropModal
+          open={cropModalOpen}
+          imageSrc={selectedImageUrl}
+          title="Adjust your profile picture"
+          description="Pinch to zoom and drag the image so your face fits inside the square."
+          crop={crop}
+          zoom={zoom}
+          confirmLabel={submitting ? "Processing..." : "Crop & Save"}
+          confirmDisabled={submitting || !croppedAreaPixels}
+          onClose={closeCropModal}
+          onConfirm={() => void confirmCrop()}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
+        />
       ) : null}
     </>
   );

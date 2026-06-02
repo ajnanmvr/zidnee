@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HiMagnifyingGlass } from "react-icons/hi2";
+import { HiArrowLeft, HiMagnifyingGlass } from "react-icons/hi2";
 import { Panel } from "@/components/dashboard-ui";
 import {
 	useStudentProcessesQuery,
@@ -78,25 +78,19 @@ export const StudentProcessesPage = () => {
 		});
 	}, [allProcesses, searchTerm]);
 
-	const totalTasks = useMemo(
-		() => filteredProcesses.reduce((sum, process) => sum + process.tasks.length, 0),
-		[filteredProcesses],
-	);
-	const completedTasks = useMemo(
-		() =>
-			filteredProcesses.reduce(
-				(sum, process) =>
-					sum + process.tasks.filter((task) => task.completed).length,
-				0,
-			),
-		[filteredProcesses],
-	);
-
 	return (
 		<div className="grid gap-6">
 			<section className="rounded-4xl border border-slate-200 bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-sm">
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<div className="max-w-2xl">
+						<button
+							type="button"
+							onClick={() => navigate(-1)}
+							className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+						>
+							<HiArrowLeft className="h-4 w-4" />
+							Back
+						</button>
 						<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
 							Student processes
 						</p>
@@ -108,21 +102,13 @@ export const StudentProcessesPage = () => {
 							student profile when needed.
 						</p>
 					</div>
-					<div className="grid grid-cols-2 gap-3 text-sm sm:min-w-72">
+					<div className="grid grid-cols-1 gap-3 text-sm sm:min-w-72">
 						<div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
 							<p className="text-xs uppercase tracking-[0.18em] text-slate-400">
 								Processes
 							</p>
 							<p className="mt-2 text-2xl font-semibold text-white">
 								{filteredProcesses.length}
-							</p>
-						</div>
-						<div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
-							<p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-								Tasks done
-							</p>
-							<p className="mt-2 text-2xl font-semibold text-white">
-								{completedTasks}/{totalTasks}
 							</p>
 						</div>
 					</div>
@@ -206,16 +192,31 @@ export const StudentProcessesPage = () => {
 									return (
 										<tr key={process.id} className="border-t">
 											<td className="px-4 py-3">
-												<Link to={`/students/${process.student.id}`} className="text-slate-800 font-semibold">
-													{process.student.zid}
-												</Link>
-												<div className="text-sm text-slate-500">{process.student.name ?? process.student.phone}</div>
+													<div className="flex items-start justify-between gap-3">
+														<div>
+															<Link to={`/processes/${process.id}`} className="text-slate-800 font-semibold hover:underline">
+																{process.label}
+															</Link>
+															<div className="text-sm text-slate-500">Created {timeAgo(process.createdAt as any)}</div>
+														</div>
+														<Link to={`/processes/${process.id}`} className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100">
+															View
+														</Link>
+													</div>
 											</td>
 											<td className="px-4 py-3">
-												<Link to={`/processes/${process.id}`} className="text-emerald-600 font-semibold">{process.label}</Link>
-												<div className="text-sm text-slate-500">{process.label}</div>
+													<Link to={`/students/${process.student.id}`} className="text-slate-800 font-semibold hover:underline">
+														{process.student.zid}
+													</Link>
+													<div className="text-sm text-slate-500">{process.student.name ?? "Unnamed"}</div>
+													<div className="text-sm text-slate-500">{process.student.phone}</div>
 											</td>
-											<td className="px-4 py-3">{timeAgo(process.createdAt as any)}</td>
+												<td className="px-4 py-3">
+													<div className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+														In process
+													</div>
+													<div className="mt-2 text-sm text-slate-500">{process.status}</div>
+												</td>
 											<td className="px-4 py-3">{completedCount}/{process.tasks.length}</td>
 											<td className="px-4 py-3">
 												<div className="w-full bg-slate-100 h-2 rounded-full">

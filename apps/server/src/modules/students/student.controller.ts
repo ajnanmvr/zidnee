@@ -344,7 +344,8 @@ export const completeStudentProcessController = async (
 	res: Response,
 ): Promise<void> => {
 	const processId = requireStringValue(req.params.processId, "processId");
-	const completed = await StudentService.completeStudentProcess(processId);
+	const performedBy = requireStringValue(req.user?.userId, "userId");
+	const completed = await StudentService.completeStudentProcess(processId, performedBy);
 
 	if (!completed) {
 		res.status(404).json({ ok: false, error: "Process not found" });

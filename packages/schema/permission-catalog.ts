@@ -221,6 +221,24 @@ export const PERMISSION_CATALOG = {
 		resource: "leads",
 		action: "delete",
 	},
+	LEADS_OVERVIEW_READ: {
+		name: "View Lead Overview",
+		description: "View lead overview dashboard and reports",
+		resource: "leads",
+		action: "overview:read",
+	},
+	LEADS_CLOSED_READ: {
+		name: "View Closed Leads",
+		description: "View list of closed/deleted leads",
+		resource: "leads",
+		action: "closed:read",
+	},
+	LEADS_CONVERTED_READ: {
+		name: "View Converted Leads",
+		description: "View converted leads and linked students",
+		resource: "leads",
+		action: "converted:read",
+	},
 	STUDENT_READ: {
 		name: "Read Student",
 		description: "Read student information",

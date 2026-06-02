@@ -23,11 +23,13 @@ const OverviewPage = lazy(() =>
 		default: module.OverviewPage,
 	})),
 );
+const LeadOverviewPage = lazy(() => import("@/features/dashboard/LeadOverviewPage").then((m) => ({ default: m.LeadOverviewPage })));
 const LeadsPage = lazy(() =>
 	import("@/features/dashboard/LeadsPage").then((module) => ({
 		default: module.LeadsPage,
 	})),
 );
+const ConvertedLeadsPage = lazy(() => import("@/features/dashboard/ConvertedLeadsPage").then((m) => ({ default: m.ConvertedLeadsPage })));
 const StudentsPage = lazy(() =>
 	import("@/features/dashboard/StudentsPage").then((module) => ({
 		default: module.StudentsPage,
@@ -157,6 +159,7 @@ const ClosedRemindersPage = lazy(() =>
 		default: module.ClosedRemindersPage,
 	})),
 );
+const ClosedLeadsPage = lazy(() => import("@/features/leads/ClosedLeadsPage").then((m) => ({ default: m.ClosedLeadsPage })));
 const SubstitutionsPage = lazy(() =>
 	import("@/features/mentors/SubstitutionsPage").then((module) => ({
 		default: module.SubstitutionsPage,
@@ -260,8 +263,20 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
+						path: "leads/overview",
+						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadOverviewPage />),
+					},
+					{
+						path: "leads/closed",
+						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <ClosedLeadsPage />),
+					},
+					{
 						path: "leads",
 						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadsPage />),
+					},
+					{
+						path: "leads/converted",
+						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <ConvertedLeadsPage />),
 					},
 					{
 						path: "admissions",

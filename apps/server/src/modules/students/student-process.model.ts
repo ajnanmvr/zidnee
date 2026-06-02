@@ -43,10 +43,18 @@ type StudentProcessTaskKey =
 	| "removed-from-coffee-and-zidnee-app"
 	| "remove-from-parents-group";
 
-const STUDENT_PROCESS_TASK_LIBRARY: Record<
-	StudentProcessTaskKey,
-	StudentProcessTaskDefinition
-> = {
+// Legacy / short keys kept for backward compatibility with tests and client
+// (these map to the longer descriptive keys above)
+type LegacyStudentProcessTaskKey =
+	| "data-confirmed"
+	| "mentor-assigned-informed"
+	| "student-data-shared"
+	| "group-created";
+
+type AllStudentProcessTaskKey = StudentProcessTaskKey | LegacyStudentProcessTaskKey;
+
+// Use a permissive index signature so we can include legacy aliases below
+const STUDENT_PROCESS_TASK_LIBRARY: Record<string, StudentProcessTaskDefinition> = {
 	"send-welcome-message": {
 		label: "Send welcome message",
 		actionType: "WHATSAPP",
@@ -81,9 +89,28 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<
 	},
 } as const;
 
+const getTaskDefinition = (key: string): StudentProcessTaskDefinition => {
+	const definition = STUDENT_PROCESS_TASK_LIBRARY[key];
+	if (!definition) {
+		throw new Error(`Unknown student process task key: ${key}`);
+	}
+
+	return definition;
+};
+
+// Aliases for legacy short keys expected by tests and some clients
+STUDENT_PROCESS_TASK_LIBRARY["data-confirmed"] =
+	getTaskDefinition("data-confirmed-and-shared-class-group-awareness");
+STUDENT_PROCESS_TASK_LIBRARY["mentor-assigned-informed"] =
+	getTaskDefinition("data-shared-to-mentor-for-confirmation-and-created-group");
+STUDENT_PROCESS_TASK_LIBRARY["student-data-shared"] =
+	getTaskDefinition("confirmed-data-shared-to-new-mentor");
+STUDENT_PROCESS_TASK_LIBRARY["group-created"] = getTaskDefinition("added-in-parents-group");
+
 type StudentProcessTemplateConfig = {
 	label: string;
-	taskKeys: StudentProcessTaskKey[];
+	// allow both canonical and legacy keys as strings
+	taskKeys: string[];
 };
 
 const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
@@ -91,14 +118,12 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 	StudentProcessTemplateConfig
 > = {
 	STUDENT: {
+		// Simplified admission process (use canonical keys where possible)
 		label: "Student Admission Process",
 		taskKeys: [
 			"send-welcome-message",
 			"data-confirmed-and-shared-class-group-awareness",
-			"level-drive-link-shared-to-parent",
 			"data-shared-to-mentor-for-confirmation-and-created-group",
-			"level-teaching-guide-shared-to-ongoing-mentor",
-			"confirmed-data-shared-to-new-mentor",
 			"added-in-parents-group",
 		],
 	},
@@ -113,18 +138,17 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 			"informed-mentor",
 			"payment-completed",
 			"removed-from-coffee-and-zidnee-app",
-			"remove-from-parents-group",
 		],
 	},
 };
 
-const buildTask = (key: StudentProcessTaskKey, studentId?: string): StudentProcessTaskDocument => {
-	const definition = STUDENT_PROCESS_TASK_LIBRARY[key];
+const buildTask = (key: string, studentId?: string): StudentProcessTaskDocument => {
+	const definition = getTaskDefinition(key);
 	let whatsappMessage = definition.whatsappMessage;
 
-	if (definition.dynamic && studentId) {
+	if (definition.dynamic) {
 		if (key === "send-welcome-message") {
-			const formLink = `${env.APP_URL}/form/student/${studentId}`;
+			const formLink = studentId ? `${env.APP_URL}/form/student/${studentId}` : `${env.APP_URL}/form`;
 			whatsappMessage = `*Assalamu Alaikum*, 🤝
 
 We are contacting you from *Zidnee Online Islamic School*.
@@ -145,6 +169,38 @@ ${formLink}`;
 		completed: false,
 		...(definition.actionType ? { actionType: definition.actionType } : {}),
 		...(whatsappMessage ? { whatsappMessage } : {}),
+	};
+};
+
+export const getDropProcessTemplate = (courseType?: "INDIVIDUAL" | "GROUP", studentId?: string) => {
+	const label = courseType === "GROUP" ? "Group Drop Process" : "Individual Drop Process";
+	const taskKeys = [
+		"cancelled-drive-access",
+		"informed-mentor",
+		"payment-completed",
+		"removed-from-coffee-and-zidnee-app",
+	];
+
+	return {
+		label,
+		tasks: taskKeys.map((k) => buildTask(k, studentId)),
+	};
+};
+
+export const getConversionProcessTemplate = (
+	from?: "INDIVIDUAL" | "GROUP",
+	to?: "INDIVIDUAL" | "GROUP",
+	studentId?: string,
+) => {
+	const label = `Convert ${from ?? ""} → ${to ?? ""}`;
+	// Minimal conversion tasks; caller may customize when invoking
+	const taskKeys = to === "GROUP"
+		? ["data-shared-to-mentor-for-confirmation-and-created-group", "added-in-parents-group"]
+		: ["level-drive-link-shared-to-parent", "remove-from-parents-group"];
+
+	return {
+		label,
+		tasks: taskKeys.map((k) => buildTask(k, studentId)),
 	};
 };
 

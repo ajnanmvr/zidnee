@@ -1,22 +1,4 @@
-﻿import { useEffect, useState } from "react";
-import { isPast, isToday } from "date-fns";
-import {
-	HiAcademicCap,
-	HiArchiveBox,
-	HiBookmarkSquare,
-	HiCalendarDays,
-	HiCheckCircle,
-	HiClipboardDocumentList,
-	HiIdentification,
-	HiPhone,
-	HiPresentationChartLine,
-	HiSquares2X2,
-	HiLockClosed,
-	HiUsers,
-	HiOutlineBellAlert,
-} from "react-icons/hi2";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ApiError } from "@/api/request";
+﻿import { ApiError } from "@/api/request";
 import {
 	DashboardHeader,
 	type NavigationItem,
@@ -25,8 +7,8 @@ import {
 import { useMeQuery } from "@/features/auth/auth.queries";
 import {
 	getLeadStageCounts,
-	type LeadStageId,
 	leadStageDefinitions,
+	type LeadStageId,
 } from "@/features/leads/lead-stage-filters";
 import {
 	useDemoRequestsQuery,
@@ -35,8 +17,27 @@ import {
 } from "@/features/leads/leads.queries";
 import { useGetAllReminders } from "@/features/reminders/reminders.mutations";
 import { getReminderDueStatus } from "@/features/reminders/reminders.utils";
+import { getStudentFollowUpState } from "@/features/students/student-table";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
+import { isPast, isToday } from "date-fns";
+import { useEffect, useState } from "react";
+import {
+	HiAcademicCap,
+	HiArchiveBox,
+	HiBookmarkSquare,
+	HiCalendarDays,
+	HiCheckCircle,
+	HiClipboardDocumentList,
+	HiIdentification,
+	HiLockClosed,
+	HiOutlineBellAlert,
+	HiPhone,
+	HiPresentationChartLine,
+	HiSquares2X2,
+	HiUsers,
+} from "react-icons/hi2";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const titles: Record<string, string> = {
 	"/": "Overview",
@@ -169,6 +170,24 @@ export const DashboardLayout = () => {
 	const currentUserId = me?.id;
 
 	const allStudents = studentsQuery.data?.students ?? [];
+	const isInProcess = (student: (typeof allStudents)[number]) =>
+		Boolean(student.processId || student.processLabel);
+	const getUrgentStudentCount = (courseType: "GROUP" | "INDIVIDUAL") =>
+		allStudents.filter((student) => {
+			if (student.courseType !== courseType) {
+				return false;
+			}
+
+			if (isInProcess(student)) {
+				return false;
+			}
+
+			const followUpState = getStudentFollowUpState(
+				student.customNextFollowUpAt,
+				student.nextFollowUpAt,
+			);
+			return followUpState.label === "Today" || followUpState.label === "Past Due";
+		}).length;
 	const allReminders = remindersQuery.data ?? [];
 	const myLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(myLeads, currentUserId);
@@ -223,9 +242,8 @@ export const DashboardLayout = () => {
 		converted: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
 		closed: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
 	} as const;
-	const leadStageAccents: Record<
-		LeadStageId,
-		NonNullable<NavigationItem["accent"]>
+	const leadStageAccents: Partial<
+		Record<LeadStageId, NonNullable<NavigationItem["accent"]>>
 	> = {
 		all: "teal",
 		followUp: "lime",
@@ -234,7 +252,6 @@ export const DashboardLayout = () => {
 		demoRequest: "orange",
 		demoAssigned: "emerald",
 		demoCompleted: "violet",
-		closed: "teal",
 	};
 
 	const hasPermission = (key: string): boolean =>
@@ -252,12 +269,7 @@ export const DashboardLayout = () => {
 					icon: leadStageIcons[id] || (
 						<HiPhone className="h-5 w-5" aria-hidden="true" />
 					),
-					count:
-						id === "closed"
-							? undefined
-							: id === "followUp"
-							? followUpUrgentCount
-							: leadStageCounts[id] ?? 0,
+					count: id === "followUp" ? followUpUrgentCount : leadStageCounts[id] ?? 0,
 					accent: leadStageAccents[id],
 					section: "Lead Pipeline",
 				};
@@ -283,7 +295,41 @@ export const DashboardLayout = () => {
 					accent: "teal",
 					section: "Lead Pipeline",
 				},
+
 				...getLeadStageItems(),
+				{
+					to: "/leads/closed",
+					label: "Closed Leads",
+					description: "Leads closed/deleted",
+					icon: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
+					accent: "teal",
+					section: "Lead Pipeline",
+				},
+			]
+			: []),
+		// Lead overview and reports
+		...(hasPermission("LEADS_OVERVIEW_READ") || hasPermission("LEAD_READ_ALL")
+			? [
+				{
+					to: "/leads/overview",
+					label: "Lead Overview",
+					description: "Reports and charts",
+					icon: <HiPresentationChartLine className="h-5 w-5" aria-hidden="true" />,
+					accent: "teal",
+					section: "Reports",
+				},
+			]
+			: []),
+		...(hasPermission("LEADS_CONVERTED_READ") || hasPermission("LEAD_READ_ALL")
+			? [
+				{
+					to: "/leads/converted",
+					label: "Converted Leads",
+					description: "Leads converted to students",
+					icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+					accent: "emerald",
+					section: "Lead Pipeline",
+				},
 			]
 			: []),
 		...(hasPermission("DEMO_UNASSIGNED_READ_MY") || hasPermission("DEMO_UNASSIGNED_READ_ALL")
@@ -319,10 +365,7 @@ export const DashboardLayout = () => {
 					label: "Group Students",
 					description: "Enrolled in groups",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count:
-						studentsQuery.data?.students.filter(
-							(student) => student.courseType === "GROUP",
-						).length ?? 0,
+					count: getUrgentStudentCount("GROUP"),
 					accent: "cyan",
 					section: "Learners",
 				},
@@ -331,10 +374,7 @@ export const DashboardLayout = () => {
 					label: "Individual Students",
 					description: "One-to-one learners",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
-					count:
-						studentsQuery.data?.students.filter(
-							(student) => student.courseType === "INDIVIDUAL",
-						).length ?? 0,
+					count: getUrgentStudentCount("INDIVIDUAL"),
 					accent: "cyan",
 					section: "Learners",
 				},

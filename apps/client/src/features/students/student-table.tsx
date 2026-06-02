@@ -6,9 +6,18 @@ import { Link } from "react-router-dom";
 export type StudentTableRow = Student;
 
 type FollowUpState = {
-	label: "Today" | "Past Due" | "Valid" | "No Follow-up";
+	label: "Today" | "Past Due" | "Upcoming" | "No Follow-up";
 	className: string;
 	priority: number;
+};
+
+const toValidDate = (value?: Date | string | null): Date | null => {
+	if (!value) {
+		return null;
+	}
+
+	const date = value instanceof Date ? value : new Date(value);
+	return Number.isNaN(date.getTime()) ? null : date;
 };
 
 const isSameDay = (left: Date, right: Date) => {
@@ -20,10 +29,10 @@ const isSameDay = (left: Date, right: Date) => {
 };
 
 export const getStudentFollowUpState = (
-	customNextFollowUpAt?: Date,
-	nextFollowUpAt?: Date,
+	customNextFollowUpAt?: Date | string | null,
+	nextFollowUpAt?: Date | string | null,
 ): FollowUpState => {
-	const followUpDate = customNextFollowUpAt ?? nextFollowUpAt;
+	const followUpDate = toValidDate(customNextFollowUpAt) ?? toValidDate(nextFollowUpAt);
 	if (!followUpDate) {
 		return {
 			label: "No Follow-up",
@@ -50,7 +59,7 @@ export const getStudentFollowUpState = (
 	}
 
 	return {
-		label: "Valid",
+		label: "Upcoming",
 		className: "bg-emerald-100 text-emerald-800",
 		priority: 2,
 	};
@@ -172,6 +181,7 @@ export const buildStudentColumns = (
 				const hasProcess = Boolean(
 					row.original.processId || row.original.processLabel,
 				);
+				const processLabel = row.original.processLabel ?? "In process";
 
 				return (
 					<span
@@ -182,11 +192,11 @@ export const buildStudentColumns = (
 						{hasProcess ? (
 							<HiCog6Tooth
 								className="h-3.5 w-3.5"
-								title={row.original.processLabel ?? "Process linked"}
+								title={processLabel}
 								aria-label="Process linked"
 							/>
 						) : null}
-						{row.original.status}
+						{hasProcess ? processLabel : row.original.status}
 					</span>
 				);
 			},

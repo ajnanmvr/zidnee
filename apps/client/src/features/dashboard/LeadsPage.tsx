@@ -136,8 +136,6 @@ export const LeadsPage = () => {
 				return "DEMO_ASSIGNED";
 			case "demoCompleted":
 				return "DEMO_COMPLETED";
-			case "closed":
-				return "CLOSED";
 			default:
 				return undefined;
 		}
@@ -158,8 +156,8 @@ export const LeadsPage = () => {
 	const usersQuery = useUsersQuery(token, canReadUsers);
 	const createLeadMutation = useCreateLeadMutation();
 	const requestRedemoMutation = useRequestRedemoMutation();
-	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
+	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const updateLeadMutation = useUpdateLeadMutation();
 	const assignUserCounsellorMutation = useAssignUserCounsellorMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
@@ -561,7 +559,7 @@ export const LeadsPage = () => {
 			toast.success("Lead closed successfully.");
 			setDeleteLeadId(null);
 			setDeleteNote("");
-			navigate("/leads?stage=closed");
+			navigate("/leads");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");

@@ -1,10 +1,12 @@
 ﻿import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import type { Area } from "react-easy-crop";
 import { toast } from "react-hot-toast";
 import { HiArrowLeft } from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { API_BASE_URL } from "@/api/client";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { MobileImageCropModal } from "@/components/MobileImageCropModal";
 import { Modal, Panel, SelectField, TextAreaField, ConfirmDialog } from "@/components/dashboard-ui";
 import { CreateReminderModal } from "@/features/reminders/CreateReminderModal";
 import { RemindersList } from "@/features/reminders/RemindersList";
@@ -27,6 +29,7 @@ import {
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { useMeQuery } from "@/features/auth/auth.queries";
+import { cropImageToBlob } from "@/lib/image-crop";
 
 const levelLabels: Record<string, string> = {
 	"1": "Seed Level 1",
@@ -73,6 +76,11 @@ const parseDateInputValue = (value: string) => {
 	return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const getDateTimeLocalInputValue = (value: Date = new Date()) => {
+	const offsetMs = value.getTimezoneOffset() * 60_000;
+	return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
 const dropReasonOptions = [
 	{ value: "Student requested break permanently", label: "Student requested break permanently" },
 	{ value: "Not enough time for classes", label: "Not enough time for classes" },
@@ -112,12 +120,10 @@ export const StudentDetailPage = () => {
 	const [imageViewerOpen, setImageViewerOpen] = useState(false);
 	const [cropModalOpen, setCropModalOpen] = useState(false);
 	const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-	const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number; displayWidth: number; displayHeight: number } | null>(null);
-	const [squareSize, setSquareSize] = useState(200);
-	const [squareX, setSquareX] = useState(0);
-	const [squareY, setSquareY] = useState(0);
-	const [isDragging, setIsDragging] = useState(false);
-	const [, setIsResizing] = useState(false);
+	const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+	const [crop, setCrop] = useState({ x: 0, y: 0 });
+	const [zoom, setZoom] = useState(1);
+	const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 	const [certificateConfirmOpen, setCertificateConfirmOpen] = useState(false);
 	const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 	const [breakModalOpen, setBreakModalOpen] = useState(false);
@@ -228,6 +234,10 @@ export const StudentDetailPage = () => {
 				setFollowUpError("Please provide a valid next follow-up date.");
 				return;
 			}
+			if (parsedDate.getTime() < Date.now()) {
+				setFollowUpError("Past dates are not allowed for follow-up.");
+				return;
+			}
 			nextFollowUpAt = parsedDate;
 		}
 
@@ -248,50 +258,17 @@ export const StudentDetailPage = () => {
 		}
 	};
 
-	const autoCropToSquare = (file: File): Promise<Blob> => {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const img = new Image();
-				img.onload = () => {
-					// Calculate scale from display to actual image
-					if (!imageDimensions) {
-						reject(new Error("Image dimensions not available"));
-						return;
-					}
+	const openProfilePicCrop = (file: File) => {
+		if (selectedImageUrl) {
+			URL.revokeObjectURL(selectedImageUrl);
+		}
 
-					const scaleX = imageDimensions.width / imageDimensions.displayWidth;
-					const scaleY = imageDimensions.height / imageDimensions.displayHeight;
-
-					// Convert display coordinates to actual image coordinates
-					const actualX = squareX * scaleX;
-					const actualY = squareY * scaleY;
-					const actualSize = squareSize * scaleX; // Use scaleX since it's a square
-
-					const canvas = document.createElement("canvas");
-					canvas.width = 400;
-					canvas.height = 400;
-
-					const ctx = canvas.getContext("2d");
-					if (!ctx) {
-						reject(new Error("Failed to get canvas context"));
-						return;
-					}
-
-					// Draw the cropped section onto the canvas
-					ctx.drawImage(img, actualX, actualY, actualSize, actualSize, 0, 0, 400, 400);
-
-					canvas.toBlob((blob) => {
-						if (blob) resolve(blob);
-						else reject(new Error("Failed to create blob"));
-					}, "image/jpeg", 0.8);
-				};
-				img.onerror = () => reject(new Error("Failed to load image"));
-				img.src = e.target?.result as string;
-			};
-			reader.onerror = () => reject(new Error("Failed to read file"));
-			reader.readAsDataURL(file);
-		});
+		setSelectedImageFile(file);
+		setSelectedImageUrl(URL.createObjectURL(file));
+		setCrop({ x: 0, y: 0 });
+		setZoom(1);
+		setCroppedAreaPixels(null);
+		setCropModalOpen(true);
 	};
 
 	const assessmentConfig = [
@@ -325,42 +302,7 @@ export const StudentDetailPage = () => {
 			return;
 		}
 
-		// Load image and get dimensions
-		const reader = new FileReader();
-		reader.onload = (e) => {
-			const img = new Image();
-			img.onload = () => {
-				// Calculate display dimensions (fit to max 500px)
-				const maxDim = 500;
-				let displayWidth = img.width;
-				let displayHeight = img.height;
-
-				if (img.width > maxDim || img.height > maxDim) {
-					const ratio = Math.max(img.width, img.height) / maxDim;
-					displayWidth = img.width / ratio;
-					displayHeight = img.height / ratio;
-				}
-
-				setImageDimensions({
-					width: img.width,
-					height: img.height,
-					displayWidth,
-					displayHeight,
-				});
-
-				// Initialize square in center
-				const initialSize = Math.min(displayWidth, displayHeight) * 0.6;
-				setSquareSize(initialSize);
-				setSquareX((displayWidth - initialSize) / 2);
-				setSquareY((displayHeight - initialSize) / 2);
-				setIsResizing(false);
-
-				setSelectedImageFile(file);
-				setCropModalOpen(true);
-			};
-			img.src = e.target?.result as string;
-		};
-		reader.readAsDataURL(file);
+		openProfilePicCrop(file);
 	};
 
 	const removeProfilePic = async () => {
@@ -475,10 +417,10 @@ export const StudentDetailPage = () => {
 	};
 
 	const confirmCrop = async () => {
-		if (!selectedImageFile || !studentId) return;
+		if (!selectedImageUrl || !selectedImageFile || !studentId || !croppedAreaPixels) return;
 
 		try {
-			const croppedBlob = await autoCropToSquare(selectedImageFile);
+			const croppedBlob = await cropImageToBlob(selectedImageUrl, croppedAreaPixels);
 			const croppedFile = new File([croppedBlob], "profile.jpg", { type: "image/jpeg" });
 
 			const form = new FormData();
@@ -499,6 +441,10 @@ export const StudentDetailPage = () => {
 			toast.success("Profile picture updated");
 			setCropModalOpen(false);
 			setSelectedImageFile(null);
+			if (selectedImageUrl) {
+				URL.revokeObjectURL(selectedImageUrl);
+				setSelectedImageUrl(null);
+			}
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Failed to update profile picture");
@@ -511,12 +457,13 @@ export const StudentDetailPage = () => {
 	const closeCropModal = () => {
 		setCropModalOpen(false);
 		setSelectedImageFile(null);
-		setImageDimensions(null);
-		setSquareSize(200);
-		setSquareX(0);
-		setSquareY(0);
-		setIsDragging(false);
-		setIsResizing(false);
+		if (selectedImageUrl) {
+			URL.revokeObjectURL(selectedImageUrl);
+			setSelectedImageUrl(null);
+		}
+		setCrop({ x: 0, y: 0 });
+		setZoom(1);
+		setCroppedAreaPixels(null);
 	};
 
 	const openAssessmentConfirm = (
@@ -858,9 +805,9 @@ export const StudentDetailPage = () => {
 				<nav className="flex gap-8">
 					{[
 						{ key: "follow-up", label: "Follow-up" },
-						{ key: "assessment", label: "Assessment" },
 						{ key: "profile", label: "Profile" },
-						{ key: "reminders", label: "Reminders" },
+						{ key: "reminders", label: "Reminder" },
+						{ key: "assessment", label: "Assessment" },
 					].map((tab) => (
 						<button
 							key={tab.key}
@@ -1327,6 +1274,7 @@ export const StudentDetailPage = () => {
 						<label className="text-sm font-medium text-gray-700">Next follow-up date (optional)</label>
 						<input
 							type="datetime-local"
+							min={getDateTimeLocalInputValue()}
 							value={followUpNextDate}
 							onChange={(event) => {
 								setFollowUpNextDate(event.target.value);
@@ -1582,153 +1530,23 @@ export const StudentDetailPage = () => {
 			/>
 
 			{/* Crop Modal */}
-			{cropModalOpen && selectedImageFile && imageDimensions && (
-				<div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black p-4">
-					{/* Close button */}
-					<button
-						onClick={closeCropModal}
-						className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
-					>
-						<svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
-
-					{/* Image container with square overlay */}
-					<div className="flex flex-col items-center justify-center flex-1 mb-8">
-						<div
-							className="relative bg-black flex items-center justify-center"
-							style={{ maxWidth: "600px", maxHeight: "600px" }}
-						>
-							<img
-								src={URL.createObjectURL(selectedImageFile)}
-								alt="Crop preview"
-								className="max-w-full max-h-full object-contain"
-								draggable={false}
-								style={{
-									width: imageDimensions.displayWidth,
-									height: imageDimensions.displayHeight,
-								}}
-							/>
-
-							{/* Dark overlay with transparent square cutout */}
-							<svg
-								className="absolute top-0 left-0 pointer-events-none"
-								style={{
-									width: imageDimensions.displayWidth,
-									height: imageDimensions.displayHeight,
-								}}
-								viewBox={`0 0 ${imageDimensions.displayWidth} ${imageDimensions.displayHeight}`}
-							>
-								<defs>
-									<mask id="cropMask">
-										<rect width={imageDimensions.displayWidth} height={imageDimensions.displayHeight} fill="white" />
-										<rect x={squareX} y={squareY} width={squareSize} height={squareSize} fill="black" />
-									</mask>
-								</defs>
-								<rect
-									width={imageDimensions.displayWidth}
-									height={imageDimensions.displayHeight}
-									fill="rgba(0, 0, 0, 0.7)"
-									mask="url(#cropMask)"
-								/>
-								{/* Square border */}
-								<rect
-									x={squareX}
-									y={squareY}
-									width={squareSize}
-									height={squareSize}
-									fill="none"
-									stroke="#14b8a6"
-									strokeWidth="2"
-								/>
-							</svg>
-
-							{/* Crop square with resize handle - for interaction */}
-							<div
-								className="absolute cursor-move"
-								style={{
-									width: squareSize,
-									height: squareSize,
-									left: squareX,
-									top: squareY,
-									userSelect: "none",
-									touchAction: "none",
-								}}
-								onPointerDown={(e) => {
-									if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-									(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-									setIsDragging(true);
-								}}
-								onPointerMove={(e) => {
-									if (!isDragging) return;
-									const container = e.currentTarget.parentElement as HTMLElement;
-									const rect = container.getBoundingClientRect();
-									const newX = Math.max(0, Math.min(e.clientX - rect.left - squareSize / 2, imageDimensions.displayWidth - squareSize));
-									const newY = Math.max(0, Math.min(e.clientY - rect.top - squareSize / 2, imageDimensions.displayHeight - squareSize));
-									setSquareX(newX);
-									setSquareY(newY);
-								}}
-								onPointerUp={() => setIsDragging(false)}
-								onPointerCancel={() => setIsDragging(false)}
-							>
-								{/* Resize handle - bottom right */}
-								<div
-									className="resize-handle absolute w-4 h-4 bg-teal-400 bottom-0 right-0 cursor-se-resize transform translate-x-1/2 translate-y-1/2"
-									style={{ touchAction: "none" }}
-									onPointerDown={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-										(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-										const startX = e.clientX;
-										const startY = e.clientY;
-										const startSize = squareSize;
-
-										setIsResizing(true);
-
-										const handlePointerMove = (moveEvent: PointerEvent) => {
-											const delta = Math.max(moveEvent.clientX - startX, moveEvent.clientY - startY);
-											const newSize = Math.max(50, Math.min(startSize + delta, Math.min(imageDimensions.displayWidth - squareX, imageDimensions.displayHeight - squareY)));
-											setSquareSize(newSize);
-										};
-
-										const handlePointerUp = () => {
-											setIsResizing(false);
-											document.removeEventListener("pointermove", handlePointerMove);
-											document.removeEventListener("pointerup", handlePointerUp);
-											document.removeEventListener("pointercancel", handlePointerUp);
-										};
-
-										document.addEventListener("pointermove", handlePointerMove);
-										document.addEventListener("pointerup", handlePointerUp);
-										document.addEventListener("pointercancel", handlePointerUp);
-									}}
-								/>
-							</div>
-						</div>
-
-						<p className="text-white text-sm mt-4">Drag the square to reposition, drag corner to resize</p>
-					</div>
-
-					{/* Buttons */}
-					<div className="flex gap-3 w-full max-w-md">
-						<button
-							type="button"
-							onClick={closeCropModal}
-							className="flex-1 px-4 py-2 border border-white rounded-2xl font-semibold text-white hover:bg-white hover:text-black transition"
-						>
-							Cancel
-						</button>
-						<button
-							type="button"
-							onClick={() => void confirmCrop()}
-							className="flex-1 px-4 py-2 bg-teal-600 rounded-2xl font-semibold text-white hover:bg-teal-700 transition"
-						>
-							Crop & Upload
-						</button>
-					</div>
-				</div>
-			)}
+			{cropModalOpen && selectedImageUrl ? (
+				<MobileImageCropModal
+					open={cropModalOpen}
+					imageSrc={selectedImageUrl}
+					title="Adjust profile picture"
+					description="Pinch or use the slider to zoom the image into the square."
+					crop={crop}
+					zoom={zoom}
+					confirmLabel="Crop & Upload"
+					confirmDisabled={!croppedAreaPixels}
+					onClose={closeCropModal}
+					onConfirm={() => void confirmCrop()}
+					onCropChange={setCrop}
+					onZoomChange={setZoom}
+					onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
+				/>
+			) : null}
 
 			{/* Image Viewer Modal */}
 			{imageViewerOpen && student?.profilePic && (

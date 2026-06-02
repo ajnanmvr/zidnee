@@ -118,14 +118,6 @@ export const buildLeadColumns = (options?: {
 		id: "urgency",
 		header: "Status",
 		cell: (info) => {
-			if (options?.activeStage === "closed") {
-				return (
-					<span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-						Closed
-					</span>
-				);
-			}
-
 			return <UrgencyIndicator lead={info.row.original} />;
 		},
 		enableSorting: false,
@@ -237,6 +229,16 @@ export const buildLeadColumns = (options?: {
 			return <DateCell date={String(info.getValue())} />;
 		},
 		enableSorting: true,
+	},
+	{
+		accessorKey: "closeReason",
+		header: "Close Reason",
+		cell: (info) => {
+			const val = info.getValue() as string | undefined | null;
+			if (!val || String(val).trim() === "") return <span className="text-sm text-slate-500">-</span>;
+			return <div className="text-sm text-gray-700 max-w-xs truncate">{String(val)}</div>;
+		},
+		enableSorting: false,
 	},
 	{
 		id: "viewAction",

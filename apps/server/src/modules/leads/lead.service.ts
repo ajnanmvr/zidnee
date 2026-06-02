@@ -410,6 +410,9 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	demos: (doc.demos ?? []).map(toDemo),
 	createdAt: doc.createdAt,
 	updatedAt: doc.updatedAt,
+	closeReason: undefined,
+	deletedBy: undefined,
+	deletedAt: undefined,
 });
 
 export const LeadService = {
@@ -590,8 +593,28 @@ export const LeadService = {
 			.slice(offset, offset + limit)
 			.map(mapLead);
 
+		// Attach close reason from latest DELETED activity for closed leads
+		const paginatedWithReasons = await Promise.all(
+			paginatedLeads.map(async (lead) => {
+				if (lead.status !== "CLOSED") return lead;
+				try {
+					const activities = await ActivityService.getLeadActivities(lead.id);
+					const deleted = activities.find((a) => a.type === "DELETED");
+					if (deleted) {
+						lead.closeReason =
+							deleted.note ?? (deleted.newValue as any)?.reason ?? undefined;
+						lead.deletedBy = (deleted as any)?.performedByName ?? undefined;
+						lead.deletedAt = (deleted as any)?.createdAt ?? undefined;
+					}
+				} catch (err) {
+					// ignore activity lookup errors and return lead without reason
+				}
+				return lead;
+			}),
+		);
+
 		return {
-			leads: paginatedLeads,
+			leads: paginatedWithReasons,
 			total,
 			page,
 			pageSize: limit,

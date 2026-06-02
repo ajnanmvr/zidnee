@@ -374,7 +374,7 @@ export const LeadDetailPageNew = () => {
 			setDeleteOpen(false);
 			setDeleteNote("");
 			setDeleteReason(null);
-			navigate("/leads?stage=closed");
+			navigate("/leads");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to delete lead");

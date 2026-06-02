@@ -9,9 +9,10 @@ const userSchema = new Schema<UserDocument>(
 	{
 		username: {
 			type: String,
-			required: true,
+			required: false,
 			unique: true,
 			index: true,
+			sparse: true,
 		},
 		email: {
 			type: String,
