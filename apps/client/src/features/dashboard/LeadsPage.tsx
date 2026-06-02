@@ -104,6 +104,8 @@ export const LeadsPage = () => {
 	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
 	// Default sort: past → future (ascending)
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+	const [searchInput, setSearchInput] = useState("");
+	const [search, setSearch] = useState("");
 
 	const stageParam = searchParams.get("stage");
 	const activeStage: LeadStageId = leadStageDefinitions.some(
@@ -144,6 +146,20 @@ export const LeadsPage = () => {
 	const shouldEnableLeadsQuery =
 		activeScope === "mine" || (activeScope === "all" && loadAllRequested);
 
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setSearch(searchInput);
+			setCurrentPage(1);
+		}, 350);
+		return () => clearTimeout(timer);
+	}, [searchInput]);
+
+	useEffect(() => {
+		setSearchInput("");
+		setSearch("");
+		setCurrentPage(1);
+	}, [activeStage, activeScope]);
+
 	const activeLeadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: activeScope,
 		timeFilter: "all",
@@ -151,6 +167,7 @@ export const LeadsPage = () => {
 		page: currentPage,
 		sortBy,
 		sortOrder,
+		search: search || undefined,
 		enabled: shouldEnableLeadsQuery,
 	});
 	const usersQuery = useUsersQuery(token, canReadUsers);
@@ -201,6 +218,7 @@ export const LeadsPage = () => {
 	const [requestDemoLeadId, setRequestDemoLeadId] = useState<string | null>(
 		null,
 	);
+	const [formResponseLead, setFormResponseLead] = useState<LeadResponse | null>(null);
 	const [selectedRequestCounsellor, setSelectedRequestCounsellor] = useState<
 		string | undefined
 	>(undefined);
@@ -819,6 +837,15 @@ export const LeadsPage = () => {
 							];
 						case "formFilled":
 							return [
+								{
+									key: "viewFormResponses",
+									label: "View Form",
+									onClick: (item: LeadResponse) => {
+										setFormResponseLead(item);
+									},
+									className:
+										"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+								},
 								...(canRequestDemo
 									? [
 											{
@@ -1001,6 +1028,23 @@ export const LeadsPage = () => {
 					})}
 				</div>
 
+				<div className="mb-2 relative">
+					<input
+						type="text"
+						placeholder={`Search ${activeScope === "all" ? "all users" : "my"} leads by name, phone, or email...`}
+						value={searchInput}
+						onChange={(e) => {
+							setSearchInput(e.target.value);
+						}}
+						className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
+					/>
+					{activeLeadsQuery.isFetching && !activeLeadsQuery.isLoading ? (
+						<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+							Searching...
+						</span>
+					) : null}
+				</div>
+
 				{activeLeadsQuery.isLoading ? (
 					<div className="py-8 text-center text-gray-600">Loading...</div>
 				) : activeLeadsQuery.isError ? (
@@ -1013,7 +1057,7 @@ export const LeadsPage = () => {
 							columns={columns}
 							data={scopeLeads}
 							exportFilename={`leads-${activeScope}-${activeStage}`}
-							searchPlaceholder={`Search ${activeScope === "all" ? "all users" : "my"} leads...`}
+							enableGlobalFilter={false}
 							sortBy={sortBy}
 							onSortByChange={(value) => {
 								setSortBy(value);
@@ -1430,6 +1474,66 @@ export const LeadsPage = () => {
 						Loading form link...
 					</div>
 				)}
+			</Modal>
+
+			<Modal
+				open={Boolean(formResponseLead)}
+				title="Form Responses"
+				description={formResponseLead ? `${formResponseLead.name ?? formResponseLead.phone}` : ""}
+				onClose={() => setFormResponseLead(null)}
+				footer={
+					<button
+						type="button"
+						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						onClick={() => setFormResponseLead(null)}
+					>
+						Close
+					</button>
+				}
+			>
+				{formResponseLead ? (
+					<div className="grid gap-3 text-sm">
+						{[
+							{ label: "Preferred Language", value: formResponseLead.preferredLanguage },
+							{ label: "Preferred Schedule", value: formResponseLead.preferredSchedule },
+							{
+								label: "Preferred Days",
+								value: formResponseLead.preferredDays?.length
+									? formResponseLead.preferredDays.join(", ")
+									: undefined,
+							},
+							{ label: "Demo Availability", value: formResponseLead.demoAvailability },
+							{ label: "Hear About Us", value: formResponseLead.hearAboutUs },
+							{ label: "Preferred Mentor Gender", value: formResponseLead.preferredMentorGender },
+							{ label: "Student Info", value: formResponseLead.studentInfo },
+						].map(({ label, value }) => (
+							<div key={label} className="flex items-start justify-between gap-4 border-b border-gray-100 pb-2 last:border-0">
+								<span className="font-medium text-gray-600 shrink-0">{label}</span>
+								<span className="text-right text-gray-900">{value ?? "-"}</span>
+							</div>
+						))}
+						{(formResponseLead.preferredPlan as { timesPerWeek?: number; durationMinutes?: number } | undefined) ? (
+							<div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-2">
+								<span className="font-medium text-gray-600 shrink-0">Preferred Plan</span>
+								<span className="text-right text-gray-900">
+									{`${(formResponseLead.preferredPlan as { durationMinutes: number }).durationMinutes} min · ${(formResponseLead.preferredPlan as { timesPerWeek: number }).timesPerWeek} days/week`}
+								</span>
+							</div>
+						) : null}
+						{(formResponseLead.preferredTimeslots as Array<{ startTime: string; endTime: string }> | undefined)?.length ? (
+							<div className="border-b border-gray-100 pb-2">
+								<span className="font-medium text-gray-600">Preferred Timeslots</span>
+								<div className="mt-1 space-y-1">
+									{(formResponseLead.preferredTimeslots as Array<{ startTime: string; endTime: string }>).map((slot, i) => (
+										<div key={i} className="rounded-lg bg-gray-50 px-3 py-1.5 text-gray-900">
+											{slot.startTime} – {slot.endTime}
+										</div>
+									))}
+								</div>
+							</div>
+						) : null}
+					</div>
+				) : null}
 			</Modal>
 
 			<Modal

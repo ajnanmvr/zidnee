@@ -19,6 +19,7 @@ export const leadsQueryKeys = {
 		limit: number = 25,
 		sortBy: string = "nextFollowUpAt",
 		sortOrder: "asc" | "desc" = "desc",
+		search?: string,
 	) =>
 		[
 			"leads",
@@ -31,6 +32,7 @@ export const leadsQueryKeys = {
 			limit,
 			sortBy,
 			sortOrder,
+			search,
 		] as const,
 	demoRequests: (token: string) => ["leads", "demo-requests", token] as const,
 	pendingDemoRequests: (token: string) => ["leads", "for-demo", token] as const,
@@ -75,6 +77,7 @@ export const useDueLeadFollowUpsQuery = (
 		limit?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
+		search?: string;
 		enabled?: boolean;
 	},
 ) => {
@@ -88,6 +91,7 @@ export const useDueLeadFollowUpsQuery = (
 	const limit = options?.limit ?? 25;
 	const sortBy = options?.sortBy ?? "nextFollowUpAt";
 	const sortOrder = options?.sortOrder ?? "desc";
+	const search = options?.search;
 	const enabled = options?.enabled ?? true;
 
 	return useQuery({
@@ -100,6 +104,7 @@ export const useDueLeadFollowUpsQuery = (
 			limit,
 			sortBy,
 			sortOrder,
+			search,
 		),
 		queryFn: () =>
 			fetchDueLeadFollowUps(token, {
@@ -110,6 +115,7 @@ export const useDueLeadFollowUpsQuery = (
 				limit,
 				sortBy,
 				sortOrder,
+				search,
 			}),
 		enabled: Boolean(token) && enabled,
 	});
