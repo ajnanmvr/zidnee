@@ -9,7 +9,7 @@ import {
 	HiTrash,
 	HiXMark,
 } from "react-icons/hi2";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLeadActivitiesQuery } from "@/features/leads/leads.queries";
 import { useSession } from "@/lib/session";
 import { formatActivityChangeList } from "@/lib/activity-display";

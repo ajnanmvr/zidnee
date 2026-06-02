@@ -16,6 +16,7 @@ export const leadsQueryKeys = {
 		timeFilter: "all" | "today" = "all",
 		status?: string,
 		page: number = 1,
+		limit: number = 25,
 		sortBy: string = "nextFollowUpAt",
 		sortOrder: "asc" | "desc" = "desc",
 	) =>
@@ -27,6 +28,7 @@ export const leadsQueryKeys = {
 			timeFilter,
 			status,
 			page,
+			limit,
 			sortBy,
 			sortOrder,
 		] as const,

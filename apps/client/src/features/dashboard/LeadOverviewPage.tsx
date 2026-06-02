@@ -47,14 +47,7 @@ const previousMonthRange = (range: PeriodRange): PeriodRange => {
     return monthRange(month === 0 ? year - 1 : year, month === 0 ? 11 : month - 1);
 };
 
-const isWithinRange = (value: string | null | undefined, range: PeriodRange) => {
-    const date = toDate(value);
-    if (!date) {
-        return false;
-    }
-
-    return date >= range.start && date <= range.end;
-};
+// (removed unused isWithinRange helper)
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 

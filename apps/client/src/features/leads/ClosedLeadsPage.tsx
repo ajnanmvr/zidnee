@@ -4,7 +4,6 @@ import { DataTable } from "@/components/DataTable";
 import { Panel } from "@/components/dashboard-ui";
 import { DateCell } from "@/components/DateCell";
 import { useSession } from "@/lib/session";
-import { useMeQuery } from "@/features/auth/auth.queries";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import type { LeadResponse } from "@repo/schema";
@@ -37,7 +36,6 @@ const columns = [
 
 export const ClosedLeadsPage = () => {
   const { token } = useSession();
-  const meQuery = useMeQuery(token);
   const canReadAll = useHasPermission("LEAD_READ_ALL");
   const [scope, setScope] = useState<"mine" | "all">(canReadAll ? "all" : "mine");
 
@@ -53,7 +51,7 @@ export const ClosedLeadsPage = () => {
   const data = useMemo(() => leadsQuery.data?.leads ?? [], [leadsQuery.data]);
 
   return (
-    <Panel title="Closed Leads" className="p-4">
+    <Panel title="Closed Leads">
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-slate-600">Showing closed leads with deletion reason and who deleted.</div>
         {canReadAll ? (
