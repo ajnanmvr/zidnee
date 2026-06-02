@@ -543,6 +543,7 @@ export const LeadService = {
 		offset?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
+		search?: string;
 	}): Promise<{
 		leads: Lead[];
 		total: number;
@@ -582,6 +583,16 @@ export const LeadService = {
 
 		if (filters.status) {
 			filtered = filtered.filter((lead) => lead.status === filters.status);
+		}
+
+		if (filters.search) {
+			const q = filters.search.toLowerCase();
+			filtered = filtered.filter(
+				(lead) =>
+					lead.name?.toLowerCase().includes(q) ||
+					lead.phone?.includes(filters.search!) ||
+					(lead as any).email?.toLowerCase().includes(q),
+			);
 		}
 
 		const total = filtered.filter((lead) => {

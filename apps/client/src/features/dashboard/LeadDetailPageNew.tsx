@@ -48,6 +48,9 @@ type EditLeadFormState = {
 	isOrganic?: boolean;
 };
 
+const getWhatsappNumber = (phone?: string | null) =>
+	phone?.replace(/\D/g, "") ?? "";
+
 const getStatusColor = (status?: string): { badge: string } => {
 	const colors: Record<string, { badge: string }> = {
 		FOLLOW_UP: { badge: "bg-blue-100 text-blue-700" },
@@ -1640,6 +1643,20 @@ export const LeadDetailPageNew = () => {
 							Share this link with the lead to fill out their detailed
 							information form.
 						</p>
+						<button
+							type="button"
+							onClick={() => {
+								const message = `Check this form link: ${formLinkData.formLink}`;
+								const whatsappNumber = getWhatsappNumber(lead.phone);
+								window.open(
+									`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`,
+									"_blank",
+								);
+							}}
+							className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700"
+						>
+							Share via WhatsApp
+						</button>
 					</div>
 				) : null}
 			</Modal>

@@ -220,6 +220,10 @@ export const listLeadsController = async (
 	const sortBy =
 		typeof req.query.sortBy === "string" ? req.query.sortBy : "nextFollowUpAt";
 	const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+	const search =
+		typeof req.query.search === "string" && req.query.search.trim()
+			? req.query.search.trim()
+			: undefined;
 
 	// Enforce permission for scope: if requesting all leads, require LEAD_READ_ALL
 	// otherwise require LEAD_READ_MY or LEAD_READ_ALL
@@ -246,6 +250,7 @@ export const listLeadsController = async (
 		offset,
 		sortBy,
 		sortOrder,
+		search,
 	});
 
 	res.json({

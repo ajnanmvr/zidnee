@@ -98,6 +98,8 @@ export type StudentProcessListItem = {
 		level?: string;
 		mentorId?: Types.ObjectId;
 		batchId?: Types.ObjectId;
+		profilePic?: string | null;
+		classStartConfirmedAt?: Date | null;
 	};
 };
 
@@ -535,6 +537,8 @@ export const StudentService = {
 				level: p.student?.level,
 				mentorId: p.student?.mentorId,
 				batchId: p.student?.batchId,
+				profilePic: p.student?.profilePic ?? null,
+				classStartConfirmedAt: p.student?.classStartConfirmedAt ?? null,
 			},
 		};
 	},

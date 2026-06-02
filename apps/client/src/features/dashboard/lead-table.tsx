@@ -114,185 +114,176 @@ export const buildLeadColumns = (options?: {
 	activeStage?: LeadStageId;
 	userNameById?: Map<string, string>;
 }): ColumnDef<LeadResponse>[] => [
-	{
-		id: "urgency",
-		header: "Status",
-		cell: (info) => {
-			return <UrgencyIndicator lead={info.row.original} />;
+		{
+			id: "urgency",
+			header: "Status",
+			cell: (info) => {
+				return <UrgencyIndicator lead={info.row.original} />;
+			},
+			enableSorting: false,
 		},
-		enableSorting: false,
-	},
-	{
-		accessorKey: "slNo",
-		header: "SL No",
-		cell: (info) => (
-			<div className="inline-flex items-center gap-2 rounded-2xl px-3 py-1.5 font-semibold text-gray-900">
-				<span>{info.getValue() ? `#${String(info.getValue())}` : "-"}</span>
-			</div>
-		),
-		enableSorting: true,
-	},
-	{
-		accessorKey: "phone",
-		header: "Phone",
-		cell: (info) => (
-			<div className="flex items-center gap-2">
-				{info.row.original.isOrganic ? (
-					<HiStar style={{ color: '#f59e0b' }} className="h-4 w-4" aria-hidden="true" title="Organic lead" />
-				) : (
-					<HiOutlineStar style={{ color: '#d1d5db' }} className="h-4 w-4" aria-hidden="true" title="Not organic" />
-				)}
-				<Link
-					className="font-semibold text-blue-600 hover:text-blue-600/80"
-					to={`/leads/${info.row.original.id}`}
-				>
-					{String(info.getValue())}
-				</Link>
-			</div>
-		),
-		enableSorting: true,
-	},
-	{
-		accessorKey: "name",
-		header: "Name",
-		cell: (info) => (
-			<div className="font-semibold text-gray-900">
-				{(info.getValue() as string) ?? "-"}
-			</div>
-		),
-		enableSorting: true,
-	},
-	{
-		accessorKey: "courseType",
-		header: "Course",
-		cell: (info) => {
-			const val = info.getValue() as string | undefined | null;
-			if (!val) return <span className="text-sm text-slate-500">-</span>;
-			if (String(val).toUpperCase() === "GROUP") {
+		{
+			accessorKey: "slNo",
+			header: "SL No",
+			cell: (info) => (
+				<div className="inline-flex items-center gap-2 rounded-2xl px-3 py-1.5 font-semibold text-gray-900">
+					<span>{info.getValue() ? `#${String(info.getValue())}` : "-"}</span>
+				</div>
+			),
+			enableSorting: true,
+		},
+		{
+			accessorKey: "phone",
+			header: "Phone",
+			cell: (info) => (
+				<div className="flex items-center gap-2">
+					{info.row.original.isOrganic ? (
+						<HiStar style={{ color: '#f59e0b' }} className="h-4 w-4" aria-hidden="true" title="Organic lead" />
+					) : (
+						<HiOutlineStar style={{ color: '#d1d5db' }} className="h-4 w-4" aria-hidden="true" title="Not organic" />
+					)}
+					<Link
+						className="font-semibold text-blue-600 hover:text-blue-600/80"
+						to={`/leads/${info.row.original.id}`}
+					>
+						{String(info.getValue())}
+					</Link>
+				</div>
+			),
+			enableSorting: true,
+		},
+		{
+			accessorKey: "name",
+			header: "Name",
+			cell: (info) => (
+				<div className="font-semibold text-gray-900">
+					{(info.getValue() as string) ?? "-"}
+				</div>
+			),
+			enableSorting: true,
+		},
+		{
+			accessorKey: "courseType",
+			header: "Course",
+			cell: (info) => {
+				const val = info.getValue() as string | undefined | null;
+				if (!val) return <span className="text-sm text-slate-500">-</span>;
+				if (String(val).toUpperCase() === "GROUP") {
+					return (
+						<span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+							Group
+						</span>
+					);
+				}
 				return (
-					<span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-						Group
+					<span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+						Individual
 					</span>
 				);
-			}
-			return (
-				<span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-					Individual
-				</span>
-			);
+			},
+			enableSorting: true,
 		},
-		enableSorting: true,
-	},
-	{
-		id: "handler",
-		header: "Handler",
-		cell: (info) => {
-			const lead = info.row.original as LeadResponse;
-			const latestDemo = getLatestLeadDemo(lead);
-			const stage = options?.activeStage;
-			const nameMap = options?.userNameById;
-			if (stage === "demoRequest") {
-				const controllerId = lead.demoRequestAssignedTo ?? null;
-				if (!controllerId)
-					return <span className="text-sm text-slate-500">-</span>;
+		{
+			id: "handler",
+			header: "Handler",
+			cell: (info) => {
+				const lead = info.row.original as LeadResponse;
+				const latestDemo = getLatestLeadDemo(lead);
+				const stage = options?.activeStage;
+				const nameMap = options?.userNameById;
+				if (stage === "demoRequest") {
+					const controllerId = lead.demoRequestAssignedTo ?? null;
+					if (!controllerId)
+						return <span className="text-sm text-slate-500">-</span>;
+					return (
+						<span className="text-sm">{nameMap?.get(controllerId) ?? "-"}</span>
+					);
+				}
+				if (stage === "demoAssigned" || stage === "demoCompleted") {
+					const mentorId = latestDemo?.mentorId ?? null;
+					if (!mentorId) return <span className="text-sm text-slate-500">-</span>;
+					return <span className="text-sm">{nameMap?.get(mentorId) ?? "-"}</span>;
+				}
+				return <span className="text-sm text-slate-500">-</span>;
+			},
+		},
+		{
+			id: "demoStatus",
+			header: "Status",
+			cell: (info) => {
+				const lead = info.row.original;
+				const status = getLeadStatusTone(lead);
 				return (
-					<span className="text-sm">{nameMap?.get(controllerId) ?? "-"}</span>
+					<span
+						className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
+					>
+						{status.label}
+					</span>
 				);
-			}
-			if (stage === "demoAssigned" || stage === "demoCompleted") {
-				const mentorId = latestDemo?.mentorId ?? null;
-				if (!mentorId) return <span className="text-sm text-slate-500">-</span>;
-				return <span className="text-sm">{nameMap?.get(mentorId) ?? "-"}</span>;
-			}
-			return <span className="text-sm text-slate-500">-</span>;
+			},
 		},
-	},
-	{
-		id: "demoStatus",
-		header: "Status",
-		cell: (info) => {
-			const lead = info.row.original;
-			const status = getLeadStatusTone(lead);
-			return (
-				<span
-					className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
-				>
-					{status.label}
-				</span>
-			);
+		{
+			accessorKey: "nextFollowUpAt",
+			header: "Follow-up",
+			cell: (info) => {
+				return <DateCell date={String(info.getValue())} />;
+			},
+			enableSorting: true,
 		},
-	},
-	{
-		accessorKey: "nextFollowUpAt",
-		header: "Follow-up",
-		cell: (info) => {
-			return <DateCell date={String(info.getValue())} />;
-		},
-		enableSorting: true,
-	},
-	{
-		accessorKey: "closeReason",
-		header: "Close Reason",
-		cell: (info) => {
-			const val = info.getValue() as string | undefined | null;
-			if (!val || String(val).trim() === "") return <span className="text-sm text-slate-500">-</span>;
-			return <div className="text-sm text-gray-700 max-w-xs truncate">{String(val)}</div>;
-		},
-		enableSorting: false,
-	},
-	{
-		id: "viewAction",
-		header: "",
-		cell: (info) => {
-			const lead = info.row.original;
-			const defaultActions: LeadTableAction[] = [
-				{
-					key: "postpone",
-					label: "Postpone",
-					to: (item) => `/leads/${item.id}?action=postpone`,
-					className:
-						"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
-				},
-			];
-			const actions = options?.getActions
-				? options.getActions(lead)
-				: defaultActions;
+		// `closeReason` intentionally excluded from main dashboard table.
+		{
+			id: "viewAction",
+			header: "",
+			cell: (info) => {
+				const lead = info.row.original;
+				const defaultActions: LeadTableAction[] = [
+					{
+						key: "postpone",
+						label: "Postpone",
+						to: (item) => `/leads/${item.id}?action=postpone`,
+						className:
+							"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
+					},
+				];
+				const actions = options?.getActions
+					? options.getActions(lead)
+					: defaultActions;
 
-			return (
-				<div className="flex flex-wrap items-center gap-2">
-					{actions.map((action) => {
-						if (action.to) {
+				return (
+					<div className="flex flex-wrap items-center gap-2">
+						{actions.map((action) => {
+							if (action.to) {
+								return (
+									<Link
+										key={action.key}
+										className={
+											action.className ??
+											"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+										}
+										to={action.to(lead)}
+									>
+										{action.label}
+									</Link>
+								);
+							}
+
 							return (
-								<Link
+								<button
 									key={action.key}
+									type="button"
 									className={
 										action.className ??
 										"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
 									}
-									to={action.to(lead)}
+									onClick={() => action.onClick?.(lead)}
 								>
 									{action.label}
-								</Link>
+								</button>
 							);
-						}
-
-						return (
-							<button
-								key={action.key}
-								type="button"
-								className={
-									action.className ??
-									"inline-flex items-center rounded-2xl border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-								}
-								onClick={() => action.onClick?.(lead)}
-							>
-								{action.label}
-							</button>
-						);
-					})}
-				</div>
-			);
+						})}
+					</div>
+				);
+			},
+			enableSorting: false,
 		},
-		enableSorting: false,
-	},
-];
+	];

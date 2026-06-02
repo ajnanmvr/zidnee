@@ -24,6 +24,7 @@ export const fetchDueLeadFollowUps = async (
 		limit?: number;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
+		search?: string;
 	},
 ) => {
 	const scope = options?.scope ?? "all";
@@ -38,6 +39,9 @@ export const fetchDueLeadFollowUps = async (
 	let query = `?scope=${scope}&timeFilter=${timeFilter}&limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
 	if (status) {
 		query += `&status=${status}`;
+	}
+	if (options?.search) {
+		query += `&search=${encodeURIComponent(options.search)}`;
 	}
 
 	return requestWithSchema(

@@ -2,7 +2,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useCompleteProcessMutation, useSetTaskCompletedMutation } from "@/features/students/students.queries";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { HiArrowLeft, HiClipboardDocument } from "react-icons/hi2";
+import { HiArrowLeft, HiCheckCircle, HiClipboardDocument, HiXCircle } from "react-icons/hi2";
 import { Panel } from "@/components/dashboard-ui";
 import { useStudentProcessQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
@@ -40,6 +40,7 @@ export const StudentProcessDetailPage = () => {
     const [modalTaskLabel, setModalTaskLabel] = useState<string | null>(null);
     const [modalTaskCompleted, setModalTaskCompleted] = useState(false);
     const [isCopyingMessage, setIsCopyingMessage] = useState(false);
+    const [showForceConfirm, setShowForceConfirm] = useState(false);
     const setTaskMutation = useSetTaskCompletedMutation();
     const completeProcessMutation = useCompleteProcessMutation();
 
@@ -197,59 +198,131 @@ export const StudentProcessDetailPage = () => {
                 </div>
 
                 <div className="grid gap-3">
-                    {process.tasks.map((task: any) => (
-                        <div
-                            key={task.key}
-                            className={`flex items-start gap-4 rounded-2xl border px-4 py-4 shadow-sm ${isArchived ? "border-transparent bg-slate-50" : "border-slate-200 bg-white"}`}
-                        >
-                            <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${task.completed ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-slate-100 text-slate-400"}`}>
-                                {task.completed ? "✓" : ""}
-                            </div>
+                    {process.tasks.map((task: any) => {
+                        const isWelcomeTask = task.key === "send-welcome-message";
+                        const hasProfile = Boolean(process.student?.profilePic);
+                        const hasStartDate = Boolean(process.student?.classStartConfirmedAt);
+                        const welcomeConditionsMet = hasProfile && hasStartDate;
 
-                            <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <p className={`text-sm font-semibold ${isArchived ? "text-slate-700" : "text-slate-900"}`}>{task.label}</p>
-
-                                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${task.completed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                                        {task.completed ? "Done" : "Pending"}
-                                    </span>
+                        return (
+                            <div
+                                key={task.key}
+                                className={`flex items-start gap-4 rounded-2xl border px-4 py-4 shadow-sm ${isArchived ? "border-transparent bg-slate-50" : "border-slate-200 bg-white"}`}
+                            >
+                                <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${task.completed ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-slate-100 text-slate-400"}`}>
+                                    {task.completed ? "✓" : ""}
                                 </div>
 
-                                <p className="mt-1 text-xs text-slate-500">
-                                    {task.completedAt ? `Completed ${new Date(task.completedAt).toLocaleDateString()}` : "Not completed yet"}
-                                </p>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <p className={`text-sm font-semibold ${isArchived ? "text-slate-700" : "text-slate-900"}`}>{task.label}</p>
 
-                                {task.whatsappMessage ? (
-                                    <p className="mt-1 text-xs text-slate-500">WhatsApp automation for the student&apos;s primary number.</p>
-                                ) : null}
-                            </div>
+                                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${task.completed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                            {task.completed ? "Done" : "Pending"}
+                                        </span>
+                                    </div>
 
-                            {!isArchived ? (
-                                <div className="flex shrink-0 flex-col items-end gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
-                                                openStatusModal(task);
-                                                return;
-                                            }
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        {task.completedAt ? `Completed ${new Date(task.completedAt).toLocaleDateString()}` : "Not completed yet"}
+                                    </p>
 
-                                            if (task.whatsappMessage) {
-                                                void handleTaskAction(task);
-                                            }
-                                        }}
-                                        disabled={!(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key))}
-                                        className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition ${task.completed ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-900 text-white hover:bg-slate-800"} ${(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key)) ? " focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-60"}`}
-                                    >
-                                        {task.completed ? "Completed" : "Open"}
-                                    </button>
-                                    {task.whatsappMessage ? (
-                                        <button onClick={() => void handleTaskAction(task)} className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">Send on WhatsApp</button>
+                                    {task.whatsappMessage && !isWelcomeTask ? (
+                                        <p className="mt-1 text-xs text-slate-500">WhatsApp automation for the student&apos;s primary number.</p>
+                                    ) : null}
+
+                                    {isWelcomeTask && !isArchived ? (
+                                        <div className="mt-2 space-y-1">
+                                            <div className="flex items-center gap-1.5 text-xs">
+                                                {hasProfile
+                                                    ? <HiCheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+                                                    : <HiXCircle className="h-4 w-4 text-slate-400 shrink-0" />}
+                                                <span className={hasProfile ? "text-emerald-700 font-medium" : "text-slate-500"}>
+                                                    Profile photo uploaded
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-xs">
+                                                {hasStartDate
+                                                    ? <HiCheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+                                                    : <HiXCircle className="h-4 w-4 text-slate-400 shrink-0" />}
+                                                <span className={hasStartDate ? "text-emerald-700 font-medium" : "text-slate-500"}>
+                                                    Starting date confirmed
+                                                    {hasStartDate && process.student?.classStartConfirmedAt
+                                                        ? ` · ${new Date(process.student.classStartConfirmedAt).toLocaleDateString()}`
+                                                        : ""}
+                                                </span>
+                                            </div>
+                                        </div>
                                     ) : null}
                                 </div>
-                            ) : null}
-                        </div>
-                    ))}
+
+                                {!isArchived ? (
+                                    <div className="flex shrink-0 flex-col items-end gap-2">
+                                        {isWelcomeTask ? (
+                                            <>
+                                                <button
+                                                    onClick={() => void handleTaskAction(task)}
+                                                    className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                                                >
+                                                    Send on WhatsApp
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={!welcomeConditionsMet && !task.completed}
+                                                    title={!welcomeConditionsMet && !task.completed ? "Student must upload their profile and confirm starting date first" : undefined}
+                                                    onClick={async () => {
+                                                        if (!welcomeConditionsMet && !task.completed) return;
+                                                        try {
+                                                            await setTaskMutation.mutateAsync({
+                                                                processId: process.id,
+                                                                taskKey: task.key,
+                                                                completed: !task.completed,
+                                                            });
+                                                        } catch (e) {
+                                                            toast.error(e instanceof Error ? e.message : "Failed to update task");
+                                                        }
+                                                    }}
+                                                    className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition ${task.completed ? "bg-slate-200 text-slate-700 hover:bg-slate-300" : welcomeConditionsMet ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"}`}
+                                                >
+                                                    {task.completed ? "Mark as not done" : "Mark as done"}
+                                                </button>
+                                                {!task.completed ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowForceConfirm(true)}
+                                                        className="inline-flex items-center rounded-full border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
+                                                    >
+                                                        Mark done anyway
+                                                    </button>
+                                                ) : null}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (ADMISSION_MODAL_TASK_KEYS.has(task.key)) {
+                                                            openStatusModal(task);
+                                                            return;
+                                                        }
+                                                        if (task.whatsappMessage) {
+                                                            void handleTaskAction(task);
+                                                        }
+                                                    }}
+                                                    disabled={!(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key))}
+                                                    className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition ${task.completed ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-900 text-white hover:bg-slate-800"} ${(task.whatsappMessage || ADMISSION_MODAL_TASK_KEYS.has(task.key)) ? " focus:outline-none focus:ring-2 focus:ring-emerald-400" : " opacity-60"}`}
+                                                >
+                                                    {task.completed ? "Completed" : "Open"}
+                                                </button>
+                                                {task.whatsappMessage ? (
+                                                    <button onClick={() => void handleTaskAction(task)} className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">Send on WhatsApp</button>
+                                                ) : null}
+                                            </>
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Removed duplicate welcome panel — task row contains action buttons */}
@@ -320,6 +393,46 @@ export const StudentProcessDetailPage = () => {
                                 {isCopyingMessage ? "Copying..." : "Copy message"}
                             </button>
                         ) : null}
+                    </div>
+                </div>
+            ) : null}
+
+            {showForceConfirm ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowForceConfirm(false)} />
+                    <div className="relative z-10 w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                        <h3 className="text-base font-semibold text-slate-900">Mark as done anyway?</h3>
+                        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
+                            ⚠️ The student hasn't uploaded their profile photo and/or confirmed their starting date yet. Even so, this task will be marked as done.
+                        </div>
+                        <div className="mt-4 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowForceConfirm(false)}
+                                className="flex-1 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={setTaskMutation.isPending}
+                                onClick={async () => {
+                                    try {
+                                        await setTaskMutation.mutateAsync({
+                                            processId: process.id,
+                                            taskKey: "send-welcome-message",
+                                            completed: true,
+                                        });
+                                        setShowForceConfirm(false);
+                                    } catch (e) {
+                                        toast.error(e instanceof Error ? e.message : "Failed to update task");
+                                    }
+                                }}
+                                className="flex-1 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60"
+                            >
+                                {setTaskMutation.isPending ? "Saving..." : "Yes, mark as done"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             ) : null}
