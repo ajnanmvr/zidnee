@@ -163,11 +163,6 @@ export const MentorDetailPage = () => {
 		() => mentorStudents.filter((s) => s.status === "BREAK"),
 		[mentorStudents],
 	);
-	// droppedStudents kept for count reference but not shown
-	const droppedStudents = useMemo(
-		() => allMentorStudents.filter((s) => s.status === "DROPPED"),
-		[allMentorStudents],
-	);
 
 	const onDeleteMentor = async () => {
 		if (!mentorId) return;

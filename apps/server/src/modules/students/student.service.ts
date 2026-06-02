@@ -98,6 +98,8 @@ export type StudentProcessListItem = {
 		level?: string;
 		mentorId?: Types.ObjectId;
 		batchId?: Types.ObjectId;
+		profilePic?: string | null;
+		classStartConfirmedAt?: Date | null;
 	};
 };
 
