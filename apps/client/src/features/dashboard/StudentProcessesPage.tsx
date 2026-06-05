@@ -1,13 +1,29 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HiArrowLeft, HiMagnifyingGlass } from "react-icons/hi2";
-import { Panel } from "@/components/dashboard-ui";
+import { HiAcademicCap, HiArrowPath, HiMagnifyingGlass, HiMinusCircle, HiUserPlus } from "react-icons/hi2";
 import {
 	useStudentProcessesQuery,
 	useCompleteProcessMutation,
 } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
+
+type ProcessKind = "admission" | "drop" | "change" | "other";
+
+const getProcessKind = (label: string): ProcessKind => {
+	const l = label.toLowerCase();
+	if (l.includes("admission") || l.includes("welcome")) return "admission";
+	if (l.includes("drop")) return "drop";
+	if (l.includes("convert") || l.includes("change") || l.includes("steam") || l.includes("→")) return "change";
+	return "other";
+};
+
+const PROCESS_KIND_META: Record<ProcessKind, { Icon: React.ComponentType<{ className?: string }>; badge: string; dot: string }> = {
+	admission: { Icon: HiUserPlus, badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+	drop:      { Icon: HiMinusCircle, badge: "bg-red-100 text-red-600", dot: "bg-red-400" },
+	change:    { Icon: HiArrowPath, badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+	other:     { Icon: HiAcademicCap, badge: "bg-gray-100 text-gray-600", dot: "bg-gray-400" },
+};
 
 const timeAgo = (dateString?: string | null) => {
 	if (!dateString) return "-";
@@ -79,188 +95,159 @@ export const StudentProcessesPage = () => {
 	}, [allProcesses, searchTerm]);
 
 	return (
-		<div className="grid gap-6">
-			<section className="rounded-4xl border border-slate-200 bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-sm">
-				<div className="flex flex-wrap items-start justify-between gap-4">
-					<div className="max-w-2xl">
-						<button
-							type="button"
-							onClick={() => navigate(-1)}
-							className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-						>
-							<HiArrowLeft className="h-4 w-4" />
-							Back
-						</button>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
-							Student processes
-						</p>
-						<h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-							All process records in one place
-						</h1>
-						<p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-							Track every student process, see task completion, and jump back to the
-							student profile when needed.
-						</p>
-					</div>
-					<div className="grid grid-cols-1 gap-3 text-sm sm:min-w-72">
-						<div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
-							<p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-								Processes
-							</p>
-							<p className="mt-2 text-2xl font-semibold text-white">
-								{filteredProcesses.length}
-							</p>
-						</div>
-					</div>
+		<div className="space-y-4">
+			{/* Toolbar */}
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setLoadAllRequested(false)}
+						className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-emerald-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:border-emerald-400 hover:text-emerald-700"}`}
+					>
+						Assigned to me
+					</button>
+					<button
+						type="button"
+						onClick={() => setLoadAllRequested(true)}
+						disabled={!canReadAllProcesses}
+						className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:border-emerald-400 hover:text-emerald-700"} disabled:opacity-40`}
+					>
+						All processes
+					</button>
+					<Link
+						to="/process-history"
+						className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-600 transition hover:border-emerald-400 hover:text-emerald-700"
+					>
+						History
+					</Link>
 				</div>
-			</section>
+				<div className="relative">
+					<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+					<input
+						type="search"
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						placeholder="Search by student, ZID, or label…"
+						className="w-64 rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-500"
+					/>
+				</div>
+			</div>
 
-			<Panel
-				title="Processes"
-				description="Browse all active and archived student process records"
-				action={
-					<div className="flex items-center gap-3">
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								onClick={() => setLoadAllRequested(false)}
-								className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:text-emerald-700"}`}
-							>
-								Assigned to me
-							</button>
-							<button
-								type="button"
-								onClick={() => setLoadAllRequested(true)}
-								disabled={!canReadAllProcesses}
-								className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:text-emerald-700"}`}
-							>
-								All processes
-							</button>
-						</div>
-						<Link
-							to="/process-history"
-							className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
-						>
-							Process history
-						</Link>
-						<label className="relative block w-full min-w-72 max-w-md">
-							<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-							<input
-								type="search"
-								value={searchTerm}
-								onChange={(event) => setSearchTerm(event.target.value)}
-								placeholder="Search by student, ZID, or process label"
-								className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-							/>
-						</label>
-					</div>
-				}
-			>
+			{/* Table */}
+			<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
 				{processesQuery.isLoading ? (
-					<div className="py-10 text-center text-sm text-slate-600">Loading processes...</div>
+					<p className="py-10 text-center text-sm text-gray-500">Loading…</p>
 				) : processesQuery.isError ? (
-					<div className="py-10 text-center text-sm text-slate-600">
-						<p className="mb-2">Unable to load processes.</p>
-						{processesQuery.error ? (
-							<pre className="mx-auto max-w-xl whitespace-pre-wrap text-left text-xs text-rose-600">
-								{(processesQuery.error as any)?.payload?.message || (processesQuery.error as any)?.message || String(processesQuery.error)}
-							</pre>
-						) : null}
-					</div>
+					<p className="py-10 text-center text-sm text-red-500">Unable to load processes.</p>
 				) : filteredProcesses.length === 0 ? (
-					<div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
-						No matching processes found.
-					</div>
+					<p className="py-10 text-center text-sm text-gray-400">No matching processes.</p>
 				) : (
 					<>
-					<table className="w-full table-auto rounded-2xl border-collapse overflow-hidden bg-white">
+					<table className="w-full text-sm">
 						<thead>
-							<tr className="text-left text-sm text-slate-600">
+							<tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+								<th className="px-4 py-3">Type</th>
 								<th className="px-4 py-3">Process</th>
 								<th className="px-4 py-3">Student</th>
-								<th className="px-4 py-3">Status</th>
 								<th className="px-4 py-3">Tasks</th>
 								<th className="px-4 py-3">Progress</th>
+								<th className="px-4 py-3" />
 							</tr>
 						</thead>
-						<tbody>
-								{filteredProcesses
-									.slice((page - 1) * limit, page * limit)
-									.map((process) => {
-									const completedCount = process.tasks.filter((task) => task.completed).length;
-									const progress = process.tasks.length ? Math.round((completedCount / process.tasks.length) * 100) : 0;
-									return (
-										<tr key={process.id} className="border-t">
-											<td className="px-4 py-3">
-													<div className="flex items-start justify-between gap-3">
-														<div>
-															<Link to={`/processes/${process.id}`} className="text-slate-800 font-semibold hover:underline">
-																{process.label}
-															</Link>
-															<div className="text-sm text-slate-500">Created {timeAgo(process.createdAt as any)}</div>
-														</div>
-														<Link to={`/processes/${process.id}`} className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100">
-															View
-														</Link>
-													</div>
-											</td>
-											<td className="px-4 py-3">
-													<Link to={`/students/${process.student.id}`} className="text-slate-800 font-semibold hover:underline">
-														{process.student.zid}
-													</Link>
-													<div className="text-sm text-slate-500">{process.student.name ?? "Unnamed"}</div>
-													<div className="text-sm text-slate-500">{process.student.phone}</div>
-											</td>
-												<td className="px-4 py-3">
-													<div className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-														In process
-													</div>
-													<div className="mt-2 text-sm text-slate-500">{process.status}</div>
-												</td>
-											<td className="px-4 py-3">{completedCount}/{process.tasks.length}</td>
-											<td className="px-4 py-3">
-												<div className="w-full bg-slate-100 h-2 rounded-full">
-													<div className="h-2 rounded-full bg-emerald-500" style={{ width: `${progress}%` }} />
+						<tbody className="divide-y divide-gray-100">
+							{filteredProcesses.slice((page - 1) * limit, page * limit).map((process) => {
+								const completedCount = process.tasks.filter((t) => t.completed).length;
+								const progress = process.tasks.length
+									? Math.round((completedCount / process.tasks.length) * 100)
+									: 0;
+								const kind = getProcessKind(process.label);
+								const meta = PROCESS_KIND_META[kind];
+								return (
+									<tr key={process.id} className="hover:bg-gray-50">
+										<td className="px-4 py-3">
+											<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.badge}`}>
+												<meta.Icon className="h-3 w-3 shrink-0" />
+												{kind.charAt(0).toUpperCase() + kind.slice(1)}
+											</span>
+										</td>
+										<td className="px-4 py-3">
+											<Link to={`/processes/${process.id}`} className="font-medium text-gray-800 hover:text-emerald-700">
+												{process.label}
+											</Link>
+											<p className="text-xs text-gray-400">{timeAgo(process.createdAt as any)}</p>
+										</td>
+										<td className="px-4 py-3">
+											<Link to={`/students/${process.student.id}`} className="font-medium text-gray-800 hover:text-emerald-700">
+												{process.student.zid}
+											</Link>
+											<p className="text-xs text-gray-400">{process.student.name ?? process.student.phone}</p>
+										</td>
+										<td className="px-4 py-3 text-gray-600">
+											{completedCount}/{process.tasks.length}
+										</td>
+										<td className="px-4 py-3">
+											<div className="flex items-center gap-2">
+												<div className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
+													<div
+														className={`h-full rounded-full ${meta.dot}`}
+														style={{ width: `${progress}%` }}
+													/>
 												</div>
-												{progress === 100 && (
-													<div className="mt-2">
-														<button
-															onClick={async () => {
-															if (confirm("Mark this process as completed?")) {
-																await completeProcess.mutateAsync({ processId: process.id });
-																navigate("/processes");
-															}
-															}}
-															disabled={completeProcess.isPending}
-															className="mt-1 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-3 py-1 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-														>
-															Mark as completed
-														</button>
-													</div>
-												)}
-											</td>
-										</tr>
-									);
-								})}
+												<span className="text-xs text-gray-500">{progress}%</span>
+											</div>
+										</td>
+										<td className="px-4 py-3 text-right">
+											{progress === 100 ? (
+												<button
+													type="button"
+													onClick={async () => {
+														if (confirm("Mark this process as completed?")) {
+															await completeProcess.mutateAsync({ processId: process.id });
+															navigate("/processes");
+														}
+													}}
+													disabled={completeProcess.isPending}
+													className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+												>
+													Complete
+												</button>
+											) : (
+												<Link
+													to={`/processes/${process.id}`}
+													className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-600 hover:border-emerald-300 hover:text-emerald-700"
+												>
+													View
+												</Link>
+											)}
+										</td>
+									</tr>
+								);
+							})}
 						</tbody>
 					</table>
 
-					{/* Pagination controls */}
-					<div className="flex items-center justify-between py-4">
-						<div className="text-sm text-slate-600">Showing {Math.min(filteredProcesses.length, limit)} of {filteredProcesses.length} processes</div>
+					<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+						<p className="text-xs text-gray-500">
+							{filteredProcesses.length} process{filteredProcesses.length !== 1 ? "es" : ""}
+						</p>
 						<div className="flex items-center gap-2">
-							<select value={String(limit)} onChange={(e) => setLimit(Number(e.target.value))} className="rounded-lg border border-gray-300 px-3 py-1 text-sm">
+							<select
+								value={String(limit)}
+								onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+								className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
+							>
 								<option value="10">10</option>
 								<option value="20">20</option>
 								<option value="50">50</option>
 							</select>
-							<button type="button" onClick={() => setPage(Math.max(1, page - 1))} className="rounded-lg border border-gray-300 px-3 py-1 text-sm">Prev</button>
-							<button type="button" onClick={() => setPage(page + 1)} className="rounded-lg border border-gray-300 px-3 py-1 text-sm">Next</button>
+							<button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg border border-gray-200 px-2 py-1 text-xs disabled:opacity-40">Prev</button>
+							<span className="text-xs text-gray-500">{page}</span>
+							<button type="button" disabled={page * limit >= filteredProcesses.length} onClick={() => setPage((p) => p + 1)} className="rounded-lg border border-gray-200 px-2 py-1 text-xs disabled:opacity-40">Next</button>
 						</div>
 					</div>
 					</>
 				)}
-			</Panel>
+			</div>
 		</div>
 	);
 };

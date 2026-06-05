@@ -28,14 +28,14 @@ type PublicFormValues = {
 	alternateWhatsappNumber: string;
 	studentInfo: string;
 	preferredLanguage:
-		| ""
-		| "Malayalam Only"
-		| "English Only"
-		| "Malayalam - English Mixed";
+	| ""
+	| "Malayalam Only"
+	| "English Only"
+	| "Malayalam - English Mixed";
 	preferredDays: string[];
 	preferredSchedule: string;
 	preferredTimeslots: PreferredTimeslot[];
-		preferredPlan: PreferredPlan | null;
+	preferredPlan: PreferredPlan | null;
 	preferredStartTime: string; // hh:mm
 	hearAboutUs: string;
 	demoAvailability: string;
@@ -67,207 +67,36 @@ type ValidateFormLinkResponse = {
 	prefill?: Partial<PublicFormValues> & { courseType?: "GROUP" | "INDIVIDUAL" };
 };
 
+const ALLOWED_COUNTRIES = [
+	"Bahrain",
+	"Canada",
+	"China",
+	"Denmark",
+	"Egypt",
+	"France",
+	"Germany",
+	"Ireland",
+	"Iraq",
+	"Italy",
+	"Japan",
+	"Kuwait",
+	"Malaysia",
+	"Netherlands",
+	"Oman",
+	"Qatar",
+	"Saudi Arabia",
+	"Singapore",
+	"Sweden",
+	"Switzerland",
+	"UAE",
+	"UK",
+	"USA",
+	"Yemen",
+];
+
 // Default form options (fallback in case preload fails)
 const DEFAULT_FORM_OPTIONS: FormOptions = {
-	countries: [
-		"Afghanistan",
-		"Albania",
-		"Algeria",
-		"Andorra",
-		"Angola",
-		"Antigua and Barbuda",
-		"Argentina",
-		"Armenia",
-		"Australia",
-		"Austria",
-		"Azerbaijan",
-		"Bahamas",
-		"Bahrain",
-		"Bangladesh",
-		"Barbados",
-		"Belarus",
-		"Belgium",
-		"Belize",
-		"Benin",
-		"Bhutan",
-		"Bolivia",
-		"Bosnia and Herzegovina",
-		"Botswana",
-		"Brazil",
-		"Brunei",
-		"Bulgaria",
-		"Burkina Faso",
-		"Burundi",
-		"Cabo Verde",
-		"Cambodia",
-		"Cameroon",
-		"Canada",
-		"Central African Republic",
-		"Chad",
-		"Chile",
-		"China",
-		"Colombia",
-		"Comoros",
-		"Costa Rica",
-		"Cote d'Ivoire",
-		"Croatia",
-		"Cuba",
-		"Cyprus",
-		"Czech Republic",
-		"Democratic Republic of the Congo",
-		"Denmark",
-		"Djibouti",
-		"Dominica",
-		"Dominican Republic",
-		"Ecuador",
-		"Egypt",
-		"El Salvador",
-		"Equatorial Guinea",
-		"Eritrea",
-		"Estonia",
-		"Eswatini",
-		"Ethiopia",
-		"Fiji",
-		"Finland",
-		"France",
-		"Gabon",
-		"Gambia",
-		"Georgia",
-		"Germany",
-		"Ghana",
-		"Greece",
-		"Grenada",
-		"Guatemala",
-		"Guinea",
-		"Guinea-Bissau",
-		"Guyana",
-		"Haiti",
-		"Honduras",
-		"Hungary",
-		"Iceland",
-		"India",
-		"Indonesia",
-		"Iran",
-		"Iraq",
-		"Ireland",
-		"Israel",
-		"Italy",
-		"Jamaica",
-		"Japan",
-		"Jordan",
-		"Kazakhstan",
-		"Kenya",
-		"Kiribati",
-		"Kosovo",
-		"Kuwait",
-		"Kyrgyzstan",
-		"Laos",
-		"Latvia",
-		"Lebanon",
-		"Lesotho",
-		"Liberia",
-		"Libya",
-		"Liechtenstein",
-		"Lithuania",
-		"Luxembourg",
-		"Madagascar",
-		"Malawi",
-		"Malaysia",
-		"Maldives",
-		"Mali",
-		"Malta",
-		"Marshall Islands",
-		"Mauritania",
-		"Mauritius",
-		"Mexico",
-		"Micronesia",
-		"Moldova",
-		"Monaco",
-		"Mongolia",
-		"Montenegro",
-		"Morocco",
-		"Mozambique",
-		"Myanmar",
-		"Namibia",
-		"Nauru",
-		"Nepal",
-		"Netherlands",
-		"New Zealand",
-		"Nicaragua",
-		"Niger",
-		"Nigeria",
-		"North Korea",
-		"North Macedonia",
-		"Norway",
-		"Oman",
-		"Pakistan",
-		"Palau",
-		"Panama",
-		"Papua New Guinea",
-		"Paraguay",
-		"Peru",
-		"Philippines",
-		"Poland",
-		"Portugal",
-		"Qatar",
-		"Republic of the Congo",
-		"Romania",
-		"Russia",
-		"Rwanda",
-		"Saint Kitts and Nevis",
-		"Saint Lucia",
-		"Saint Vincent and the Grenadines",
-		"Samoa",
-		"San Marino",
-		"Sao Tome and Principe",
-		"Saudi Arabia",
-		"Senegal",
-		"Serbia",
-		"Seychelles",
-		"Sierra Leone",
-		"Singapore",
-		"Slovakia",
-		"Slovenia",
-		"Solomon Islands",
-		"Somalia",
-		"South Africa",
-		"South Korea",
-		"South Sudan",
-		"Spain",
-		"Sri Lanka",
-		"Sudan",
-		"Suriname",
-		"Sweden",
-		"Switzerland",
-		"Syria",
-		"Taiwan",
-		"Tajikistan",
-		"Tanzania",
-		"Thailand",
-		"Timor-Leste",
-		"Togo",
-		"Tonga",
-		"Trinidad and Tobago",
-		"Tunisia",
-		"Turkey",
-		"Turkmenistan",
-		"Tuvalu",
-		"Uganda",
-		"Ukraine",
-		"United Arab Emirates",
-		"United Kingdom",
-		"United States",
-		"Uruguay",
-		"Uzbekistan",
-		"Vanuatu",
-		"Vatican City",
-		"Venezuela",
-		"Vietnam",
-		"Yemen",
-		"Zambia",
-		"Zimbabwe",
-		"Other",
-	],
+	countries: ALLOWED_COUNTRIES,
 	standards: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
 	days: [
 		"Monday",
@@ -405,49 +234,32 @@ const validateFormLink = async (
 };
 
 const preloadFormOptions = async (): Promise<FormOptions> => {
-	// Fetch countries and phone codes from Rest Countries API
+	// Fetch phone codes only — countries are fixed to ALLOWED_COUNTRIES
 	try {
 		const res = await fetch("https://restcountries.com/v3.1/all");
 		if (!res.ok) return DEFAULT_FORM_OPTIONS;
 		const data = await res.json();
 
-		const countriesSet = new Set<string>();
 		const phoneMap = new Map<string, string>();
 
 		for (const c of data) {
 			const name = c?.name?.common;
-			if (name) countriesSet.add(name);
-
 			const idd = c?.idd;
 			if (idd && idd.root) {
-				const root: string = idd.root; // e.g. "+91"
-				const suffixes: string[] = Array.isArray(idd.suffixes)
-					? idd.suffixes
-					: [];
+				const root: string = idd.root;
+				const suffixes: string[] = Array.isArray(idd.suffixes) ? idd.suffixes : [];
 				const suffix = suffixes.length > 0 ? suffixes[0] : "";
-				// normalize: if suffix is empty string, code is root
 				const code = suffix ? `${root}${suffix}` : root;
-				// keep first seen country name for code
 				if (!phoneMap.has(code) && name) phoneMap.set(code, name);
 			}
 		}
 
-		const countries = Array.from(countriesSet).sort((a, b) =>
-			a.localeCompare(b),
-		);
-		const phoneCodes = Array.from(phoneMap.entries()).map(([code, name]) => ({
-			code,
-			name,
-		}));
+		const phoneCodes = Array.from(phoneMap.entries()).map(([code, name]) => ({ code, name }));
 		phoneCodes.sort((a, b) => a.code.localeCompare(b.code));
 
-		return {
-			...DEFAULT_FORM_OPTIONS,
-			countries,
-			phoneCodes,
-		};
+		return { ...DEFAULT_FORM_OPTIONS, phoneCodes };
 	} catch (e) {
-		console.error("Failed to fetch countries from public API:", e);
+		console.error("Failed to fetch phone codes:", e);
 		return DEFAULT_FORM_OPTIONS;
 	}
 };
@@ -685,52 +497,8 @@ const PublicFormPage = () => {
 				);
 				console.log("Timeslots response:", timeSlotsResponse);
 
-				// Fetch dynamic form options (countries + phone codes) from Rest Countries API
-				let options = await preloadFormOptions();
-				try {
-					const rcRes = await fetch(
-						"https://restcountries.com/v3.1/all?fields=name,idd",
-					);
-					if (rcRes.ok) {
-						const rcData = await rcRes.json();
-						const countriesSet = new Set<string>();
-						const phoneCodesMap = new Map<string, string>();
-						for (const c of rcData) {
-							const name = c?.name?.common;
-							if (name) countriesSet.add(name);
-							const idd = c?.idd;
-							if (idd && idd.root) {
-								const root = idd.root;
-								const suffixes = Array.isArray(idd.suffixes)
-									? idd.suffixes
-									: [""];
-								for (const s of suffixes) {
-									const code = s ? `${root}${s}` : root;
-									if (code) phoneCodesMap.set(code, name || code);
-								}
-							}
-						}
-						const countries = Array.from(countriesSet).sort((a, b) =>
-							a.localeCompare(b),
-						);
-						const phoneCodes = Array.from(phoneCodesMap.entries()).map(
-							([code, name]) => ({ code, name }),
-						);
-						phoneCodes.sort((a, b) => a.code.localeCompare(b.code));
-						options = {
-							...options,
-							countries,
-							phoneCodes,
-						};
-					} else {
-						console.warn(
-							"Rest Countries API returned non-OK status",
-							rcRes.status,
-						);
-					}
-				} catch (e) {
-					console.error("Failed to fetch Rest Countries data:", e);
-				}
+				// Phone codes from Rest Countries API; countries fixed to ALLOWED_COUNTRIES
+				const options = await preloadFormOptions();
 
 				const mapped = timeSlotsResponse.timeSlots.map((ts) => ({
 					id: ts.id,
@@ -803,7 +571,7 @@ const PublicFormPage = () => {
 					if (prefill.courseType) {
 						const normalizedCourseType =
 							prefill.courseType === "GROUP" ||
-							prefill.courseType === "INDIVIDUAL"
+								prefill.courseType === "INDIVIDUAL"
 								? prefill.courseType
 								: String(prefill.courseType).toUpperCase() === "GROUP"
 									? "GROUP"
@@ -914,7 +682,7 @@ const PublicFormPage = () => {
 			console.error("Form submission error:", error);
 			toast.error(
 				extractReadableErrorMessage(error) ||
-					"Something went wrong. Please try again.",
+				"Something went wrong. Please try again.",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -1144,11 +912,6 @@ const PublicFormPage = () => {
 											</option>
 										))}
 									</select>
-									{isGroupCourse ? (
-										<p className="mt-1 text-xs text-slate-500">
-											For group courses, available standards are 1 to 5.
-										</p>
-									) : null}
 									{errors.level?.message ? (
 										<p className="mt-1 text-xs text-red-600">
 											{errors.level.message}
@@ -1253,45 +1016,6 @@ const PublicFormPage = () => {
 
 						{currentStep === 2 ? (
 							<div className="space-y-4">
-								{courseType && (
-									<div
-										className={`rounded-2xl border p-4 ${courseType === "GROUP" ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50"}`}
-									>
-										<div className="flex items-start gap-3">
-											<div
-												className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${courseType === "GROUP" ? "bg-emerald-500" : "bg-blue-500"}`}
-											>
-												<svg
-													className="h-3 w-3 text-white"
-													fill="currentColor"
-													viewBox="0 0 20 20"
-												>
-													<path
-														fillRule="evenodd"
-														d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-														clipRule="evenodd"
-													/>
-												</svg>
-											</div>
-											<div>
-												<p
-													className={`font-semibold ${courseType === "GROUP" ? "text-emerald-900" : "text-blue-900"}`}
-												>
-													{courseType === "GROUP"
-														? "Group Course"
-														: "Individual Course"}
-												</p>
-												<p
-													className={`text-sm ${courseType === "GROUP" ? "text-emerald-700" : "text-blue-700"}`}
-												>
-													{courseType === "GROUP"
-														? "Scheduling will be managed by our team. Just tell us your preferred language and how you heard about us."
-														: "Please provide your detailed scheduling preferences so we can find the perfect mentor and schedule for you."}
-												</p>
-											</div>
-										</div>
-									</div>
-								)}
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1316,47 +1040,178 @@ const PublicFormPage = () => {
 										</p>
 									) : null}
 								</div>
-
-								{courseType === "INDIVIDUAL" ? (
-									<div>
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred days
-										</label>
-										<p className="mb-3 text-xs text-slate-500">
-											Select all days you can attend individual classes.
-										</p>
-										<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-											{formOptions.days.map((day) => {
-												const currentDays = watch("preferredDays") || [];
-												const isSelected = currentDays.includes(day);
-
-												return (
-													<button
-														key={day}
-														type="button"
-														onClick={() => {
-															const nextDays = isSelected
-																? currentDays.filter((selectedDay) => selectedDay !== day)
-																: [...currentDays, day];
-															setValue("preferredDays", nextDays, {
-																shouldDirty: true,
-																shouldValidate: true,
-															});
-														}}
-														className={`rounded-2xl border px-3 py-3 text-sm font-medium transition ${isSelected ? "border-brand bg-brand-soft text-brand" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
-													>
-														{day}
-													</button>
-												);
-											})}
-										</div>
-										{errors.preferredDays?.message ? (
-											<p className="mt-1 text-xs text-red-600">
-												{errors.preferredDays.message}
+								{courseType === "INDIVIDUAL" && (
+									<div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Choose a plan
+											</label>
+											<p className="mb-3 text-xs text-slate-500">
+												Select the plan that matches how often and how long you want classes.
 											</p>
+											<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 items-stretch">
+												{formOptions.timeslots.map((timeslot) => {
+													const isSelected =
+														selectedPlanSnapshot?.timesPerWeek === timeslot.timesPerWeek &&
+														selectedPlanSnapshot?.durationMinutes === timeslot.durationMinutes;
+
+													return (
+														<button
+															key={`${timeslot.timesPerWeek}-${timeslot.durationMinutes}`}
+															type="button"
+															onClick={() => {
+																setValue(
+																	"preferredPlan",
+																	{
+																		timesPerWeek: timeslot.timesPerWeek,
+																		durationMinutes: timeslot.durationMinutes,
+																	},
+																	{ shouldDirty: true, shouldValidate: true },
+																);
+															}}
+															className={`w-full min-w-0 rounded-3xl border p-4 text-left transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
+														>
+															<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+																<div>
+																	<p className="text-sm font-semibold text-slate-950">
+																		{timeslot.timesPerWeek} time{timeslot.timesPerWeek > 1 ? "s" : ""} per week
+																	</p>
+																	<p className="mt-1 text-sm text-slate-600">
+																		Duration: {timeslot.durationMinutes} minutes
+																	</p>
+																</div>
+																<span className={`mt-3 sm:mt-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${isSelected ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
+																	{isSelected ? "Selected" : "Choose"}
+																</span>
+															</div>
+														</button>
+													);
+												})}
+											</div>
+											{errors.preferredPlan?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredPlan.message}
+												</p>
+											) : null}
+										</div>
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred days
+											</label>
+											<p className="mb-3 text-xs text-slate-500">
+												Select all days you can attend individual classes.
+											</p>
+											<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+												{formOptions.days.map((day) => {
+													const currentDays = watch("preferredDays") || [];
+													const isSelected = currentDays.includes(day);
+
+													return (
+														<button
+															key={day}
+															type="button"
+															onClick={() => {
+																const nextDays = isSelected
+																	? currentDays.filter((selectedDay) => selectedDay !== day)
+																	: [...currentDays, day];
+																setValue("preferredDays", nextDays, {
+																	shouldDirty: true,
+																	shouldValidate: true,
+																});
+															}}
+															className={`rounded-2xl border px-3 py-3 text-sm font-medium transition ${isSelected ? "border-brand bg-brand-soft text-brand" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+														>
+															{day}
+														</button>
+													);
+												})}
+											</div>
+											{errors.preferredDays?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredDays.message}
+												</p>
+											) : null}
+										</div>
+										<div>
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred class time (Indian Time)
+											</label>
+											{!selectedPlanSnapshot ? (
+												<p className="mb-2 text-xs text-slate-500">
+													Choose a plan first to calculate the class end time.
+												</p>
+											) : null}
+											<input
+												type="time"
+												disabled={!selectedPlanSnapshot}
+												{...register("preferredStartTime", {
+													required: "Start time is required",
+												})}
+												value={selectedPlanSnapshot ? undefined : ""}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.preferredStartTime?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredStartTime.message}
+												</p>
+											) : null}
+										</div>
+
+										{selectedStartTime && calculatedEndTime ? (
+											<div className=" grid items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-3 sm:grid-cols-2">
+												<div>
+													<p className="text-xs font-semibold text-slate-600">Start time</p>
+													<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(selectedStartTime)}</p>
+												</div>
+												<div>
+													<p className="text-xs font-semibold text-slate-600">End time</p>
+													<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(calculatedEndTime)}</p>
+												</div>
+											</div>
 										) : null}
+
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred mentor gender
+											</label>
+											<select
+												{...register("preferredMentorGender", {
+													required: "Preferred mentor gender is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											>
+												<option value="">Select mentor</option>
+												<option value="female">Female</option>
+												<option value="male">Male</option>
+												<option value="both">Both are okay for me</option>
+											</select>
+											{errors.preferredMentorGender?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredMentorGender.message}
+												</p>
+											) : null}
+										</div>
+
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												When can we give a demo?
+											</label>
+											<input
+												type="datetime-local"
+												{...register("demoAvailability", {
+													required: "Demo time is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.demoAvailability?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.demoAvailability.message}
+												</p>
+											) : null}
+										</div>
 									</div>
-								) : null}
+								)}
+
 
 								{courseType === "GROUP" ? (
 									<div>
@@ -1408,143 +1263,7 @@ const PublicFormPage = () => {
 									</div>
 								) : null}
 
-									{courseType === "INDIVIDUAL" && (
-										<div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-											<div className="sm:col-span-2">
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													Choose a plan
-												</label>
-												<p className="mb-3 text-xs text-slate-500">
-													Select the plan that matches how often and how long you want classes.
-												</p>
-												<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 items-stretch">
-													{formOptions.timeslots.map((timeslot) => {
-														const isSelected =
-															selectedPlanSnapshot?.timesPerWeek === timeslot.timesPerWeek &&
-															selectedPlanSnapshot?.durationMinutes === timeslot.durationMinutes;
 
-														return (
-															<button
-																key={`${timeslot.timesPerWeek}-${timeslot.durationMinutes}`}
-																type="button"
-																onClick={() => {
-																setValue(
-																	"preferredPlan",
-																	{
-																		timesPerWeek: timeslot.timesPerWeek,
-																		durationMinutes: timeslot.durationMinutes,
-																	},
-																	{ shouldDirty: true, shouldValidate: true },
-																);
-															}}
-															className={`w-full min-w-0 rounded-3xl border p-4 text-left transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
-														>
-															<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-																<div>
-																	<p className="text-sm font-semibold text-slate-950">
-																		{timeslot.timesPerWeek} time{timeslot.timesPerWeek > 1 ? "s" : ""} per week
-																	</p>
-																	<p className="mt-1 text-sm text-slate-600">
-																		Duration: {timeslot.durationMinutes} minutes
-																	</p>
-																</div>
-																<span className={`mt-3 sm:mt-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${isSelected ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
-																	{isSelected ? "Selected" : "Choose"}
-																</span>
-															</div>
-														</button>
-													);
-													})}
-												</div>
-												{errors.preferredPlan?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.preferredPlan.message}
-													</p>
-												) : null}
-											</div>
-
-											<div>
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													Preferred class time (Indian Time)
-												</label>
-												{!selectedPlanSnapshot ? (
-													<p className="mb-2 text-xs text-slate-500">
-														Choose a plan first to calculate the class end time.
-													</p>
-												) : null}
-												<input
-													type="time"
-													disabled={!selectedPlanSnapshot}
-													{...register("preferredStartTime", {
-														required: "Start time is required",
-													})}
-													value={selectedPlanSnapshot ? undefined : ""}
-													className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-												/>
-												{errors.preferredStartTime?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.preferredStartTime.message}
-													</p>
-												) : null}
-												<p className="mt-2 text-xs text-slate-500">
-													Choose a start time. The end time is calculated from the selected course plan.
-												</p>
-											</div>
-
-											{selectedStartTime && calculatedEndTime ? (
-												<div className="sm:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
-													<div>
-														<p className="text-xs font-semibold text-slate-600">Start time</p>
-														<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(selectedStartTime)}</p>
-													</div>
-													<div>
-														<p className="text-xs font-semibold text-slate-600">End time</p>
-														<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(calculatedEndTime)}</p>
-													</div>
-												</div>
-											) : null}
-
-											<div className="sm:col-span-2">
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													Preferred mentor gender
-												</label>
-												<select
-													{...register("preferredMentorGender", {
-														required: "Preferred mentor gender is required",
-													})}
-													className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-												>
-													<option value="">Select mentor</option>
-													<option value="female">Female</option>
-													<option value="male">Male</option>
-													<option value="both">Both are okay for me</option>
-												</select>
-												{errors.preferredMentorGender?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.preferredMentorGender.message}
-													</p>
-												) : null}
-											</div>
-
-											<div>
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													When can we give a demo?
-												</label>
-												<input
-													type="datetime-local"
-													{...register("demoAvailability", {
-														required: "Demo time is required",
-													})}
-													className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-												/>
-												{errors.demoAvailability?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.demoAvailability.message}
-													</p>
-												) : null}
-											</div>
-										</div>
-									)}
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">

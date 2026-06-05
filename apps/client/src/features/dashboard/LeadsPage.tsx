@@ -20,7 +20,7 @@ import {
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { DataTable } from "@/components/DataTable";
-import { Field, Modal, Panel, TextAreaField } from "@/components/dashboard-ui";
+import { Field, Modal, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import {
 	useCounsellorsQuery,
@@ -976,81 +976,54 @@ export const LeadsPage = () => {
 	);
 
 	return (
-		<div className="grid gap-6">
-			<div className="sticky top-4 z-30">
-				<div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm border border-gray-200">
-					<div>
-						<h2 className="text-lg font-semibold">Leads</h2>
-						<p className="text-sm text-gray-600">{`${activeScope === "all" ? "All users" : "Your"} leads${activeStageDefinition ? ` · ${activeStageDefinition.description}` : ""}`}</p>
-					</div>
-					<div className="flex flex-wrap gap-2">
-						<Link
-							to={buildSearch(activeStage, "mine")}
-							onClick={() => setLoadAllRequested(false)}
-							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "mine" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
-						>
-							My leads
-						</Link>
-						<Link
-							to={buildSearch(activeStage, "all")}
-							onClick={() => setLoadAllRequested(true)}
-							className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${activeScope === "all" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-900 hover:border-blue-600 hover:text-blue-600"}`}
-						>
-							All users in stage
-						</Link>
-						{hasPermission("LEAD_CREATE") ? (
-							<button
-								type="button"
-								className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-								onClick={() => setCreateOpen(true)}
-							>
-								<HiPlusCircle className="h-4 w-4" aria-hidden="true" />
-								Create lead
-							</button>
-						) : null}
-					</div>
-				</div>
+		<div className="space-y-3">
+			{/* Top bar */}
+			<div className="sticky top-0 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+				<Link to={buildSearch(activeStage, "mine")} onClick={() => setLoadAllRequested(false)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700"}`}>My leads</Link>
+				<Link to={buildSearch(activeStage, "all")} onClick={() => setLoadAllRequested(true)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700"}`}>All users</Link>
+				{hasPermission("LEAD_CREATE") ? (
+					<button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+						<HiPlusCircle className="h-4 w-4" /> Create lead
+					</button>
+				) : null}
+				<p className="ml-1 text-xs text-gray-400 hidden sm:block">{activeScope === "all" ? "All users" : "Your"} leads{activeStageDefinition ? ` · ${activeStageDefinition.description}` : ""}</p>
 			</div>
 
-			<Panel title="Lead Details">
-				<div className="flex flex-wrap gap-2 rounded-3xl border border-gray-300 bg-white p-3">
-					{leadStageDefinitions.map((stage) => {
-						const isActive = stage.id === activeStage;
-						return (
-							<Link
-								key={stage.id}
-								to={buildSearch(stage.id, activeScope)}
-								className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${isActive ? "bg-blue-600 text-white" : "border border-gray-300 bg-gray-50 text-gray-700 hover:border-blue-600 hover:text-blue-600"}`}
-							>
-								{stage.label}
-							</Link>
-						);
-					})}
-				</div>
+			{/* Stage pills */}
+			<div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
+				{leadStageDefinitions.map((stage) => {
+					const isActive = stage.id === activeStage;
+					return (
+						<Link
+							key={stage.id}
+							to={buildSearch(stage.id, activeScope)}
+							className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition whitespace-nowrap ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							{stage.label}
+						</Link>
+					);
+				})}
+			</div>
 
-				<div className="mb-2 relative">
+			{/* Search + table */}
+			<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+				<div className="relative px-4 pt-3 pb-2 border-b border-gray-100">
 					<input
 						type="text"
-						placeholder={`Search ${activeScope === "all" ? "all users" : "my"} leads by name, phone, or email...`}
+						placeholder={`Search ${activeScope === "all" ? "all users" : "my"} leads by name, phone, or email…`}
 						value={searchInput}
-						onChange={(e) => {
-							setSearchInput(e.target.value);
-						}}
-						className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-600"
+						onChange={(e) => setSearchInput(e.target.value)}
+						className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
 					/>
 					{activeLeadsQuery.isFetching && !activeLeadsQuery.isLoading ? (
-						<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-							Searching...
-						</span>
+						<span className="absolute right-7 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching…</span>
 					) : null}
 				</div>
 
 				{activeLeadsQuery.isLoading ? (
-					<div className="py-8 text-center text-gray-600">Loading...</div>
+					<div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /></div>
 				) : activeLeadsQuery.isError ? (
-					<div className="py-8 text-center text-gray-600">
-						Unable to load leads.
-					</div>
+					<p className="py-8 text-center text-sm text-gray-400">Unable to load leads.</p>
 				) : (
 					<>
 						<DataTable
@@ -1059,14 +1032,9 @@ export const LeadsPage = () => {
 							exportFilename={`leads-${activeScope}-${activeStage}`}
 							enableGlobalFilter={false}
 							sortBy={sortBy}
-							onSortByChange={(value) => {
-								setSortBy(value);
-								setCurrentPage(1);
-							}}
+							onSortByChange={(value) => { setSortBy(value); setCurrentPage(1); }}
 							sortOrder={sortOrder}
-							onSortOrderToggle={() =>
-								setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-							}
+							onSortOrderToggle={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
 							sortOptions={[
 								{ value: "nextFollowUpAt", label: "Next Follow-up" },
 								{ value: "createdAt", label: "Created Date" },
@@ -1075,55 +1043,27 @@ export const LeadsPage = () => {
 								{ value: "phone", label: "Phone" },
 							]}
 						/>
-						{pagination && (
-							<div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 mt-4">
-								<div className="text-sm text-gray-600">
-									Showing {(currentPage - 1) * 25 + 1}–
-									{Math.min(currentPage * 25, pagination.total)} of{" "}
-									{pagination.total} items
-								</div>
-								<div className="flex gap-2">
-									<button
-										type="button"
-										onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-										disabled={currentPage === 1}
-										className="rounded px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-gray-200"
-									>
-										← Prev
-									</button>
-									{Array.from(
-										{ length: pagination.totalPages },
-										(_, i) => i + 1,
-									).map((page) => (
-										<button
-											key={page}
-											type="button"
-											onClick={() => setCurrentPage(page)}
-											className={`rounded px-3 py-2 text-sm font-medium ${
-												page === currentPage
-													? "bg-blue-500 text-white"
-													: "bg-white text-gray-700 hover:bg-gray-100"
-											}`}
-										>
-											{page}
-										</button>
-									))}
-									<button
-										type="button"
-										onClick={() =>
-											setCurrentPage((page) => Math.min(page + 1, pagination.totalPages))
-										}
-										disabled={currentPage === pagination.totalPages}
-										className="rounded px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-gray-200"
-									>
-										Next →
-									</button>
+						{pagination ? (
+							<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+								<p className="text-xs text-gray-400">
+									{(currentPage - 1) * 25 + 1}–{Math.min(currentPage * 25, pagination.total)} of {pagination.total}
+								</p>
+								<div className="flex items-center gap-1">
+									<button type="button" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs disabled:opacity-40">Prev</button>
+									{Array.from({ length: Math.min(pagination.totalPages, 7) }, (_, i) => {
+										const p = currentPage <= 4 ? i + 1 : currentPage + i - 3;
+										if (p < 1 || p > pagination.totalPages) return null;
+										return (
+											<button key={p} type="button" onClick={() => setCurrentPage(p)} className={`rounded-lg px-2.5 py-1 text-xs font-medium ${p === currentPage ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-700 hover:bg-gray-50"}`}>{p}</button>
+										);
+									})}
+									<button type="button" onClick={() => setCurrentPage((p) => Math.min(p + 1, pagination.totalPages))} disabled={currentPage === pagination.totalPages} className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs disabled:opacity-40">Next</button>
 								</div>
 							</div>
-						)}
+						) : null}
 					</>
 				)}
-			</Panel>
+			</div>
 
 			<Modal
 				open={createOpen}

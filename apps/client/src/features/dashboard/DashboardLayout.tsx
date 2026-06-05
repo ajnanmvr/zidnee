@@ -43,6 +43,8 @@ const titles: Record<string, string> = {
 	"/": "Overview",
 	"/leads": "Leads",
 	"/students": "Students",
+	"/students/break": "On Break",
+	"/students/dropped": "Dropped Students",
 	"/processes": "Processes",
 	"/process-history": "Process History",
 	"/mentors": "Mentors",
@@ -57,6 +59,7 @@ const titles: Record<string, string> = {
 	"/demo-management/scheduled": "Scheduled Demos",
 	"/reminders": "Reminders",
 	"/reminders/closed": "Closed Tasks",
+	"/leads/closed": "Deleted Leads",
 };
 
 const resolveTitle = (pathname: string, search: string): string => {
@@ -299,8 +302,8 @@ export const DashboardLayout = () => {
 				...getLeadStageItems(),
 				{
 					to: "/leads/closed",
-					label: "Closed Leads",
-					description: "Leads closed/deleted",
+					label: "Deleted Leads",
+					description: "Deleted leads",
 					icon: <HiLockClosed className="h-5 w-5" aria-hidden="true" />,
 					accent: "teal",
 					section: "Lead Pipeline",
@@ -393,18 +396,6 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("STUDENT_PROCESS_HISTORY_READ_MY") || hasPermission("STUDENT_PROCESS_HISTORY_READ_ALL")
-			? [
-				{
-					to: "/process-history",
-					label: "Process History",
-					description: "Completed workflows",
-					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-					accent: "rose",
-					section: "Learners",
-				},
-			]
-			: []),
 		...(canReadBatches
 			? [
 				{
@@ -426,14 +417,6 @@ export const DashboardLayout = () => {
 					icon: <HiOutlineBellAlert className="h-5 w-5" aria-hidden="true" />,
 					count: reminderUrgentCount,
 					accent: "amber",
-					section: "Learners",
-				},
-				{
-					to: "/reminders/closed",
-					label: "Closed Tasks",
-					description: "Completed reminders",
-					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-					accent: "rose",
 					section: "Learners",
 				},
 			]

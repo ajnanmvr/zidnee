@@ -4,7 +4,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import toast from "react-hot-toast";
 import { HiPencil, HiPlus, HiTrash } from "react-icons/hi2";
 import { ApiError } from "@/api/request";
-import { Field, Modal, Panel } from "@/components/dashboard-ui";
+import { Field, Modal } from "@/components/dashboard-ui";
 import { useTimeSlotsQuery } from "@/features/time-slots/time-slots.queries";
 import { useCreateTimeSlotMutation } from "@/features/time-slots/use-create-time-slot-mutation";
 import { useDeleteTimeSlotMutation } from "@/features/time-slots/use-delete-time-slot-mutation";
@@ -139,87 +139,39 @@ export const CreateTimeSlotsPage = () => {
 	};
 
 	return (
-		<Panel
-			title="Time Slots"
-			description="Manage class timing options for the public form"
-			action={
-					<div className="flex items-center gap-2">
-						<button
-							type="button"
-							onClick={() => setAddOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a5d4a]"
-						>
-							<HiPlus className="h-4 w-4" aria-hidden="true" />
-							Add slots
-						</button>
-					</div>
-			}
-		>
-			<div className="rounded-3xl border border-gray-200 bg-white p-5">
-				<h3 className="mb-4 text-sm font-semibold text-gray-900">
-					Current time slots
-				</h3>
+		<div className="space-y-4">
+			<div className="flex items-center justify-between">
+				<p className="text-sm font-semibold text-gray-700">Time Slots</p>
+				<button type="button" onClick={() => setAddOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1a5d4a]">
+					<HiPlus className="h-4 w-4" /> Add slot
+				</button>
+			</div>
+
+			<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
 				{timeSlotsQuery.isLoading ? (
-					<div className="py-8 text-center text-sm text-gray-600">
-						Loading...
-					</div>
+					<p className="py-8 text-center text-sm text-gray-400">Loading…</p>
 				) : timeSlotsQuery.isError ? (
-					<div className="py-8 text-center text-sm text-gray-600">
-						Unable to load time slots.
-					</div>
+					<p className="py-8 text-center text-sm text-gray-400">Unable to load time slots.</p>
+				) : (timeSlotsQuery.data?.timeSlots ?? []).length === 0 ? (
+					<p className="py-8 text-center text-sm text-gray-400">No time slots created yet.</p>
 				) : (
-					<div className="grid gap-2">
+					<div className="divide-y divide-gray-100">
 						{(timeSlotsQuery.data?.timeSlots ?? []).map((timeSlot) => (
-							<div
-								key={timeSlot.id}
-								className="rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 flex items-start justify-between"
-							>
+							<div key={timeSlot.id} className="flex items-center justify-between px-4 py-3">
 								<div>
-									<p className="font-semibold">{timeSlot.label}</p>
-									<p className="text-xs text-gray-600">
-										{timeSlot.durationMinutes} minutes · {timeSlot.timesPerWeek}{" "}
-										times/week
-									</p>
+									<p className="text-sm font-medium text-gray-800">{timeSlot.label}</p>
+									<p className="text-xs text-gray-400">{timeSlot.durationMinutes} min · {timeSlot.timesPerWeek} times/week</p>
 								</div>
-								<div className="flex items-center gap-2">
-									<button
-										type="button"
-										className="rounded-full p-2 hover:bg-gray-100"
-										onClick={() => {
-											setEditingSlot({
-												id: timeSlot.id,
-												durationMinutes: timeSlot.durationMinutes,
-												timesPerWeek: timeSlot.timesPerWeek,
-											});
-											reset({
-												durationMinutes: timeSlot.durationMinutes,
-												timesPerWeek: timeSlot.timesPerWeek,
-											});
-											setEditOpen(true);
-										}}
-										aria-label="Edit"
-									>
-										<HiPencil className="h-4 w-4 text-gray-700" />
+								<div className="flex items-center gap-1">
+									<button type="button" onClick={() => { setEditingSlot({ id: timeSlot.id, durationMinutes: timeSlot.durationMinutes, timesPerWeek: timeSlot.timesPerWeek }); reset({ durationMinutes: timeSlot.durationMinutes, timesPerWeek: timeSlot.timesPerWeek }); setEditOpen(true); }} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+										<HiPencil className="h-4 w-4" />
 									</button>
-									<button
-										type="button"
-										className="rounded-full p-2 hover:bg-gray-100"
-										onClick={() => {
-											setDeletingSlotId(timeSlot.id);
-											setConfirmDeleteOpen(true);
-										}}
-										aria-label="Delete"
-									>
-										<HiTrash className="h-4 w-4 text-red-600" />
+									<button type="button" onClick={() => { setDeletingSlotId(timeSlot.id); setConfirmDeleteOpen(true); }} className="rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-500">
+										<HiTrash className="h-4 w-4" />
 									</button>
 								</div>
 							</div>
 						))}
-						{(timeSlotsQuery.data?.timeSlots ?? []).length === 0 ? (
-							<div className="rounded-2xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
-								No time slots created yet.
-							</div>
-						) : null}
 					</div>
 				)}
 			</div>
@@ -421,6 +373,6 @@ export const CreateTimeSlotsPage = () => {
 					Are you sure you want to delete this time slot?
 				</div>
 			</Modal>
-		</Panel>
+		</div>
 	);
 };

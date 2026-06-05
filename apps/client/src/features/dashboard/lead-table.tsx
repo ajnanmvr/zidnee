@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { DateCell } from "@/components/DateCell";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import type { LeadStageId } from "@/features/leads/lead-stage-filters";
-import { HiStar, HiOutlineStar } from "react-icons/hi2";
+import { HiStar } from "react-icons/hi2";
 
 export const formatUserName = (userName?: string | null) =>
 	userName?.trim() || "-";
@@ -41,7 +41,7 @@ export const getLeadUrgency = (lead: LeadResponse) => {
 
 const getLeadStatusTone = (lead: LeadResponse) => {
 	if (lead.status === "CLOSED") {
-		return { className: "bg-gray-100 text-gray-700", label: "Closed" };
+		return { className: "bg-red-100 text-red-700", label: "Deleted" };
 	}
 
 	if (lead.status === "CONVERTED") {
@@ -80,26 +80,6 @@ const getLeadStatusTone = (lead: LeadResponse) => {
 	return { className: "bg-gray-50 text-gray-600", label: "Follow Up" };
 };
 
-const UrgencyIndicator = ({ lead }: { lead: LeadResponse }) => {
-	const urgency = getLeadUrgency(lead);
-	const toneClasses =
-		urgency.tone === "past"
-			? "bg-red-500 text-red-700"
-			: urgency.tone === "today"
-				? "bg-amber-400 text-amber-700"
-				: "bg-emerald-500 text-emerald-700";
-
-	return (
-		<div className="flex items-center gap-2">
-			<span
-				className={`h-2.5 w-2.5 rounded-full ${toneClasses.split(" ")[0]}`}
-			/>
-			<span className={`text-xs font-semibold ${toneClasses.split(" ")[1]}`}>
-				{urgency.label}
-			</span>
-		</div>
-	);
-};
 
 export type LeadTableAction = {
 	key: string;
@@ -115,73 +95,37 @@ export const buildLeadColumns = (options?: {
 	userNameById?: Map<string, string>;
 }): ColumnDef<LeadResponse>[] => [
 		{
-			id: "urgency",
+			id: "lead",
+			header: "Lead",
+			cell: (info) => {
+				const lead = info.row.original;
+				return (
+					<div className="flex items-start gap-2">
+						{lead.isOrganic
+							? <HiStar style={{ color: "#f59e0b" }} className="mt-0.5 h-3.5 w-3.5 shrink-0" title="Organic" />
+							: null}
+						<div>
+							<Link className="font-semibold text-blue-600 hover:underline text-sm" to={`/leads/${lead.id}`}>
+								{lead.phone}
+							</Link>
+							<p className="text-xs text-gray-500">{lead.name ?? "—"}</p>
+						</div>
+					</div>
+				);
+			},
+		},
+		{
+			id: "status",
 			header: "Status",
 			cell: (info) => {
-				return <UrgencyIndicator lead={info.row.original} />;
-			},
-			enableSorting: false,
-		},
-		{
-			accessorKey: "slNo",
-			header: "SL No",
-			cell: (info) => (
-				<div className="inline-flex items-center gap-2 rounded-2xl px-3 py-1.5 font-semibold text-gray-900">
-					<span>{info.getValue() ? `#${String(info.getValue())}` : "-"}</span>
-				</div>
-			),
-			enableSorting: true,
-		},
-		{
-			accessorKey: "phone",
-			header: "Phone",
-			cell: (info) => (
-				<div className="flex items-center gap-2">
-					{info.row.original.isOrganic ? (
-						<HiStar style={{ color: '#f59e0b' }} className="h-4 w-4" aria-hidden="true" title="Organic lead" />
-					) : (
-						<HiOutlineStar style={{ color: '#d1d5db' }} className="h-4 w-4" aria-hidden="true" title="Not organic" />
-					)}
-					<Link
-						className="font-semibold text-blue-600 hover:text-blue-600/80"
-						to={`/leads/${info.row.original.id}`}
-					>
-						{String(info.getValue())}
-					</Link>
-				</div>
-			),
-			enableSorting: true,
-		},
-		{
-			accessorKey: "name",
-			header: "Name",
-			cell: (info) => (
-				<div className="font-semibold text-gray-900">
-					{(info.getValue() as string) ?? "-"}
-				</div>
-			),
-			enableSorting: true,
-		},
-		{
-			accessorKey: "courseType",
-			header: "Course",
-			cell: (info) => {
-				const val = info.getValue() as string | undefined | null;
-				if (!val) return <span className="text-sm text-slate-500">-</span>;
-				if (String(val).toUpperCase() === "GROUP") {
-					return (
-						<span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-							Group
-						</span>
-					);
-				}
+				const lead = info.row.original;
+				const status = getLeadStatusTone(lead);
 				return (
-					<span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-						Individual
+					<span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.className}`}>
+						{status.label}
 					</span>
 				);
 			},
-			enableSorting: true,
 		},
 		{
 			id: "handler",
@@ -192,43 +136,30 @@ export const buildLeadColumns = (options?: {
 				const stage = options?.activeStage;
 				const nameMap = options?.userNameById;
 				if (stage === "demoRequest") {
-					const controllerId = lead.demoRequestAssignedTo ?? null;
-					if (!controllerId)
-						return <span className="text-sm text-slate-500">-</span>;
-					return (
-						<span className="text-sm">{nameMap?.get(controllerId) ?? "-"}</span>
-					);
+					const id = lead.demoRequestAssignedTo ?? null;
+					if (id) return <span className="text-xs text-gray-700">{nameMap?.get(id) ?? "—"}</span>;
 				}
 				if (stage === "demoAssigned" || stage === "demoCompleted") {
-					const mentorId = latestDemo?.mentorId ?? null;
-					if (!mentorId) return <span className="text-sm text-slate-500">-</span>;
-					return <span className="text-sm">{nameMap?.get(mentorId) ?? "-"}</span>;
+					const id = latestDemo?.mentorId ?? null;
+					if (id) return <span className="text-xs text-gray-700">{nameMap?.get(id) ?? "—"}</span>;
 				}
-				return <span className="text-sm text-slate-500">-</span>;
+				return <span className="text-xs text-gray-400">—</span>;
 			},
 		},
 		{
-			id: "demoStatus",
-			header: "Status",
-			cell: (info) => {
-				const lead = info.row.original;
-				const status = getLeadStatusTone(lead);
-				return (
-					<span
-						className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
-					>
-						{status.label}
-					</span>
-				);
-			},
-		},
-		{
-			accessorKey: "nextFollowUpAt",
+			id: "followUp",
 			header: "Follow-up",
 			cell: (info) => {
-				return <DateCell date={String(info.getValue())} />;
+				const lead = info.row.original;
+				const urgency = getLeadUrgency(lead);
+				const dotCls = urgency.tone === "past" ? "bg-red-500" : urgency.tone === "today" ? "bg-amber-400" : "bg-emerald-500";
+				return (
+					<div className="flex items-center gap-2">
+						<span className={`h-2 w-2 rounded-full shrink-0 ${dotCls}`} />
+						<DateCell date={String(lead.nextFollowUpAt)} />
+					</div>
+				);
 			},
-			enableSorting: true,
 		},
 		// `closeReason` intentionally excluded from main dashboard table.
 		{

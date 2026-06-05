@@ -47,9 +47,6 @@ interface CustomFollowUpForm {
 
 type MentorTabKey =
 	| "overview"
-	| "substitutions"
-	| "follow-up"
-	| "snapshot"
 	| "activity"
 	| "reminders"
 	| "students"
@@ -324,9 +321,6 @@ export const MentorDetailPage = () => {
 		description: string;
 	}> = [
 		{ key: "overview", label: "Overview", description: "Mentor summary" },
-		{ key: "substitutions", label: "Substitutions", description: "Coverage" },
-		{ key: "follow-up", label: "Follow-up", description: "Contact schedule" },
-		{ key: "snapshot", label: "Snapshot", description: "Quick status" },
 		{ key: "activity", label: "Activity", description: "Recent actions" },
 		{ key: "reminders", label: "Reminders", description: "Tasks" },
 		{ key: "students", label: "Students", description: "Assigned list" },
@@ -497,46 +491,6 @@ export const MentorDetailPage = () => {
 				</div>
 			) : null}
 
-			{activeTab === "substitutions" ? (
-				<div className="rounded-2xl border border-gray-200 bg-white p-5">
-					<div className="flex items-center justify-between gap-3 mb-4">
-						<p className="text-sm font-semibold text-gray-800">Substitution coverage</p>
-						<Link to="/mentors/substitutions" className="text-xs font-semibold text-emerald-600 hover:underline">View all</Link>
-					</div>
-					<MentorSubstitutionInfo mentorId={mentor.id} />
-				</div>
-			) : null}
-
-			{activeTab === "follow-up" ? (
-				<div className="rounded-2xl border border-gray-200 bg-white p-5">
-					<p className="mb-4 text-sm font-semibold text-gray-800">Follow-up schedule</p>
-					<div className="grid gap-3 sm:grid-cols-3 mb-4">
-						{[
-							{ label: "Last contacted", value: followUpState?.lastContactedAt ? new Date(followUpState.lastContactedAt).toLocaleDateString() : "Never" },
-							{ label: "Next follow-up", value: nextFollowUpDate ? nextFollowUpDate.toLocaleDateString() : "Not set" },
-							{ label: "Status", value: isFollowUpDue ? "Due now" : nextFollowUpDate ? "Scheduled" : "Not set" },
-						].map(({ label, value }) => (
-							<div key={label} className={`rounded-xl border p-3 ${label === "Status" && isFollowUpDue ? "border-red-200 bg-red-50" : "border-gray-100 bg-gray-50"}`}>
-								<p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</p>
-								<p className={`mt-1 text-sm font-semibold ${label === "Status" && isFollowUpDue ? "text-red-600" : "text-gray-800"}`}>{value}</p>
-							</div>
-						))}
-					</div>
-					{followUpState.customNextFollowUpAt ? (
-						<div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-							Custom date set: <strong>{new Date(followUpState.customNextFollowUpAt).toLocaleDateString()}</strong>
-						</div>
-					) : null}
-					<div className="flex gap-2">
-						<button onClick={() => setFollowUpModalOpen(true)} disabled={recordFollowUpMutation.isPending} className={btnPrimary}>
-							<HiCheckCircle className="h-4 w-4" /> Record follow-up
-						</button>
-						<button onClick={() => setCustomFollowUpModalOpen(true)} className={btnGhost}>
-							<HiClock className="h-4 w-4" /> Set custom date
-						</button>
-					</div>
-				</div>
-			) : null}
 
 			{activeTab === "activity" ? (
 				<div className="rounded-2xl border border-gray-200 bg-white p-5">
