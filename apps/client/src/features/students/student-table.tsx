@@ -65,6 +65,10 @@ export const getStudentFollowUpState = (
 	};
 };
 
+const LEVEL_LABELS: Record<string | number, string> = {
+	1: "Seed", 2: "Sprout", 3: "Root", 4: "Leaf", 5: "Bud", 6: "Bloom", 7: "Fruit",
+};
+
 export const buildStudentColumns = (
 	getColorByStatus: (status: string) => string,
 	mentorNameById: Record<string, string>,
@@ -76,160 +80,102 @@ export const buildStudentColumns = (
 ): ColumnDef<StudentTableRow>[] => {
 	return [
 		{
-			accessorKey: "zid",
-			header: "ZID",
-			size: 100,
-			cell: ({ row }) => (
-				<Link
-					to={`/students/${row.original.id}`}
-					className="font-mono font-semibold text-teal-600 hover:underline"
-				>
-					{row.original.zid.toUpperCase()}
-				</Link>
-			),
-		},
-		{
-			accessorKey: "name",
-			header: "Name",
-			size: 150,
+			id: "student",
+			header: "Student",
+			cell: ({ row }) => {
+				const s = row.original;
+				return (
+					<div>
+						<Link to={`/students/${s.id}`} className="font-semibold text-teal-700 hover:underline text-sm">
+							{s.zid.toUpperCase()}
+						</Link>
+						<p className="text-xs text-gray-500">{s.name ?? "—"}</p>
+					</div>
+				);
+			},
 		},
 		{
 			accessorKey: "phone",
 			header: "Phone",
 			size: 120,
+			cell: ({ row }) => <span className="text-sm text-gray-700">{row.original.phone}</span>,
 		},
 		{
-			accessorKey: "courseType",
-			header: "batch",
-			size: 100,
+			id: "batch",
+			header: "Group",
 			cell: ({ row }) => {
-				const student = row.original;
-
-				if (!student.courseType) {
-					return <span className="text-gray-400">—</span>;
-				}
-
-				if (student.courseType === "GROUP") {
-					if (student.batchId) {
-						const groupLabel =
-							options?.groupLabelByBatchId?.[student.batchId] ?? student.batchId;
-						return (
-							<span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-								{groupLabel}
-							</span>
-						);
+				const s = row.original;
+				if (s.courseType === "GROUP") {
+					if (s.batchId) {
+						const label = options?.groupLabelByBatchId?.[s.batchId] ?? s.batchId;
+						return <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">{label}</span>;
 					}
-
 					if (options?.onAddToGroup && options.canAddToGroup) {
 						return (
-							<button
-								type="button"
-								onClick={() => options.onAddToGroup?.(student)}
-								className="inline-flex rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200"
-							>
+							<button type="button" onClick={() => options.onAddToGroup?.(s)} className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 hover:bg-rose-200">
 								Add to group
 							</button>
 						);
 					}
 				}
-
-				return (
-					<span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
-						{student.courseType}
-					</span>
-				);
+				return <span className="text-xs text-gray-400">—</span>;
 			},
 		},
 		{
 			accessorKey: "level",
 			header: "Level",
-			size: 100,
+			size: 80,
 			cell: ({ row }) => {
-				const levelValue = row.original.level;
-				const levelMap: Record<string | number, string> = {
-					1: "Seed",
-					2: "Sprout",
-					3: "Root",
-					4: "Leaf",
-					5: "Bud",
-					6: "Bloom",
-					7: "Fruit",
-				};
-
-				if (levelValue === undefined || levelValue === null || levelValue === "") {
-					return <span className="text-gray-400">—</span>;
-				}
-
-				const key = typeof levelValue === "number" ? levelValue : Number(levelValue);
-				return <span className="font-semibold">{levelMap[key] ?? String(levelValue)}</span>;
+				const v = row.original.level;
+				if (v === undefined || v === null || v === "") return <span className="text-gray-400">—</span>;
+				const k = typeof v === "number" ? v : Number(v);
+				return <span className="text-sm font-medium">{LEVEL_LABELS[k] ?? String(v)}</span>;
 			},
 		},
 		{
 			accessorKey: "mentorId",
 			header: "Mentor",
-			size: 140,
-			cell: ({ row }) =>
-				row.original.mentorId
-					? mentorNameById[row.original.mentorId] || "Unassigned"
-					: "—",
-		},
-		{
-			accessorKey: "status",
-			header: "Status",
 			size: 130,
 			cell: ({ row }) => {
-				const hasProcess = Boolean(
-					row.original.processId || row.original.processLabel,
-				);
-				const processLabel = row.original.processLabel ?? "In process";
-
+				const name = row.original.mentorId ? (mentorNameById[row.original.mentorId] ?? "—") : "—";
+				return <span className="text-sm text-gray-600">{name}</span>;
+			},
+		},
+		{
+			id: "followUp",
+			header: "Follow-up",
+			cell: ({ row }) => {
+				const s = row.original;
+				const date = s.customNextFollowUpAt ?? s.nextFollowUpAt;
+				const state = getStudentFollowUpState(s.customNextFollowUpAt, s.nextFollowUpAt);
 				return (
-					<span
-						className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white ${getColorByStatus(
-							row.original.status,
-						)} ${hasProcess ? "animate-pulse bg-yellow-500" : ""}`}
-					>
-						{hasProcess ? (
-							<HiCog6Tooth
-								className="h-3.5 w-3.5"
-								title={processLabel}
-								aria-label="Process linked"
-							/>
-						) : null}
-						{hasProcess ? processLabel : row.original.status}
-					</span>
+					<div className="flex items-center gap-1.5">
+						<span className={`h-2 w-2 rounded-full shrink-0 ${state.label === "Past Due" ? "bg-red-500" : state.label === "Today" ? "bg-amber-400" : "bg-emerald-500"}`} />
+						<span className="text-xs text-gray-600">
+							{date ? new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
+						</span>
+					</div>
 				);
 			},
 		},
 		{
-			accessorKey: "nextFollowUpAt",
-			header: "Next Follow-up",
-			size: 200,
+			id: "status",
+			header: "Status",
 			cell: ({ row }) => {
-				const followUpDate =
-					row.original.customNextFollowUpAt ?? row.original.nextFollowUpAt;
-				const state = getStudentFollowUpState(
-					row.original.customNextFollowUpAt,
-					row.original.nextFollowUpAt,
-				);
-
-				return (
-					<div className="space-y-1">
-						<p>
-							{followUpDate
-								? new Date(followUpDate).toLocaleDateString("en-IN", {
-									year: "numeric",
-									month: "short",
-									day: "numeric",
-								})
-								: "—"}
-						</p>
-						<span
-							className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${state.className}`}
-						>
-							{state.label}
+				const s = row.original;
+				const hasProcess = Boolean(s.processId || s.processLabel);
+				if (hasProcess) {
+					return (
+						<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+							<HiCog6Tooth className="h-3 w-3" />
+							{s.processLabel ?? "In process"}
 						</span>
-					</div>
+					);
+				}
+				return (
+					<span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold text-white ${getColorByStatus(s.status)}`}>
+						{s.status}
+					</span>
 				);
 			},
 		},

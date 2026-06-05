@@ -67,207 +67,36 @@ type ValidateFormLinkResponse = {
 	prefill?: Partial<PublicFormValues> & { courseType?: "GROUP" | "INDIVIDUAL" };
 };
 
+const ALLOWED_COUNTRIES = [
+	"Bahrain",
+	"Canada",
+	"China",
+	"Denmark",
+	"Egypt",
+	"France",
+	"Germany",
+	"Ireland",
+	"Iraq",
+	"Italy",
+	"Japan",
+	"Kuwait",
+	"Malaysia",
+	"Netherlands",
+	"Oman",
+	"Qatar",
+	"Saudi Arabia",
+	"Singapore",
+	"Sweden",
+	"Switzerland",
+	"UAE",
+	"UK",
+	"USA",
+	"Yemen",
+];
+
 // Default form options (fallback in case preload fails)
 const DEFAULT_FORM_OPTIONS: FormOptions = {
-	countries: [
-		"Afghanistan",
-		"Albania",
-		"Algeria",
-		"Andorra",
-		"Angola",
-		"Antigua and Barbuda",
-		"Argentina",
-		"Armenia",
-		"Australia",
-		"Austria",
-		"Azerbaijan",
-		"Bahamas",
-		"Bahrain",
-		"Bangladesh",
-		"Barbados",
-		"Belarus",
-		"Belgium",
-		"Belize",
-		"Benin",
-		"Bhutan",
-		"Bolivia",
-		"Bosnia and Herzegovina",
-		"Botswana",
-		"Brazil",
-		"Brunei",
-		"Bulgaria",
-		"Burkina Faso",
-		"Burundi",
-		"Cabo Verde",
-		"Cambodia",
-		"Cameroon",
-		"Canada",
-		"Central African Republic",
-		"Chad",
-		"Chile",
-		"China",
-		"Colombia",
-		"Comoros",
-		"Costa Rica",
-		"Cote d'Ivoire",
-		"Croatia",
-		"Cuba",
-		"Cyprus",
-		"Czech Republic",
-		"Democratic Republic of the Congo",
-		"Denmark",
-		"Djibouti",
-		"Dominica",
-		"Dominican Republic",
-		"Ecuador",
-		"Egypt",
-		"El Salvador",
-		"Equatorial Guinea",
-		"Eritrea",
-		"Estonia",
-		"Eswatini",
-		"Ethiopia",
-		"Fiji",
-		"Finland",
-		"France",
-		"Gabon",
-		"Gambia",
-		"Georgia",
-		"Germany",
-		"Ghana",
-		"Greece",
-		"Grenada",
-		"Guatemala",
-		"Guinea",
-		"Guinea-Bissau",
-		"Guyana",
-		"Haiti",
-		"Honduras",
-		"Hungary",
-		"Iceland",
-		"India",
-		"Indonesia",
-		"Iran",
-		"Iraq",
-		"Ireland",
-		"Israel",
-		"Italy",
-		"Jamaica",
-		"Japan",
-		"Jordan",
-		"Kazakhstan",
-		"Kenya",
-		"Kiribati",
-		"Kosovo",
-		"Kuwait",
-		"Kyrgyzstan",
-		"Laos",
-		"Latvia",
-		"Lebanon",
-		"Lesotho",
-		"Liberia",
-		"Libya",
-		"Liechtenstein",
-		"Lithuania",
-		"Luxembourg",
-		"Madagascar",
-		"Malawi",
-		"Malaysia",
-		"Maldives",
-		"Mali",
-		"Malta",
-		"Marshall Islands",
-		"Mauritania",
-		"Mauritius",
-		"Mexico",
-		"Micronesia",
-		"Moldova",
-		"Monaco",
-		"Mongolia",
-		"Montenegro",
-		"Morocco",
-		"Mozambique",
-		"Myanmar",
-		"Namibia",
-		"Nauru",
-		"Nepal",
-		"Netherlands",
-		"New Zealand",
-		"Nicaragua",
-		"Niger",
-		"Nigeria",
-		"North Korea",
-		"North Macedonia",
-		"Norway",
-		"Oman",
-		"Pakistan",
-		"Palau",
-		"Panama",
-		"Papua New Guinea",
-		"Paraguay",
-		"Peru",
-		"Philippines",
-		"Poland",
-		"Portugal",
-		"Qatar",
-		"Republic of the Congo",
-		"Romania",
-		"Russia",
-		"Rwanda",
-		"Saint Kitts and Nevis",
-		"Saint Lucia",
-		"Saint Vincent and the Grenadines",
-		"Samoa",
-		"San Marino",
-		"Sao Tome and Principe",
-		"Saudi Arabia",
-		"Senegal",
-		"Serbia",
-		"Seychelles",
-		"Sierra Leone",
-		"Singapore",
-		"Slovakia",
-		"Slovenia",
-		"Solomon Islands",
-		"Somalia",
-		"South Africa",
-		"South Korea",
-		"South Sudan",
-		"Spain",
-		"Sri Lanka",
-		"Sudan",
-		"Suriname",
-		"Sweden",
-		"Switzerland",
-		"Syria",
-		"Taiwan",
-		"Tajikistan",
-		"Tanzania",
-		"Thailand",
-		"Timor-Leste",
-		"Togo",
-		"Tonga",
-		"Trinidad and Tobago",
-		"Tunisia",
-		"Turkey",
-		"Turkmenistan",
-		"Tuvalu",
-		"Uganda",
-		"Ukraine",
-		"United Arab Emirates",
-		"United Kingdom",
-		"United States",
-		"Uruguay",
-		"Uzbekistan",
-		"Vanuatu",
-		"Vatican City",
-		"Venezuela",
-		"Vietnam",
-		"Yemen",
-		"Zambia",
-		"Zimbabwe",
-		"Other",
-	],
+	countries: ALLOWED_COUNTRIES,
 	standards: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
 	days: [
 		"Monday",
@@ -405,49 +234,32 @@ const validateFormLink = async (
 };
 
 const preloadFormOptions = async (): Promise<FormOptions> => {
-	// Fetch countries and phone codes from Rest Countries API
+	// Fetch phone codes only — countries are fixed to ALLOWED_COUNTRIES
 	try {
 		const res = await fetch("https://restcountries.com/v3.1/all");
 		if (!res.ok) return DEFAULT_FORM_OPTIONS;
 		const data = await res.json();
 
-		const countriesSet = new Set<string>();
 		const phoneMap = new Map<string, string>();
 
 		for (const c of data) {
 			const name = c?.name?.common;
-			if (name) countriesSet.add(name);
-
 			const idd = c?.idd;
 			if (idd && idd.root) {
-				const root: string = idd.root; // e.g. "+91"
-				const suffixes: string[] = Array.isArray(idd.suffixes)
-					? idd.suffixes
-					: [];
+				const root: string = idd.root;
+				const suffixes: string[] = Array.isArray(idd.suffixes) ? idd.suffixes : [];
 				const suffix = suffixes.length > 0 ? suffixes[0] : "";
-				// normalize: if suffix is empty string, code is root
 				const code = suffix ? `${root}${suffix}` : root;
-				// keep first seen country name for code
 				if (!phoneMap.has(code) && name) phoneMap.set(code, name);
 			}
 		}
 
-		const countries = Array.from(countriesSet).sort((a, b) =>
-			a.localeCompare(b),
-		);
-		const phoneCodes = Array.from(phoneMap.entries()).map(([code, name]) => ({
-			code,
-			name,
-		}));
+		const phoneCodes = Array.from(phoneMap.entries()).map(([code, name]) => ({ code, name }));
 		phoneCodes.sort((a, b) => a.code.localeCompare(b.code));
 
-		return {
-			...DEFAULT_FORM_OPTIONS,
-			countries,
-			phoneCodes,
-		};
+		return { ...DEFAULT_FORM_OPTIONS, phoneCodes };
 	} catch (e) {
-		console.error("Failed to fetch countries from public API:", e);
+		console.error("Failed to fetch phone codes:", e);
 		return DEFAULT_FORM_OPTIONS;
 	}
 };
@@ -685,52 +497,8 @@ const PublicFormPage = () => {
 				);
 				console.log("Timeslots response:", timeSlotsResponse);
 
-				// Fetch dynamic form options (countries + phone codes) from Rest Countries API
-				let options = await preloadFormOptions();
-				try {
-					const rcRes = await fetch(
-						"https://restcountries.com/v3.1/all?fields=name,idd",
-					);
-					if (rcRes.ok) {
-						const rcData = await rcRes.json();
-						const countriesSet = new Set<string>();
-						const phoneCodesMap = new Map<string, string>();
-						for (const c of rcData) {
-							const name = c?.name?.common;
-							if (name) countriesSet.add(name);
-							const idd = c?.idd;
-							if (idd && idd.root) {
-								const root = idd.root;
-								const suffixes = Array.isArray(idd.suffixes)
-									? idd.suffixes
-									: [""];
-								for (const s of suffixes) {
-									const code = s ? `${root}${s}` : root;
-									if (code) phoneCodesMap.set(code, name || code);
-								}
-							}
-						}
-						const countries = Array.from(countriesSet).sort((a, b) =>
-							a.localeCompare(b),
-						);
-						const phoneCodes = Array.from(phoneCodesMap.entries()).map(
-							([code, name]) => ({ code, name }),
-						);
-						phoneCodes.sort((a, b) => a.code.localeCompare(b.code));
-						options = {
-							...options,
-							countries,
-							phoneCodes,
-						};
-					} else {
-						console.warn(
-							"Rest Countries API returned non-OK status",
-							rcRes.status,
-						);
-					}
-				} catch (e) {
-					console.error("Failed to fetch Rest Countries data:", e);
-				}
+				// Phone codes from Rest Countries API; countries fixed to ALLOWED_COUNTRIES
+				const options = await preloadFormOptions();
 
 				const mapped = timeSlotsResponse.timeSlots.map((ts) => ({
 					id: ts.id,

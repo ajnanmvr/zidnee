@@ -35,6 +35,12 @@ const StudentsPage = lazy(() =>
 		default: module.StudentsPage,
 	})),
 );
+const BreakStudentsPage = lazy(() =>
+	import("@/features/dashboard/BreakStudentsPage").then((m) => ({ default: m.BreakStudentsPage })),
+);
+const DroppedStudentsPage = lazy(() =>
+	import("@/features/dashboard/DroppedStudentsPage").then((m) => ({ default: m.DroppedStudentsPage })),
+);
 const StudentProcessesPage = lazy(() =>
 	import("@/features/dashboard/StudentProcessesPage").then((module) => ({
 		default: module.StudentProcessesPage,
@@ -295,6 +301,14 @@ export const router = createBrowserRouter([
 					{
 						path: "students",
 						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentsPage />),
+					},
+					{
+						path: "students/break",
+						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <BreakStudentsPage />),
+					},
+					{
+						path: "students/dropped",
+						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <DroppedStudentsPage />),
 					},
 					{
 						path: "processes",

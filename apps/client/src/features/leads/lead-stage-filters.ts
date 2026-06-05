@@ -18,7 +18,7 @@ export type LeadStageDefinition = {
 };
 
 export const leadStageDefinitions: LeadStageDefinition[] = [
-	{ id: "all", label: "All Leads", description: "Not converted or closed" },
+	{ id: "all", label: "All Leads", description: "Not converted or deleted" },
 	{ id: "followUp", label: "Follow Up", description: "No form sent" },
 	{
 		id: "formSent",
