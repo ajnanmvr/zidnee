@@ -1,18 +1,11 @@
-import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState, useCallback } from "react";
-import { HiArrowsRightLeft, HiEye, HiTrash } from "react-icons/hi2";
+import { HiArrowsRightLeft, HiTrash, HiUserPlus } from "react-icons/hi2";
 import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ActionButton } from "@/components/ActionButton";
-import { DataTable } from "@/components/DataTable";
-import { Panel, Modal } from "@/components/dashboard-ui";
+import { Modal } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useUpdateBatchMutation } from "@/features/batches/use-update-batch-mutation";
-import {
-	buildStudentColumns,
-	getStudentStatusColor,
-	type StudentTableRow,
-} from "@/features/students/student-table";
+import { getStudentStatusColor, getStudentStatusLabel, type StudentTableRow } from "@/features/students/student-table";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
@@ -103,41 +96,6 @@ export const GroupDetailPage = () => {
 		setConfirmStudentId(null);
 	}, []);
 
-	const activeStudentColumns = useMemo<ColumnDef<StudentTableRow>[]>(() => {
-		const sharedColumns = buildStudentColumns(getStudentStatusColor, mentorNameById);
-
-		return [
-			...sharedColumns,
-			{
-				id: "actions",
-				header: "Actions",
-				cell: ({ row }) => (
-					<div className="flex items-center gap-2">
-						<Link
-							to={`/students/${row.original.id}`}
-							aria-label="View student"
-							title="View student"
-							className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300 text-cyan-700 transition-colors hover:bg-cyan-50"
-						>
-							<HiEye className="h-4 w-4" aria-hidden="true" />
-						</Link>
-						<ActionButton
-							icon={<HiTrash className="h-4 w-4" aria-hidden="true" />}
-							tooltip="Remove from group"
-							color="red"
-							onClick={() => confirmRemove(row.original.id)}
-						/>
-						<ActionButton
-							icon={<HiArrowsRightLeft className="h-4 w-4" aria-hidden="true" />}
-							tooltip="Move to another group"
-							color="orange"
-							onClick={() => openMove(row.original.id)}
-						/>
-					</div>
-				),
-			},
-		];
-	}, [confirmRemove, mentorNameById, openMove]);
 
 	if (!group) {
 		return (
@@ -265,194 +223,243 @@ export const GroupDetailPage = () => {
 		}
 	};
 
+	const btnPrimary = "inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50";
+	const btnGhost = "inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50";
+	const inputCls = "w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:bg-white";
+
 	return (
-		<div className="grid gap-6">
-			<div className="rounded-3xl border bg-white p-6">
-				<h2 className="text-2xl font-semibold">{group.name ?? group.groupId?.toUpperCase()}</h2>
-				<p className="text-sm text-gray-600 mt-1">Mentor: {mentorName}</p>
-				{counsellorName && <p className="text-sm text-gray-600">Counsellor: {counsellorName}</p>}
+		<div className="space-y-4">
+			{/* Header */}
+			<div className="rounded-xl border border-gray-200 bg-white p-4">
+				<div className="flex flex-wrap items-start justify-between gap-3">
+					<div>
+						<h1 className="text-base font-bold text-gray-900">
+							{group.name ?? group.groupId?.toUpperCase()}
+							{group.groupId ? <span className="ml-2 text-xs font-normal text-gray-400">{group.groupId.toUpperCase()}</span> : null}
+						</h1>
+						<div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
+							<span>Mentor: <strong className="text-gray-700">{mentorName}</strong></span>
+							{counsellorName ? <span>Counsellor: <strong className="text-gray-700">{counsellorName}</strong></span> : null}
+							<span>Level: <strong className="text-gray-700">{group.level ?? "—"}</strong></span>
+							<span>{activeStudents.length} active student{activeStudents.length !== 1 ? "s" : ""}</span>
+						</div>
+					</div>
+					<span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${group.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+						{group.isActive ? "Active" : "Inactive"}
+					</span>
+				</div>
 			</div>
 
-			<div className="border-b border-gray-200">
-				<nav className="flex gap-8">
-					{[
-						{ key: "students", label: "Students" },
-						{ key: "assessment", label: "Assessment" },
-					].map((tab) => (
-						<button
-							key={tab.key}
-							onClick={() => setActiveTab(tab.key as "students" | "assessment")}
-							className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-								activeTab === tab.key
-									? "border-teal-600 text-teal-600"
-									: "border-transparent text-gray-600 hover:text-gray-900"
-							}`}
-						>
-							{tab.label}
-						</button>
-					))}
-				</nav>
+			{/* Tabs */}
+			<div className="flex gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+				{(["students", "assessment"] as const).map((tab) => (
+					<button
+						key={tab}
+						type="button"
+						onClick={() => setActiveTab(tab)}
+						className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${activeTab === tab ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+					>
+						{tab.charAt(0).toUpperCase() + tab.slice(1)}
+					</button>
+				))}
 			</div>
 
-			{activeTab === "students" && (
-				<Panel title="Active students in this group">
-					<div className="flex justify-end mb-4">
-						<button onClick={() => setAddModalOpen(true)} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-							Add Student
+			{/* Students tab */}
+			{activeTab === "students" ? (
+				<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+					<div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+						<p className="text-sm font-semibold text-gray-700">
+							Students <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{activeStudents.length}</span>
+						</p>
+						<button type="button" onClick={() => setAddModalOpen(true)} className={btnPrimary}>
+							<HiUserPlus className="h-4 w-4" /> Add student
 						</button>
 					</div>
-					<DataTable
-						data={activeStudents}
-						columns={activeStudentColumns}
-						enableGlobalFilter={false}
-						enableTableSorting={false}
-					/>
 					{activeStudents.length === 0 ? (
-						<div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-600">
-							No active students in this group.
-						</div>
-					) : null}
-				</Panel>
-			)}
+						<p className="py-10 text-center text-sm text-gray-400">No active students in this group.</p>
+					) : (
+						<table className="w-full text-sm">
+							<thead className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+								<tr>
+									<th className="px-4 py-2.5">Student</th>
+									<th className="px-4 py-2.5 hidden sm:table-cell">Level</th>
+									<th className="px-4 py-2.5 hidden md:table-cell">Mentor</th>
+									<th className="px-4 py-2.5">Status</th>
+									<th className="px-4 py-2.5" />
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-gray-100">
+								{activeStudents.map((student) => (
+									<tr key={student.id} className="hover:bg-gray-50">
+										<td className="px-4 py-3">
+											<Link to={`/students/${student.id}`} className="font-medium text-gray-800 hover:text-emerald-700">
+												{student.zid} · {student.name}
+											</Link>
+											<p className="text-xs text-gray-400">{student.phone}</p>
+										</td>
+										<td className="px-4 py-3 hidden sm:table-cell text-gray-600">{student.level ?? "—"}</td>
+										<td className="px-4 py-3 hidden md:table-cell text-gray-600">{mentorNameById[student.mentorId ?? ""] ?? "—"}</td>
+										<td className="px-4 py-3">
+											<span className={`rounded-full px-2 py-0.5 text-xs font-semibold text-white ${getStudentStatusColor(student.status)}`}>
+												{getStudentStatusLabel(student.status)}
+											</span>
+										</td>
+										<td className="px-4 py-3 text-right">
+											<div className="flex items-center justify-end gap-1">
+												<button
+													type="button"
+													onClick={() => openMove(student.id)}
+													className="rounded-lg p-1.5 text-gray-400 transition hover:bg-orange-50 hover:text-orange-600"
+													title="Move to another group"
+												>
+													<HiArrowsRightLeft className="h-4 w-4" />
+												</button>
+												<button
+													type="button"
+													onClick={() => confirmRemove(student.id)}
+													className="rounded-lg p-1.5 text-gray-300 transition hover:bg-red-50 hover:text-red-500"
+													title="Remove from group"
+												>
+													<HiTrash className="h-4 w-4" />
+												</button>
+											</div>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					)}
+				</div>
+			) : null}
 
-			{activeTab === "assessment" && (
-				<Panel title="Group assessments">
-					<div className="space-y-4">
-						{assessmentConfig.map((assessment) => {
-							const nextDone = !assessment.value;
-							return (
-								<div key={assessment.assessmentType} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-									<div className="flex items-start justify-between gap-4">
-										<div>
-											<p className="text-sm font-semibold text-gray-900">{assessment.label}</p>
-											<p className="mt-1 text-sm text-gray-600">{assessment.description}</p>
-										</div>
-										<span
-											className={`rounded-full px-3 py-1 text-xs font-semibold ${assessment.value ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
-										>
-											{assessment.value ? "Done" : "Not done"}
-										</span>
-									</div>
+			{/* Assessment tab */}
+			{activeTab === "assessment" ? (
+				<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+					<div className="divide-y divide-gray-100">
+						{assessmentConfig.map((assessment) => (
+							<div key={assessment.assessmentType} className="flex items-center justify-between gap-4 px-4 py-4">
+								<div className="min-w-0">
+									<p className="text-sm font-medium text-gray-800">{assessment.label}</p>
+									<p className="text-xs text-gray-400">{assessment.description}</p>
+								</div>
+								<div className="flex items-center gap-3 shrink-0">
+									<span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${assessment.value ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+										{assessment.value ? "Done" : "Pending"}
+									</span>
 									<button
 										type="button"
-										onClick={() => openAssessmentConfirm(assessment.assessmentType, nextDone)}
-										className="mt-4 rounded-2xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
+										onClick={() => openAssessmentConfirm(assessment.assessmentType, !assessment.value)}
+										className={btnGhost}
 									>
 										{assessment.value ? "Mark undone" : "Mark done"}
 									</button>
 								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
+
+			{/* Move student modal */}
+			<Modal open={moveModalOpen} title="Move student to another group" onClose={closeMove}
+				footer={
+					<>
+						<button type="button" onClick={closeMove} className={btnGhost}>Cancel</button>
+						<button type="button" onClick={() => void submitMove()} disabled={!targetBatchId || updateStudentMutation.isPending} className={btnPrimary}>
+							{updateStudentMutation.isPending ? "Moving…" : "Move"}
+						</button>
+					</>
+				}
+			>
+				<select value={targetBatchId ?? ""} onChange={(e) => setTargetBatchId(e.target.value)} className={inputCls}>
+					<option value="">Select target group…</option>
+					{(batchesQuery.data?.batches ?? []).filter((b) => b.type === "GROUP" && b.id !== groupId).map((b) => (
+						<option key={b.id} value={b.id}>{b.name ?? b.groupId}</option>
+					))}
+				</select>
+			</Modal>
+
+			{/* Confirm remove modal */}
+			<Modal open={confirmAction === "remove"} title="Remove from group?" onClose={() => setConfirmAction(null)}
+				footer={
+					<>
+						<button type="button" onClick={() => setConfirmAction(null)} className={btnGhost}>Cancel</button>
+						<button type="button" onClick={() => { if (confirmStudentId) void submitRemove(confirmStudentId); }} disabled={updateStudentMutation.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50">
+							{updateStudentMutation.isPending ? "Removing…" : "Remove"}
+						</button>
+					</>
+				}
+			>
+				<p className="text-sm text-gray-600">The student will be unassigned from this group but remain active.</p>
+			</Modal>
+
+			{/* Confirm move (pick group) modal */}
+			<Modal open={confirmAction === "move"} title="Move student?" onClose={() => setConfirmAction(null)}
+				footer={
+					<>
+						<button type="button" onClick={() => setConfirmAction(null)} className={btnGhost}>Cancel</button>
+						<button type="button" onClick={() => { if (confirmStudentId) confirmMove(confirmStudentId); }} className={btnPrimary}>Continue</button>
+					</>
+				}
+			>
+				<p className="text-sm text-gray-600">You'll select the target group on the next step.</p>
+			</Modal>
+
+			{/* Add students modal */}
+			<Modal open={addModalOpen} title="Add students to group" onClose={closeAddModal}
+				footer={
+					<>
+						<button type="button" onClick={closeAddModal} className={btnGhost}>Cancel</button>
+						<button type="button" onClick={() => void submitAddStudents()} disabled={selectedStudentsToAdd.length === 0 || updateStudentMutation.isPending} className={btnPrimary}>
+							{updateStudentMutation.isPending ? "Adding…" : `Add${selectedStudentsToAdd.length > 0 ? ` (${selectedStudentsToAdd.length})` : ""}`}
+						</button>
+					</>
+				}
+			>
+				{availableStudents.length === 0 ? (
+					<p className="py-4 text-center text-sm text-gray-400">No available students at level {group.level ?? "—"}.</p>
+				) : (
+					<div className="max-h-80 overflow-y-auto space-y-1">
+						{availableStudents.map((student) => {
+							const mentorLabel = mentors.find((m) => m.id === student.mentorId)?.name ?? "—";
+							return (
+								<label key={student.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 p-3 transition hover:bg-gray-50">
+									<input
+										type="checkbox"
+										checked={selectedStudentsToAdd.includes(student.id)}
+										onChange={() => toggleStudentSelection(student.id)}
+										className="h-4 w-4 rounded border-gray-300 text-emerald-600"
+									/>
+									<div className="min-w-0 flex-1">
+										<p className="text-sm font-medium text-gray-800">{student.zid.toUpperCase()} · {student.name}</p>
+										<p className="text-xs text-gray-400">Mentor: {mentorLabel}</p>
+									</div>
+								</label>
 							);
 						})}
 					</div>
-				</Panel>
-			)}
-
-			<Modal open={moveModalOpen} title="Move student" onClose={closeMove}>
-				<div className="grid gap-4">
-					<select value={targetBatchId ?? ""} onChange={(e) => setTargetBatchId(e.target.value)} className="rounded-2xl border px-4 py-3">
-						<option value="">Select target group</option>
-						{(batchesQuery.data?.batches ?? []).filter((b) => b.type === "GROUP" && b.id !== groupId).map((b) => (
-							<option key={b.id} value={b.id}>{b.name ?? b.groupId}</option>
-						))}
-					</select>
-					<div className="flex justify-end">
-						<button onClick={submitMove} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Move</button>
-					</div>
-				</div>
+				)}
 			</Modal>
 
-			<Modal open={confirmAction === "remove"} title="Remove student from group?" onClose={() => setConfirmAction(null)}>
-				<div className="grid gap-4">
-					<p className="text-sm text-gray-700">This will remove the student from the group but keep their enrollment active.</p>
-					<div className="flex justify-end gap-2">
-						<button onClick={() => setConfirmAction(null)} className="rounded-2xl border px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
-						<button onClick={() => confirmStudentId && submitRemove(confirmStudentId)} className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Remove</button>
-					</div>
-				</div>
-			</Modal>
-
-			<Modal open={confirmAction === "move"} title="Move student to another group?" onClose={() => setConfirmAction(null)}>
-				<div className="grid gap-4">
-					<p className="text-sm text-gray-700">Select target group to continue</p>
-					<div className="flex justify-end gap-2">
-						<button onClick={() => setConfirmAction(null)} className="rounded-2xl border px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
-						<button onClick={() => confirmStudentId && confirmMove(confirmStudentId)} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Continue</button>
-					</div>
-				</div>
-			</Modal>
-
-			<Modal open={addModalOpen} title="Add students to group" onClose={closeAddModal}>
-				<div className="grid gap-4 max-h-96 overflow-y-auto">
-					{availableStudents.length === 0 ? (
-						<p className="text-sm text-gray-600">No available students for this course level</p>
-					) : (
-						<>
-							<div className="space-y-2">
-								{availableStudents.map((student) => {
-									const mentor = mentors.find((m) => m.id === student.mentorId)?.name ?? "-";
-									const counsellor = mentors.find((m) => m.id === student.admittedBy)?.name ?? "-";
-									return (
-										<label key={student.id} className="flex items-center gap-2 p-2 rounded border hover:bg-gray-50 cursor-pointer">
-											<input
-												type="checkbox"
-												checked={selectedStudentsToAdd.includes(student.id)}
-												onChange={() => toggleStudentSelection(student.id)}
-												className="w-4 h-4"
-											/>
-											<div className="flex-1">
-												<p className="text-sm font-medium text-gray-900">{student.zid.toUpperCase()} - {student.name}</p>
-												<p className="text-xs text-gray-500">Mentor: {mentor}, Counsellor: {counsellor}</p>
-											</div>
-										</label>
-									);
-								})}
-							</div>
-							<div className="flex justify-end gap-2 pt-4 border-t">
-								<button onClick={closeAddModal} className="rounded-2xl border px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
-								<button onClick={submitAddStudents} disabled={selectedStudentsToAdd.length === 0} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-									Add {selectedStudentsToAdd.length > 0 ? `(${selectedStudentsToAdd.length})` : ""}
-								</button>
-							</div>
-						</>
-					)}
-				</div>
-			</Modal>
-
+			{/* Assessment confirm modal */}
 			<Modal
 				open={assessmentConfirmOpen}
-				title="Confirm assessment update"
-				onClose={() => {
-					setAssessmentConfirmOpen(false);
-					setPendingAssessment(null);
-				}}
+				title="Update assessment"
+				onClose={() => { setAssessmentConfirmOpen(false); setPendingAssessment(null); }}
+				footer={
+					<>
+						<button type="button" onClick={() => { setAssessmentConfirmOpen(false); setPendingAssessment(null); }} className={btnGhost}>Cancel</button>
+						<button type="button" onClick={() => void submitAssessmentUpdate()} disabled={updateBatchMutation.isPending || !pendingAssessment} className={btnPrimary}>
+							{updateBatchMutation.isPending ? "Saving…" : "Confirm"}
+						</button>
+					</>
+				}
 			>
-				<div className="grid gap-4">
-					<p className="text-sm text-gray-700">
-						{pendingAssessment
-							? `Mark ${pendingAssessment.assessmentType} assessment as ${pendingAssessment.nextDone ? "done" : "undone"}?`
-							: "Confirm the assessment change."}
-					</p>
-					<div className="flex justify-end gap-2">
-						<button
-							type="button"
-							onClick={() => {
-								setAssessmentConfirmOpen(false);
-								setPendingAssessment(null);
-							}}
-							className="rounded-2xl border px-4 py-2 text-sm font-semibold text-gray-700"
-						>
-							Cancel
-						</button>
-						<button
-							type="button"
-							onClick={() => void submitAssessmentUpdate()}
-							disabled={updateBatchMutation.isPending || !pendingAssessment}
-							className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-						>
-							{updateBatchMutation.isPending ? "Saving..." : "Confirm"}
-						</button>
-					</div>
-				</div>
+				<p className="text-sm text-gray-600">
+					{pendingAssessment
+						? `Mark the ${pendingAssessment.assessmentType} assessment as ${pendingAssessment.nextDone ? "done" : "not done"} for this group and all ${activeStudents.length} active student${activeStudents.length !== 1 ? "s" : ""}?`
+						: "Confirm the assessment change."}
+				</p>
 			</Modal>
 		</div>
 	);

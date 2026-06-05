@@ -30,7 +30,7 @@ import {
 	useRequestLeadDemoMutation,
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { useCounsellorsQuery, useUsersQuery } from "@/features/users/users.queries";
 import type { PostponeLeadFollowUpForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
@@ -224,8 +224,12 @@ export const LeadDetailPageNew = () => {
 		},
 	});
 
+	const counsellorsQuery = useCounsellorsQuery(token);
+	const [selectedCounsellorId, setSelectedCounsellorId] = useState<string>("");
+
 	const lead = leadQuery.data?.lead ?? null;
 	const allUsers = usersQuery.data?.users ?? [];
+	const counsellors = counsellorsQuery.data?.users ?? [];
 	const findUserById = (id?: string | null) =>
 		id ? (allUsers.find((user) => user.id === id) ?? null) : null;
 	const formatUserIdentity = (
@@ -391,10 +395,19 @@ export const LeadDetailPageNew = () => {
 
 	const onRequestDemo = async () => {
 		if (!lead) return;
+		if (!selectedCounsellorId) {
+			toast.error("Please select a counsellor before requesting a demo.");
+			return;
+		}
 		try {
+			await updateMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { demoRequestAssignedTo: selectedCounsellorId },
+			});
 			await requestDemoMutation.mutateAsync(lead.id);
 			toast.success("Demo request created");
 			setRequestDemoOpen(false);
+			setSelectedCounsellorId("");
 		} catch {
 			toast.error("Failed to request demo");
 		}
@@ -1663,58 +1676,51 @@ export const LeadDetailPageNew = () => {
 
 			<Modal
 				open={requestDemoOpen}
-				onClose={() => setRequestDemoOpen(false)}
-				title="Request Demo"
+				onClose={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); }}
+				title="Request demo and assign counsellor"
 				footer={
 					<>
 						<button
 							type="button"
-							onClick={() => setRequestDemoOpen(false)}
+							onClick={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); }}
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 						>
 							Cancel
 						</button>
 						<button
 							type="button"
-							onClick={onRequestDemo}
-							disabled={requestDemoMutation.isPending}
+							onClick={() => void onRequestDemo()}
+							disabled={updateMutation.isPending || requestDemoMutation.isPending || !selectedCounsellorId}
 							className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							{requestDemoMutation.isPending ? (
-								<>
-									<svg
-										className="h-4 w-4 animate-spin"
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-									>
-										<circle
-											className="opacity-25"
-											cx="12"
-											cy="12"
-											r="10"
-											stroke="currentColor"
-											strokeWidth="4"
-										/>
-										<path
-											className="opacity-75"
-											fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-										/>
-									</svg>
-									<span>Requesting...</span>
-								</>
-							) : (
-								<span>Request Demo</span>
-							)}
+							{updateMutation.isPending || requestDemoMutation.isPending ? "Requesting..." : "Request Demo"}
 						</button>
 					</>
 				}
 			>
-				<p className="text-sm text-gray-700">
-					This will create a demo request for {lead.name}. A counsellor will be
-					assigned to coordinate the demo.
-				</p>
+				<div className="space-y-4">
+					<p className="text-sm text-slate-600">
+						Select a counsellor who will coordinate and schedule the demo.
+					</p>
+					{counsellors.length === 0 ? (
+						<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+							No counsellors available
+						</div>
+					) : (
+						<select
+							value={selectedCounsellorId}
+							onChange={(e) => setSelectedCounsellorId(e.target.value)}
+							className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
+						>
+							<option value="" disabled>Select counsellor</option>
+							{counsellors.map((c) => (
+								<option key={c.id} value={c.id}>
+									{c.zids?.counsellor ? `${c.zids.counsellor} - ${c.name ?? c.username}` : (c.name || c.username)}
+								</option>
+							))}
+						</select>
+					)}
+				</div>
 			</Modal>
 		</div>
 	);

@@ -28,14 +28,14 @@ type PublicFormValues = {
 	alternateWhatsappNumber: string;
 	studentInfo: string;
 	preferredLanguage:
-		| ""
-		| "Malayalam Only"
-		| "English Only"
-		| "Malayalam - English Mixed";
+	| ""
+	| "Malayalam Only"
+	| "English Only"
+	| "Malayalam - English Mixed";
 	preferredDays: string[];
 	preferredSchedule: string;
 	preferredTimeslots: PreferredTimeslot[];
-		preferredPlan: PreferredPlan | null;
+	preferredPlan: PreferredPlan | null;
 	preferredStartTime: string; // hh:mm
 	hearAboutUs: string;
 	demoAvailability: string;
@@ -803,7 +803,7 @@ const PublicFormPage = () => {
 					if (prefill.courseType) {
 						const normalizedCourseType =
 							prefill.courseType === "GROUP" ||
-							prefill.courseType === "INDIVIDUAL"
+								prefill.courseType === "INDIVIDUAL"
 								? prefill.courseType
 								: String(prefill.courseType).toUpperCase() === "GROUP"
 									? "GROUP"
@@ -914,7 +914,7 @@ const PublicFormPage = () => {
 			console.error("Form submission error:", error);
 			toast.error(
 				extractReadableErrorMessage(error) ||
-					"Something went wrong. Please try again.",
+				"Something went wrong. Please try again.",
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -1144,11 +1144,6 @@ const PublicFormPage = () => {
 											</option>
 										))}
 									</select>
-									{isGroupCourse ? (
-										<p className="mt-1 text-xs text-slate-500">
-											For group courses, available standards are 1 to 5.
-										</p>
-									) : null}
 									{errors.level?.message ? (
 										<p className="mt-1 text-xs text-red-600">
 											{errors.level.message}
@@ -1253,45 +1248,6 @@ const PublicFormPage = () => {
 
 						{currentStep === 2 ? (
 							<div className="space-y-4">
-								{courseType && (
-									<div
-										className={`rounded-2xl border p-4 ${courseType === "GROUP" ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50"}`}
-									>
-										<div className="flex items-start gap-3">
-											<div
-												className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${courseType === "GROUP" ? "bg-emerald-500" : "bg-blue-500"}`}
-											>
-												<svg
-													className="h-3 w-3 text-white"
-													fill="currentColor"
-													viewBox="0 0 20 20"
-												>
-													<path
-														fillRule="evenodd"
-														d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-														clipRule="evenodd"
-													/>
-												</svg>
-											</div>
-											<div>
-												<p
-													className={`font-semibold ${courseType === "GROUP" ? "text-emerald-900" : "text-blue-900"}`}
-												>
-													{courseType === "GROUP"
-														? "Group Course"
-														: "Individual Course"}
-												</p>
-												<p
-													className={`text-sm ${courseType === "GROUP" ? "text-emerald-700" : "text-blue-700"}`}
-												>
-													{courseType === "GROUP"
-														? "Scheduling will be managed by our team. Just tell us your preferred language and how you heard about us."
-														: "Please provide your detailed scheduling preferences so we can find the perfect mentor and schedule for you."}
-												</p>
-											</div>
-										</div>
-									</div>
-								)}
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1316,47 +1272,178 @@ const PublicFormPage = () => {
 										</p>
 									) : null}
 								</div>
-
-								{courseType === "INDIVIDUAL" ? (
-									<div>
-										<label className="mb-2 block text-sm font-semibold text-slate-700">
-											Preferred days
-										</label>
-										<p className="mb-3 text-xs text-slate-500">
-											Select all days you can attend individual classes.
-										</p>
-										<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-											{formOptions.days.map((day) => {
-												const currentDays = watch("preferredDays") || [];
-												const isSelected = currentDays.includes(day);
-
-												return (
-													<button
-														key={day}
-														type="button"
-														onClick={() => {
-															const nextDays = isSelected
-																? currentDays.filter((selectedDay) => selectedDay !== day)
-																: [...currentDays, day];
-															setValue("preferredDays", nextDays, {
-																shouldDirty: true,
-																shouldValidate: true,
-															});
-														}}
-														className={`rounded-2xl border px-3 py-3 text-sm font-medium transition ${isSelected ? "border-brand bg-brand-soft text-brand" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
-													>
-														{day}
-													</button>
-												);
-											})}
-										</div>
-										{errors.preferredDays?.message ? (
-											<p className="mt-1 text-xs text-red-600">
-												{errors.preferredDays.message}
+								{courseType === "INDIVIDUAL" && (
+									<div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Choose a plan
+											</label>
+											<p className="mb-3 text-xs text-slate-500">
+												Select the plan that matches how often and how long you want classes.
 											</p>
+											<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 items-stretch">
+												{formOptions.timeslots.map((timeslot) => {
+													const isSelected =
+														selectedPlanSnapshot?.timesPerWeek === timeslot.timesPerWeek &&
+														selectedPlanSnapshot?.durationMinutes === timeslot.durationMinutes;
+
+													return (
+														<button
+															key={`${timeslot.timesPerWeek}-${timeslot.durationMinutes}`}
+															type="button"
+															onClick={() => {
+																setValue(
+																	"preferredPlan",
+																	{
+																		timesPerWeek: timeslot.timesPerWeek,
+																		durationMinutes: timeslot.durationMinutes,
+																	},
+																	{ shouldDirty: true, shouldValidate: true },
+																);
+															}}
+															className={`w-full min-w-0 rounded-3xl border p-4 text-left transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
+														>
+															<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+																<div>
+																	<p className="text-sm font-semibold text-slate-950">
+																		{timeslot.timesPerWeek} time{timeslot.timesPerWeek > 1 ? "s" : ""} per week
+																	</p>
+																	<p className="mt-1 text-sm text-slate-600">
+																		Duration: {timeslot.durationMinutes} minutes
+																	</p>
+																</div>
+																<span className={`mt-3 sm:mt-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${isSelected ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
+																	{isSelected ? "Selected" : "Choose"}
+																</span>
+															</div>
+														</button>
+													);
+												})}
+											</div>
+											{errors.preferredPlan?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredPlan.message}
+												</p>
+											) : null}
+										</div>
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred days
+											</label>
+											<p className="mb-3 text-xs text-slate-500">
+												Select all days you can attend individual classes.
+											</p>
+											<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+												{formOptions.days.map((day) => {
+													const currentDays = watch("preferredDays") || [];
+													const isSelected = currentDays.includes(day);
+
+													return (
+														<button
+															key={day}
+															type="button"
+															onClick={() => {
+																const nextDays = isSelected
+																	? currentDays.filter((selectedDay) => selectedDay !== day)
+																	: [...currentDays, day];
+																setValue("preferredDays", nextDays, {
+																	shouldDirty: true,
+																	shouldValidate: true,
+																});
+															}}
+															className={`rounded-2xl border px-3 py-3 text-sm font-medium transition ${isSelected ? "border-brand bg-brand-soft text-brand" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+														>
+															{day}
+														</button>
+													);
+												})}
+											</div>
+											{errors.preferredDays?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredDays.message}
+												</p>
+											) : null}
+										</div>
+										<div>
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred class time (Indian Time)
+											</label>
+											{!selectedPlanSnapshot ? (
+												<p className="mb-2 text-xs text-slate-500">
+													Choose a plan first to calculate the class end time.
+												</p>
+											) : null}
+											<input
+												type="time"
+												disabled={!selectedPlanSnapshot}
+												{...register("preferredStartTime", {
+													required: "Start time is required",
+												})}
+												value={selectedPlanSnapshot ? undefined : ""}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.preferredStartTime?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredStartTime.message}
+												</p>
+											) : null}
+										</div>
+
+										{selectedStartTime && calculatedEndTime ? (
+											<div className=" grid items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-3 sm:grid-cols-2">
+												<div>
+													<p className="text-xs font-semibold text-slate-600">Start time</p>
+													<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(selectedStartTime)}</p>
+												</div>
+												<div>
+													<p className="text-xs font-semibold text-slate-600">End time</p>
+													<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(calculatedEndTime)}</p>
+												</div>
+											</div>
 										) : null}
+
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												Preferred mentor gender
+											</label>
+											<select
+												{...register("preferredMentorGender", {
+													required: "Preferred mentor gender is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											>
+												<option value="">Select mentor</option>
+												<option value="female">Female</option>
+												<option value="male">Male</option>
+												<option value="both">Both are okay for me</option>
+											</select>
+											{errors.preferredMentorGender?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredMentorGender.message}
+												</p>
+											) : null}
+										</div>
+
+										<div className="sm:col-span-2">
+											<label className="mb-2 block text-sm font-semibold text-slate-700">
+												When can we give a demo?
+											</label>
+											<input
+												type="datetime-local"
+												{...register("demoAvailability", {
+													required: "Demo time is required",
+												})}
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.demoAvailability?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.demoAvailability.message}
+												</p>
+											) : null}
+										</div>
 									</div>
-								) : null}
+								)}
+
 
 								{courseType === "GROUP" ? (
 									<div>
@@ -1408,143 +1495,7 @@ const PublicFormPage = () => {
 									</div>
 								) : null}
 
-									{courseType === "INDIVIDUAL" && (
-										<div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-											<div className="sm:col-span-2">
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													Choose a plan
-												</label>
-												<p className="mb-3 text-xs text-slate-500">
-													Select the plan that matches how often and how long you want classes.
-												</p>
-												<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 items-stretch">
-													{formOptions.timeslots.map((timeslot) => {
-														const isSelected =
-															selectedPlanSnapshot?.timesPerWeek === timeslot.timesPerWeek &&
-															selectedPlanSnapshot?.durationMinutes === timeslot.durationMinutes;
 
-														return (
-															<button
-																key={`${timeslot.timesPerWeek}-${timeslot.durationMinutes}`}
-																type="button"
-																onClick={() => {
-																setValue(
-																	"preferredPlan",
-																	{
-																		timesPerWeek: timeslot.timesPerWeek,
-																		durationMinutes: timeslot.durationMinutes,
-																	},
-																	{ shouldDirty: true, shouldValidate: true },
-																);
-															}}
-															className={`w-full min-w-0 rounded-3xl border p-4 text-left transition ${isSelected ? "border-brand bg-brand-soft/50 shadow-[0_12px_30px_rgba(32,111,89,0.12)]" : "border-slate-200 bg-white hover:border-slate-300"}`}
-														>
-															<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-																<div>
-																	<p className="text-sm font-semibold text-slate-950">
-																		{timeslot.timesPerWeek} time{timeslot.timesPerWeek > 1 ? "s" : ""} per week
-																	</p>
-																	<p className="mt-1 text-sm text-slate-600">
-																		Duration: {timeslot.durationMinutes} minutes
-																	</p>
-																</div>
-																<span className={`mt-3 sm:mt-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${isSelected ? "bg-brand text-white" : "bg-slate-100 text-slate-600"}`}>
-																	{isSelected ? "Selected" : "Choose"}
-																</span>
-															</div>
-														</button>
-													);
-													})}
-												</div>
-												{errors.preferredPlan?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.preferredPlan.message}
-													</p>
-												) : null}
-											</div>
-
-											<div>
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													Preferred class time (Indian Time)
-												</label>
-												{!selectedPlanSnapshot ? (
-													<p className="mb-2 text-xs text-slate-500">
-														Choose a plan first to calculate the class end time.
-													</p>
-												) : null}
-												<input
-													type="time"
-													disabled={!selectedPlanSnapshot}
-													{...register("preferredStartTime", {
-														required: "Start time is required",
-													})}
-													value={selectedPlanSnapshot ? undefined : ""}
-													className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-												/>
-												{errors.preferredStartTime?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.preferredStartTime.message}
-													</p>
-												) : null}
-												<p className="mt-2 text-xs text-slate-500">
-													Choose a start time. The end time is calculated from the selected course plan.
-												</p>
-											</div>
-
-											{selectedStartTime && calculatedEndTime ? (
-												<div className="sm:col-span-2 grid gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:grid-cols-2">
-													<div>
-														<p className="text-xs font-semibold text-slate-600">Start time</p>
-														<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(selectedStartTime)}</p>
-													</div>
-													<div>
-														<p className="text-xs font-semibold text-slate-600">End time</p>
-														<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(calculatedEndTime)}</p>
-													</div>
-												</div>
-											) : null}
-
-											<div className="sm:col-span-2">
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													Preferred mentor gender
-												</label>
-												<select
-													{...register("preferredMentorGender", {
-														required: "Preferred mentor gender is required",
-													})}
-													className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-												>
-													<option value="">Select mentor</option>
-													<option value="female">Female</option>
-													<option value="male">Male</option>
-													<option value="both">Both are okay for me</option>
-												</select>
-												{errors.preferredMentorGender?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.preferredMentorGender.message}
-													</p>
-												) : null}
-											</div>
-
-											<div>
-												<label className="mb-2 block text-sm font-semibold text-slate-700">
-													When can we give a demo?
-												</label>
-												<input
-													type="datetime-local"
-													{...register("demoAvailability", {
-														required: "Demo time is required",
-													})}
-													className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-												/>
-												{errors.demoAvailability?.message ? (
-													<p className="mt-1 text-xs text-red-600">
-														{errors.demoAvailability.message}
-													</p>
-												) : null}
-											</div>
-										</div>
-									)}
 
 								<div>
 									<label className="mb-2 block text-sm font-semibold text-slate-700">

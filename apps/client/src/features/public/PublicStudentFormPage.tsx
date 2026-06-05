@@ -549,6 +549,17 @@ export function PublicStudentFormPage() {
                 </div>
               )}
 
+              {/* Always-mounted file input so ref is valid when Change Image is clicked */}
+              <input
+                ref={fileInputRef}
+                id="profilePic"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={submitting}
+                className="hidden"
+              />
+
               {/* Image Preview or Upload */}
               {croppedImagePreview ? (
                 <div className="space-y-4">
@@ -557,6 +568,7 @@ export function PublicStudentFormPage() {
                     <img src={croppedImagePreview} alt="Profile preview" className="w-full h-auto" />
                   </div>
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                   >
@@ -567,15 +579,6 @@ export function PublicStudentFormPage() {
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-slate-900">Profile Picture</h2>
                   <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-8 text-center transition hover:border-brand hover:bg-brand/5">
-                    <input
-                      ref={fileInputRef}
-                      id="profilePic"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      disabled={submitting}
-                      className="hidden"
-                    />
                     <label htmlFor="profilePic" className="flex cursor-pointer flex-col items-center gap-2">
                       <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand/10">
                         <svg className="h-6 w-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">

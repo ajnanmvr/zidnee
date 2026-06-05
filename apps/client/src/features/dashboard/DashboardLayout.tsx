@@ -393,18 +393,6 @@ export const DashboardLayout = () => {
 				},
 			]
 			: []),
-		...(hasPermission("STUDENT_PROCESS_HISTORY_READ_MY") || hasPermission("STUDENT_PROCESS_HISTORY_READ_ALL")
-			? [
-				{
-					to: "/process-history",
-					label: "Process History",
-					description: "Completed workflows",
-					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-					accent: "rose",
-					section: "Learners",
-				},
-			]
-			: []),
 		...(canReadBatches
 			? [
 				{
@@ -426,14 +414,6 @@ export const DashboardLayout = () => {
 					icon: <HiOutlineBellAlert className="h-5 w-5" aria-hidden="true" />,
 					count: reminderUrgentCount,
 					accent: "amber",
-					section: "Learners",
-				},
-				{
-					to: "/reminders/closed",
-					label: "Closed Tasks",
-					description: "Completed reminders",
-					icon: <HiArchiveBox className="h-5 w-5" aria-hidden="true" />,
-					accent: "rose",
 					section: "Learners",
 				},
 			]

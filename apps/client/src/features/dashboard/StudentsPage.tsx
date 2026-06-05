@@ -11,8 +11,7 @@ import {
 } from "@/features/students/student-stage-filters";
 import {
 	buildStudentColumns,
-	getStudentFollowUpState,
-	getStudentStatusColor,
+getStudentStatusColor,
 	type StudentTableRow,
 } from "@/features/students/student-table";
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
@@ -105,29 +104,7 @@ export const StudentsPage = () => {
 					: undefined,
 			})) as unknown as StudentTableRow[];
 
-		return transformed.sort((left, right) => {
-			const leftState = getStudentFollowUpState(
-				left.customNextFollowUpAt,
-				left.nextFollowUpAt,
-			);
-			const rightState = getStudentFollowUpState(
-				right.customNextFollowUpAt,
-				right.nextFollowUpAt,
-			);
-
-			if (leftState.priority !== rightState.priority) {
-				return leftState.priority - rightState.priority;
-			}
-
-			const leftDate =
-				(left.customNextFollowUpAt ?? left.nextFollowUpAt)?.getTime() ??
-				Number.MAX_SAFE_INTEGER;
-			const rightDate =
-				(right.customNextFollowUpAt ?? right.nextFollowUpAt)?.getTime() ??
-				Number.MAX_SAFE_INTEGER;
-
-			return leftDate - rightDate;
-		});
+		return transformed;
 	}, [showProcessStudents, studentType, studentsQuery.data?.students]);
 
 	// Build name lookup tables
