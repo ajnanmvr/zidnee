@@ -1,18 +1,24 @@
-﻿import { useMemo, useState } from "react";
-import { HiPencilSquare, HiShieldCheck, HiTrash } from "react-icons/hi2";
+import { useMemo, useState } from "react";
+import { HiLockClosed, HiPencilSquare, HiPlus, HiShieldCheck, HiTrash } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { ActionButton } from "@/components/ActionButton";
-import { ConfirmDialog, Panel } from "@/components/dashboard-ui";
+import { ConfirmDialog } from "@/components/dashboard-ui";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useDeleteRoleMutation } from "@/features/roles/use-role-management-mutations";
 import { useSession } from "@/lib/session";
 
-type PermissionView = {
-	id: string;
-	name: string;
+const TYPE_BADGE: Record<string, { bg: string; text: string }> = {
+	admin:      { bg: "bg-rose-100",    text: "text-rose-700" },
+	mentor:     { bg: "bg-violet-100",  text: "text-violet-700" },
+	counsellor: { bg: "bg-blue-100",    text: "text-blue-700" },
+	sales:      { bg: "bg-amber-100",   text: "text-amber-700" },
+	general:    { bg: "bg-gray-100",    text: "text-gray-600" },
 };
+
+function typeBadge(type?: string | null): { bg: string; text: string } {
+	return TYPE_BADGE[type ?? "general"] ?? { bg: "bg-gray-100", text: "text-gray-600" };
+}
 
 export const RolesPage = () => {
 	const { token } = useSession();
@@ -24,168 +30,183 @@ export const RolesPage = () => {
 	const [banner, setBanner] = useState("");
 
 	const permissionsById = useMemo(() => {
-		const lookup = new Map<string, PermissionView>();
-		for (const permission of permissionsQuery.data?.permissions ?? []) {
-			lookup.set(permission.id, {
-				id: permission.id,
-				name: permission.name,
-			});
-		}
-		return lookup;
+		const m = new Map<string, string>();
+		for (const p of permissionsQuery.data?.permissions ?? []) m.set(p.id, p.name);
+		return m;
 	}, [permissionsQuery.data?.permissions]);
 
-	const roleToDelete =
-		rolesQuery.data?.roles.find((role) => role.id === deleteRoleId) ?? null;
+	const roleToDelete = rolesQuery.data?.roles.find((r) => r.id === deleteRoleId) ?? null;
 
 	const handleDeleteRole = async () => {
-		if (!roleToDelete) {
-			return;
-		}
-
+		if (!roleToDelete) return;
 		if (roleToDelete.isSystem) {
 			setBanner("System roles cannot be deleted.");
 			setDeleteRoleId(null);
 			return;
 		}
-
 		try {
 			await deleteRoleMutation.mutateAsync(roleToDelete.id);
 			setBanner("Role deleted successfully.");
 			setDeleteRoleId(null);
 		} catch (error) {
-			if (error instanceof ApiError) {
-				setBanner(error.payload.message ?? "Unable to delete role");
-				return;
-			}
-
 			setBanner(
-				error instanceof Error ? error.message : "Unable to delete role",
+				error instanceof ApiError
+					? (error.payload.message ?? "Unable to delete role")
+					: error instanceof Error ? error.message : "Unable to delete role",
 			);
 		}
 	};
 
-	return (
-		<div className="grid gap-6">
-			<Panel
-				title="Role permissions"
-				description="Access"
-				action={
-					<Link
-						to="/roles/create"
-						className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105"
-					>
-						<HiShieldCheck className="h-4 w-4" aria-hidden="true" />
-						Create role
-					</Link>
-				}
-			>
-				<div className="overflow-x-auto rounded-3xl border border-gray-300">
-					<table className="min-w-full border-collapse bg-white text-left text-sm">
-						<thead className="bg-gray-50 text-xs uppercase tracking-[0.14em] text-gray-600">
-							<tr>
-								<th className="px-4 py-3 font-semibold">Role</th>{" "}
-								<th className="px-4 py-3 font-semibold">Type</th>{" "}
-								<th className="px-4 py-3 font-semibold">Description</th>
-								<th className="px-4 py-3 font-semibold">Permissions</th>
-								<th className="px-4 py-3 font-semibold">Count</th>
-								<th className="px-4 py-3 font-semibold">Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{rolesQuery.data?.roles.map((role) => {
-								const readablePermissions = role.permissionIds
-									.map(
-										(permissionId) => permissionsById.get(permissionId)?.name,
-									)
-									.filter((value): value is string => Boolean(value));
+	const roles = rolesQuery.data?.roles ?? [];
 
-								return (
-									<tr
-										key={role.id}
-										className="border-t border-gray-300 align-top"
-									>
-										<td className="px-4 py-3 font-semibold text-gray-900">
-											{role.name}
-										</td>
-										<td className="px-4 py-3 text-sm text-gray-600">
-											<span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 capitalize">
+	return (
+		<div className="space-y-4">
+			{/* Header */}
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
+						<HiLockClosed className="h-5 w-5 text-rose-600" />
+					</div>
+					<div>
+						<h1 className="text-lg font-bold text-gray-900">Roles & Permissions</h1>
+						<p className="mt-0.5 text-sm text-gray-500">
+							{roles.length} role{roles.length !== 1 ? "s" : ""} · Access control configuration
+						</p>
+					</div>
+				</div>
+				<Link
+					to="/roles/create"
+					className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+				>
+					<HiPlus className="h-4 w-4" />
+					Create Role
+				</Link>
+			</div>
+
+			{banner ? (
+				<div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+					{banner}
+				</div>
+			) : null}
+
+			{/* Loading */}
+			{rolesQuery.isLoading ? (
+				<div className="flex justify-center py-16">
+					<div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-500 border-t-transparent" />
+				</div>
+			) : roles.length === 0 ? (
+				<div className="rounded-2xl border border-dashed border-gray-200 py-16 text-center">
+					<HiShieldCheck className="mx-auto h-10 w-10 text-gray-200" />
+					<p className="mt-2 text-sm text-gray-400">No roles found.</p>
+				</div>
+			) : (
+				<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+					{roles.map((role) => {
+						const permNames = role.permissionIds
+							.map((id) => permissionsById.get(id))
+							.filter((n): n is string => Boolean(n));
+						const shown = permNames.slice(0, 6);
+						const extra = permNames.length - shown.length;
+						const badge = typeBadge(role.type);
+
+						return (
+							<div
+								key={role.id}
+								className="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+							>
+								{/* Card header */}
+								<div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+									<div className="flex items-center gap-3 min-w-0">
+										<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-50">
+											<HiShieldCheck className="h-5 w-5 text-rose-500" />
+										</div>
+										<div className="min-w-0">
+											<div className="flex items-center gap-2">
+												<p className="text-sm font-bold text-gray-900 truncate">{role.name}</p>
+												{role.isSystem ? (
+													<span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+														System
+													</span>
+												) : null}
+											</div>
+											<span className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${badge.bg} ${badge.text}`}>
 												{role.type ?? "general"}
 											</span>
-										</td>
-										<td className="px-4 py-3 text-gray-600">
-											{role.description ?? "No description"}
-										</td>
-										<td className="px-4 py-3">
-											<div className="flex flex-wrap gap-2">
-												{readablePermissions.length > 0 ? (
-													readablePermissions.map((permissionName) => (
-														<span
-															key={`${role.id}-${permissionName}`}
-															className="rounded-full border border-blue-600/20 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600"
-														>
-															{permissionName}
-														</span>
-													))
-												) : (
-													<span className="text-gray-600">No permissions</span>
-												)}
-											</div>
-										</td>
-										<td className="px-4 py-3 font-semibold text-gray-900">
-											{readablePermissions.length}
-										</td>
-										<td className="px-4 py-3">
-											<div className="flex gap-2">
+										</div>
+									</div>
+									<div className="flex shrink-0 items-center gap-1">
+										<Link
+											to={`/roles/${role.id}/edit`}
+											title="Edit role"
+											className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+										>
+											<HiPencilSquare className="h-4 w-4" />
+										</Link>
+										<button
+											type="button"
+											title={role.isSystem ? "System role cannot be deleted" : "Delete role"}
+											disabled={role.isSystem}
+											onClick={() => setDeleteRoleId(role.id)}
+											className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+										>
+											<HiTrash className="h-4 w-4" />
+										</button>
+									</div>
+								</div>
+
+								{/* Description */}
+								<div className="px-5 py-3">
+									{role.description ? (
+										<p className="text-xs text-gray-500 leading-relaxed">{role.description}</p>
+									) : (
+										<p className="text-xs text-gray-400 italic">No description</p>
+									)}
+								</div>
+
+								{/* Permissions */}
+								<div className="flex-1 px-5 pb-4">
+									<p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+										{permNames.length} Permission{permNames.length !== 1 ? "s" : ""}
+									</p>
+									{permNames.length === 0 ? (
+										<p className="text-xs text-gray-400">No permissions assigned</p>
+									) : (
+										<div className="flex flex-wrap gap-1.5">
+											{shown.map((name) => (
+												<span
+													key={name}
+													className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700"
+												>
+													{name}
+												</span>
+											))}
+											{extra > 0 ? (
 												<Link
 													to={`/roles/${role.id}/edit`}
-													className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50"
-													title="Edit role"
-													aria-label="Edit role"
+													className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-100"
 												>
-													<HiPencilSquare
-														className="h-4 w-4"
-														aria-hidden="true"
-													/>
+													+{extra} more
 												</Link>
-												<ActionButton
-													icon={
-														<HiTrash className="h-4 w-4" aria-hidden="true" />
-													}
-													tooltip={
-														role.isSystem
-															? "System role cannot be deleted"
-															: "Delete role"
-													}
-													color="red"
-													onClick={() => setDeleteRoleId(role.id)}
-													disabled={role.isSystem}
-												/>
-											</div>
-										</td>
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
+											) : null}
+										</div>
+									)}
+								</div>
+							</div>
+						);
+					})}
 				</div>
-			</Panel>
+			)}
 
 			<ConfirmDialog
 				open={Boolean(deleteRoleId)}
 				title="Delete role"
-				description="Are you sure you want to delete this role?"
+				description={`Are you sure you want to delete "${roleToDelete?.name}"? This cannot be undone.`}
 				confirmLabel="Delete"
 				busy={deleteRoleMutation.isPending}
 				tone="danger"
 				onConfirm={handleDeleteRole}
 				onCancel={() => setDeleteRoleId(null)}
 			/>
-
-			{banner ? (
-				<p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-					{banner}
-				</p>
-			) : null}
 		</div>
 	);
 };

@@ -19,7 +19,6 @@ import {
 } from "react-icons/hi2";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { DataTable } from "@/components/DataTable";
 import { Field, Modal, TextAreaField } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import {
@@ -30,10 +29,8 @@ import {
 } from "@/features/users/users.queries";
 import { fetchSimilarLeads } from "@/features/leads/leads.service";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
-import {
-	buildLeadColumns,
-	formatUserName,
-} from "@/features/dashboard/lead-table";
+import { formatUserName } from "@/features/dashboard/lead-table";
+import { LeadTableView } from "@/features/leads/LeadTableView";
 import {
 	type LeadStageId,
 	leadStageDefinitions,
@@ -761,13 +758,7 @@ export const LeadsPage = () => {
 	const defaultCounsellorId =
 		admissionLeadMentor?.counsellorId ?? mentorCounsellorOverrideId;
 
-	const columns = useMemo(
-		() =>
-			buildLeadColumns({
-				activeStage,
-				userNameById,
-				getActions: () => {
-					// permission checks
+	const getActions = (_lead: LeadResponse) => {
 					const canManageForm = hasPermission("LEAD_FORM_MANAGE");
 					const canRequestDemo = hasPermission("LEAD_DEMO_REQUEST");
 					const canCompleteDemo = hasPermission("LEAD_DEMO_COMPLETE");
@@ -778,7 +769,7 @@ export const LeadsPage = () => {
 								{
 									key: "postpone",
 									label: "Postpone",
-									onClick: (item) => setPostponeLeadId(item.id),
+									onClick: (item: LeadResponse) => setPostponeLeadId(item.id),
 									className:
 										"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
 								},
@@ -839,7 +830,7 @@ export const LeadsPage = () => {
 							return [
 								{
 									key: "viewFormResponses",
-									label: "View Form",
+									label: "View Response",
 									onClick: (item: LeadResponse) => {
 										setFormResponseLead(item);
 									},
@@ -866,7 +857,7 @@ export const LeadsPage = () => {
 								{
 									key: "cancelRequest",
 									label: "Cancel Request",
-									onClick: async (item) => {
+									onClick: async (item: LeadResponse) => {
 										if (!confirm("Cancel this demo request?")) {
 											return;
 										}
@@ -910,7 +901,7 @@ export const LeadsPage = () => {
 								{
 									key: "cancel",
 									label: "Cancel",
-									onClick: async (item) => {
+									onClick: async (item: LeadResponse) => {
 										if (!confirm("Cancel this scheduled demo?")) {
 											return;
 										}
@@ -940,7 +931,7 @@ export const LeadsPage = () => {
 								{
 									key: "toAdmission",
 									label: "To Admission",
-									onClick: (item) => {
+									onClick: (item: LeadResponse) => {
 										const latestDemo = getLatestLeadDemo(item);
 										setAdmissionLeadId(item.id);
 										setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
@@ -956,48 +947,75 @@ export const LeadsPage = () => {
 								{
 									key: "redemo",
 									label: "Redemo",
-									onClick: (item) => setRedemoLeadId(item.id),
+									onClick: (item: LeadResponse) => setRedemoLeadId(item.id),
 									className:
 										"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
 								},
 							];
-						default:
+					default:
 							return [];
-					}
-				},
-			}),
-		[
-			activeStage,
-			cancelLeadDemoMutation,
-			generateFormLinkMutation,
-			resetComplete,
-			userNameById,
-		],
-	);
+				}
+	};
 
 	return (
 		<div className="space-y-3">
-			{/* Top bar */}
-			<div className="sticky top-0 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-				<Link to={buildSearch(activeStage, "mine")} onClick={() => setLoadAllRequested(false)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700"}`}>My leads</Link>
-				<Link to={buildSearch(activeStage, "all")} onClick={() => setLoadAllRequested(true)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700"}`}>All users</Link>
-				{hasPermission("LEAD_CREATE") ? (
-					<button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700">
-						<HiPlusCircle className="h-4 w-4" /> Create lead
-					</button>
-				) : null}
-				<p className="ml-1 text-xs text-gray-400 hidden sm:block">{activeScope === "all" ? "All users" : "Your"} leads{activeStageDefinition ? ` · ${activeStageDefinition.description}` : ""}</p>
+			{/* Page header */}
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+				<div>
+					<h1 className="text-lg font-bold text-gray-900">Leads</h1>
+					<p className="mt-0.5 text-sm text-gray-500">
+						{activeStageDefinition?.description ?? "All lead stages"}
+						{pagination ? ` · ${pagination.total} total` : ""}
+					</p>
+				</div>
+				<div className="flex items-center gap-2">
+					<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+						<Link
+							to={buildSearch(activeStage, "mine")}
+							onClick={() => setLoadAllRequested(false)}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							Mine
+						</Link>
+						<Link
+							to={buildSearch(activeStage, "all")}
+							onClick={() => setLoadAllRequested(true)}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							All
+						</Link>
+					</div>
+					{hasPermission("LEAD_CREATE") ? (
+						<button
+							type="button"
+							onClick={() => setCreateOpen(true)}
+							className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+						>
+							<HiPlusCircle className="h-4 w-4" /> New Lead
+						</button>
+					) : null}
+				</div>
 			</div>
 
-			{/* Stage pills */}
-			<div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
+			{/* Stage navigation */}
+			<div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1">
 				{leadStageDefinitions.map((stage) => {
 					const isActive = stage.id === activeStage;
+					const STAGE_PILL_COLOR: Record<string, string> = {
+						all:           "text-teal-700",
+						followUp:      "text-lime-700",
+						formSent:      "text-amber-700",
+						formFilled:    "text-cyan-700",
+						demoRequest:   "text-orange-700",
+						demoAssigned:  "text-emerald-700",
+						demoCompleted: "text-violet-700",
+					};
+					const activeColor = STAGE_PILL_COLOR[stage.id] ?? "text-teal-700";
 					return (
 						<Link
 							key={stage.id}
 							to={buildSearch(stage.id, activeScope)}
-							className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition whitespace-nowrap ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+							className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition whitespace-nowrap ${isActive ? `bg-white shadow-sm ${activeColor}` : "text-slate-500 hover:text-slate-700"}`}
 						>
 							{stage.label}
 						</Link>
@@ -1006,18 +1024,32 @@ export const LeadsPage = () => {
 			</div>
 
 			{/* Search + table */}
-			<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-				<div className="relative px-4 pt-3 pb-2 border-b border-gray-100">
-					<input
-						type="text"
-						placeholder={`Search ${activeScope === "all" ? "all users" : "my"} leads by name, phone, or email…`}
-						value={searchInput}
-						onChange={(e) => setSearchInput(e.target.value)}
-						className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
-					/>
-					{activeLeadsQuery.isFetching && !activeLeadsQuery.isLoading ? (
-						<span className="absolute right-7 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching…</span>
-					) : null}
+			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+				{/* Search bar */}
+				<div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
+					<div className="relative flex-1">
+						<input
+							type="text"
+							placeholder={`Search ${activeScope === "all" ? "all users'" : "my"} leads by name, phone, or email…`}
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+							className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+						/>
+						{activeLeadsQuery.isFetching && !activeLeadsQuery.isLoading ? (
+							<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching…</span>
+						) : null}
+					</div>
+					{/* Sort controls */}
+					<select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-gray-200 px-2.5 py-2 text-xs outline-none">
+						<option value="nextFollowUpAt">Follow-up</option>
+						<option value="createdAt">Created</option>
+						<option value="updatedAt">Updated</option>
+						<option value="name">Name</option>
+						<option value="phone">Phone</option>
+					</select>
+					<button type="button" onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="rounded-xl border border-gray-200 px-2.5 py-2 text-xs text-gray-600 hover:bg-gray-50">
+						{sortOrder === "asc" ? "↑" : "↓"}
+					</button>
 				</div>
 
 				{activeLeadsQuery.isLoading ? (
@@ -1026,22 +1058,11 @@ export const LeadsPage = () => {
 					<p className="py-8 text-center text-sm text-gray-400">Unable to load leads.</p>
 				) : (
 					<>
-						<DataTable
-							columns={columns}
-							data={scopeLeads}
-							exportFilename={`leads-${activeScope}-${activeStage}`}
-							enableGlobalFilter={false}
-							sortBy={sortBy}
-							onSortByChange={(value) => { setSortBy(value); setCurrentPage(1); }}
-							sortOrder={sortOrder}
-							onSortOrderToggle={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-							sortOptions={[
-								{ value: "nextFollowUpAt", label: "Next Follow-up" },
-								{ value: "createdAt", label: "Created Date" },
-								{ value: "updatedAt", label: "Updated Date" },
-								{ value: "name", label: "Lead Name" },
-								{ value: "phone", label: "Phone" },
-							]}
+						<LeadTableView
+							leads={scopeLeads}
+							activeStage={activeStage}
+							userNameById={userNameById}
+							getActions={getActions}
 						/>
 						{pagination ? (
 							<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">

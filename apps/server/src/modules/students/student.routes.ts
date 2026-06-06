@@ -74,6 +74,7 @@ router.get(
 	requireAnyPermissionKey([
 		"STUDENT_READ_MY" satisfies PermissionKey,
 		"STUDENT_READ_ALL" satisfies PermissionKey,
+		"STUDENT_POSTER_DOWNLOAD" satisfies PermissionKey,
 	]),
 	asyncHandler(listStudentsController),
 );

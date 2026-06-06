@@ -41,6 +41,9 @@ const BreakStudentsPage = lazy(() =>
 const DroppedStudentsPage = lazy(() =>
 	import("@/features/dashboard/DroppedStudentsPage").then((m) => ({ default: m.DroppedStudentsPage })),
 );
+const WelcomePosterPage = lazy(() =>
+	import("@/features/dashboard/WelcomePosterPage").then((m) => ({ default: m.WelcomePosterPage })),
+);
 const StudentProcessesPage = lazy(() =>
 	import("@/features/dashboard/StudentProcessesPage").then((module) => ({
 		default: module.StudentProcessesPage,
@@ -154,6 +157,9 @@ const ScheduledDemosPage = lazy(() =>
 	import("@/features/demo-management/ScheduledDemosPage").then((module) => ({
 		default: module.ScheduledDemosPage,
 	})),
+);
+const CompletedDemosPage = lazy(() =>
+	import("@/features/demo-management/CompletedDemosPage").then((m) => ({ default: m.CompletedDemosPage })),
 );
 const RemindersPage = lazy(() =>
 	import("@/features/reminders/RemindersPage").then((module) => ({
@@ -311,6 +317,10 @@ export const router = createBrowserRouter([
 						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <DroppedStudentsPage />),
 					},
 					{
+						path: "students/posters",
+						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL", "STUDENT_POSTER_DOWNLOAD"], <WelcomePosterPage />),
+					},
+					{
 						path: "processes",
 						element: withPermissions(["STUDENT_PROCESS_READ_MY", "STUDENT_PROCESS_READ_ALL"], <StudentProcessesPage />),
 					},
@@ -427,6 +437,13 @@ export const router = createBrowserRouter([
 							"DEMO_SCHEDULED_READ_MY",
 							"DEMO_SCHEDULED_READ_ALL",
 						], <ScheduledDemosPage />),
+					},
+					{
+						path: "demo-management/completed",
+						element: withPermissions([
+							"DEMO_SCHEDULED_READ_MY",
+							"DEMO_SCHEDULED_READ_ALL",
+						], <CompletedDemosPage />),
 					},
 					{
 						path: "reminders",

@@ -105,10 +105,10 @@ export const listStudentsController = async (
 ): Promise<void> => {
 	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
 	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
-	if (
-		requestedScope === "all" &&
-		!effectivePermissions.some((permission) => permission.key === "STUDENT_READ_ALL")
-	) {
+	const canReadAll = effectivePermissions.some(
+		(p) => p.key === "STUDENT_READ_ALL" || p.key === "STUDENT_POSTER_DOWNLOAD",
+	);
+	if (requestedScope === "all" && !canReadAll) {
 		throw new AuthorizationError("Insufficient permissions to view all students");
 	}
 

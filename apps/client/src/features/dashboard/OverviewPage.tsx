@@ -1,122 +1,186 @@
-﻿import { Link } from "react-router-dom";
-import { useMeQuery } from "@/features/auth/auth.queries";
-import { useSession } from "@/lib/session";
+import { Link } from "react-router-dom";
+import { useNavigationItems } from "./useNavigationItems";
+
+function greeting(): string {
+	const h = new Date().getHours();
+	if (h < 12) return "Good morning";
+	if (h < 17) return "Good afternoon";
+	return "Good evening";
+}
+
+const accentToColors = (accent?: string) => {
+	switch (accent) {
+		case "emerald":
+			return { bg: "bg-emerald-100", text: "text-emerald-600" };
+		case "teal":
+			return { bg: "bg-teal-100", text: "text-teal-600" };
+		case "lime":
+			return { bg: "bg-lime-100", text: "text-lime-600" };
+		case "amber":
+			return { bg: "bg-amber-100", text: "text-amber-600" };
+		case "orange":
+			return { bg: "bg-orange-100", text: "text-orange-600" };
+		case "cyan":
+			return { bg: "bg-cyan-100", text: "text-cyan-600" };
+		case "rose":
+			return { bg: "bg-rose-100", text: "text-rose-600" };
+		case "violet":
+			return { bg: "bg-violet-100", text: "text-violet-600" };
+		default:
+			return { bg: "bg-gray-100", text: "text-gray-600" };
+	}
+};
+
+const getBadgeStyles = (accent?: string) => {
+	switch (accent) {
+		case "emerald":
+			return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+		case "teal":
+			return "bg-teal-100 text-teal-700 border border-teal-200";
+		case "lime":
+			return "bg-lime-100 text-lime-700 border border-lime-200";
+		case "amber":
+			return "bg-amber-100 text-amber-700 border border-amber-200";
+		case "orange":
+			return "bg-orange-100 text-orange-700 border border-orange-200";
+		case "cyan":
+			return "bg-cyan-100 text-cyan-700 border border-cyan-200";
+		case "rose":
+			return "bg-rose-100 text-rose-700 border border-rose-200";
+		case "violet":
+			return "bg-violet-100 text-violet-700 border border-violet-200";
+		default:
+			return "bg-gray-100 text-gray-700 border border-gray-200";
+	}
+};
+
+const getSectionAccent = (section: string) => {
+	switch (section) {
+		case "Lead Pipeline":
+			return "from-blue-500 to-indigo-600";
+		case "Reports":
+			return "from-indigo-500 to-purple-600";
+		case "Demo Management":
+			return "from-violet-500 to-purple-600";
+		case "Learners":
+			return "from-teal-500 to-emerald-600";
+		case "Management":
+			return "from-slate-500 to-gray-700";
+		case "Account":
+			return "from-emerald-500 to-teal-600";
+		default:
+			return "from-gray-500 to-slate-600";
+	}
+};
 
 export const OverviewPage = () => {
-	const { token } = useSession();
-	const meQuery = useMeQuery(token);
-	const activeName = meQuery.data?.name ?? "User";
-	const activeRole = meQuery.data?.roles[0]?.name ?? "Workspace member";
-	const permissions = meQuery.data?.permissions ?? [];
+	const { navItems, meName, roleLabel } = useNavigationItems();
 
-	const hasPermission = (key: string): boolean =>
-		permissions.some((permission) => permission.key === key);
+	// Group the valid items by section, filtering out the dashboard index page
+	type SectionGroup = { title: string; accent: string; items: typeof navItems };
+	const sections: SectionGroup[] = [];
 
-	const availablePages = [
-		{ to: "/leads", label: "Leads", description: "Follow-up pipeline" },
-		{
-			to: "/students",
-			label: "Students",
-			description: "Enrolled learners",
-		},
-		{
-			to: "/processes",
-			label: "Processes",
-			description: "Student workflows",
-		},
-		{
-			to: "/time-slots",
-			label: "Time Slots",
-			description: "Class timing",
-		},
-		{ to: "/users", label: "Users", description: "User accounts" },
-        { to: "/sales-users", label: "Sales Users", description: "Sales team" },
-		{ to: "/roles", label: "Roles", description: "Permissions and roles" },
-		{
-			to: "/demo-management/unassigned",
-			label: "Unassigned Demos",
-			description: "Pending demo work",
-		},
-		{
-			to: "/demo-management/scheduled",
-			label: "Scheduled Demos",
-			description: "Assigned demo work",
-		},
-		{ to: "/me", label: "My Profile", description: "Account details" },
-	].filter((page) => {
-		if (page.to === "/leads") {
-			return hasPermission("LEAD_READ_MY") || hasPermission("LEAD_READ_ALL");
+	const itemsToDisplay = navItems.filter((item) => item.to !== "/");
+
+	for (const item of itemsToDisplay) {
+		const sectionTitle = item.section ?? "General";
+		let group = sections.find((s) => s.title === sectionTitle);
+		if (!group) {
+			group = {
+				title: sectionTitle,
+				accent: getSectionAccent(sectionTitle),
+				items: [],
+			};
+			sections.push(group);
 		}
+		group.items.push(item);
+	}
 
-		if (page.to === "/students") {
-			return hasPermission("STUDENT_READ");
-		}
-
-		if (page.to === "/processes") {
-			return hasPermission("STUDENT_READ");
-		}
-
-		if (page.to === "/time-slots") {
-			return hasPermission("TIMESLOT_CREATE");
-		}
-
-		if (page.to === "/users") {
-			return hasPermission("USER_READ");
-		}
-
-		if (page.to === "/sales-users") {
-			return hasPermission("SALES_USERS_READ");
-		}
-
-		if (page.to === "/roles") {
-			return hasPermission("ROLE_READ");
-		}
-
-		if (page.to === "/demo-management/unassigned") {
-			return (
-				hasPermission("DEMO_UNASSIGNED_READ_MY") ||
-				hasPermission("DEMO_UNASSIGNED_READ_ALL")
-			);
-		}
-
-		if (page.to === "/demo-management/scheduled") {
-			return (
-				hasPermission("DEMO_SCHEDULED_READ_MY") ||
-				hasPermission("DEMO_SCHEDULED_READ_ALL")
-			);
-		}
-
-		return true;
-	});
+	const firstName = meName.split(" ")[0] ?? meName;
 
 	return (
-		<div className="grid gap-6">
-			<section className="rounded-4xl border border-gray-300 bg-white p-6 shadow-sm">
-				<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-blue-600">
-					Available pages
-				</p>
-				<h1 className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
-					{activeName}
-				</h1>
-				<p className="mt-2 text-sm leading-6 text-gray-600">{activeRole}</p>
-			</section>
+		<div className="space-y-6">
+			{/* Hero greeting */}
+			<div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-teal-600 via-teal-700 to-emerald-800 px-7 py-8 shadow-lg">
+				{/* Decorative circles */}
+				<div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/5" />
+				<div className="pointer-events-none absolute -bottom-8 right-24 h-32 w-32 rounded-full bg-white/5" />
+				<div className="pointer-events-none absolute bottom-4 right-4 h-16 w-16 rounded-full bg-white/5" />
 
-			<section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-				{availablePages.map((page) => (
-					<Link
-						key={page.to}
-						to={page.to}
-						className="rounded-3xl border border-gray-300 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
-					>
-						<p className="text-base font-semibold text-gray-900">
-							{page.label}
-						</p>
-						<p className="mt-1 text-sm leading-6 text-gray-600">
-							{page.description}
-						</p>
-					</Link>
-				))}
-			</section>
+				<div className="relative">
+					<p className="text-sm font-medium text-teal-200">{greeting()},</p>
+					<h1 className="mt-1 text-3xl font-bold tracking-tight text-white">
+						{firstName} 👋
+					</h1>
+					<p className="mt-2 text-sm text-teal-100 opacity-80">
+						{roleLabel} · Zidnee Workspace
+					</p>
+
+					<div className="mt-5 flex flex-wrap gap-2">
+						{sections.map((s) => (
+							<span
+								key={s.title}
+								className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm"
+							>
+								{s.title}
+							</span>
+						))}
+					</div>
+				</div>
+			</div>
+
+			{/* Feature sections */}
+			{sections.map((section) => (
+				<div key={section.title}>
+					{/* Section header */}
+					<div className="mb-3 flex items-center gap-3">
+						<div
+							className={`h-1 w-6 rounded-full bg-linear-to-r ${section.accent}`}
+						/>
+						<h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">
+							{section.title}
+						</h2>
+					</div>
+
+					{/* Cards grid */}
+					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+						{section.items.map((item) => {
+							const colors = accentToColors(item.accent);
+							const badgeStyles = getBadgeStyles(item.accent);
+							return (
+								<Link
+									key={item.to}
+									to={item.to}
+									className="group flex items-start gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md"
+								>
+									<div
+										className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${colors.bg} transition-transform duration-150 group-hover:scale-110`}
+									>
+										<span className={colors.text}>{item.icon}</span>
+									</div>
+									<div className="min-w-0 flex-1">
+										<div className="flex items-center justify-between gap-2">
+											<p className="text-sm font-semibold text-gray-900 leading-snug truncate">
+												{item.label}
+											</p>
+											{typeof item.count === "number" && item.count > 0 ? (
+												<span
+													className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeStyles}`}
+												>
+													{item.count}
+												</span>
+											) : null}
+										</div>
+										<p className="mt-0.5 text-xs text-gray-500 leading-snug">
+											{item.description}
+										</p>
+									</div>
+								</Link>
+							);
+						})}
+					</div>
+				</div>
+			))}
 		</div>
 	);
 };
