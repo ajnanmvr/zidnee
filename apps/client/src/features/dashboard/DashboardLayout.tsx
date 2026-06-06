@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import {
 	HiAcademicCap,
 	HiArchiveBox,
+	HiArrowDownTray,
 	HiBookmarkSquare,
 	HiCalendarDays,
 	HiCheckCircle,
@@ -44,6 +45,7 @@ const titles: Record<string, string> = {
 	"/leads": "Leads",
 	"/students": "Students",
 	"/students/break": "On Break",
+	"/students/posters": "Welcome Posters",
 	"/students/dropped": "Dropped Students",
 	"/processes": "Processes",
 	"/process-history": "Process History",
@@ -57,6 +59,7 @@ const titles: Record<string, string> = {
 	"/me": "Me",
 	"/demo-management/unassigned": "Unassigned Demos",
 	"/demo-management/scheduled": "Scheduled Demos",
+	"/demo-management/completed": "Completed Demos",
 	"/reminders": "Reminders",
 	"/reminders/closed": "Closed Tasks",
 	"/leads/closed": "Deleted Leads",
@@ -166,6 +169,10 @@ export const DashboardLayout = () => {
 	});
 	const canReadLearnerData = canReadStudents || canReadStudentProcesses || canReadProcessHistory;
 	const studentsQuery = useStudentsQuery(token, { scope: "mine" }, canReadLearnerData);
+	const breakCountQuery = useStudentsQuery(token, { scope: "mine", status: "BREAK", limit: 1 }, canReadStudents);
+	const droppedCountQuery = useStudentsQuery(token, { scope: "mine", status: "DROPPED", limit: 1 }, canReadStudents);
+	const breakCount = (breakCountQuery.data as any)?.pagination?.total ?? 0;
+	const droppedCount = (droppedCountQuery.data as any)?.pagination?.total ?? 0;
 	const remindersQuery = useGetAllReminders({ scope: "mine", enabled: canReadReminders });
 	const pendingDemosQuery = usePendingDemoRequestsQuery(token, canReadUnassignedDemos);
 	const scheduledDemosQuery = useDemoRequestsQuery(token, canReadScheduledDemos);
@@ -359,12 +366,20 @@ export const DashboardLayout = () => {
 					accent: "emerald",
 					section: "Demo Management",
 				},
+				{
+					to: "/demo-management/completed",
+					label: "Completed Demos",
+					description: "Demo done",
+					icon: <HiCheckCircle className="h-5 w-5" aria-hidden="true" />,
+					accent: "cyan" as const,
+					section: "Demo Management",
+				},
 			]
 			: []),
 		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
 			? [
 				{
-					to: "/students?type=group&stage=active",
+					to: "/students?type=group",
 					label: "Group Students",
 					description: "Enrolled in groups",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
@@ -373,12 +388,42 @@ export const DashboardLayout = () => {
 					section: "Learners",
 				},
 				{
-					to: "/students?type=individual&stage=active",
+					to: "/students?type=individual",
 					label: "Individual Students",
 					description: "One-to-one learners",
 					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
 					count: getUrgentStudentCount("INDIVIDUAL"),
 					accent: "cyan",
+					section: "Learners",
+				},
+				{
+					to: "/students/break",
+					label: "On Break",
+					description: "Students on break",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count: breakCount,
+					accent: "amber",
+					section: "Learners",
+				},
+				{
+					to: "/students/dropped",
+					label: "Dropped Students",
+					description: "Dropped students",
+					icon: <HiAcademicCap className="h-5 w-5" aria-hidden="true" />,
+					count: droppedCount,
+					accent: "rose",
+					section: "Learners",
+				},
+			]
+			: []),
+		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL") || hasPermission("STUDENT_POSTER_DOWNLOAD")
+			? [
+				{
+					to: "/students/posters",
+					label: "Welcome Posters",
+					description: "Download student posters",
+					icon: <HiArrowDownTray className="h-5 w-5" aria-hidden="true" />,
+					accent: "teal" as const,
 					section: "Learners",
 				},
 			]

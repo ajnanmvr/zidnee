@@ -420,6 +420,12 @@ export const PERMISSION_CATALOG = {
 		resource: "students",
 		action: "certificate:download",
 	},
+	STUDENT_POSTER_DOWNLOAD: {
+		name: "Download Welcome Poster",
+		description: "Download a welcome poster for a student",
+		resource: "students",
+		action: "poster:download",
+	},
 	STUDENT_UPLOAD_PROFILE_PIC: {
 		name: "Upload Profile Picture",
 		description: "Upload or change a student's profile picture",
