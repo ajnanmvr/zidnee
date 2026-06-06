@@ -115,17 +115,6 @@ export const OverviewPage = () => {
 					<p className="mt-2 text-sm text-teal-100 opacity-80">
 						{roleLabel} · Zidnee Workspace
 					</p>
-
-					<div className="mt-5 flex flex-wrap gap-2">
-						{sections.map((s) => (
-							<span
-								key={s.title}
-								className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm"
-							>
-								{s.title}
-							</span>
-						))}
-					</div>
 				</div>
 			</div>
 
