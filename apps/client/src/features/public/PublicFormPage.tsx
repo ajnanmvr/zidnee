@@ -22,6 +22,7 @@ type PublicFormValues = {
 	email: string;
 	dateOfBirth: string;
 	residingCountry: string;
+	residingCountryOther: string;
 	level: string;
 	gender: "" | "male" | "female";
 	primaryWhatsappNumber: string;
@@ -284,6 +285,7 @@ const PublicFormPage = () => {
 		setValue,
 		watch,
 		trigger,
+		getValues,
 		formState: { errors },
 	} = useForm<PublicFormValues>({
 		defaultValues: {
@@ -291,6 +293,7 @@ const PublicFormPage = () => {
 			email: "",
 			dateOfBirth: "",
 			residingCountry: "",
+			residingCountryOther: "",
 			level: "",
 			gender: "",
 			primaryWhatsappNumber: "",
@@ -385,13 +388,14 @@ const PublicFormPage = () => {
 				"name",
 				"dateOfBirth",
 				"residingCountry",
+				...(getValues("residingCountry") === "Other" ? ["residingCountryOther" as const] : []),
 				"level",
 				"gender",
 				"primaryWhatsappNumber",
 				"alternateWhatsappNumber",
 				"email",
 			] as const;
-			const isValid = await trigger(fieldsToValidate);
+			const isValid = await trigger(fieldsToValidate as any);
 			if (!isValid) {
 				const errorFields = fieldsToValidate.filter((field) => {
 					const err = errors[field as keyof typeof errors];
@@ -553,7 +557,13 @@ const PublicFormPage = () => {
 						preferredSchedule:
 							prefill.preferredSchedule ?? currentValues.preferredSchedule,
 						residingCountry:
-							prefill.residingCountry ?? currentValues.residingCountry,
+							(prefill.residingCountry && !ALLOWED_COUNTRIES.includes(prefill.residingCountry as any))
+								? "Other"
+								: (prefill.residingCountry ?? currentValues.residingCountry),
+						residingCountryOther:
+							(prefill.residingCountry && !ALLOWED_COUNTRIES.includes(prefill.residingCountry as any))
+								? prefill.residingCountry
+								: currentValues.residingCountryOther,
 						level: prefill.level ?? currentValues.level,
 						gender: prefill.gender ?? currentValues.gender,
 						preferredLanguage:
@@ -634,7 +644,7 @@ const PublicFormPage = () => {
 				name: data.name,
 				email: data.email,
 				dateOfBirth: data.dateOfBirth,
-				residingCountry: data.residingCountry,
+				residingCountry: data.residingCountry === "Other" ? data.residingCountryOther : data.residingCountry,
 				level: data.level,
 				gender: data.gender,
 				primaryWhatsappNumber: data.primaryWhatsappNumber,
@@ -889,11 +899,29 @@ const PublicFormPage = () => {
 												{country}
 											</option>
 										))}
+										<option value="Other">Other</option>
 									</select>
 									{errors.residingCountry?.message ? (
 										<p className="mt-1 text-xs text-red-600">
 											{errors.residingCountry.message}
 										</p>
+									) : null}
+									
+									{watch("residingCountry") === "Other" ? (
+										<div className="mt-3">
+											<input
+												{...register("residingCountryOther", {
+													required: "Please specify your country",
+												})}
+												placeholder="Enter your country"
+												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+											/>
+											{errors.residingCountryOther?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.residingCountryOther.message}
+												</p>
+											) : null}
+										</div>
 									) : null}
 								</div>
 
