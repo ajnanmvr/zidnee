@@ -1,14 +1,11 @@
 import type { LeadResponse } from "@repo/schema";
 import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
-import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { HiArrowLeft, HiArrowPath, HiCalendarDays } from "react-icons/hi2";
-import { useNavigate } from "react-router-dom";
-import { DataTable } from "@/components/DataTable";
-import { DateCell } from "@/components/DateCell";
+import { HiCalendarDays, HiClipboardDocumentList } from "react-icons/hi2";
+import { Link } from "react-router-dom";
 import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
@@ -18,13 +15,26 @@ import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { RequirementsModal } from "./RequirementsModal";
 
-	export const UnassignedDemosPage = () => {
-		const navigate = useNavigate();
-		const { token } = useSession();
-		const meQuery = useMeQuery(token);
-		const canAssignDemo = useHasPermission("LEAD_DEMO_ASSIGN");
-		const canViewMyUnassignedDemos = useHasPermission("DEMO_UNASSIGNED_READ_MY");
-		const canViewAllUnassignedDemos = useHasPermission("DEMO_UNASSIGNED_READ_ALL");
+function fmtDate(val?: string | Date | null): string {
+	if (!val) return "—";
+	const d = typeof val === "string" ? new Date(val) : val;
+	if (Number.isNaN(d.getTime())) return "—";
+	return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function ordinal(n: number): string {
+	if (n === 1) return "1st";
+	if (n === 2) return "2nd";
+	if (n === 3) return "3rd";
+	return `${n}th`;
+}
+
+export const UnassignedDemosPage = () => {
+	const { token } = useSession();
+	const meQuery = useMeQuery(token);
+	const canAssignDemo = useHasPermission("LEAD_DEMO_ASSIGN");
+	const canViewMine = useHasPermission("DEMO_UNASSIGNED_READ_MY");
+	const canViewAll = useHasPermission("DEMO_UNASSIGNED_READ_ALL");
 	const usersQuery = useUsersQuery(token);
 	const assignDemoMutation = useAssignDemoMentorMutation();
 	const currentUserId = meQuery.data?.id ?? "";
@@ -32,378 +42,269 @@ import { RequirementsModal } from "./RequirementsModal";
 	const [selectedDemo, setSelectedDemo] = useState<LeadResponse | null>(null);
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [requirementsOpen, setRequirementsOpen] = useState(false);
-	const [selectedRequirements, setSelectedRequirements] =
-		useState<LeadResponse | null>(null);
-	const [viewScope, setViewScope] = useState<"mine" | "all">(
-		canViewMyUnassignedDemos ? "mine" : "all",
-	);
+	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
+	const [viewScope, setViewScope] = useState<"mine" | "all">(canViewMine ? "mine" : "all");
+	const [search, setSearch] = useState("");
 
-	// Only fetch "all" data when user switches to that view
-	const demosQuery = usePendingDemoRequestsQuery(token, viewScope === "all" || !canViewMyUnassignedDemos);
+	const canToggleScope = canViewMine && canViewAll;
+	const demosQuery = usePendingDemoRequestsQuery(token, viewScope === "all" || !canViewMine);
 
-		const canToggleScope = canViewMyUnassignedDemos && canViewAllUnassignedDemos;
+	useEffect(() => {
+		if (canViewMine) { setViewScope("mine"); return; }
+		if (canViewAll) setViewScope("all");
+	}, [canViewAll, canViewMine]);
 
-		useEffect(() => {
-			if (canViewMyUnassignedDemos) {
-				setViewScope("mine");
-				return;
-			}
+	const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{
+		mentorId: string;
+		demoScheduledFor: Date;
+	}>({
+		defaultValues: { mentorId: "", demoScheduledFor: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead) },
+	});
 
-			if (canViewAllUnassignedDemos) {
-				setViewScope("all");
-			}
-		}, [canViewAllUnassignedDemos, canViewMyUnassignedDemos]);
-
-		const {
-			control: assignControl,
-			handleSubmit: handleAssignSubmit,
-			reset: resetAssign,
-			formState: { isSubmitting },
-		} = useForm<{
-			mentorId: string;
-			demoScheduledFor: Date;
-		}>({
-			defaultValues: {
-				mentorId: "",
-				demoScheduledFor: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead),
-			},
-		});
-
-		const onAssignMentor = handleAssignSubmit(async (data) => {
-			if (!selectedDemo) {
-				toast.error("Demo not selected");
-				return;
-			}
-
-			try {
-				await assignDemoMutation.mutateAsync({
-					leadId: selectedDemo.id,
-					payload: {
-						mentorId: data.mentorId,
-						demoScheduledFor: data.demoScheduledFor,
-					},
-				});
-				toast.success("Demo assigned successfully");
-				setAssignOpen(false);
-				setSelectedDemo(null);
-				resetAssign();
-			} catch (error) {
-				if (error instanceof Error) {
-					toast.error(error.message);
-				} else {
-					toast.error("Failed to assign demo");
-				}
-			}
-		});
-
-		const handleOpenAssign = (demo: LeadResponse) => {
-			setSelectedDemo(demo);
-			const scheduledDate = demo.demoAvailability
-				? new Date(demo.demoAvailability)
-				: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead);
-			resetAssign({
-				mentorId: "",
-				demoScheduledFor: scheduledDate,
+	const onAssignMentor = handleSubmit(async (data) => {
+		if (!selectedDemo) { toast.error("Demo not selected"); return; }
+		try {
+			await assignDemoMutation.mutateAsync({
+				leadId: selectedDemo.id,
+				payload: { mentorId: data.mentorId, demoScheduledFor: data.demoScheduledFor },
 			});
-			setAssignOpen(true);
-		};
+			toast.success("Demo assigned successfully");
+			setAssignOpen(false);
+			setSelectedDemo(null);
+			reset();
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : "Failed to assign demo");
+		}
+	});
 
-		const handleOpenRequirements = (demo: LeadResponse) => {
-			setSelectedRequirements(demo);
-			setRequirementsOpen(true);
-		};
+	const handleOpenAssign = (demo: LeadResponse) => {
+		setSelectedDemo(demo);
+		const scheduledDate = demo.demoAvailability
+			? new Date(demo.demoAvailability)
+			: new Date(Date.now() + FOLLOW_UP_PERIOD_MS.lead);
+		reset({ mentorId: "", demoScheduledFor: scheduledDate });
+		setAssignOpen(true);
+	};
 
-		const mentors =
-			usersQuery.data?.users.filter((user) =>
-				user.roles?.some((role) => (role.type ?? "admin") === "mentor"),
-			) ?? [];
+	const mentors = usersQuery.data?.users.filter((u) =>
+		u.roles?.some((r) => (r.type ?? "admin") === "mentor"),
+	) ?? [];
 
-		const unassignedDemos = demosQuery.data?.leads ?? [];
-		const visibleDemos =
-			viewScope === "mine"
-				? unassignedDemos.filter(
-						(demo) => demo.demoRequestAssignedTo === currentUserId,
-					)
-				: unassignedDemos;
-		const activeScopeLabel = viewScope === "mine" ? "Assigned to me" : "Assigned to all";
-		const userNameById = new Map(
-			(usersQuery.data?.users ?? []).map((user) => [
-				user.id,
-				user.name || user.username,
-			]),
+	const userNameById = useMemo(() => new Map(
+		(usersQuery.data?.users ?? []).map((u) => [u.id, u.name || u.username]),
+	), [usersQuery.data]);
+
+	const allDemos = demosQuery.data?.leads ?? [];
+	const scopedDemos = viewScope === "mine"
+		? allDemos.filter((d) => d.demoRequestAssignedTo === currentUserId)
+		: allDemos;
+	const rows = useMemo(() => {
+		const q = search.toLowerCase();
+		if (!q) return scopedDemos;
+		return scopedDemos.filter((d) =>
+			(d.name ?? "").toLowerCase().includes(q) ||
+			(d.phone ?? "").toLowerCase().includes(q),
 		);
+	}, [scopedDemos, search]);
 
-		const formatDemoAttemptLabel = (attemptNumber: number) => {
-			const suffix =
-				attemptNumber === 1
-					? "st"
-					: attemptNumber === 2
-						? "nd"
-						: attemptNumber === 3
-							? "rd"
-							: "th";
-				return `${attemptNumber}${suffix} demo`;
-		};
-
-		const columns: ColumnDef<LeadResponse>[] = [
-			{
-				accessorKey: "name",
-				header: "Name",
-				cell: ({ row }) => (
-					<div>
-						<p className="font-semibold text-gray-900">{row.original.name}</p>
-						<p className="text-xs text-gray-500 font-mono">{row.original.phone}</p>
+	return (
+		<div className="space-y-3">
+			{/* Page header */}
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
+						<HiClipboardDocumentList className="h-5 w-5 text-amber-600" />
 					</div>
-				),
-			},
-			{
-				accessorKey: "level",
-				header: "Level",
-				cell: ({ row }) => (
-					<span className="font-medium text-gray-900">{row.original.level || "-"}</span>
-				),
-			},
-			{
-				header: "Attempt",
-				cell: ({ row }) => (
-					<span className="font-medium text-gray-900">
-						{formatDemoAttemptLabel(Math.max(1, row.original.demos.length || 1))}
-					</span>
-				),
-				accessorFn: (row) => row.demos.length,
-			},
-			{
-				id: "requestedAt",
-				header: "Requested",
-				accessorFn: (row) => row.demos[row.demos.length - 1]?.requestedAt ?? "",
-				cell: ({ row }) => (
-					<DateCell
-						date={row.original.demos[row.original.demos.length - 1]?.requestedAt ?? ""}
-						className="font-medium text-gray-900"
-					/>
-				),
-			},
-			{
-				header: "Assigned To",
-				accessorFn: (row) => userNameById.get(row.demoRequestAssignedTo ?? "") ?? "Unassigned",
-				cell: ({ row }) => (
-					<span className="font-medium text-gray-900">
-						{row.original.demoRequestAssignedTo
-							? (userNameById.get(row.original.demoRequestAssignedTo) ?? row.original.demoRequestAssignedTo)
-							: "Unassigned"}
-					</span>
-				),
-			},
-			{
-				header: "Re-demo Reason",
-				accessorFn: (row) => row.demos[row.demos.length - 1]?.note ?? "",
-				cell: ({ row }) => (
-					<span className="text-gray-700">{row.original.demos[row.original.demos.length - 1]?.note || "-"}</span>
-				),
-			},
-			{
-				header: "Actions",
-				enableSorting: false,
-				cell: ({ row }) => (
-					<div className="flex flex-wrap gap-2">
-						<button
-							type="button"
-							onClick={() => handleOpenRequirements(row.original)}
-							className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-slate-200"
-							title="View requirements and copy for WhatsApp"
-						>
-							Requirements
+					<div>
+						<h1 className="text-lg font-bold text-gray-900">Unassigned Demos</h1>
+						<p className="mt-0.5 text-sm text-gray-500">
+							{rows.length > 0 ? `${rows.length} request${rows.length !== 1 ? "s" : ""}` : "No requests"} · Awaiting mentor assignment
+						</p>
+					</div>
+				</div>
+				{canToggleScope ? (
+					<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+						<button type="button" onClick={() => setViewScope("mine")}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${viewScope === "mine" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+							Mine
+						</button>
+						<button type="button" onClick={() => setViewScope("all")}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${viewScope === "all" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+							All
+						</button>
+					</div>
+				) : null}
+			</div>
+
+			{/* Search */}
+			<div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3">
+				<input
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
+					placeholder="Search by name or phone…"
+					className="w-64 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+				/>
+				{search ? (
+					<button type="button" onClick={() => setSearch("")}
+						className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50">
+						Clear
+					</button>
+				) : null}
+			</div>
+
+			{/* Table */}
+			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+				{demosQuery.isLoading ? (
+					<div className="flex justify-center py-16">
+						<div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+					</div>
+				) : rows.length === 0 ? (
+					<div className="py-16 text-center">
+						<HiClipboardDocumentList className="mx-auto h-10 w-10 text-gray-200" />
+						<p className="mt-2 text-sm text-gray-400">No unassigned demo requests.</p>
+					</div>
+				) : (
+					<div className="overflow-x-auto">
+						<table className="min-w-full border-collapse text-sm">
+							<thead>
+								<tr className="border-b border-gray-100 bg-gray-50/80">
+									<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Lead</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Level</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Attempt</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Requested</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Assigned To</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Re-demo Note</th>
+									<th className="px-4 py-2.5 pr-5 text-right text-[11px] font-bold uppercase tracking-widest text-gray-400">Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{rows.map((demo) => {
+									const latestDemo = demo.demos[demo.demos.length - 1];
+									const attempt = Math.max(1, demo.demos.length || 1);
+									const assignedTo = demo.demoRequestAssignedTo
+										? (userNameById.get(demo.demoRequestAssignedTo) ?? "—")
+										: "—";
+									return (
+										<tr key={demo.id} className="border-b border-gray-100 transition-colors hover:bg-slate-50">
+											<td className="border-l-[3px] border-l-amber-400 py-3.5 pl-3 pr-6">
+												<div className="flex items-center gap-3 min-w-0">
+													<div className="h-8 w-8 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">
+														{(demo.name ?? demo.phone ?? "?")[0]?.toUpperCase()}
+													</div>
+													<div className="min-w-0">
+														<Link to={`/leads/${demo.id}`} className="block font-bold text-blue-600 hover:underline text-sm leading-tight">
+															{demo.phone}
+														</Link>
+														{demo.name ? <p className="text-[11px] text-gray-500 truncate leading-snug">{demo.name}</p> : null}
+													</div>
+												</div>
+											</td>
+											<td className="px-4 py-3.5">
+												<span className="text-sm font-medium text-gray-700">{demo.level ?? "—"}</span>
+											</td>
+											<td className="px-4 py-3.5">
+												<span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+													{ordinal(attempt)} demo
+												</span>
+											</td>
+											<td className="px-4 py-3.5">
+												<span className="text-sm text-gray-700">{fmtDate(latestDemo?.requestedAt)}</span>
+											</td>
+											<td className="px-4 py-3.5">
+												<span className="text-sm text-gray-700">{assignedTo}</span>
+											</td>
+											<td className="px-4 py-3.5 max-w-45">
+												{latestDemo?.note ? (
+													<p className="truncate text-xs text-gray-500" title={latestDemo.note}>{latestDemo.note}</p>
+												) : (
+													<span className="text-xs text-gray-400">—</span>
+												)}
+											</td>
+											<td className="px-4 py-3.5 pr-5">
+												<div className="flex items-center justify-end gap-2">
+													<button type="button" onClick={() => { setSelectedRequirements(demo); setRequirementsOpen(true); }}
+														className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+														Requirements
+													</button>
+													{canAssignDemo ? (
+														<button type="button" onClick={() => handleOpenAssign(demo)}
+															className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">
+															<HiCalendarDays className="h-3.5 w-3.5" />
+															Assign
+														</button>
+													) : null}
+												</div>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
+				)}
+			</div>
+
+			{/* Assign modal */}
+			<Modal
+				open={assignOpen}
+				title="Assign Mentor for Demo"
+				description={selectedDemo ? `Demo for ${selectedDemo.name ?? selectedDemo.phone}` : ""}
+				onClose={() => { setAssignOpen(false); setSelectedDemo(null); reset(); }}
+				footer={
+					<>
+						<button type="button" onClick={() => { setAssignOpen(false); setSelectedDemo(null); reset(); }}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">
+							Cancel
 						</button>
 						{canAssignDemo ? (
-							<button
-								type="button"
-								onClick={() => handleOpenAssign(row.original)}
-								className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-							>
+							<button type="button" onClick={() => void onAssignMentor()} disabled={isSubmitting || assignDemoMutation.isPending}
+								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
 								<HiCalendarDays className="h-4 w-4" />
-								Assign Mentor
+								{assignDemoMutation.isPending ? "Assigning…" : "Assign Mentor"}
 							</button>
 						) : null}
-					</div>
-				),
-			},
-		];
-
-		if (demosQuery.isLoading || meQuery.isLoading) {
-			return (
-				<div className="flex min-h-screen items-center justify-center">
-					<p className="text-gray-600">Loading unassigned demos...</p>
-				</div>
-			);
-		}
-
-		return (
-			<div className="min-h-screen bg-gray-50">
-				<div className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-					<div className="flex flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:justify-between">
-						<div className="flex items-center gap-4">
-							<button
-								type="button"
-								onClick={() => navigate("/dashboard")}
-								className="rounded-lg p-2 hover:bg-gray-100"
-							>
-								<HiArrowLeft className="h-6 w-6 text-gray-900" />
-							</button>
-							<div>
-								<h1 className="text-2xl font-bold text-gray-900">Unassigned Demo Requests</h1>
-								<p className="mt-1 text-sm text-gray-600">
-									{visibleDemos.length} demo request(s) in the current view
-								</p>
-							</div>
-						</div>
-						{canToggleScope ? (
-							<div className="inline-flex rounded-2xl border border-gray-200 bg-gray-50 p-1">
-								<button
-									type="button"
-									onClick={() => setViewScope("mine")}
-									className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "mine" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-								>
-									Assigned to me
-								</button>
-								<button
-									type="button"
-									onClick={() => setViewScope("all")}
-									className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${viewScope === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-								>
-									Assigned to all
-								</button>
-							</div>
-						) : (
-							<div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700">
-								{activeScopeLabel}
-							</div>
+					</>
+				}
+			>
+				<form className="grid gap-4" onSubmit={onAssignMentor}>
+					<Controller name="mentorId" control={control} rules={{ required: "Mentor is required" }}
+						render={({ field, fieldState }) => (
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
+								<span>Select Mentor</span>
+								<select {...field} className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100">
+									<option value="">Choose a mentor…</option>
+									{mentors.map((m) => (
+										<option key={m.id} value={m.id}>
+											{m.zids?.mentor ? `${m.zids.mentor} - ${m.name || m.username}` : m.name || m.username}
+										</option>
+									))}
+								</select>
+								{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
+							</label>
 						)}
-					</div>
-				</div>
+					/>
+					<Controller name="demoScheduledFor" control={control}
+						rules={{ required: "Demo time is required", validate: (v) => v > new Date() || "Demo time must be in the future" }}
+						render={({ field, fieldState }) => (
+							<label className="grid gap-2 text-sm font-medium text-gray-600">
+								<span>Demo Scheduled For</span>
+								<input type="datetime-local"
+									value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
+									onChange={(e) => field.onChange(new Date(e.target.value))}
+									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+								/>
+								{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
+							</label>
+						)}
+					/>
+				</form>
+			</Modal>
 
-				<div className="mx-auto max-w-7xl px-6 py-8">
-					{visibleDemos.length === 0 ? (
-						<div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 px-8 py-12 text-center">
-							<HiArrowPath className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-							<p className="text-lg font-medium text-gray-700">No demo requests in this view</p>
-							<p className="mt-1 text-sm text-gray-600">
-								{canToggleScope ? "Switch to All assignments to see the full queue" : "This queue scope is currently empty."}
-							</p>
-						</div>
-					) : (
-						<DataTable
-							columns={columns}
-							data={visibleDemos}
-							exportFilename="unassigned-demo-requests"
-							searchPlaceholder="Search unassigned demo requests..."
-							initialSorting={[{ id: "requestedAt", desc: false }]}
-						/>
-					)}
-				</div>
-
-				<Modal
-					open={assignOpen}
-					title="Assign Mentor for Demo"
-					description={selectedDemo ? `Demo for ${selectedDemo.name}` : ""}
-					onClose={() => {
-						setAssignOpen(false);
-						setSelectedDemo(null);
-						resetAssign();
-					}}
-					footer={
-						<>
-							<button
-								type="button"
-								className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
-								onClick={() => {
-									setAssignOpen(false);
-									setSelectedDemo(null);
-									resetAssign();
-								}}
-							>
-								Cancel
-							</button>
-							{canAssignDemo ? (
-								<button
-									type="button"
-									className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-									onClick={() => void onAssignMentor()}
-									disabled={isSubmitting || assignDemoMutation.isPending}
-								>
-									<HiCalendarDays className="h-4 w-4" />
-									{assignDemoMutation.isPending ? "Assigning..." : "Assign Mentor"}
-								</button>
-							) : null}
-						</>
-					}
-				>
-					<form className="grid gap-4" onSubmit={onAssignMentor}>
-						<Controller
-							name="mentorId"
-							control={assignControl}
-							rules={{ required: "Mentor is required" }}
-							render={({ field, fieldState }) => (
-								<label className="grid gap-2 text-sm font-medium text-gray-600">
-									<span>Select Mentor</span>
-									<select
-										{...field}
-										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-									>
-										<option value="">Choose a mentor...</option>
-										{mentors.map((mentor) => (
-											<option key={mentor.id} value={mentor.id}>
-												{mentor.zids?.mentor
-													? `${mentor.zids.mentor} - ${mentor.name || mentor.username}`
-													: mentor.name || mentor.username}
-											</option>
-										))}
-									</select>
-									{fieldState.error?.message ? (
-										<p className="text-xs text-red-600">{fieldState.error.message}</p>
-									) : null}
-								</label>
-							)}
-						/>
-						<Controller
-							name="demoScheduledFor"
-							control={assignControl}
-							rules={{
-								required: "Demo time is required",
-								validate: (value) => {
-									if (value <= new Date()) {
-										return "Demo time must be in the future";
-									}
-									return true;
-								},
-							}}
-							render={({ field, fieldState }) => (
-								<label className="grid gap-2 text-sm font-medium text-gray-600">
-									<span>Demo Scheduled For</span>
-									<input
-										type="datetime-local"
-										value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
-										onChange={(e) => {
-											field.onChange(new Date(e.target.value));
-										}}
-										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-									/>
-									{fieldState.error?.message ? (
-										<p className="text-xs text-red-600">{fieldState.error.message}</p>
-									) : null}
-								</label>
-							)}
-						/>
-					</form>
-				</Modal>
-
-				<RequirementsModal
-					open={requirementsOpen}
-					lead={selectedRequirements}
-					onClose={() => {
-						setRequirementsOpen(false);
-						setSelectedRequirements(null);
-					}}
-				/>
-			</div>
-		);
-	};
+			<RequirementsModal
+				open={requirementsOpen}
+				lead={selectedRequirements}
+				onClose={() => { setRequirementsOpen(false); setSelectedRequirements(null); }}
+			/>
+		</div>
+	);
+};

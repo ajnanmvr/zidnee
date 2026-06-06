@@ -591,7 +591,7 @@ export const DashboardLayout = () => {
 						title={title}
 						breadcrumbs={["Dashboard", title]}
 						userName={meName}
-						userLabel={`${me?.username ?? "user"} | ${roleLabel}`}
+						userLabel={roleLabel}
 						onToggleSidebar={() => setSidebarOpen((current) => !current)}
 					/>
 

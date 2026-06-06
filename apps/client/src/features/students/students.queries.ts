@@ -6,7 +6,7 @@ import {
 	fetchStudents,
 	fetchStudentProcess,
 } from "@/features/students/students.service";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasPermission, usePermissionMap } from "@/lib/hooks/use-has-permission";
 
 export const studentsQueryKeys = {
 	list: (
@@ -48,7 +48,8 @@ export const useStudentsQuery = (
 		typeof optionsOrEnabled === "boolean"
 			? optionsOrEnabled && enabled
 			: enabled;
-	const canReadAll = useHasPermission("STUDENT_READ_ALL");
+	const permMap = usePermissionMap();
+	const canReadAll = Boolean(permMap["STUDENT_READ_ALL"] || permMap["STUDENT_POSTER_DOWNLOAD"]);
 	const scope = options?.scope === "all" && !canReadAll ? "mine" : options?.scope;
 
 	return useQuery({

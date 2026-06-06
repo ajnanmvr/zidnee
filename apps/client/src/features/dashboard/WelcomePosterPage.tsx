@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { HiArrowDownTray, HiPhoto } from "react-icons/hi2";
 import { useStudentsQuery } from "@/features/students/students.queries";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { API_BASE_URL } from "@/api/client";
 import toast from "react-hot-toast";
@@ -13,6 +12,13 @@ const LEVEL_LABELS: Record<string | number, string> = {
 	1: "Seed", 2: "Sprout", 3: "Root", 4: "Leaf",
 	5: "Bud", 6: "Bloom", 7: "Fruit",
 };
+
+function fmtDate(val?: string | Date | null): string {
+	if (!val) return "—";
+	const d = typeof val === "string" ? new Date(val) : val;
+	if (Number.isNaN(d.getTime())) return "—";
+	return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
 	return new Promise((resolve, reject) => {
@@ -29,7 +35,6 @@ async function downloadPoster(student: any) {
 		return;
 	}
 
-	// Fetch profile image via the public proxy endpoint (avoids CORS on storage URLs)
 	const res = await fetch(`${SERVER_BASE}/form/student/${student.id}/profile-image`);
 	if (!res.ok) throw new Error("Failed to load profile image");
 	const blob = await res.blob();
@@ -47,30 +52,21 @@ async function downloadPoster(student: any) {
 			loadImage(profileUrl),
 		]);
 
-		// Background
 		ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 
-		// Profile pic position (matching PublicStudentFormPage exactly)
 		const imageX = 206;
 		const imageY = 538;
 		const imageSize = 254;
 		const borderRadius = 60;
 
-		// Object-cover crop for the profile pic
 		const imgW = profileImg.naturalWidth || profileImg.width;
 		const imgH = profileImg.naturalHeight || profileImg.height;
 		let srcX = 0;
 		let srcY = 0;
 		let srcSize = Math.min(imgW, imgH);
-		if (imgW > imgH) {
-			srcX = Math.round((imgW - imgH) / 2);
-			srcSize = imgH;
-		} else if (imgH > imgW) {
-			srcY = Math.round((imgH - imgW) / 2);
-			srcSize = imgW;
-		}
+		if (imgW > imgH) { srcX = Math.round((imgW - imgH) / 2); srcSize = imgH; }
+		else if (imgH > imgW) { srcY = Math.round((imgH - imgW) / 2); srcSize = imgW; }
 
-		// Clip to rounded square and draw
 		ctx.save();
 		ctx.beginPath();
 		ctx.moveTo(imageX + borderRadius, imageY);
@@ -87,20 +83,17 @@ async function downloadPoster(student: any) {
 		ctx.drawImage(profileImg, srcX, srcY, srcSize, srcSize, imageX, imageY, imageSize, imageSize);
 		ctx.restore();
 
-		// Draw name and country below the profile image
 		const name = student.name ?? "";
 		if (name) {
 			const centerX = imageX + imageSize / 2;
 			const padding = Math.round(canvas.height * 0.02);
 			const textY = imageY + imageSize + padding;
 			const fontSize = Math.round(canvas.width * 0.02);
-
 			ctx.font = `500 ${fontSize}px Inter, sans-serif`;
 			ctx.textAlign = "center";
 			ctx.textBaseline = "top";
 			ctx.fillStyle = "#000";
 			ctx.fillText(name, centerX, textY);
-
 			const country = student.residingCountry ?? student.country ?? student.county ?? "";
 			if (country) {
 				const smallFont = Math.round(fontSize * 0.65);
@@ -135,18 +128,15 @@ export const WelcomePosterPage = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const searchTerm = searchParams.get("search") ?? "";
 	const page = Number(searchParams.get("page") ?? "1");
-	const limit = Number(searchParams.get("limit") ?? "25");
-	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const canReadAll = useHasPermission("STUDENT_READ_ALL");
-	const activeScope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
+	const limit = Number(searchParams.get("limit") ?? "50");
 	const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
 	const studentsQuery = useStudentsQuery(token, {
-		scope: activeScope,
+		scope: "all",
 		status: "STUDENT",
 		search: searchTerm || undefined,
-		sortBy: "name",
-		sortOrder: "asc",
+		sortBy: "admittedAt",
+		sortOrder: "desc",
 		page,
 		limit,
 	});
@@ -186,27 +176,10 @@ export const WelcomePosterPage = () => {
 					<div>
 						<h1 className="text-lg font-bold text-gray-900">Welcome Posters</h1>
 						<p className="mt-0.5 text-sm text-gray-500">
-							{totalCount > 0 ? `${totalCount} student${totalCount !== 1 ? "s" : ""}` : "No students"}
-							{" · "}Download a personalised welcome poster for each student
+							{totalCount > 0 ? `${totalCount} active student${totalCount !== 1 ? "s" : ""}` : "No students"}
+							{" · "}Most recently admitted first
 						</p>
 					</div>
-				</div>
-				<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
-					<button
-						type="button"
-						onClick={() => setLoadAllRequested(false)}
-						className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-teal-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-					>
-						Mine
-					</button>
-					<button
-						type="button"
-						onClick={() => setLoadAllRequested(true)}
-						disabled={!canReadAll}
-						className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-40 ${activeScope === "all" ? "bg-white text-teal-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-					>
-						All
-					</button>
 				</div>
 			</div>
 
@@ -253,6 +226,7 @@ export const WelcomePosterPage = () => {
 									<tr className="border-b border-gray-100 bg-gray-50/80">
 										<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Student</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">ZID</th>
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Admitted</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Level</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Type</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Photo</th>
@@ -267,7 +241,6 @@ export const WelcomePosterPage = () => {
 
 										return (
 											<tr key={s.id} className="border-b border-gray-100 transition-colors hover:bg-slate-50">
-												{/* Student */}
 												<td className="py-3.5 pl-5 pr-4">
 													<div className="flex items-center gap-3 min-w-0">
 														<div className="h-8 w-8 shrink-0 rounded-full bg-teal-100 flex items-center justify-center text-xs font-bold text-teal-700 select-none">
@@ -282,14 +255,16 @@ export const WelcomePosterPage = () => {
 													</div>
 												</td>
 
-												{/* ZID */}
 												<td className="px-4 py-3.5">
 													<span className="inline-flex rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-700">
 														{s.zid.toUpperCase()}
 													</span>
 												</td>
 
-												{/* Level */}
+												<td className="px-4 py-3.5">
+													<span className="text-sm text-gray-700">{fmtDate(s.admittedAt)}</span>
+												</td>
+
 												<td className="px-4 py-3.5">
 													{level ? (
 														<span className="text-sm text-gray-700">{level}</span>
@@ -298,14 +273,12 @@ export const WelcomePosterPage = () => {
 													)}
 												</td>
 
-												{/* Type */}
 												<td className="px-4 py-3.5">
 													<span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${s.courseType === "GROUP" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
 														{s.courseType === "GROUP" ? "Group" : "Individual"}
 													</span>
 												</td>
 
-												{/* Photo status */}
 												<td className="px-4 py-3.5">
 													{hasPhoto ? (
 														<span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
@@ -320,7 +293,6 @@ export const WelcomePosterPage = () => {
 													)}
 												</td>
 
-												{/* Download */}
 												<td className="px-4 py-3.5 pr-5 text-right">
 													<button
 														type="button"
@@ -349,7 +321,6 @@ export const WelcomePosterPage = () => {
 							</table>
 						</div>
 
-						{/* Pagination */}
 						<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
 							<p className="text-xs text-gray-400">
 								{totalCount > 0 ? `${(page - 1) * limit + 1}–${Math.min(page * limit, totalCount)} of ${totalCount}` : "0 results"}
@@ -360,10 +331,10 @@ export const WelcomePosterPage = () => {
 									onChange={(e) => setQueryParam("limit", e.target.value)}
 									className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
 								>
-									<option value="10">10</option>
 									<option value="25">25</option>
 									<option value="50">50</option>
 									<option value="100">100</option>
+									<option value="200">200</option>
 								</select>
 								<button
 									onClick={() => setQueryParam("page", String(Math.max(1, page - 1)))}
