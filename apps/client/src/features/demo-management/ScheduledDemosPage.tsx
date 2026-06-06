@@ -1,11 +1,3 @@
-import type { LeadResponse } from "@repo/schema";
-import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
-import { format, isPast, isToday } from "date-fns";
-import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import { HiCalendarDays, HiCheckCircle, HiExclamationTriangle } from "react-icons/hi2";
-import { Link } from "react-router-dom";
 import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
@@ -13,6 +5,14 @@ import { useAssignDemoMentorMutation, useMarkDemoCompletedMutation } from "@/fea
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
+import type { LeadResponse } from "@repo/schema";
+import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
+import { format, isPast, isToday } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import { HiCalendarDays, HiCheckCircle } from "react-icons/hi2";
+import { Link } from "react-router-dom";
 import { DemoOutcomeModal } from "./DemoOutcomeModal";
 import { RequirementsModal } from "./RequirementsModal";
 
