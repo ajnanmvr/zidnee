@@ -10,6 +10,7 @@ import {
 	type PermissionDocument,
 	PermissionModel,
 } from "../permissions/permission.model.js";
+import { ReminderModel } from "../reminders/reminder.model.js";
 import { type RoleDocument, RoleModel } from "../roles/role.model.js";
 import { type UserDocument, UserModel } from "../users/user.model.js";
 import { mergePermissions } from "./rbac.permissions.js";
@@ -460,6 +461,11 @@ export const UserService = {
 	delete: async (id: string): Promise<boolean> => {
 		await initializeDefaults();
 		const result = await UserModel.findByIdAndDelete(id);
+		if (result) {
+			// Clear pending follow-up reminders linked to this mentor — they'd
+			// otherwise dangle once the mentor record is gone.
+			await ReminderModel.deleteMany({ linkedPersonType: "mentor", linkedPersonId: id });
+		}
 		return result !== null;
 	},
 

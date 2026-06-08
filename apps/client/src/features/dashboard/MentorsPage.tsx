@@ -2,10 +2,18 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Modal } from "@/components/dashboard-ui";
+import {
+	HiAcademicCap,
+	HiChevronLeft,
+	HiChevronRight,
+	HiEye,
+	HiMagnifyingGlass,
+	HiPencilSquare,
+	HiUserPlus,
+} from "react-icons/hi2";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSearchParams, Link } from "react-router-dom";
-import { HiUserPlus } from "react-icons/hi2";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useGetAllSubstitutions } from "@/features/mentors/mentor-substitution.queries";
@@ -17,6 +25,16 @@ import { getStudentFollowUpState } from "@/features/students/student-table";
 
 const formatUserName = (name?: string | null, username?: string | null) =>
 	name?.trim() || username?.trim() || "-";
+
+const AVATAR_COLORS = [
+	"bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-rose-500",
+	"bg-amber-500", "bg-emerald-500", "bg-cyan-500", "bg-indigo-500",
+];
+const avatarColor = (id: string) => {
+	let h = 0;
+	for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+	return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length] ?? "bg-teal-500";
+};
 
 const getMentorDisplayId = (mentor: { mentorId?: string | null; zids?: Record<string, string> }) =>
 	mentor.mentorId ?? mentor.zids?.mentor ?? "-";
@@ -142,71 +160,178 @@ export const MentorsPage = () => {
 	const totalCount = rows.length;
 
 	const columns = useMemo(() => [
-		{ accessorKey: "displayId", header: "Mentor ID", cell: ({ row }: any) => <Link to={`/mentors/${row.original.id}`} className="font-mono font-semibold text-teal-600">{row.original.displayId}</Link> },
-		{ accessorKey: "name", header: "Name" },
-		{ accessorKey: "counsellorName", header: "Counsellor" },
-		{ accessorKey: "individualStudents", header: "Individual", cell: ({ row }: any) => <div className="text-right">{row.original.individualStudents}</div> },
-		{ accessorKey: "groupStudents", header: "Group", cell: ({ row }: any) => <div className="text-right">{row.original.groupStudents}</div> },
-		{ accessorKey: "groupCount", header: "Groups", cell: ({ row }: any) => <div className="text-right font-semibold text-emerald-800">{row.original.groupCount}</div> },
-		{ accessorKey: "lastContactedAt", header: "Last Follow-up", cell: ({ row }: any) => (
-			<div className="space-y-1">
-				<p>{row.original.lastContactedAt ? row.original.lastContactedAt.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" }) : "—"}</p>
-				<span className="text-xs text-gray-600">{row.original.lastContactedAt ? new Date(row.original.lastContactedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}</span>
-			</div>
-		) },
-		{ accessorKey: "nextFollowUpAt",
+		{
+			accessorKey: "name",
+			header: "Mentor",
+			cell: ({ row }: any) => (
+				<Link to={`/mentors/${row.original.id}`} className="flex min-w-0 items-center gap-3">
+					<span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${avatarColor(row.original.id)} text-xs font-bold text-white`}>
+						{(row.original.name ?? row.original.username ?? "?")[0]?.toUpperCase()}
+					</span>
+					<span className="min-w-0">
+						<span className="block truncate text-sm font-semibold text-gray-900">{row.original.name}</span>
+						<span className="mt-0.5 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+							{row.original.displayId.toUpperCase()}
+						</span>
+					</span>
+				</Link>
+			),
+		},
+		{
+			accessorKey: "counsellorName",
+			header: "Counsellor",
+			cell: ({ row }: any) =>
+				row.original.counsellorName ? (
+					<span className="text-sm font-medium text-gray-700">{row.original.counsellorName}</span>
+				) : (
+					<span className="text-sm text-gray-400">Unassigned</span>
+				),
+		},
+		{
+			accessorKey: "students",
+			header: "Students",
+			cell: ({ row }: any) => (
+				<div className="flex items-center gap-1.5">
+					<span className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+						{row.original.individualStudents} individual
+					</span>
+					<span className="inline-flex items-center gap-1 rounded-full border border-violet-100 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+						{row.original.groupStudents} group
+					</span>
+				</div>
+			),
+		},
+		{
+			accessorKey: "groupCount",
+			header: "Batches",
+			cell: ({ row }: any) => (
+				<span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+					{row.original.groupCount}
+				</span>
+			),
+		},
+		{
+			accessorKey: "lastContactedAt",
+			header: "Last Follow-up",
+			cell: ({ row }: any) => (
+				<div>
+					<p className="text-sm text-gray-700">
+						{row.original.lastContactedAt
+							? row.original.lastContactedAt.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })
+							: "—"}
+					</p>
+					{row.original.lastContactedAt ? (
+						<p className="text-[11px] text-gray-400">
+							{new Date(row.original.lastContactedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+						</p>
+					) : null}
+				</div>
+			),
+		},
+		{
+			accessorKey: "nextFollowUpAt",
 			header: "Next Follow-up",
 			cell: ({ row }: any) => {
 				const followUpDate = row.original.customNextFollowUpAt ?? row.original.nextFollowUpAt;
 				const state = getStudentFollowUpState(row.original.customNextFollowUpAt, row.original.nextFollowUpAt);
 				return (
 					<div className="space-y-1">
-						<p>{followUpDate ? followUpDate.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" }) : "—"}</p>
+						<p className="text-sm text-gray-700">
+							{followUpDate ? followUpDate.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" }) : "—"}
+						</p>
 						<span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${state.className}`}>{state.label}</span>
 					</div>
 				);
 			},
 		},
-		{ accessorKey: "actions", header: "Actions", cell: ({ row }: any) => (<div><Link to={`/mentors/${row.original.id}`} className="text-emerald-700 mr-3">Details</Link><Link to={`/users/${row.original.id}/edit`} className="text-emerald-700">Edit</Link></div>) },
+		{
+			accessorKey: "actions",
+			header: "Actions",
+			cell: ({ row }: any) => (
+				<div className="flex items-center justify-end gap-1.5">
+					<Link
+						to={`/mentors/${row.original.id}`}
+						title="View details"
+						aria-label="View mentor details"
+						className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+					>
+						<HiEye className="h-4 w-4" aria-hidden="true" />
+					</Link>
+					<Link
+						to={`/users/${row.original.id}/edit`}
+						title="Edit"
+						aria-label="Edit mentor"
+						className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
+					>
+						<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
+					</Link>
+				</div>
+			),
+		},
 	], []);
 
 	return (
 		<>
-		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<div>
-					<h2 className="text-lg font-semibold">Mentors</h2>
-					<p className="text-sm text-gray-600">Simple directory of mentor accounts.</p>
-				</div>
+		<div className="space-y-3">
+			{/* Page header */}
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
 				<div className="flex items-center gap-3">
-					<div className="flex items-center gap-2">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+						<HiAcademicCap className="h-5 w-5 text-emerald-600" />
+					</div>
+					<div>
+						<h1 className="text-lg font-bold text-gray-900">Mentors</h1>
+						<p className="mt-0.5 text-sm text-gray-500">
+							{mentors.length} mentor{mentors.length !== 1 ? "s" : ""} · Mentor directory and follow-up tracking
+						</p>
+					</div>
+				</div>
+				<button
+					type="button"
+					onClick={() => setCreateModalOpen(true)}
+					className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
+				>
+					<HiUserPlus className="h-4 w-4" aria-hidden="true" />
+					Quick Create
+				</button>
+			</div>
+
+			{/* Toolbar: scope toggle + search + page size */}
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+				<div className="flex items-center gap-2">
+					<div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
 						<button
 							type="button"
 							onClick={() => setLoadAllRequested(false)}
-							className={`rounded-2xl px-3 py-1 text-sm font-semibold transition ${activeScope === "mine" ? "bg-emerald-600 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+							className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeScope === "mine" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
 						>
 							My mentors
 						</button>
 						<button
 							type="button"
 							onClick={() => setLoadAllRequested(true)}
-							className={`rounded-2xl px-3 py-1 text-sm font-semibold transition ${activeScope === "all" ? "bg-emerald-600 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+							className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeScope === "all" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
 						>
 							All mentors
 						</button>
 					</div>
-					<div className="text-sm text-gray-700">{mentors.length} mentors</div>
-					<button onClick={() => setCreateModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-1 text-sm font-semibold text-white"><HiUserPlus className="h-4 w-4" /> Add</button>
+					<div className="relative min-w-50 max-w-sm">
+						<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+						<input
+							value={searchTerm}
+							onChange={(e) => setQueryParam("search", e.target.value)}
+							placeholder="Search mentors…"
+							className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+						/>
+					</div>
 				</div>
-			</div>
-
-			<div className="flex items-center justify-between gap-3">
 				<div className="flex items-center gap-2">
-					<input value={searchTerm} onChange={(e) => setQueryParam("search", e.target.value)} placeholder="Search mentors" className="rounded-md border border-gray-200 px-3 py-2 text-sm" />
-				</div>
-				<div className="flex items-center gap-2">
-					<label className="text-sm text-gray-600">Rows:</label>
-					<select value={String(limit)} onChange={(e) => setQueryParam("limit", e.target.value)} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm">
+					<label className="text-xs font-medium text-gray-500">Rows per page</label>
+					<select
+						value={String(limit)}
+						onChange={(e) => setQueryParam("limit", e.target.value)}
+						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+					>
 						<option value="10">10</option>
 						<option value="25">25</option>
 						<option value="50">50</option>
@@ -214,16 +339,35 @@ export const MentorsPage = () => {
 				</div>
 			</div>
 
-			<div>
+			{/* Table */}
+			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 				<DataTable columns={columns} data={filteredRows} />
 			</div>
 
-			<div className="flex items-center justify-between">
-				<div className="text-sm text-gray-600">Showing {Math.min(totalCount, page * limit)} of {totalCount}</div>
-				<div className="flex items-center gap-2">
-					<button disabled={page <= 1} onClick={() => setQueryParam("page", String(page - 1))} className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm disabled:opacity-50">Prev</button>
-					<span className="text-sm">{page}</span>
-					<button disabled={page * limit >= totalCount} onClick={() => setQueryParam("page", String(page + 1))} className="rounded-md border border-gray-200 bg-white px-3 py-1 text-sm disabled:opacity-50">Next</button>
+			{/* Pagination */}
+			<div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
+				<p className="text-xs text-gray-500">
+					Showing <span className="font-semibold text-gray-700">{Math.min(totalCount, page * limit)}</span> of{" "}
+					<span className="font-semibold text-gray-700">{totalCount}</span>
+				</p>
+				<div className="flex items-center gap-1.5">
+					<button
+						disabled={page <= 1}
+						onClick={() => setQueryParam("page", String(page - 1))}
+						aria-label="Previous page"
+						className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						<HiChevronLeft className="h-4 w-4" aria-hidden="true" />
+					</button>
+					<span className="min-w-8 text-center text-sm font-semibold text-gray-700">{page}</span>
+					<button
+						disabled={page * limit >= totalCount}
+						onClick={() => setQueryParam("page", String(page + 1))}
+						aria-label="Next page"
+						className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						<HiChevronRight className="h-4 w-4" aria-hidden="true" />
+					</button>
 				</div>
 			</div>
 		</div>

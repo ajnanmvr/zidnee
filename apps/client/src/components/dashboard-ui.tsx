@@ -1,5 +1,7 @@
 ﻿import type { ReactNode } from "react";
 import {
+	HiArrowLeft,
+	HiArrowRightOnRectangle,
 	HiBars3,
 	HiChevronRight,
 	HiExclamationTriangle,
@@ -48,52 +50,6 @@ const toneStyles: Record<Tone, { dot: string; fill: string; border: string }> =
 		},
 	};
 
-const accentStyles: Record<
-	NonNullable<NavigationItem["accent"]>,
-	{ icon: string; badge: string; active: string }
-> = {
-	emerald: {
-		icon: "text-emerald-700",
-		badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-		active: "border-emerald-300 bg-emerald-50",
-	},
-	teal: {
-		icon: "text-teal-700",
-		badge: "bg-teal-100 text-teal-700 border border-teal-200",
-		active: "border-teal-300 bg-teal-50",
-	},
-	lime: {
-		icon: "text-lime-700",
-		badge: "bg-lime-100 text-lime-700 border border-lime-200",
-		active: "border-lime-300 bg-lime-50",
-	},
-	amber: {
-		icon: "text-amber-700",
-		badge: "bg-amber-100 text-amber-700 border border-amber-200",
-		active: "border-amber-300 bg-amber-50",
-	},
-	orange: {
-		icon: "text-orange-700",
-		badge: "bg-orange-100 text-orange-700 border border-orange-200",
-		active: "border-orange-300 bg-orange-50",
-	},
-	cyan: {
-		icon: "text-cyan-700",
-		badge: "bg-cyan-100 text-cyan-700 border border-cyan-200",
-		active: "border-cyan-300 bg-cyan-50",
-	},
-	violet: {
-		icon: "text-violet-700",
-		badge: "bg-violet-100 text-violet-700 border border-violet-200",
-		active: "border-violet-300 bg-violet-50",
-	},
-	rose: {
-		icon: "text-rose-700",
-		badge: "bg-rose-100 text-rose-700 border border-rose-200",
-		active: "border-rose-300 bg-rose-50",
-	},
-};
-
 type SidebarProps = {
 	items: NavigationItem[];
 	open: boolean;
@@ -108,6 +64,7 @@ type DashboardHeaderProps = {
 	userName: string;
 	userLabel: string;
 	onToggleSidebar: () => void;
+	onBack?: () => void;
 };
 
 type MetricCardProps = {
@@ -171,6 +128,39 @@ type ConfirmDialogProps = {
 	onCancel: () => void;
 };
 
+const accentIconBg: Record<NonNullable<NavigationItem["accent"]>, string> = {
+	emerald: "bg-emerald-100 text-emerald-700",
+	teal: "bg-teal-100 text-teal-700",
+	lime: "bg-lime-100 text-lime-700",
+	amber: "bg-amber-100 text-amber-700",
+	orange: "bg-orange-100 text-orange-700",
+	cyan: "bg-cyan-100 text-cyan-700",
+	violet: "bg-violet-100 text-violet-700",
+	rose: "bg-rose-100 text-rose-700",
+};
+
+const accentIconBgMuted: Record<NonNullable<NavigationItem["accent"]>, string> = {
+	emerald: "bg-emerald-50 text-emerald-500",
+	teal: "bg-teal-50 text-teal-500",
+	lime: "bg-lime-50 text-lime-500",
+	amber: "bg-amber-50 text-amber-500",
+	orange: "bg-orange-50 text-orange-500",
+	cyan: "bg-cyan-50 text-cyan-500",
+	violet: "bg-violet-50 text-violet-500",
+	rose: "bg-rose-50 text-rose-500",
+};
+
+const accentBar: Record<NonNullable<NavigationItem["accent"]>, string> = {
+	emerald: "bg-emerald-500",
+	teal: "bg-teal-500",
+	lime: "bg-lime-500",
+	amber: "bg-amber-500",
+	orange: "bg-orange-500",
+	cyan: "bg-cyan-500",
+	violet: "bg-violet-500",
+	rose: "bg-rose-500",
+};
+
 export const Sidebar = ({
 	items,
 	open,
@@ -178,23 +168,30 @@ export const Sidebar = ({
 	onLogout,
 	currentLocation,
 }: SidebarProps) => {
-	const isActiveItem = (item: NavigationItem) => {
+	// Score how well a nav item's `to` matches the current location: 0 means
+	// no match, otherwise higher scores mean a more specific match (more
+	// query params accounted for). This ensures that e.g. "Leads" (`/leads`)
+	// doesn't stay highlighted as active alongside the more specific
+	// "Follow Up" (`/leads?stage=followUp`) item.
+	const matchScore = (item: NavigationItem): number => {
 		try {
 			const currentUrl = new URL(currentLocation, "http://local");
 			const itemUrl = new URL(item.to, "http://local");
 			if (currentUrl.pathname !== itemUrl.pathname) {
-				return false;
+				return 0;
 			}
 
+			let matchedParams = 0;
 			for (const [key, value] of itemUrl.searchParams.entries()) {
 				if (currentUrl.searchParams.get(key) !== value) {
-					return false;
+					return 0;
 				}
+				matchedParams += 1;
 			}
 
-			return true;
+			return 1 + matchedParams;
 		} catch {
-			return currentLocation === item.to;
+			return currentLocation === item.to ? 1 : 0;
 		}
 	};
 
@@ -203,6 +200,13 @@ export const Sidebar = ({
 		(item): item is NavigationItem =>
 			Boolean(item?.icon && item.to && item.label),
 	);
+
+	const bestMatchScore = validItems.reduce(
+		(best, item) => Math.max(best, matchScore(item)),
+		0,
+	);
+	const isActiveItem = (item: NavigationItem) =>
+		bestMatchScore > 0 && matchScore(item) === bestMatchScore;
 
 	// Group the valid items
 	type GroupType = { section: string; items: NavigationItem[] };
@@ -220,192 +224,138 @@ export const Sidebar = ({
 
 	try {
 
-	const SidebarContent = () => (
-		<>
-			<div className="flex items-center justify-between gap-3 border-b border-gray-300 px-4 py-4">
-				<div className="flex items-center gap-3 overflow-hidden">
-					<img
-						src="/logo.png"
-						alt="Zidnee logo"
-						className="h-10 w-10 shrink-0 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
-					/>
-					<div>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-							Zidnee ERP
-						</p>
-						<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
-					</div>
-				</div>
-			</div>
-
-			<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
-				<div className="grid gap-4">
-					{groupedItems.map((group) => (
-						<div key={group.section} className="grid gap-1">
-							<p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
-								{group.section}
-							</p>
-							{group.items.map((item) => {
-								const accent = accentStyles[item.accent ?? "emerald"];
-								const isActive = isActiveItem(item);
-								return (
-									<Link
-										key={item.to}
-										to={item.to}
-										onClick={() => onToggle()}
-										className={
-											isActive
-												? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active}`
-												: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900`
-										}
-									>
-										<span className={accent.icon}>{item.icon}</span>
-										<div className="min-w-0 flex-1">
-											<div className="flex items-center justify-between gap-2">
-												<span className="block truncate text-sm font-semibold">{item.label}</span>
-												{typeof item.count === "number" && item.count > 0 ? (
-													<span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}>
-														{item.count}
-													</span>
-												) : null}
-											</div>
-										</div>
-									</Link>
-								);
-							})}
+	const renderNavItem = (item: NavigationItem, collapsed: boolean, onNavigate?: () => void) => {
+		const accent = item.accent ?? "emerald";
+		const isActive = isActiveItem(item);
+		return (
+			<Link
+				key={item.to}
+				to={item.to}
+				onClick={onNavigate}
+				title={collapsed ? item.label : undefined}
+				className={`group relative flex items-center gap-3 rounded-xl py-2.5 transition duration-150 ${
+					collapsed ? "justify-center px-2" : "px-2.5"
+				} ${
+					isActive
+						? "bg-gray-50 text-gray-900"
+						: "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+				}`}
+			>
+				{isActive ? (
+					<span className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full ${accentBar[accent]}`} aria-hidden="true" />
+				) : null}
+				<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base transition ${isActive ? accentIconBg[accent] : accentIconBgMuted[accent]}`}>
+					{item.icon}
+				</span>
+				{!collapsed ? (
+					<div className="min-w-0 flex-1">
+						<div className="flex items-center justify-between gap-2">
+							<span className={`block truncate text-sm ${isActive ? "font-semibold text-gray-900" : "font-medium"}`}>{item.label}</span>
+							{typeof item.count === "number" && item.count > 0 ? (
+								<span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${accentIconBg[accent]}`}>
+									{item.count}
+								</span>
+							) : null}
 						</div>
-					))}
-				</div>
+						{item.description ? (
+							<span className="block truncate text-xs text-gray-400">{item.description}</span>
+						) : null}
+					</div>
+				) : typeof item.count === "number" && item.count > 0 ? (
+					<span className={`absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${accentIconBg[accent]}`}>
+						{item.count > 99 ? "99+" : item.count}
+					</span>
+				) : null}
+			</Link>
+		);
+	};
 
-				<div className="mt-4 px-1">
-					<button
-						type="button"
-						className="w-full rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
-						onClick={onLogout}
-					>
-						Log out
-					</button>
+	const renderNavGroups = (collapsed: boolean, onNavigate?: () => void) => (
+		<div className="grid gap-5">
+			{groupedItems.map((group) => (
+				<div key={group.section} className="grid gap-1">
+					{!collapsed ? (
+						<p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+							{group.section}
+						</p>
+					) : (
+						<div className="mx-2 mb-1 h-px bg-gray-100" aria-hidden="true" />
+					)}
+					{group.items.map((item) => renderNavItem(item, collapsed, onNavigate))}
 				</div>
-			</nav>
-		</>
+			))}
+		</div>
+	);
+
+	const Brand = ({ collapsed }: { collapsed: boolean }) => (
+		<div className={`flex items-center gap-3 overflow-hidden ${collapsed ? "justify-center" : ""}`}>
+			<img
+				src="/logo.png"
+				alt="Zidnee logo"
+				className="h-10 w-10 shrink-0 rounded-2xl border border-gray-200 bg-gray-50 object-contain p-1.5"
+			/>
+			{!collapsed ? (
+				<div className="min-w-0">
+					<p className="truncate text-[10px] font-bold uppercase tracking-[0.28em] text-emerald-600">Zidnee ERP</p>
+					<h1 className="truncate text-base font-bold text-gray-900">Workspace</h1>
+				</div>
+			) : null}
+		</div>
+	);
+
+	const LogoutButton = ({ collapsed }: { collapsed: boolean }) => (
+		<button
+			type="button"
+			title={collapsed ? "Log out" : undefined}
+			className={`flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-2.5 py-2.5 text-sm font-semibold text-gray-500 transition duration-150 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 ${collapsed ? "justify-center" : ""}`}
+			onClick={onLogout}
+		>
+			<HiArrowRightOnRectangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+			{!collapsed ? "Log out" : null}
+		</button>
 	);
 
 	return (
 		<>
 			{/* Desktop Sidebar */}
 			<aside
-				className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-300 bg-white transition-[width] duration-300 ease-out lg:flex lg:flex-col"
-				style={{ width: open ? "16rem" : "4.75rem" }}
+				className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-300 ease-out lg:flex lg:flex-col"
+				style={{ width: open ? "17rem" : "4.75rem" }}
 			>
-				<div className="flex items-center justify-between gap-3 border-b border-gray-300 px-4 py-4">
-					<div
-						className={
-							open
-								? "flex items-center gap-3 overflow-hidden"
-								: "flex items-center justify-center overflow-hidden"
-						}
-					>
-						<img
-							src="/logo.png"
-							alt="Zidnee logo"
-							className="h-10 w-10 shrink-0 rounded-2xl border border-gray-300 bg-gray-50 p-1.5"
-						/>
-						{open ? (
-							<div>
-								<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-									Zidnee ERP
-								</p>
-								<h1 className="text-lg font-semibold text-gray-900">Workspace</h1>
-							</div>
-						) : null}
-					</div>
-					<button
-						type="button"
-						className="grid h-9 w-9 place-items-center rounded-full border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700"
-						onClick={onToggle}
-						aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-					>
-						<HiChevronRight
-							className={
-								open
-									? "h-5 w-5 transition-transform duration-300"
-									: "h-5 w-5 rotate-180 transition-transform duration-300"
-							}
-							aria-hidden="true"
-						/>
-					</button>
-				</div>
-
-				<nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
-					<div className="grid gap-4">
-						{groupedItems.map((group) => (
-							<div key={group.section} className="grid gap-1">
-								{open ? (
-									<p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
-										{group.section}
-									</p>
-								) : null}
-								{group.items
-									.filter(
-										(item) =>
-											item &&
-											typeof item === "object" &&
-											item.icon &&
-											item.to &&
-											item.label,
-									)
-									.map((item) => {
-										if (!item || !item.icon || !item.to || !item.label) {
-											return null;
-										}
-
-										const accent = accentStyles[item.accent ?? "emerald"];
-										const isActive = isActiveItem(item);
-
-										return (
-											<Link
-												key={item.to}
-												to={item.to}
-												className={
-													isActive
-														? `flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-gray-900 transition duration-200 ${accent.active} ${open ? "justify-start" : "justify-center"}`
-														: `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-gray-600 transition duration-200 hover:bg-gray-50 hover:text-gray-900 ${open ? "justify-start" : "justify-center"}`
-												}
-											>
-												<span className={accent.icon}>{item.icon}</span>
-											{open ? (
-												<div className="min-w-0 flex-1">
-													<div className="flex items-center justify-between gap-2">
-														<span className="block truncate text-sm font-semibold">
-															{item.label}
-														</span>
-														{typeof item.count === "number" && item.count > 0 ? (
-															<span
-																className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.badge}`}
-															>
-																{item.count}
-															</span>
-														) : null}
-													</div>
-												</div>
-											) : null}
-										</Link>
-									);
-									})}
-							</div>
-						))}
-					</div>
-
-					<div className="mt-4 px-1">
+				<div className="flex items-center justify-between gap-2 px-4 py-4">
+					<Brand collapsed={!open} />
+					{open ? (
 						<button
 							type="button"
-							className={`w-full rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700 ${open ? "justify-start" : "justify-center"}`}
-							onClick={onLogout}
+							className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-400 transition duration-150 hover:bg-gray-100 hover:text-gray-700"
+							onClick={onToggle}
+							aria-label="Collapse sidebar"
 						>
-							Log out
+							<HiChevronRight className="h-4 w-4 rotate-180 transition-transform duration-300" aria-hidden="true" />
+						</button>
+					) : null}
+				</div>
+
+				{!open ? (
+					<div className="px-4 pb-2">
+						<button
+							type="button"
+							className="grid h-8 w-8 place-items-center rounded-lg border border-gray-200 text-gray-400 transition duration-150 hover:border-emerald-300 hover:text-emerald-600"
+							onClick={onToggle}
+							aria-label="Expand sidebar"
+						>
+							<HiChevronRight className="h-4 w-4 transition-transform duration-300" aria-hidden="true" />
 						</button>
 					</div>
+				) : null}
+
+				<nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Dashboard sections">
+					{renderNavGroups(!open)}
 				</nav>
+
+				<div className="border-t border-gray-100 p-3">
+					<LogoutButton collapsed={!open} />
+				</div>
 			</aside>
 
 			{/* Mobile Sidebar Drawer */}
@@ -413,13 +363,29 @@ export const Sidebar = ({
 				<>
 					{/* Overlay */}
 					<div
-						className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden"
+						className="fixed inset-0 z-30 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden"
 						onClick={onToggle}
 						aria-hidden="true"
 					/>
 					{/* Drawer */}
-					<aside className="fixed inset-y-0 left-0 z-40 w-64 overflow-y-auto border-r border-gray-300 bg-white lg:hidden">
-						<SidebarContent />
+					<aside className="fixed inset-y-0 left-0 z-40 flex w-72 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-2xl lg:hidden">
+						<div className="flex items-center justify-between gap-2 px-4 py-4">
+							<Brand collapsed={false} />
+							<button
+								type="button"
+								className="grid h-9 w-9 place-items-center rounded-lg text-gray-400 transition duration-150 hover:bg-gray-100 hover:text-gray-700"
+								onClick={onToggle}
+								aria-label="Close sidebar"
+							>
+								<HiXMark className="h-5 w-5" aria-hidden="true" />
+							</button>
+						</div>
+						<nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Dashboard sections">
+							{renderNavGroups(false, onToggle)}
+						</nav>
+						<div className="border-t border-gray-100 p-3">
+							<LogoutButton collapsed={false} />
+						</div>
 					</aside>
 				</>
 			)}
@@ -428,12 +394,25 @@ export const Sidebar = ({
 	} catch (error) {
 		console.error("Sidebar render error:", error);
 		return (
-			<aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-300 bg-white lg:flex lg:flex-col p-4">
+			<aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-gray-200 bg-white lg:flex lg:flex-col p-4">
 				<p className="text-sm text-red-600">Sidebar error - please refresh the page</p>
 			</aside>
 		);
 	}
 };
+
+const AVATAR_GRADIENTS = [
+	"from-teal-500 to-emerald-600",
+	"from-blue-500 to-indigo-600",
+	"from-violet-500 to-purple-600",
+	"from-rose-500 to-pink-600",
+	"from-amber-500 to-orange-500",
+];
+function headerAvatarGradient(seed: string) {
+	let h = 0;
+	for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+	return AVATAR_GRADIENTS[Math.abs(h) % AVATAR_GRADIENTS.length] ?? AVATAR_GRADIENTS[0];
+}
 
 export const DashboardHeader = ({
 	title,
@@ -441,67 +420,70 @@ export const DashboardHeader = ({
 	userName,
 	userLabel,
 	onToggleSidebar,
+	onBack,
 }: DashboardHeaderProps) => {
-	const lastCrumb = breadcrumbs.at(-1);
+	const crumbs = breadcrumbs.filter((c, i) => i === 0 || c !== breadcrumbs[i - 1]);
+	const lastCrumb = crumbs.at(-1);
 	const avatarSeed = userName.trim().charAt(0).toUpperCase() || "U";
+	const gradientCls = headerAvatarGradient(userName || "user");
 
 	return (
-		<header className="sticky top-0 z-20 border-b border-gray-300 bg-white/95 backdrop-blur-xl">
+		<header className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur-xl">
 			<div className="px-4 py-3 sm:px-6 lg:px-8">
-				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-					<div className="flex items-center gap-3">
+				<div className="flex items-center justify-between gap-3">
+					<div className="flex min-w-0 items-center gap-3">
 						<button
 							type="button"
-							className="grid h-10 w-10 place-items-center rounded-2xl border border-gray-300 bg-white text-gray-900 transition duration-200 hover:border-emerald-600 hover:text-emerald-700 lg:hidden"
+							className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 transition duration-150 hover:border-emerald-300 hover:text-emerald-700 lg:hidden"
 							onClick={onToggleSidebar}
 							aria-label="Toggle sidebar"
 						>
 							<HiBars3 className="h-5 w-5" aria-hidden="true" />
 						</button>
-						<div>
-							<h2 className="text-xl font-semibold tracking-tight text-gray-900 md:text-2xl">
-								{title}
-							</h2>
-							<div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-gray-600 sm:text-sm">
-								{breadcrumbs.map((crumb, index) => (
-									<div
-										key={`${crumb}-${+index}`}
-										className="flex items-center gap-1.5"
-									>
+						{onBack ? (
+							<button
+								type="button"
+								className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 transition duration-150 hover:border-emerald-300 hover:text-emerald-700"
+								onClick={onBack}
+								aria-label="Go back"
+								title="Go back"
+							>
+								<HiArrowLeft className="h-5 w-5" aria-hidden="true" />
+							</button>
+						) : null}
+						<div className="min-w-0">
+							<div className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-gray-400 sm:text-xs">
+								{crumbs.map((crumb, index) => (
+									<div key={`${crumb}-${+index}`} className="flex items-center gap-1">
 										{index > 0 ? (
-											<HiChevronRight
-												aria-hidden="true"
-												className="h-3.5 w-3.5 text-gray-600/60"
-											/>
+											<HiChevronRight aria-hidden="true" className="h-3 w-3 text-gray-300" />
 										) : null}
-										<span
-											className={
-												crumb === lastCrumb
-													? "text-emerald-700"
-													: "text-gray-600"
-											}
-										>
+										<span className={crumb === lastCrumb ? "font-semibold text-emerald-600" : ""}>
 											{crumb}
 										</span>
 									</div>
 								))}
 							</div>
+							<h2 className="truncate text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+								{title}
+							</h2>
 						</div>
 					</div>
 
 					<Link
 						to="/me"
-						className="flex items-center gap-3 rounded-2xl border border-gray-300 bg-gray-50 px-3 py-2 text-left transition duration-200 hover:border-emerald-600/30 hover:bg-white"
+						className="group flex shrink-0 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-left transition duration-150 hover:border-emerald-300 hover:bg-emerald-50/40 sm:px-3 sm:py-2"
 					>
-						<span className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-200 bg-emerald-100 text-sm font-semibold text-emerald-700">
+						<span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-linear-to-br ${gradientCls} text-sm font-bold text-white shadow-sm`}>
 							{avatarSeed}
 						</span>
-						<div className="min-w-0">
+						<div className="hidden min-w-0 sm:block">
 							<p className="truncate text-sm font-semibold text-gray-900">
 								{userName}
 							</p>
-							<p className="truncate text-xs text-gray-600">{userLabel}</p>
+							<p className="truncate text-xs text-gray-400">{userLabel}</p>
 						</div>
+						<HiChevronRight className="hidden h-4 w-4 shrink-0 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-500 md:block" aria-hidden="true" />
 					</Link>
 				</div>
 			</div>

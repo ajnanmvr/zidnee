@@ -8,6 +8,15 @@ import { useUpdateUserMutation } from "@/features/users/use-user-management-muta
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
+/** Picks the dedicated directory page to return to, based on the user's primary role. */
+const resolveDirectoryPath = (roles?: Array<{ type?: string | null }>) => {
+	const types = new Set((roles ?? []).map((role) => role.type));
+	if (types.has("counsellor")) return "/counsellors";
+	if (types.has("mentor")) return "/mentors";
+	if (types.has("sales")) return "/sales-users";
+	return "/admins";
+};
+
 export const EditUserPage = () => {
 	const { userId = "" } = useParams();
 	const navigate = useNavigate();
@@ -45,7 +54,7 @@ export const EditUserPage = () => {
 				},
 			});
 			toast.success("User updated successfully!");
-			navigate("/users");
+			navigate(resolveDirectoryPath(user?.roles));
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const serverErrors = error.payload.errors ?? {};
@@ -75,7 +84,7 @@ export const EditUserPage = () => {
 				description="Update"
 				action={
 					<Link
-						to="/users"
+						to="/admins"
 						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 					>
 						Back

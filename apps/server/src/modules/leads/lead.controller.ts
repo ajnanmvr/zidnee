@@ -133,6 +133,9 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		admissionRequestedAt:
 			(lead as any).admissionRequestedAt?.toISOString() ?? null,
 		studentId: (lead as any).studentId ?? null,
+		closeReason: (lead as any).closeReason ?? null,
+		deletedBy: (lead as any).deletedBy ?? null,
+		deletedAt: (lead as any).deletedAt?.toISOString?.() ?? null,
 		createdAt: lead.createdAt?.toISOString() ?? null,
 		updatedAt: lead.updatedAt?.toISOString() ?? null,
 	};
@@ -654,7 +657,11 @@ export const submitLeadFormController = async (
 	res: Response,
 ): Promise<void> => {
 	const leadId = requireStringValue(req.params.leadId, "leadId");
-	const payload = SubmitLeadFormPayloadSchema.parse(req.body);
+	const parseResult = SubmitLeadFormPayloadSchema.safeParse(req.body);
+	if (!parseResult.success) {
+		throw new ValidationError(parseResult.error.flatten().fieldErrors);
+	}
+	const payload = parseResult.data;
 
 	const result = await LeadService.submitLeadForm(leadId, payload.token, {
 		name: payload.name,

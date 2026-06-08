@@ -26,7 +26,7 @@ export const CreateUserPage = () => {
 				roleIds: form.roleIds,
 			});
 			toast.success("User created successfully!");
-			navigate("/users", { replace: true });
+			navigate("/admins", { replace: true });
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const serverErrors = error.payload.errors ?? {};

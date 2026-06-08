@@ -43,6 +43,7 @@ export const MePage = () => {
 	const me = meQuery.data;
 	const [banner, setBanner] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 	const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+	const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
 	const roleNames = me?.roles.map((r) => r.type ?? r.name ?? "general").join(", ") ?? "Workspace member";
 
@@ -212,7 +213,7 @@ export const MePage = () => {
 					{/* Logout */}
 					<button
 						type="button"
-						onClick={() => { clearToken(); navigate("/login", { replace: true }); }}
+						onClick={() => setLogoutConfirmOpen(true)}
 						className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
 					>
 						<HiArrowRightOnRectangle className="h-4 w-4" />
@@ -220,6 +221,39 @@ export const MePage = () => {
 					</button>
 				</div>
 			</div>
+
+			{/* Logout confirmation */}
+			<Modal
+				open={logoutConfirmOpen}
+				title="Log out"
+				description="You'll need to sign in again to access your dashboard."
+				onClose={() => setLogoutConfirmOpen(false)}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => setLogoutConfirmOpen(false)}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => {
+								setLogoutConfirmOpen(false);
+								clearToken();
+								navigate("/login", { replace: true });
+							}}
+						>
+							<HiArrowRightOnRectangle className="h-4 w-4" aria-hidden="true" />
+							Log out
+						</button>
+					</>
+				}
+			>
+				<p className="text-sm text-gray-500">Any unsaved changes will be lost.</p>
+			</Modal>
 
 			{/* Password modal */}
 			<Modal

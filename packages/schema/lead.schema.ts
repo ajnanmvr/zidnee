@@ -16,12 +16,15 @@ export const LeadStatusSchema = z.enum([
 
 export type LeadStatus = z.infer<typeof LeadStatusSchema>;
 
-const PhoneNumberSchema = z
-	.string()
-	.trim()
-	.min(8)
-	.max(20)
-	.regex(/^[+]?\d{8,20}$/, "Phone number must contain only digits");
+const PhoneNumberSchema = z.preprocess(
+	(value) =>
+		typeof value === "string" ? value.trim().replace(/[\s\-().]/g, "") : value,
+	z
+		.string()
+		.min(8, "Phone number must be at least 8 digits")
+		.max(20, "Phone number must be at most 20 digits")
+		.regex(/^[+]?\d{8,20}$/, "Enter a valid phone number with country code"),
+);
 
 const OptionalTextSchema = z.preprocess((value) => {
 	if (typeof value === "string" && value.trim() === "") {

@@ -170,12 +170,12 @@ export const CreateAccountPage = ({
 	const resolvedBackTo =
 		backTo ??
 		(roleType === "mentor"
-			? "/users?role=mentor"
+			? "/mentors"
 			: roleType === "counsellor"
-				? "/users?role=counsellor"
+				? "/counsellors"
 				: roleType === "sales"
-					? "/users?role=sales"
-					: "/users");
+					? "/sales-users"
+					: "/admins");
 
 	const resetFormForRole = (nextRole: CreateAccountRoleType) => {
 		setRoleType(nextRole);

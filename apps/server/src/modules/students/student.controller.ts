@@ -104,16 +104,47 @@ export const listStudentsController = async (
 	res: Response,
 ): Promise<void> => {
 	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
+	const hasPermission = (key: string) => effectivePermissions.some((p) => p.key === key);
 	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
-	const canReadAll = effectivePermissions.some(
-		(p) => p.key === "STUDENT_READ_ALL" || p.key === "STUDENT_POSTER_DOWNLOAD",
-	);
-	if (requestedScope === "all" && !canReadAll) {
+	const canReadAll = hasPermission("STUDENT_READ_ALL") || hasPermission("STUDENT_POSTER_DOWNLOAD");
+
+	// "admittedBy=me" powers the "Converted Leads" view: it lists students
+	// converted by the current user, gated by lead-read permissions rather
+	// than the broader STUDENT_READ_ALL permission. It bypasses the
+	// mentor/batch-counsellor based `scope` filter entirely.
+	const admittedByMe = req.query.admittedBy === "me";
+	const admittedByAll = req.query.admittedBy === "all";
+	const isConvertedLeadsView = admittedByMe || admittedByAll;
+	const canReadConvertedLeads =
+		hasPermission("LEAD_READ_MY") ||
+		hasPermission("LEAD_READ_ALL") ||
+		hasPermission("LEADS_CONVERTED_READ");
+
+	if (isConvertedLeadsView) {
+		if (!canReadConvertedLeads) {
+			throw new AuthorizationError("Insufficient permissions to view converted leads");
+		}
+	} else if (requestedScope === "all" && !canReadAll) {
 		throw new AuthorizationError("Insufficient permissions to view all students");
 	}
 
+	// Course-type-scoped permissions narrow the result set: if a role has
+	// only one of the group/individual permissions for the active scope, the
+	// listing is restricted to that course type. Having both (or neither)
+	// leaves the listing unrestricted.
+	const groupKey = requestedScope === "mine" ? "STUDENT_READ_MY_GROUP" : "STUDENT_READ_ALL_GROUP";
+	const individualKey = requestedScope === "mine" ? "STUDENT_READ_MY_INDIVIDUAL" : "STUDENT_READ_ALL_INDIVIDUAL";
+	const canReadGroup = hasPermission(groupKey);
+	const canReadIndividual = hasPermission(individualKey);
+	const allowedCourseTypes =
+		canReadGroup !== canReadIndividual
+			? [canReadGroup ? "GROUP" : "INDIVIDUAL"]
+			: undefined;
+
 	const students = await StudentService.listStudents({
 		status: typeof req.query.status === "string" ? req.query.status : undefined,
+		courseType: typeof req.query.courseType === "string" ? req.query.courseType : undefined,
+		allowedCourseTypes,
 		search: typeof req.query.search === "string" ? req.query.search : undefined,
 		sortBy: typeof req.query.sortBy === "string" ? req.query.sortBy : undefined,
 		sortOrder: req.query.sortOrder === "desc" ? "desc" : "asc",
@@ -125,8 +156,9 @@ export const listStudentsController = async (
 			typeof req.query.limit === "string"
 				? parseInt(req.query.limit, 10)
 				: undefined,
-		scope: requestedScope,
+		scope: isConvertedLeadsView ? "all" : requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+		admittedBy: admittedByMe && typeof req.user?.userId === "string" ? req.user.userId : undefined,
 	});
 	res.json(
 		StudentsResponseSchema.parse({
@@ -354,6 +386,23 @@ export const completeStudentProcessController = async (
 
 	res.json(MessageResponseSchema.parse({ ok: true, message: "Process moved to history" }));
 };
+
+export const deleteStudentProcessController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const processId = requireStringValue(req.params.processId, "processId");
+	const performedBy = requireStringValue(req.user?.userId, "userId");
+	const deleted = await StudentService.deleteStudentProcess(processId, performedBy);
+
+	if (!deleted) {
+		res.status(404).json({ ok: false, error: "Process not found" });
+		return;
+	}
+
+	res.json(MessageResponseSchema.parse({ ok: true, message: "Process deleted" }));
+};
+
 export const recordStudentFollowUpController = async (
 	req: Request,
 	res: Response,

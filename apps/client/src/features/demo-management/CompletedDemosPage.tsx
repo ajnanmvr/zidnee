@@ -1,8 +1,10 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { HiCheckCircle } from "react-icons/hi2";
 import { useSession } from "@/lib/session";
-import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
+import { useMeQuery } from "@/features/auth/auth.queries";
+import { fetchDueLeadFollowUps } from "@/features/leads/leads.service";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
@@ -40,25 +42,47 @@ export const CompletedDemosPage = () => {
 	const searchTerm = searchParams.get("search") ?? "";
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
-	const scope = (searchParams.get("scope") ?? "mine") as "mine" | "all";
+	const requestedScope = (searchParams.get("scope") ?? "mine") as "mine" | "all";
 
-	const canReadAll = useHasPermission("LEAD_READ_ALL");
+	const canViewMine = useHasPermission("DEMO_SCHEDULED_READ_MY");
+	const canViewAll = useHasPermission("DEMO_SCHEDULED_READ_ALL");
+	const canToggleScope = canViewMine && canViewAll;
+	const activeScope: "mine" | "all" = canToggleScope
+		? requestedScope
+		: canViewAll
+			? "all"
+			: "mine";
 
 	const setQueryParam = (key: string, value?: string) => {
-		const next = new URLSearchParams(searchParams);
-		if (value) next.set(key, value);
-		else next.delete(key);
-		setSearchParams(next);
+		updateQueryParams({ [key]: value });
 	};
 
-	const leadsQuery = useDueLeadFollowUpsQuery(token, {
-		scope: canReadAll ? scope : "mine",
-		status: "DEMO_COMPLETED",
-		search: searchTerm || undefined,
-		sortBy: "updatedAt",
-		sortOrder: "desc",
-		page,
-		limit,
+	function updateQueryParams(updates: Record<string, string | undefined>) {
+		const next = new URLSearchParams(searchParams);
+		for (const [key, value] of Object.entries(updates)) {
+			if (value) next.set(key, value);
+			else next.delete(key);
+		}
+		setSearchParams(next);
+	}
+
+	const meQuery = useMeQuery(token);
+	const currentUserId = meQuery.data?.id;
+
+	// Fetch the full set of completed-demo leads (the route's DEMO_SCHEDULED_READ_MY/ALL
+	// permissions already gate access) so "mine" can be scoped by who the demo request was
+	// assigned to — matching the convention used on the Scheduled/Unassigned demo pages —
+	// rather than the lead-ownership-based "mine" that the generic /leads endpoint applies.
+	const completedDemosQuery = useQuery({
+		queryKey: ["completed-demos", token],
+		queryFn: () => fetchDueLeadFollowUps(token ?? "", {
+			scope: "all",
+			status: "DEMO_COMPLETED",
+			sortBy: "updatedAt",
+			sortOrder: "desc",
+			limit: 1000,
+		}),
+		enabled: Boolean(token),
 	});
 
 	const usersQuery = useUsersQuery(token, Boolean(token));
@@ -68,12 +92,25 @@ export const CompletedDemosPage = () => {
 		return new Map(users.map((u) => [u.id, u.name || u.username]));
 	}, [usersQuery.data]);
 
-	const rows = (leadsQuery.data?.leads ?? []) as any[];
-	const pagination = (leadsQuery.data as any)?.pagination;
-	const totalPages = pagination?.totalPages ?? 1;
-	const totalCount = pagination?.total ?? rows.length;
+	const allCompletedDemos = (completedDemosQuery.data?.leads ?? []) as any[];
 
-	const activeScope: "mine" | "all" = canReadAll ? scope : "mine";
+	const scopedDemos = useMemo(() => {
+		if (activeScope !== "mine") return allCompletedDemos;
+		return allCompletedDemos.filter((lead) => lead.demoRequestAssignedTo === currentUserId);
+	}, [allCompletedDemos, activeScope, currentUserId]);
+
+	const filteredDemos = useMemo(() => {
+		const q = searchTerm.trim().toLowerCase();
+		if (!q) return scopedDemos;
+		return scopedDemos.filter((lead) =>
+			(lead.name ?? "").toLowerCase().includes(q) ||
+			(lead.phone ?? "").toLowerCase().includes(q),
+		);
+	}, [scopedDemos, searchTerm]);
+
+	const totalCount = filteredDemos.length;
+	const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+	const rows = filteredDemos.slice((page - 1) * limit, page * limit);
 
 	return (
 		<div className="space-y-3">
@@ -90,30 +127,31 @@ export const CompletedDemosPage = () => {
 						</p>
 					</div>
 				</div>
-				<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
-					<button
-						type="button"
-						onClick={() => { setQueryParam("scope", "mine"); setQueryParam("page", undefined); }}
-						className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-					>
-						Mine
-					</button>
-					<button
-						type="button"
-						onClick={() => { setQueryParam("scope", "all"); setQueryParam("page", undefined); }}
-						disabled={!canReadAll}
-						className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-40 ${activeScope === "all" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-					>
-						All
-					</button>
-				</div>
+				{canToggleScope ? (
+					<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+						<button
+							type="button"
+							onClick={() => updateQueryParams({ scope: "mine", page: undefined })}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							Mine
+						</button>
+						<button
+							type="button"
+							onClick={() => updateQueryParams({ scope: "all", page: undefined })}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							All
+						</button>
+					</div>
+				) : null}
 			</div>
 
 			{/* Search toolbar */}
 			<div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3">
 				<input
 					value={searchTerm}
-					onChange={(e) => { setQueryParam("search", e.target.value); setQueryParam("page", undefined); }}
+					onChange={(e) => updateQueryParams({ search: e.target.value, page: undefined })}
 					placeholder="Search by name or phone…"
 					className="w-64 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
 				/>
@@ -130,7 +168,7 @@ export const CompletedDemosPage = () => {
 
 			{/* Table */}
 			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-				{leadsQuery.isLoading ? (
+				{completedDemosQuery.isLoading ? (
 					<div className="flex justify-center py-16">
 						<div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
 					</div>

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
-import { DashboardHeader, Sidebar } from "@/components/dashboard-ui";
+import { DashboardHeader, Modal, Sidebar } from "@/components/dashboard-ui";
+import { HiArrowRightOnRectangle } from "react-icons/hi2";
 import { useSession } from "@/lib/session";
 import { useNavigationItems } from "./useNavigationItems";
 
@@ -15,9 +16,10 @@ const titles: Record<string, string> = {
 	"/processes": "Processes",
 	"/process-history": "Process History",
 	"/mentors": "Mentors",
+	"/counsellors": "Counsellors",
+	"/admins": "Admins",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/time-slots": "Time Slots",
-	"/users": "Users",
 	"/users/create": "Create User",
 	"/roles": "Role Permissions",
 	"/roles/create": "Create Role",
@@ -62,10 +64,6 @@ const resolveTitle = (pathname: string, search: string): string => {
 		return "Edit Role";
 	}
 
-	if (pathname === "/users" && search.includes("role=sales")) {
-		return "Sales";
-	}
-
 	if (pathname === "/sales-users") {
 		return "Sales Users";
 	}
@@ -78,7 +76,18 @@ export const DashboardLayout = () => {
 	const location = useLocation();
 	const { clearToken } = useSession();
 	const [sidebarOpen, setSidebarOpen] = useState(true);
+	const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 	const { error, navItems, meName, roleLabel } = useNavigationItems();
+
+	const visitedKeysRef = useRef(new Set<string>());
+	const [canGoBack, setCanGoBack] = useState(false);
+
+	useEffect(() => {
+		visitedKeysRef.current.add(location.key);
+		if (visitedKeysRef.current.size > 1) {
+			setCanGoBack(true);
+		}
+	}, [location.key]);
 
 	useEffect(() => {
 		if (error instanceof ApiError && error.status === 401) {
@@ -91,37 +100,71 @@ export const DashboardLayout = () => {
 	const currentLocation = `${location.pathname}${location.search}`;
 
 	return (
-		<main className="h-screen overflow-hidden bg-gray-50 text-gray-900">
-			<div className="grid h-full lg:grid-cols-[auto_minmax(0,1fr)]">
-				<Sidebar
-					items={navItems}
-					open={sidebarOpen}
-					onToggle={() => setSidebarOpen((current) => !current)}
-					onLogout={clearToken}
-					currentLocation={currentLocation}
-				/>
-
-				<section className="min-w-0 bg-gray-50 h-screen overflow-hidden flex flex-col">
-					<DashboardHeader
-						title={title}
-						breadcrumbs={["Dashboard", title]}
-						userName={meName}
-						userLabel={roleLabel}
-						onToggleSidebar={() => setSidebarOpen((current) => !current)}
+		<>
+			<main className="h-screen overflow-hidden bg-gray-50 text-gray-900">
+				<div className="grid h-full lg:grid-cols-[auto_minmax(0,1fr)]">
+					<Sidebar
+						items={navItems}
+						open={sidebarOpen}
+						onToggle={() => setSidebarOpen((current) => !current)}
+						onLogout={() => setLogoutConfirmOpen(true)}
+						currentLocation={currentLocation}
 					/>
 
-					<div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-						{error ? (
-							<div className="mb-5 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-								{error instanceof Error
-									? error.message
-									: "Unable to load session"}
-							</div>
-						) : null}
-						<Outlet />
-					</div>
-				</section>
-			</div>
-		</main>
+					<section className="min-w-0 bg-gray-50 h-screen overflow-hidden flex flex-col">
+						<DashboardHeader
+							title={title}
+							breadcrumbs={["Dashboard", title]}
+							userName={meName}
+							userLabel={roleLabel}
+							onToggleSidebar={() => setSidebarOpen((current) => !current)}
+							onBack={canGoBack ? () => navigate(-1) : undefined}
+						/>
+
+						<div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+							{error ? (
+								<div className="mb-5 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+									{error instanceof Error
+										? error.message
+										: "Unable to load session"}
+								</div>
+							) : null}
+							<Outlet />
+						</div>
+					</section>
+				</div>
+			</main>
+
+			<Modal
+				open={logoutConfirmOpen}
+				title="Log out"
+				description="You'll need to sign in again to access your dashboard."
+				onClose={() => setLogoutConfirmOpen(false)}
+				footer={
+					<>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => setLogoutConfirmOpen(false)}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+							onClick={() => {
+								setLogoutConfirmOpen(false);
+								clearToken();
+							}}
+						>
+							<HiArrowRightOnRectangle className="h-4 w-4" aria-hidden="true" />
+							Log out
+						</button>
+					</>
+				}
+			>
+				<p className="text-sm text-gray-600">Are you sure you want to log out?</p>
+			</Modal>
+		</>
 	);
 };

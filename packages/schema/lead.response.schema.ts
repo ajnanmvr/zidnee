@@ -21,6 +21,9 @@ export const LeadResponseSchema = LeadSchema.extend({
 	updatedAt: z.string().datetime().nullable().optional(),
 	admissionRequestedAt: z.string().datetime().nullable().optional(),
 	studentId: z.string().nullable().optional(),
+	closeReason: z.string().nullable().optional(),
+	deletedBy: z.string().nullable().optional(),
+	deletedAt: z.string().datetime().nullable().optional(),
 	demos: z.array(LeadDemoResponseSchema),
 });
 

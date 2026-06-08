@@ -21,6 +21,15 @@ type CreateUserFormData = {
 	counsellorId?: string;
 };
 
+/** Picks the dedicated directory page to return to, based on the user's primary role. */
+const resolveDirectoryPath = (roles?: Array<{ type?: string | null }>) => {
+	const types = new Set((roles ?? []).map((role) => role.type));
+	if (types.has("counsellor")) return "/counsellors";
+	if (types.has("mentor")) return "/mentors";
+	if (types.has("sales")) return "/sales-users";
+	return "/admins";
+};
+
 export type UserFormPanelProps = {
 	mode: "create" | "edit";
 	user?: {
@@ -74,6 +83,8 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		mode === "edit" && mentorRoleId
 			? selectedRoleIds.includes(mentorRoleId)
 			: false;
+
+	const backTo = mode === "edit" && user ? resolveDirectoryPath(user.roles) : "/admins";
 
 	const { control, handleSubmit, setError } = useForm<CreateUserFormData>({
 		defaultValues: {
@@ -202,7 +213,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 				}
 				action={
 					<Link
-						to="/users"
+						to={backTo}
 						className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
 					>
 						<HiArrowLeft className="h-4 w-4" />
@@ -474,7 +485,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 									(mode === "create" ? "Create User" : "Save changes"))}
 						</button>
 						<Link
-							to="/users"
+							to={backTo}
 							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
 						>
 							Cancel

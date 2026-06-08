@@ -12,7 +12,10 @@ const fmt = (v?: string | null) => {
 export const ClosedLeadsPage = () => {
 	const { token } = useSession();
 	const canReadAll = useHasPermission("LEAD_READ_ALL");
-	const [scope, setScope] = useState<"mine" | "all">(canReadAll ? "all" : "mine");
+	// Default to "all" — useDueLeadFollowUpsQuery downgrades to "mine" automatically
+	// for users without LEAD_READ_ALL, so this stays correct even before the
+	// permission check resolves (avoids a stale `canReadAll` lazy-init capture).
+	const [scope, setScope] = useState<"mine" | "all">("all");
 	const [search, setSearch] = useState("");
 
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
@@ -81,10 +84,10 @@ export const ClosedLeadsPage = () => {
 											<p className="text-xs text-gray-400">{lead.phone}</p>
 										</td>
 										<td className="px-4 py-3 hidden sm:table-cell">
-											<span className="text-xs text-gray-600">{(lead as any).closeReason ?? "—"}</span>
+											<span className="text-xs text-gray-600">{lead.closeReason ?? "—"}</span>
 										</td>
-										<td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500">{(lead as any).deletedBy ?? "—"}</td>
-										<td className="px-4 py-3 hidden md:table-cell text-xs text-gray-400">{fmt((lead as any).deletedAt)}</td>
+										<td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500">{lead.deletedBy ?? "—"}</td>
+										<td className="px-4 py-3 hidden md:table-cell text-xs text-gray-400">{fmt(lead.deletedAt)}</td>
 										<td className="px-4 py-3 text-right">
 											<Link to={`/leads/${lead.id}`} className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:border-gray-300">View</Link>
 										</td>

@@ -1,5 +1,23 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { formatActivityDateTime } from "@/lib/utils/date";
+
+export type ActivityEntityLookup = {
+	id: string;
+	label: string;
+	href: string;
+};
+
+export type ActivityValueContext = {
+	mentors?: Map<string, ActivityEntityLookup>;
+};
+
+const IMAGE_URL_RE = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i;
+
+const isImageUrl = (value: unknown): value is string =>
+	typeof value === "string" &&
+	/^https?:\/\//i.test(value) &&
+	(IMAGE_URL_RE.test(value) || /profile-image/i.test(value));
 
 const formatPrimitive = (value: unknown): string => {
 	if (value === null || value === undefined || value === "") {
@@ -97,18 +115,55 @@ export const formatActivityValue = (value: unknown): ReactNode => {
 	return formatValue(value);
 };
 
+const renderActivityFieldValue = (key: string, value: unknown, context?: ActivityValueContext): ReactNode => {
+	if (key === "mentorId" && typeof value === "string" && value.trim()) {
+		const mentor = context?.mentors?.get(value);
+		if (mentor) {
+			return (
+				<Link to={mentor.href} className="font-semibold text-indigo-600 hover:underline">
+					{mentor.label}
+				</Link>
+			);
+		}
+		return <span className="text-gray-400">Unknown mentor</span>;
+	}
+
+	if (isImageUrl(value)) {
+		return (
+			<a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-indigo-600 hover:underline">
+				<img src={value} alt="" className="h-9 w-9 rounded-lg object-cover ring-1 ring-gray-200" />
+				View image
+			</a>
+		);
+	}
+
+	return formatValue(value);
+};
+
 export const formatActivityChangeList = (
 	oldValue?: Record<string, unknown>,
 	newValue?: Record<string, unknown>,
+	context?: ActivityValueContext,
 ): Array<{ label: string; before: ReactNode; after: ReactNode }> => {
 	const keys = new Set<string>([
 		...(oldValue ? Object.keys(oldValue) : []),
 		...(newValue ? Object.keys(newValue) : []),
 	]);
 
-	return Array.from(keys).sort().map((key) => ({
-		label: formatActivityFieldTitle(key),
-		before: formatActivityValue(oldValue?.[key]),
-		after: formatActivityValue(newValue?.[key]),
-	}));
+	const isUnchanged = (a: unknown, b: unknown): boolean => {
+		if (a === b) return true;
+		if (a && b && typeof a === "object" && typeof b === "object") {
+			return JSON.stringify(a) === JSON.stringify(b);
+		}
+		return false;
+	};
+
+	return Array.from(keys)
+		.filter((key) => !isUnchanged(oldValue?.[key], newValue?.[key]))
+		.sort()
+		.map((key) => ({
+			label: formatActivityFieldTitle(key),
+			before: renderActivityFieldValue(key, oldValue?.[key], context),
+			after: renderActivityFieldValue(key, newValue?.[key], context),
+		}));
 };

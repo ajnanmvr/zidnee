@@ -6,11 +6,15 @@ import toast from "react-hot-toast";
 import { FOLLOW_UP_PERIOD_MS, type LeadStatus } from "@repo/schema";
 import {
 	HiAcademicCap,
+	HiAdjustmentsHorizontal,
 	HiArrowLeft,
+	HiBanknotes,
 	HiCalendarDays,
+	HiCheck,
 	HiCheckCircle,
 	HiClock,
 	HiLink,
+	HiMagnifyingGlass,
 	HiPaperAirplane,
 	HiPencilSquare,
 	HiPhone,
@@ -18,7 +22,7 @@ import {
 	HiUser,
 	HiUsers,
 } from "react-icons/hi2";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Modal } from "@/components/dashboard-ui";
@@ -34,12 +38,7 @@ import { useCounsellorsQuery, useUsersQuery } from "@/features/users/users.queri
 import type { PostponeLeadFollowUpForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
-type LeadDetailTab =
-	| "overview"
-	| "details"
-	| "demos"
-	| "ownership"
-	| "activities";
+type LeadDetailTab = "details" | "demos" | "activities";
 
 type EditLeadFormState = {
 	name?: string;
@@ -51,19 +50,19 @@ type EditLeadFormState = {
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
 
-const getStatusColor = (status?: string): { badge: string } => {
-	const colors: Record<string, { badge: string }> = {
-		FOLLOW_UP: { badge: "bg-blue-100 text-blue-700" },
-		FORM_SENT: { badge: "bg-amber-100 text-amber-700" },
-		FORM_FILLED: { badge: "bg-cyan-100 text-cyan-700" },
-		DEMO_REQUEST: { badge: "bg-orange-100 text-orange-700" },
-		DEMO_ASSIGNED: { badge: "bg-emerald-100 text-emerald-700" },
-		DEMO_COMPLETED: { badge: "bg-violet-100 text-violet-700" },
-		CONVERTED: { badge: "bg-green-100 text-green-700" },
-		CLOSED: { badge: "bg-gray-100 text-gray-700" },
+const getStatusColor = (status?: string): { badge: string; gradient: string } => {
+	const colors: Record<string, { badge: string; gradient: string }> = {
+		FOLLOW_UP: { badge: "bg-blue-100 text-blue-700", gradient: "from-blue-500 to-indigo-600" },
+		FORM_SENT: { badge: "bg-amber-100 text-amber-700", gradient: "from-amber-500 to-orange-500" },
+		FORM_FILLED: { badge: "bg-cyan-100 text-cyan-700", gradient: "from-cyan-500 to-blue-600" },
+		DEMO_REQUEST: { badge: "bg-orange-100 text-orange-700", gradient: "from-orange-500 to-rose-500" },
+		DEMO_ASSIGNED: { badge: "bg-emerald-100 text-emerald-700", gradient: "from-emerald-500 to-teal-600" },
+		DEMO_COMPLETED: { badge: "bg-violet-100 text-violet-700", gradient: "from-violet-500 to-purple-600" },
+		CONVERTED: { badge: "bg-green-100 text-green-700", gradient: "from-green-500 to-emerald-600" },
+		CLOSED: { badge: "bg-gray-100 text-gray-700", gradient: "from-gray-400 to-gray-600" },
 	};
 
-	const fallback: { badge: string } = { badge: "bg-blue-100 text-blue-700" };
+	const fallback = { badge: "bg-blue-100 text-blue-700", gradient: "from-blue-500 to-indigo-600" };
 	const selected = colors[status ?? "FOLLOW_UP"];
 	return selected ?? fallback;
 };
@@ -119,44 +118,58 @@ const SectionCard = ({
 	title,
 	icon: Icon,
 	children,
+	dense = false,
 }: {
 	title: string;
 	icon: typeof HiUser;
 	children: React.ReactNode;
+	/** Tighter padding/heading for cards packed with many small fields. */
+	dense?: boolean;
 }) => (
-	<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-		<div className="mb-4 flex items-center gap-2">
-			<Icon className="h-5 w-5 text-blue-600" />
-			<h3 className="text-lg font-bold text-gray-900">{title}</h3>
+	<div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+		<div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+			<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+				<Icon className="h-4 w-4" />
+			</span>
+			<h3 className="text-sm font-bold uppercase tracking-wide text-gray-700">{title}</h3>
 		</div>
-		{children}
+		<div className={dense ? "p-4" : "p-5"}>{children}</div>
 	</div>
 );
 
+/** Compact label-over-value tile, designed to sit in a responsive grid for quick scanning. */
 const DetailRow = ({
 	label,
 	value,
 	icon: Icon,
+	wide = false,
 }: {
 	label: string;
 	value?: string | React.ReactNode;
 	icon?: typeof HiUser;
+	/** Span both grid columns — use for longer values (links, badges, multi-line text). */
+	wide?: boolean;
 }) => (
-	<div className="flex items-start justify-between gap-4 border-b border-gray-100 py-3 last:border-b-0">
-		<div className="flex items-start gap-2">
-			{Icon ? <Icon className="mt-1 h-4 w-4 text-gray-400" /> : null}
-			<span className="text-sm font-medium text-gray-600">{label}</span>
-		</div>
-		<span className="text-right text-sm font-semibold text-gray-900">
+	<div className={`flex flex-col gap-1 rounded-xl border border-gray-100 bg-gray-50/50 px-3.5 py-2.5 ${wide ? "sm:col-span-2" : ""}`}>
+		<span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+			{Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+			{label}
+		</span>
+		<span className="text-sm font-semibold text-gray-900 wrap-break-word">
 			{value ?? "-"}
 		</span>
 	</div>
 );
 
-const tabs: Array<{ id: LeadDetailTab; label: string }> = [
-	{ id: "details", label: "Lead Details" },
-	{ id: "demos", label: "Demo History" },
-	{ id: "activities", label: "Activities" },
+/** Responsive 2-column grid for packing DetailRow tiles densely. */
+const DetailGrid = ({ children }: { children: React.ReactNode }) => (
+	<div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">{children}</div>
+);
+
+const tabs: Array<{ id: LeadDetailTab; label: string; icon: typeof HiUser }> = [
+	{ id: "activities", label: "Activities", icon: HiClock },
+	{ id: "details", label: "Lead Details", icon: HiUser },
+	{ id: "demos", label: "Demo History", icon: HiCalendarDays },
 ];
 
 const LEAD_STAGE_OPTIONS: LeadStatus[] = [
@@ -226,27 +239,82 @@ export const LeadDetailPageNew = () => {
 
 	const counsellorsQuery = useCounsellorsQuery(token);
 	const [selectedCounsellorId, setSelectedCounsellorId] = useState<string>("");
+	const [counsellorSearch, setCounsellorSearch] = useState("");
 
 	const lead = leadQuery.data?.lead ?? null;
 	const allUsers = usersQuery.data?.users ?? [];
 	const counsellors = counsellorsQuery.data?.users ?? [];
 	const findUserById = (id?: string | null) =>
 		id ? (allUsers.find((user) => user.id === id) ?? null) : null;
-	const formatUserIdentity = (
-		user: (typeof allUsers)[number] | null,
-		role: "mentor" | "counsellor",
-	) => {
+	/** Renders a staff member as "ZID · Name", linking to their mentor profile when one exists. */
+	const UserIdentity = ({
+		user,
+		role,
+		fallback = "-",
+	}: {
+		user: (typeof allUsers)[number] | null;
+		role?: "mentor" | "counsellor" | "sales" | "admin";
+		fallback?: string;
+	}) => {
 		if (!user) {
-			return "-";
+			return <span className="text-gray-400">{fallback}</span>;
 		}
 
+		const mentorId = user.zids?.mentor ?? user.mentorId;
+		const zid =
+			(role ? user.zids?.[role] : undefined) ??
+			mentorId ??
+			user.zids?.counsellor ??
+			user.counsellorId ??
+			user.zids?.sales ??
+			user.zids?.admin;
 		const displayName = user.name || user.username || "Unknown";
-		const roleCode =
-			role === "mentor"
-				? (user.zids?.mentor ?? user.mentorId)
-				: (user.zids?.counsellor ?? user.counsellorId);
+		const label = zid ? `${zid.toUpperCase()} · ${displayName}` : displayName;
 
-		return `${displayName} (${roleCode ?? user.id})`;
+		if (mentorId) {
+			return (
+				<Link to={`/mentors/${user.id}`} className="font-semibold text-blue-700 hover:underline">
+					{label}
+				</Link>
+			);
+		}
+
+		return <span className="font-medium text-gray-700">{label}</span>;
+	};
+	/** Selectable row for the counsellor-search list in the Request Demo modal. */
+	const CounsellorOption = ({
+		counsellor,
+		selected,
+		onSelect,
+	}: {
+		counsellor: (typeof allUsers)[number];
+		selected: boolean;
+		onSelect: () => void;
+	}) => {
+		const displayName = counsellor.name || counsellor.username || "Unknown";
+		const zid = counsellor.zids?.counsellor;
+		return (
+			<button
+				type="button"
+				onClick={onSelect}
+				className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+					selected
+						? "border-sky-500 bg-sky-50 ring-1 ring-sky-200"
+						: "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
+				}`}
+			>
+				<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selected ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+					{displayName[0]?.toUpperCase()}
+				</span>
+				<span className="min-w-0 flex-1">
+					<span className="block truncate text-sm font-semibold text-gray-900">{displayName}</span>
+					<span className="block truncate text-xs text-gray-400">
+						{[zid?.toUpperCase(), counsellor.email].filter(Boolean).join(" · ") || "—"}
+					</span>
+				</span>
+				{selected ? <HiCheck className="h-5 w-5 shrink-0 text-sky-600" /> : null}
+			</button>
+		);
 	};
 	const formatTimeValue = (value: string) => {
 		const [hoursText, minutesText] = value.split(":");
@@ -279,9 +347,6 @@ export const LeadDetailPageNew = () => {
 		startTime: string;
 		endTime: string;
 	}>;
-	const preferredPlan = lead?.preferredPlan as
-		| { timesPerWeek: number; durationMinutes: number }
-		| undefined;
 	const demoCount = useMemo(() => lead?.demos?.length ?? 0, [lead?.demos]);
 	const latestDemoMentor = useMemo(
 		() => findUserById(latestDemo?.mentorId ?? null),
@@ -301,6 +366,33 @@ export const LeadDetailPageNew = () => {
 			allUsers.find((user) => user.id === lead?.demoRequestAssignedTo) ?? null,
 		[allUsers, lead?.demoRequestAssignedTo],
 	);
+
+	/** Counsellors with prior history on this lead — surfaced first as quick picks. */
+	const suggestedCounsellors = useMemo(() => {
+		const candidates = [demoRequestAssignedToUser, latestDemoCounsellor];
+		const seen = new Set<string>();
+		const suggestions: typeof counsellors = [];
+		for (const candidate of candidates) {
+			if (!candidate || seen.has(candidate.id)) continue;
+			const match = counsellors.find((c) => c.id === candidate.id);
+			if (!match) continue;
+			seen.add(match.id);
+			suggestions.push(match);
+		}
+		return suggestions;
+	}, [counsellors, demoRequestAssignedToUser, latestDemoCounsellor]);
+
+	const counsellorSearchResults = useMemo(() => {
+		const q = counsellorSearch.trim().toLowerCase();
+		if (!q) return counsellors;
+		return counsellors.filter((c) => {
+			const haystack = [c.name, c.username, c.zids?.counsellor, c.email]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(q);
+		});
+	}, [counsellors, counsellorSearch]);
 
 	useEffect(() => {
 		if (editOpen && lead) {
@@ -525,181 +617,286 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
-	if (!leadId) {
+	if (!leadId || (!leadQuery.isLoading && !lead)) {
 		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<p className="text-gray-600">Lead not found</p>
+			<div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white py-16 text-center">
+				<div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+					<HiUser className="h-6 w-6 text-gray-400" />
+				</div>
+				<p className="text-sm font-medium text-gray-600">Lead not found</p>
+				<button
+					onClick={() => navigate("/leads")}
+					className="text-sm font-semibold text-blue-600 hover:underline"
+				>
+					Back to leads
+				</button>
 			</div>
 		);
 	}
 
-	if (leadQuery.isLoading) {
+	if (leadQuery.isLoading || !lead) {
 		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<p className="text-gray-600">Loading lead details...</p>
-			</div>
-		);
-	}
-
-	if (!lead) {
-		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<p className="text-gray-600">Lead not found</p>
+			<div className="flex items-center justify-center py-20">
+				<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
 			</div>
 		);
 	}
 
 	const statusColor = getStatusColor(lead.status);
+	const followUpOverdue = lead.nextFollowUpAt ? isPast(new Date(lead.nextFollowUpAt)) : false;
+	const leadInitial = (lead.name?.trim().charAt(0) || lead.phone?.charAt(0) || "L").toUpperCase();
+
+	const actionButtons: Array<{
+		key: string;
+		label: string;
+		icon: typeof HiUser;
+		onClick: () => void;
+		className: string;
+	}> = [
+		{
+			key: "edit",
+			label: "Edit",
+			icon: HiPencilSquare,
+			onClick: () => navigate(`/leads/${lead.id}/edit`),
+			className: "bg-blue-600 text-white hover:bg-blue-700",
+		},
+		{
+			key: "postpone",
+			label: "Postpone",
+			icon: HiClock,
+			onClick: () => setPostponeOpen(true),
+			className: "bg-amber-500 text-white hover:bg-amber-600",
+		},
+		{
+			key: "stage",
+			label: "Change Stage",
+			icon: HiCheckCircle,
+			onClick: onOpenStageChange,
+			className: "bg-violet-600 text-white hover:bg-violet-700",
+		},
+		...(!lead.formSent
+			? [{
+				key: "send-form",
+				label: "Send Form",
+				icon: HiPaperAirplane,
+				onClick: () => void onGenerateFormLink(),
+				className: "bg-emerald-600 text-white hover:bg-emerald-700",
+			}]
+			: [{
+				key: "form-link",
+				label: "Form Link",
+				icon: HiLink,
+				onClick: () => void onGenerateFormLink(),
+				className: "bg-blue-600 text-white hover:bg-blue-700",
+			}]),
+		...(lead.formCompleted && !latestDemo
+			? [{
+				key: "request-demo",
+				label: "Request Demo",
+				icon: HiCalendarDays,
+				onClick: () => setRequestDemoOpen(true),
+				className: "bg-sky-600 text-white hover:bg-sky-700",
+			}]
+			: []),
+		{
+			key: "delete",
+			label: "Delete",
+			icon: HiTrash,
+			onClick: () => setDeleteOpen(true),
+			className: "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+		},
+	];
 
 	return (
-		<div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
-			<div className="sticky top-0 z-20">
-				<div className="px-6 max-w-7xl mx-6 py-2 border rounded-3xl bg-orange-50/50 border-orange-100 backdrop-blur-xl sm:mx-8">
-					<div className="flex items-center justify-between gap-4">
-						<div className="flex items-center gap-4">
-							<button
-								type="button"
-								onClick={() => navigate("/leads")}
-								className="rounded-full bg-orange-100 p-2 transition-colors hover:bg-orange-200"
-							>
-								<HiArrowLeft className="h-6 w-6 text-gray-600" />
-							</button>
-							<div>
-								<h1 className="text-2xl font-bold text-gray-900">
-									{lead.name || "Lead Profile"}
-								</h1>
-								<p className="mt-1 text-sm text-gray-600">{lead.phone}</p>
-								<div className="mt-2 flex items-center gap-2">
-									{lead.price ? (
-										<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-											<span className="text-sm">₹</span>
-											<span>{lead.price}</span>
-										</span>
-									) : (
-										<button
-											type="button"
-											onClick={() => setPriceEditOpen(true)}
-											className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-										>
-											Set amount
-										</button>
-									)}
-									<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-										<span>{lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "Not specified"}</span>
+		<div className="space-y-4">
+			{/* Hero card */}
+			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+				<div className={`relative h-20 bg-linear-to-br sm:h-24 ${statusColor.gradient}`}>
+					<button
+						onClick={() => navigate("/leads")}
+						className="absolute left-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
+					>
+						<HiArrowLeft className="h-5 w-5" />
+					</button>
+					<div
+						className={`absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold backdrop-blur ${followUpOverdue ? "border-rose-200 bg-rose-50 text-rose-700" : "border-white/40 bg-white/20 text-white"
+							}`}
+					>
+						<HiClock className="h-3.5 w-3.5" />
+						{lead.nextFollowUpAt
+							? followUpOverdue
+								? "Follow-up overdue"
+								: `Follow-up ${formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true })}`
+							: "No follow-up scheduled"}
+					</div>
+				</div>
+				<div className="px-5 pb-5 sm:px-6">
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+						<div className="flex items-start gap-4">
+							<div className={`relative z-10 -mt-10 flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-linear-to-br shadow-md sm:-mt-12 sm:h-24 sm:w-24 ${statusColor.gradient}`}>
+								<span className="text-2xl font-bold text-white sm:text-3xl">{leadInitial}</span>
+							</div>
+							<div className="pt-1">
+								<div className="flex flex-wrap items-center gap-2">
+									<h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{lead.name || "Lead Profile"}</h1>
+									<span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusColor.badge}`}>
+										{lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
 									</span>
 								</div>
-								<p className="mt-1 text-xs text-gray-500">
-									Created:{" "}
-									{lead.createdAt
-										? format(new Date(lead.createdAt), "MMM dd, yyyy HH:mm")
-										: "-"}{" "}
-									· Updated:{" "}
-									{lead.updatedAt
-										? format(new Date(lead.updatedAt), "MMM dd, yyyy HH:mm")
-										: "-"}
+								<p className="mt-1 text-sm text-gray-500">
+									{lead.phone ?? "-"}
+									{lead.courseType ? <> · {lead.courseType === "GROUP" ? "Group" : "Individual"}</> : null}
+								</p>
+								<p className="mt-1 text-xs text-gray-400">
+									Created {lead.createdAt ? format(new Date(lead.createdAt), "MMM dd, yyyy") : "-"}
+									{" · "}
+									Updated {lead.updatedAt ? format(new Date(lead.updatedAt), "MMM dd, yyyy") : "-"}
 								</p>
 							</div>
 						</div>
-						<span
-							className={`rounded-full px-3 py-1 text-xs font-bold ${statusColor.badge}`}
-						>
-							{lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<div className="sticky top-22 z-20 bg-white border-b border-gray-200">
-				<div className="mx-auto max-w-7xl px-6 py-4 sm:px-8">
-					<div className="flex flex-wrap gap-2">
-						<button
-							type="button"
-							onClick={() => navigate(`/leads/${lead.id}/edit`)}
-							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-						>
-							<HiPencilSquare className="h-4 w-4" />
-							Edit
-						</button>
-						<button
-							type="button"
-							onClick={() => setPostponeOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
-						>
-							<HiClock className="h-4 w-4" />
-							Postpone
-						</button>
-						<button
-							type="button"
-							onClick={onOpenStageChange}
-							className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
-						>
-							<HiCheckCircle className="h-4 w-4" />
-							Change Stage
-						</button>
-						{!lead.formSent ? (
-							<button
-								type="button"
-								onClick={onGenerateFormLink}
-								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-							>
-								<HiPaperAirplane className="h-4 w-4" />
-								Send Form
-							</button>
-						) : (
-							<>
+						<div className="flex flex-wrap items-center gap-2 pb-1">
+							{lead.price ? (
+								<span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700">
+									<HiBanknotes className="h-4 w-4 text-emerald-600" />
+									₹{lead.price}
+								</span>
+							) : (
 								<button
 									type="button"
-									onClick={onGenerateFormLink}
-									className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+									onClick={() => setPriceEditOpen(true)}
+									className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
 								>
-									<HiLink className="h-4 w-4" />
-									Form Link
+									<HiBanknotes className="h-4 w-4" />
+									Set amount
 								</button>
-							</>
-						)}
-						{lead.formCompleted && !latestDemo ? (
-							<button
-								type="button"
-								onClick={() => setRequestDemoOpen(true)}
-								className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700"
-							>
-								<HiCalendarDays className="h-4 w-4" />
-								Request Demo
-							</button>
-						) : null}
-						<button
-							type="button"
-							onClick={() => setDeleteOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
-						>
-							<HiTrash className="h-4 w-4" />
-							Delete
-						</button>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
 
-			<div className="mx-auto max-w-7xl px-6 py-8 sm:px-8">
-				<div className="mb-6 flex flex-wrap gap-2 rounded-3xl border border-gray-200 bg-white p-2 shadow-sm">
-					{tabs.map((tab) => (
+			{/* Action toolbar */}
+			<div className="flex flex-wrap gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+				{actionButtons.map((action) => (
+					<button
+						key={action.key}
+						type="button"
+						onClick={action.onClick}
+						className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold transition ${action.className}`}
+					>
+						<action.icon className="h-4 w-4" />
+						{action.label}
+					</button>
+				))}
+			</div>
+
+			{/* Tabs */}
+			<div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
+				{tabs.map((tab) => {
+					const isActive = activeTab === tab.id;
+					return (
 						<button
 							key={tab.id}
 							type="button"
 							onClick={() => setActiveTab(tab.id)}
-							className={`rounded-2xl px-4 py-2 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
+							className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+								}`}
 						>
+							<tab.icon className="h-4 w-4" />
 							{tab.label}
 						</button>
-					))}
-				</div>
-
-				{/* Overview removed per request */}
+					);
+				})}
+			</div>
 
 				{activeTab === "details" && (
 					<div className="grid gap-6 lg:grid-cols-3">
 						<div className="lg:col-span-2 space-y-6">
+							<SectionCard title="Preferences" icon={HiAdjustmentsHorizontal}>
+								<DetailGrid>
+									<DetailRow
+										label="Course Type"
+										value={
+											lead.courseType
+												? lead.courseType === "GROUP"
+													? "Group"
+													: "Individual"
+												: "-"
+										}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Level"
+										value={lead.level ?? "-"}
+										icon={HiAcademicCap}
+									/>
+									<DetailRow
+										label="Preferred Plan"
+										value={formatPreferredPlanValue(lead.preferredPlan)}
+										icon={HiClock}
+									/>
+									<DetailRow
+										label="Preferred Schedule"
+										value={lead.preferredSchedule ?? "-"}
+										icon={HiCalendarDays}
+									/>
+									<DetailRow
+										label="Preferred Days"
+										value={lead.preferredDays?.join(", ") || "-"}
+										icon={HiCalendarDays}
+									/>
+									<DetailRow
+										label="Preferred Language"
+										value={lead.preferredLanguage ?? "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Demo Availability"
+										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
+										icon={HiClock}
+									/>
+									<DetailRow
+										label="Mentor Gender Preference"
+										value={lead.preferredMentorGender ?? "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Hear About Us"
+										value={lead.hearAboutUs ?? "-"}
+										icon={HiLink}
+									/>
+									{preferredTimeslots.length ? (
+										<DetailRow
+											label="Preferred Timeslots"
+											wide
+											value={
+												<div className="flex flex-wrap gap-1.5">
+													{preferredTimeslots.map((slot, index) => (
+														<span
+															key={`${slot.startTime}-${slot.endTime}-${index}`}
+															className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700"
+														>
+															{formatTimeValue(slot.startTime)} – {formatTimeValue(slot.endTime)}
+														</span>
+													))}
+												</div>
+											}
+										/>
+									) : null}
+									{lead.studentInfo ? (
+										<DetailRow label="Student Info" value={lead.studentInfo} wide />
+									) : null}
+								</DetailGrid>
+							</SectionCard>
+
 							<SectionCard title="Lead Identity" icon={HiUser}>
-								<div className="space-y-3">
+								<DetailGrid>
+									<DetailRow
+										label="Name"
+										value={lead.name ?? "-"}
+										icon={HiUser}
+										wide
+									/>
 									<DetailRow
 										label="SL No"
 										value={lead.slNo ? String(lead.slNo) : "-"}
@@ -721,45 +918,18 @@ export const LeadDetailPageNew = () => {
 										icon={HiUsers}
 									/>
 									<DetailRow
-										label="Assigned To"
-										value={formatUserIdentity(assignedToUser, "mentor")}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Created By"
-										value={lead.createdBy ? (allUsers.find((u) => u.id === lead.createdBy)?.name ?? lead.createdBy) : "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
 										label="Student ID"
-										value={lead.studentId ?? "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Preferred Plan"
-										value={formatPreferredPlanValue(lead.preferredPlan)}
-										icon={HiClock}
-									/>
-									<DetailRow
-										label="Name"
-										value={lead.name ?? "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Level"
-										value={lead.level ?? "-"}
-										icon={HiAcademicCap}
-									/>
-									<DetailRow
-										label="Course Type"
+										wide
 										value={
-											lead.courseType
-												? lead.courseType === "GROUP"
-													? "Group"
-													: "Individual"
-												: "-"
+											lead.studentId ? (
+												<Link to={`/students/${lead.studentId}`} className="font-semibold text-teal-700 hover:underline">
+													View student profile
+												</Link>
+											) : (
+												"-"
+											)
 										}
-										icon={HiUsers}
+										icon={HiUser}
 									/>
 									<DetailRow
 										label="Created On"
@@ -784,11 +954,11 @@ export const LeadDetailPageNew = () => {
 										value={lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
 										icon={HiCheckCircle}
 									/>
-								</div>
+								</DetailGrid>
 							</SectionCard>
 
 							<SectionCard title="Contact Information" icon={HiPhone}>
-								<div className="space-y-3">
+								<DetailGrid>
 									<DetailRow
 										label="Primary WhatsApp"
 										value={lead.primaryWhatsappNumber ?? "-"}
@@ -838,11 +1008,11 @@ export const LeadDetailPageNew = () => {
 										}
 										icon={HiCalendarDays}
 									/>
-								</div>
+								</DetailGrid>
 							</SectionCard>
 
 							<SectionCard title="Form Submission Details" icon={HiCheckCircle}>
-								<div className="space-y-3">
+								<DetailGrid>
 									<DetailRow
 										label="Form Status"
 										value={
@@ -867,97 +1037,43 @@ export const LeadDetailPageNew = () => {
 										value={lead.formCompleted ? "Yes" : "No"}
 										icon={HiCheckCircle}
 									/>
-									<DetailRow
-										label="Preferred Schedule"
-										value={lead.preferredSchedule ?? "-"}
-									/>
-									<DetailRow
-										label="Preferred Days"
-										value={lead.preferredDays?.join(", ") ?? "-"}
-									/>
-									<DetailRow
-										label="Preferred Language"
-										value={lead.preferredLanguage ?? "-"}
-									/>
-									<DetailRow
-										label="Demo Availability"
-										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
-									/>
-									<DetailRow
-										label="Hear About Us"
-										value={lead.hearAboutUs ?? "-"}
-									/>
-									<DetailRow
-										label="Mentor Gender Preference"
-										value={lead.preferredMentorGender ?? "-"}
-									/>
-									{preferredPlan || preferredTimeslots.length ? (
-										<div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-											<p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-												Preferred Plan
-											</p>
-											<div className="space-y-3">
-												{preferredPlan ? (
-													<div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
-														<span className="font-medium text-gray-900">
-															{formatPreferredPlanValue(preferredPlan)}
-														</span>
-													</div>
-												) : null}
-												<div className="space-y-2">
-													{preferredTimeslots.length ? (
-														preferredTimeslots.map((slot, index) => (
-															<div
-																key={`${slot.startTime}-${slot.endTime}-${index}`}
-																className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-															>
-																{formatTimeValue(slot.startTime)} - {formatTimeValue(slot.endTime)}
-															</div>
-														))
-													) : (
-														<div className="text-xs text-gray-500">No timings selected</div>
-													)}
-												</div>
-											</div>
-										</div>
-									) : null}
-									{lead.studentInfo ? (
-										<DetailRow label="Student Info" value={lead.studentInfo} />
-									) : null}
-								</div>
+								</DetailGrid>
 							</SectionCard>
 						</div>
 
 						<div className="space-y-6">
 							<SectionCard title="Next Follow-up" icon={HiClock}>
 								<div className="space-y-3">
-									<DetailRow
-										label="Scheduled For"
-										value={
-											lead.nextFollowUpAt
-												? format(new Date(lead.nextFollowUpAt), "MMM dd, hh:mm a")
-												: "-"
-										}
-										icon={HiCalendarDays}
-									/>
-									{lead.nextFollowUpAt ? (
-										<DetailRow
-											label="Time Remaining"
-											value={formatDistance(
-												new Date(lead.nextFollowUpAt),
-												new Date(),
-												{ addSuffix: true },
-											)}
-											icon={HiClock}
-										/>
-									) : null}
-									<div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3">
-										<p className="text-xs font-semibold text-blue-700">
-											{isPast(new Date(lead.nextFollowUpAt))
-												? "Overdue for follow-up"
-												: "On schedule"}
+									<div className={`rounded-xl border p-4 ${followUpOverdue ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
+										<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Scheduled for</p>
+										<p className="mt-1 text-lg font-bold text-gray-900">
+											{lead.nextFollowUpAt
+												? format(new Date(lead.nextFollowUpAt), "MMM dd, yyyy · hh:mm a")
+												: "Not scheduled"}
 										</p>
+										{lead.nextFollowUpAt ? (
+											<p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold ${followUpOverdue ? "text-rose-700" : "text-blue-700"}`}>
+												<HiClock className="h-3.5 w-3.5" />
+												{followUpOverdue ? "Overdue —" : ""}{" "}
+												{formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true })}
+											</p>
+										) : null}
 									</div>
+								</div>
+							</SectionCard>
+
+							<SectionCard title="Ownership & Assignment" icon={HiUsers}>
+								<div className="space-y-1">
+									{[
+										{ label: "Created By", user: findUserById(lead.createdBy), role: undefined as "mentor" | "counsellor" | "sales" | "admin" | undefined, fallback: "-" },
+										{ label: "Sales Owner", user: assignedToUser, role: "sales" as const, fallback: "Unassigned" },
+										{ label: "Demo Owner", user: demoRequestAssignedToUser, role: "counsellor" as const, fallback: "Not assigned" },
+									].map((row) => (
+										<div key={row.label} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{row.label}</span>
+											<UserIdentity user={row.user} role={row.role} fallback={row.fallback} />
+										</div>
+									))}
 								</div>
 							</SectionCard>
 
@@ -966,29 +1082,23 @@ export const LeadDetailPageNew = () => {
 									title="Current Demo Assignment"
 									icon={HiAcademicCap}
 								>
-									<div className="space-y-3">
-										<DetailRow
-											label="Mentor"
-											value={formatUserIdentity(latestDemoMentor, "mentor")}
-											icon={HiUser}
-										/>
-										<DetailRow
-											label="Counsellor"
-											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
-											icon={HiUser}
-										/>
-										{lead.nextFollowUpAt ? (
-											<DetailRow
-												label="Next Follow-up"
-												value={formatDistance(
-													new Date(lead.nextFollowUpAt),
-													new Date(),
-													{ addSuffix: true },
-												)}
-												icon={HiClock}
-											/>
+									<div className="space-y-1">
+										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mentor</span>
+											<UserIdentity user={latestDemoMentor} role="mentor" />
+										</div>
+										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Counsellor</span>
+											<UserIdentity user={latestDemoCounsellor} role="counsellor" />
+										</div>
+										{latestDemo.demoScheduledFor ? (
+											<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+												<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Scheduled For</span>
+												<span className="text-sm font-semibold text-gray-900">
+													{format(new Date(latestDemo.demoScheduledFor), "MMM dd, hh:mm a")}
+												</span>
+											</div>
 										) : null}
-										{/* custom follow-up removed */}
 									</div>
 								</SectionCard>
 							)}
@@ -1031,16 +1141,15 @@ export const LeadDetailPageNew = () => {
 												</div>
 											</div>
 											<div className="flex gap-6 text-sm text-gray-700">
-												<div>
-													Mentor:{" "}
-													{formatUserIdentity(findUserById(demo.mentorId), "mentor")}
+												<div className="flex items-center gap-1.5">
+													Mentor: <UserIdentity user={findUserById(demo.mentorId)} role="mentor" />
 												</div>
-												<div>
+												<div className="flex items-center gap-1.5">
 													Counsellor:{" "}
-													{formatUserIdentity(
-														findUserById(findUserById(demo.mentorId)?.counsellorId ?? null),
-														"counsellor",
-													)}
+													<UserIdentity
+														user={findUserById(findUserById(demo.mentorId)?.counsellorId ?? null)}
+														role="counsellor"
+													/>
 												</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
@@ -1075,127 +1184,19 @@ export const LeadDetailPageNew = () => {
 					</div>
 				)}
 
-				{activeTab === "overview" && (
-					<div className="grid gap-6 lg:grid-cols-3">
-						<div className="lg:col-span-2 space-y-6">
-							<SectionCard title="Ownership History" icon={HiUsers}>
-								<div className="space-y-3">
-									<DetailRow
-										label="Created By"
-										value={
-											lead.createdBy
-												? (allUsers.find((user) => user.id === lead.createdBy)
-														?.name ?? lead.createdBy)
-												: "-"
-										}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Sales Owner"
-										value={assignedToUser?.name ?? "Unassigned"}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Demo Owner"
-										value={demoRequestAssignedToUser?.name ?? "Not assigned"}
-										icon={HiAcademicCap}
-									/>
-								</div>
-							</SectionCard>
-						</div>
-						<div className="space-y-6">
-							<SectionCard title="Assignment & Ownership" icon={HiUsers}>
-								<div className="space-y-4">
-									<div>
-										<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-											Sales Owner
-										</p>
-										<div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-											<p className="font-semibold text-gray-900">
-												{assignedToUser?.name ?? "Unassigned"}
-											</p>
-											<p className="text-xs text-gray-600">
-												{assignedToUser?.username}
-											</p>
-										</div>
-									</div>
-									<div>
-										<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-											Demo Assigned To
-										</p>
-										<div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-											<p className="font-semibold text-gray-900">
-												{demoRequestAssignedToUser?.name ?? "Not assigned"}
-											</p>
-											{demoRequestAssignedToUser ? (
-												<p className="text-xs text-gray-600">
-													{demoRequestAssignedToUser.username}
-												</p>
-											) : null}
-										</div>
-									</div>
-								</div>
-							</SectionCard>
-
-							{latestDemo && (
-								<SectionCard
-									title="Current Demo Assignment"
-									icon={HiAcademicCap}
-								>
-									<div className="space-y-3">
-										<DetailRow
-											label="Mentor"
-											value={formatUserIdentity(latestDemoMentor, "mentor")}
-											icon={HiUser}
-										/>
-										<DetailRow
-											label="Counsellor"
-											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
-											icon={HiUser}
-										/>
-										<DetailRow
-											label="Next Follow-up"
-											value={
-												lead.nextFollowUpAt
-													? formatDistance(
-															new Date(lead.nextFollowUpAt),
-															new Date(),
-															{ addSuffix: true },
-														)
-													: "-"
-											}
-											icon={HiClock}
-										/>
-									</div>
-								</SectionCard>
-							)}
-						</div>
+			{activeTab === "activities" && leadId ? (
+				<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+					<div className="mb-4">
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+							Activity Trail
+						</p>
+						<h2 className="mt-1 text-xl font-bold text-gray-900">
+							Lead Activities
+						</h2>
 					</div>
-				)}
-
-				{activeTab === "activities" && leadId ? (
-					<div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-						<div className="mb-4 flex items-center justify-between gap-4">
-							<div>
-								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-									Activity Trail
-								</p>
-								<h2 className="mt-1 text-xl font-bold text-gray-900">
-									Lead Activities
-								</h2>
-							</div>
-							<button
-								type="button"
-								onClick={() => setActiveTab("overview")}
-								className="rounded-2xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:text-gray-900"
-							>
-								Back to overview
-							</button>
-						</div>
-						<ActivityFeed leadId={leadId} />
-					</div>
-				) : null}
-			</div>
+					<ActivityFeed leadId={leadId} />
+				</div>
+			) : null}
 
 			<Modal
 				open={stageChangeOpen}
@@ -1676,13 +1677,13 @@ export const LeadDetailPageNew = () => {
 
 			<Modal
 				open={requestDemoOpen}
-				onClose={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); }}
+				onClose={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); setCounsellorSearch(""); }}
 				title="Request demo and assign counsellor"
 				footer={
 					<>
 						<button
 							type="button"
-							onClick={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); }}
+							onClick={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); setCounsellorSearch(""); }}
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 						>
 							Cancel
@@ -1707,18 +1708,60 @@ export const LeadDetailPageNew = () => {
 							No counsellors available
 						</div>
 					) : (
-						<select
-							value={selectedCounsellorId}
-							onChange={(e) => setSelectedCounsellorId(e.target.value)}
-							className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
-						>
-							<option value="" disabled>Select counsellor</option>
-							{counsellors.map((c) => (
-								<option key={c.id} value={c.id}>
-									{c.zids?.counsellor ? `${c.zids.counsellor} - ${c.name ?? c.username}` : (c.name || c.username)}
-								</option>
-							))}
-						</select>
+						<>
+							<div className="relative">
+								<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								<input
+									type="text"
+									value={counsellorSearch}
+									onChange={(e) => setCounsellorSearch(e.target.value)}
+									placeholder="Search counsellors by name, ZID, or email…"
+									className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+								/>
+							</div>
+
+							<div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+								{!counsellorSearch.trim() && suggestedCounsellors.length > 0 ? (
+									<div className="space-y-1.5">
+										<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+											Suggested — previously involved with this lead
+										</p>
+										<div className="space-y-1.5">
+											{suggestedCounsellors.map((c) => (
+												<CounsellorOption
+													key={c.id}
+													counsellor={c}
+													selected={selectedCounsellorId === c.id}
+													onSelect={() => setSelectedCounsellorId(c.id)}
+												/>
+											))}
+										</div>
+									</div>
+								) : null}
+
+								<div className="space-y-1.5">
+									{!counsellorSearch.trim() && suggestedCounsellors.length > 0 ? (
+										<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+											All counsellors
+										</p>
+									) : null}
+									{counsellorSearchResults.length === 0 ? (
+										<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-sm text-slate-500">
+											No counsellors match "{counsellorSearch}"
+										</div>
+									) : (
+										counsellorSearchResults.map((c) => (
+											<CounsellorOption
+												key={c.id}
+												counsellor={c}
+												selected={selectedCounsellorId === c.id}
+												onSelect={() => setSelectedCounsellorId(c.id)}
+											/>
+										))
+									)}
+								</div>
+							</div>
+						</>
 					)}
 				</div>
 			</Modal>

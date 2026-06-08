@@ -1,5 +1,5 @@
 import { isPast, isToday } from "date-fns";
-import { createElement } from "react";
+import { createElement, useEffect } from "react";
 import {
 	HiAcademicCap,
 	HiArchiveBox,
@@ -40,9 +40,8 @@ import {
 	usePendingDemoRequestsQuery,
 } from "@/features/leads/leads.queries";
 import { useGetAllReminders } from "@/features/reminders/reminders.mutations";
-import { getReminderDueStatus } from "@/features/reminders/reminders.utils";
 import { getStudentFollowUpState } from "@/features/students/student-table";
-import { useStudentsQuery } from "@/features/students/students.queries";
+import { useStudentProcessesQuery, useStudentsQuery } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 
 const leadStageIcons = {
@@ -170,6 +169,11 @@ export const useNavigationItems = () => {
 		{ scope: "mine", status: "DROPPED", limit: 1 },
 		canReadStudents,
 	);
+	const myActiveProcessesQuery = useStudentProcessesQuery(
+		token,
+		{ scope: "mine" },
+		canReadStudentProcesses,
+	);
 	const breakCount = (breakCountQuery.data as any)?.pagination?.total ?? 0;
 	const droppedCount = (droppedCountQuery.data as any)?.pagination?.total ?? 0;
 	const remindersQuery = useGetAllReminders({
@@ -184,6 +188,45 @@ export const useNavigationItems = () => {
 		token,
 		canReadScheduledDemos,
 	);
+
+	useEffect(() => {
+		const refetchCounts = () => {
+			if (document.visibilityState !== "visible") return;
+			if (canReadLeads) leadsQuery.refetch();
+			if (canReadLearnerData) studentsQuery.refetch();
+			if (canReadStudents) {
+				breakCountQuery.refetch();
+				droppedCountQuery.refetch();
+			}
+			if (canReadStudentProcesses) myActiveProcessesQuery.refetch();
+			if (canReadReminders) remindersQuery.refetch();
+			if (canReadUnassignedDemos) pendingDemosQuery.refetch();
+			if (canReadScheduledDemos) scheduledDemosQuery.refetch();
+		};
+
+		document.addEventListener("visibilitychange", refetchCounts);
+		window.addEventListener("focus", refetchCounts);
+		return () => {
+			document.removeEventListener("visibilitychange", refetchCounts);
+			window.removeEventListener("focus", refetchCounts);
+		};
+	}, [
+		canReadLeads,
+		canReadLearnerData,
+		canReadStudents,
+		canReadReminders,
+		canReadUnassignedDemos,
+		canReadScheduledDemos,
+		canReadStudentProcesses,
+		leadsQuery,
+		studentsQuery,
+		breakCountQuery,
+		droppedCountQuery,
+		remindersQuery,
+		pendingDemosQuery,
+		scheduledDemosQuery,
+		myActiveProcessesQuery,
+	]);
 
 	const meName = me?.name ?? "User";
 	const roleLabel = me?.roles[0]?.name ?? "Workspace member";
@@ -225,9 +268,7 @@ export const useNavigationItems = () => {
 		return isToday(d) || isPast(d);
 	}).length;
 
-	const currentProcessCount = allStudents.filter((student) =>
-		Boolean(student.processId),
-	).length;
+	const currentProcessCount = myActiveProcessesQuery.data?.processes?.length ?? 0;
 	const myPendingDemoCount = (pendingDemosQuery.data?.leads ?? []).filter(
 		(lead) => lead.demoRequestAssignedTo === currentUserId,
 	).length;
@@ -253,10 +294,7 @@ export const useNavigationItems = () => {
 		},
 	).length;
 
-	const reminderUrgentCount = allReminders.filter((reminder) => {
-		const dueStatus = getReminderDueStatus(reminder.date);
-		return dueStatus === "pastDue" || dueStatus === "today";
-	}).length;
+	const reminderUrgentCount = allReminders.filter((reminder) => !reminder.isDone).length;
 
 	const hasPermission = (key: string): boolean =>
 		me?.permissions?.some((p) => p.key === key) ?? false;
@@ -331,8 +369,8 @@ export const useNavigationItems = () => {
 			? [
 					{
 						to: "/leads/overview",
-						label: "Lead Overview",
-						description: "Reports and charts",
+						label: "Lead Report",
+						description: "Time-framed reports and charts",
 						icon: createElement(HiPresentationChartLine, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
@@ -402,20 +440,41 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+		...(hasPermission("STUDENT_PROCESS_READ_MY") ||
+		hasPermission("STUDENT_PROCESS_READ_ALL")
 			? [
 					{
-						to: "/students?type=group",
-						label: "Group Students",
-						description: "Enrolled in groups",
-						icon: createElement(HiUserGroup, {
+						to: "/processes",
+						label: "Processes",
+						description: "Student workflows",
+						icon: createElement(HiClipboardDocumentList, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
 						}),
-						count: getUrgentStudentCount("GROUP"),
-						accent: "cyan",
+						count: currentProcessCount,
+						accent: "violet",
 						section: "Learners",
 					},
+				]
+			: []),
+		...(canReadReminders
+			? [
+					{
+						to: "/reminders",
+						label: "Reminders",
+						description: "Open reminders",
+						icon: createElement(HiOutlineBellAlert, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						count: reminderUrgentCount,
+						accent: "amber",
+						section: "Learners",
+					},
+				]
+			: []),
+		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+			? [
 					{
 						to: "/students?type=individual",
 						label: "Individual Students",
@@ -428,6 +487,37 @@ export const useNavigationItems = () => {
 						accent: "cyan",
 						section: "Learners",
 					},
+					{
+						to: "/students?type=group",
+						label: "Group Students",
+						description: "Enrolled in groups",
+						icon: createElement(HiUserGroup, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						count: getUrgentStudentCount("GROUP"),
+						accent: "cyan",
+						section: "Learners",
+					},
+				]
+			: []),
+		...(canReadBatches
+			? [
+					{
+						to: "/groups",
+						label: "Groups",
+						description: "Mentor groups",
+						icon: createElement(HiRectangleGroup, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "emerald",
+						section: "Learners",
+					},
+				]
+			: []),
+		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+			? [
 					{
 						to: "/students/break",
 						label: "On Break",
@@ -471,54 +561,6 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_PROCESS_READ_MY") ||
-		hasPermission("STUDENT_PROCESS_READ_ALL")
-			? [
-					{
-						to: "/processes",
-						label: "Processes",
-						description: "Student workflows",
-						icon: createElement(HiClipboardDocumentList, {
-							className: "h-5 w-5",
-							"aria-hidden": "true",
-						}),
-						count: currentProcessCount,
-						accent: "violet",
-						section: "Learners",
-					},
-				]
-			: []),
-		...(canReadBatches
-			? [
-					{
-						to: "/groups",
-						label: "Groups",
-						description: "Mentor groups",
-						icon: createElement(HiRectangleGroup, {
-							className: "h-5 w-5",
-							"aria-hidden": "true",
-						}),
-						accent: "emerald",
-						section: "Learners",
-					},
-				]
-			: []),
-		...(canReadReminders
-			? [
-					{
-						to: "/reminders",
-						label: "Reminders",
-						description: "Open reminders",
-						icon: createElement(HiOutlineBellAlert, {
-							className: "h-5 w-5",
-							"aria-hidden": "true",
-						}),
-						count: reminderUrgentCount,
-						accent: "amber",
-						section: "Learners",
-					},
-				]
-			: []),
 		...(hasPermission("TIMESLOT_CREATE")
 			? [
 					{
@@ -531,21 +573,6 @@ export const useNavigationItems = () => {
 						}),
 						accent: "teal",
 						section: "Learners",
-					},
-				]
-			: []),
-		...(hasPermission("USER_READ")
-			? [
-					{
-						to: "/users",
-						label: "Users",
-						description: "All accounts",
-						icon: createElement(HiUsers, {
-							className: "h-5 w-5",
-							"aria-hidden": "true",
-						}),
-						accent: "cyan",
-						section: "Management",
 					},
 				]
 			: []),
@@ -567,7 +594,7 @@ export const useNavigationItems = () => {
 		...(hasPermission("COUNSELLOR_READ")
 			? [
 					{
-						to: "/users?role=counsellor",
+						to: "/counsellors",
 						label: "Counsellors",
 						description: "Counsellor accounts",
 						icon: createElement(HiChatBubbleLeftRight, {
@@ -582,7 +609,7 @@ export const useNavigationItems = () => {
 		...(hasPermission("ADMIN_READ")
 			? [
 					{
-						to: "/users?role=admin",
+						to: "/admins",
 						label: "Admins",
 						description: "Admin users",
 						icon: createElement(HiShieldCheck, {

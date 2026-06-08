@@ -5,6 +5,7 @@ import {
 	fetchStudentProcesses,
 	fetchStudents,
 	fetchStudentProcess,
+	deleteStudentProcess,
 } from "@/features/students/students.service";
 import { useHasPermission, usePermissionMap } from "@/lib/hooks/use-has-permission";
 
@@ -13,6 +14,7 @@ export const studentsQueryKeys = {
 		token: string,
 		options?: {
 			status?: string;
+			courseType?: string;
 			search?: string;
 			sortBy?: string;
 			sortOrder?: "asc" | "desc";
@@ -32,12 +34,15 @@ export const useStudentsQuery = (
 	optionsOrEnabled?:
 		| {
 				status?: string;
+				courseType?: string;
 				search?: string;
 				sortBy?: string;
 				sortOrder?: "asc" | "desc";
 				page?: number;
 				limit?: number;
 				scope?: "mine" | "all";
+				/** Powers the "Converted Leads" mine/all scope; bypasses the mentor/batch-counsellor based `scope` filter. */
+				admittedBy?: "me" | "all";
 		  }
 		| boolean,
 	enabled = true,
@@ -50,7 +55,11 @@ export const useStudentsQuery = (
 			: enabled;
 	const permMap = usePermissionMap();
 	const canReadAll = Boolean(permMap["STUDENT_READ_ALL"] || permMap["STUDENT_POSTER_DOWNLOAD"]);
-	const scope = options?.scope === "all" && !canReadAll ? "mine" : options?.scope;
+	const scope = options?.admittedBy
+		? "all"
+		: options?.scope === "all" && !canReadAll
+			? "mine"
+			: options?.scope;
 
 	return useQuery({
 		queryKey: studentsQueryKeys.list(token, options),
@@ -179,6 +188,24 @@ export const useCompleteProcessMutation = () => {
 			queryClient.removeQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token, true) });
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
+		},
+	});
+};
+
+export const useDeleteProcessMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ processId }: { processId: string }) => {
+			if (!token) throw new Error("Missing session token");
+			return deleteStudentProcess(token, processId);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) return;
+			queryClient.removeQueries({ queryKey: studentsQueryKeys.process(token, variables.processId) });
+			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.processes(token) });
 			await queryClient.invalidateQueries({ queryKey: studentsQueryKeys.list(token) });
 		},
 	});

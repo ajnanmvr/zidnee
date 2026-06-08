@@ -213,6 +213,12 @@ const extractReadableErrorMessage = (payload: unknown): string | null => {
 
 const GROUP_ALLOWED_LEVELS = ["1", "2", "3", "4", "5"] as const;
 
+const PHONE_NUMBER_PATTERN = /^[+]?\d{8,20}$/;
+const validatePhoneNumber = (value: string) => {
+	const cleaned = value.trim().replace(/[\s\-().]/g, "");
+	return PHONE_NUMBER_PATTERN.test(cleaned) || "Enter a valid phone number with country code (digits only, optionally starting with +)";
+};
+
 const validateFormLink = async (
 	leadId: string,
 	token: string,
@@ -973,6 +979,7 @@ const PublicFormPage = () => {
 									<input
 										{...register("primaryWhatsappNumber", {
 											required: "Primary WhatsApp number is required",
+											validate: validatePhoneNumber,
 										})}
 										placeholder="9876543210"
 										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
@@ -991,10 +998,7 @@ const PublicFormPage = () => {
 									<input
 										{...register("alternateWhatsappNumber", {
 											required: "Alternate WhatsApp number is required",
-											minLength: {
-												value: 8,
-												message: "Alternate WhatsApp number must be at least 8 characters",
-											},
+											validate: validatePhoneNumber,
 										})}
 										placeholder="9876543210"
 										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"

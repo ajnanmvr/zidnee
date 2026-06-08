@@ -36,6 +36,25 @@ const monthRange = (year: number, month: number): PeriodRange => ({
 	label: `${getMonthFull(month)} ${year}`,
 });
 
+const startOfWeek = (d: Date): Date => {
+	const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+	const dayIndex = (date.getDay() + 6) % 7; // Monday = 0
+	date.setDate(date.getDate() - dayIndex);
+	return date;
+};
+
+const weekRange = (anyDayInWeek: Date): PeriodRange => {
+	const start = startOfWeek(anyDayInWeek);
+	const end = new Date(start);
+	end.setDate(end.getDate() + 6);
+	end.setHours(23, 59, 59, 999);
+	const sameMonth = start.getMonth() === end.getMonth();
+	const label = sameMonth
+		? `${start.getDate()}–${end.getDate()} ${getMonthName(start.getMonth())}`
+		: `${start.getDate()} ${getMonthName(start.getMonth())} – ${end.getDate()} ${getMonthName(end.getMonth())}`;
+	return { start: new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0), end, label };
+};
+
 const nthMonthsAgo = (n: number): PeriodRange => {
 	const now = new Date();
 	const start = new Date(now.getFullYear(), now.getMonth() - n + 1, 1);
@@ -90,6 +109,16 @@ const PIPELINE_ORDER = [
 	"FOLLOW_UP","FORM_SENT","FORM_FILLED","DEMO_REQUEST","DEMO_ASSIGNED","DEMO_COMPLETED",
 ];
 
+const TIME_PRESETS: { id: TimeScope; label: string; hint: string }[] = [
+	{ id: "currentMonth", label: "This Month", hint: "Current calendar month" },
+	{ id: "previousMonth", label: "Last Month", hint: "Previous calendar month" },
+	{ id: "last3months", label: "Last 3 Months", hint: "Rolling 3-month window" },
+	{ id: "last6months", label: "Last 6 Months", hint: "Rolling 6-month window" },
+	{ id: "currentYear", label: "This Year", hint: "Current calendar year" },
+	{ id: "custom", label: "Custom", hint: "Pick a specific month & year" },
+	{ id: "all", label: "All Time", hint: "Every lead on record" },
+];
+
 const CustomTooltip = ({ active, payload, label }: any) => {
 	if (!active || !payload?.length) return null;
 	return (
@@ -110,6 +139,7 @@ export const LeadOverviewPage = () => {
 	const canReadAll = useHasPermission("LEAD_READ_ALL");
 	const [scope, setScope] = useState<"mine" | "all">("mine");
 	const [timeScope, setTimeScope] = useState<TimeScope>("currentMonth");
+	const [trendGranularity, setTrendGranularity] = useState<"weekly" | "monthly">("monthly");
 	const now = useMemo(() => new Date(), []);
 	const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
 	const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -192,6 +222,29 @@ export const LeadOverviewPage = () => {
 		return months;
 	}, [leads, now]);
 
+	// Weekly trend: last 12 weeks (Mon–Sun)
+	const weeklyTrend = useMemo(() => {
+		const weeks: { label: string; created: number; converted: number; deleted: number }[] = [];
+		const currentWeekStart = startOfWeek(now);
+		for (let i = 11; i >= 0; i--) {
+			const weekStart = new Date(currentWeekStart);
+			weekStart.setDate(weekStart.getDate() - i * 7);
+			const r = weekRange(weekStart);
+			const row = { label: r.label, created: 0, converted: 0, deleted: 0 };
+			for (const l of leads) {
+				if (!inRange(toDate(l.createdAt), r)) continue;
+				row.created++;
+				if (l.status === "CONVERTED") row.converted++;
+				else if (l.status === "CLOSED") row.deleted++;
+			}
+			weeks.push(row);
+		}
+		return weeks;
+	}, [leads, now]);
+
+	const trendData = trendGranularity === "weekly" ? weeklyTrend : monthlyTrend;
+	const trendWindowLabel = trendGranularity === "weekly" ? "last 12 weeks" : "last 12 months";
+
 	// Stage funnel — current period
 	const stageCounts = useMemo(() => {
 		const map: Record<string, number> = {};
@@ -237,43 +290,56 @@ export const LeadOverviewPage = () => {
 
 				<div className="relative flex flex-wrap items-end justify-between gap-5">
 					<div>
-						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-300">Lead Analytics</p>
-						<h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Lead Overview</h1>
+						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-300">Lead Reports</p>
+						<h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Lead Report</h1>
 						<p className="mt-1 text-sm text-indigo-200">
 							{periodLabel} · {scope === "all" ? "All users" : "My leads"} · {cur.created} leads
 						</p>
 					</div>
 
-					{/* Controls */}
-					<div className="flex flex-wrap items-center gap-2">
-						{canReadAll ? (
+					{/* Scope control */}
+					{canReadAll ? (
+						<div className="flex flex-wrap items-center gap-2">
 							<select value={scope} onChange={(e) => setScope(e.target.value as "mine" | "all")} className={selectCls}>
 								<option value="mine">My leads</option>
 								<option value="all">All users</option>
 							</select>
-						) : null}
-						<select value={timeScope} onChange={(e) => setTimeScope(e.target.value as TimeScope)} className={selectCls}>
-							<option value="currentMonth">This month</option>
-							<option value="previousMonth">Last month</option>
-							<option value="last3months">Last 3 months</option>
-							<option value="last6months">Last 6 months</option>
-							<option value="currentYear">This year</option>
-							<option value="custom">Custom month</option>
-							<option value="all">All time</option>
-						</select>
-						{timeScope === "custom" ? (
-							<>
-								<select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} className={selectCls}>
-									{Array.from({ length: 12 }, (_, i) => (
-										<option key={i} value={i}>{getMonthFull(i)}</option>
-									))}
-								</select>
-								<select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className={selectCls}>
-									{availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
-								</select>
-							</>
-						) : null}
+						</div>
+					) : null}
+				</div>
+
+				{/* Time frame suggestions */}
+				<div className="relative mt-5">
+					<p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-300">Time frame</p>
+					<div className="flex flex-wrap gap-2">
+						{TIME_PRESETS.map((preset) => (
+							<button
+								key={preset.id}
+								type="button"
+								onClick={() => setTimeScope(preset.id)}
+								title={preset.hint}
+								className={`rounded-xl border px-3.5 py-2 text-left text-xs font-semibold transition ${
+									timeScope === preset.id
+										? "border-white/40 bg-white/20 text-white shadow-sm"
+										: "border-white/10 bg-white/5 text-indigo-200 hover:border-white/25 hover:bg-white/10 hover:text-white"
+								}`}
+							>
+								{preset.label}
+							</button>
+						))}
 					</div>
+					{timeScope === "custom" ? (
+						<div className="mt-3 flex flex-wrap items-center gap-2">
+							<select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} className={selectCls}>
+								{Array.from({ length: 12 }, (_, i) => (
+									<option key={i} value={i}>{getMonthFull(i)}</option>
+								))}
+							</select>
+							<select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className={selectCls}>
+								{availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+							</select>
+						</div>
+					) : null}
 				</div>
 
 				{/* Mini stat row */}
@@ -308,12 +374,28 @@ export const LeadOverviewPage = () => {
 
 			{/* Charts row 1 */}
 			<div className="grid gap-4 lg:grid-cols-3">
-				{/* Monthly trend (area) */}
+				{/* Trend (area) */}
 				<div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-					<p className="mb-1 text-sm font-bold text-gray-800">Monthly Trend</p>
-					<p className="mb-4 text-xs text-gray-400">Lead creation & conversion over the last 12 months</p>
+					<div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+						<p className="text-sm font-bold text-gray-800">Trend</p>
+						<div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+							{(["monthly", "weekly"] as const).map((g) => (
+								<button
+									key={g}
+									type="button"
+									onClick={() => setTrendGranularity(g)}
+									className={`rounded-md px-2.5 py-1 text-[11px] font-semibold capitalize transition ${
+										trendGranularity === g ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+									}`}
+								>
+									{g}
+								</button>
+							))}
+						</div>
+					</div>
+					<p className="mb-4 text-xs text-gray-400">Lead creation & conversion over the {trendWindowLabel}</p>
 					<ResponsiveContainer width="100%" height={220}>
-						<AreaChart data={monthlyTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+						<AreaChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
 							<defs>
 								<linearGradient id="gCreated" x1="0" y1="0" x2="0" y2="1">
 									<stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
@@ -428,12 +510,12 @@ export const LeadOverviewPage = () => {
 				</div>
 			</div>
 
-			{/* Monthly created vs closed bar */}
+			{/* Created vs deleted bar */}
 			<div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-				<p className="mb-1 text-sm font-bold text-gray-800">Created vs Deleted — Last 12 Months</p>
-				<p className="mb-4 text-xs text-gray-400">Side-by-side comparison of new leads created and leads deleted each month</p>
+				<p className="mb-1 text-sm font-bold text-gray-800">Created vs Deleted — {trendGranularity === "weekly" ? "Last 12 Weeks" : "Last 12 Months"}</p>
+				<p className="mb-4 text-xs text-gray-400">Side-by-side comparison of new leads created and leads deleted each {trendGranularity === "weekly" ? "week" : "month"}</p>
 				<ResponsiveContainer width="100%" height={200}>
-					<BarChart data={monthlyTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barGap={4} barSize={14}>
+					<BarChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barGap={4} barSize={14}>
 						<CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
 						<XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
 						<YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />

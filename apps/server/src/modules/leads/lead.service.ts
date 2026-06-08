@@ -1290,6 +1290,8 @@ export const LeadService = {
 					formToken: undefined,
 					formTokenExpiresAt: undefined,
 				},
+				// A closed lead no longer needs a follow-up reminder.
+				$unset: { nextFollowUpAt: 1 },
 			},
 			{ returnDocument: "after" },
 		);

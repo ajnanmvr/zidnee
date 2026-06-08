@@ -148,7 +148,7 @@ export const WelcomePosterPage = () => {
 	};
 
 	const rows = useMemo(
-		() => (studentsQuery.data?.students ?? []) as any[],
+		() => ((studentsQuery.data?.students ?? []) as any[]).filter((s) => !(s.processId || s.processLabel)),
 		[studentsQuery.data?.students],
 	);
 
