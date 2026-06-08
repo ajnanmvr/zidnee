@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { HiAcademicCap } from "react-icons/hi2";
 import { Modal } from "@/components/dashboard-ui";
@@ -154,12 +154,6 @@ export const StudentsPage = () => {
 						All
 					</button>
 				</div>
-			</div>
-
-			{/* Shortcuts */}
-			<div className="flex items-center justify-end gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
-				<Link to="/students/break" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-amber-300 hover:text-amber-700">On Break</Link>
-				<Link to="/students/dropped" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-rose-300 hover:text-rose-600">Dropped</Link>
 			</div>
 
 			{/* Toolbar – search + process toggle + sort */}

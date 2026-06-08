@@ -108,9 +108,14 @@ const LeadEditPage = lazy(() =>
 		default: module.LeadEditPage,
 	})),
 );
-const UsersPage = lazy(() =>
-	import("@/features/dashboard/UsersPage").then((module) => ({
-		default: module.UsersPage,
+const AdminsPage = lazy(() =>
+	import("@/features/dashboard/AdminsPage").then((module) => ({
+		default: module.AdminsPage,
+	})),
+);
+const CounsellorsPage = lazy(() =>
+	import("@/features/dashboard/CounsellorsPage").then((module) => ({
+		default: module.CounsellorsPage,
 	})),
 );
 const SalesUsersPage = lazy(() =>
@@ -381,8 +386,12 @@ export const router = createBrowserRouter([
 						element: withPermissions(["LEAD_UPDATE_MY", "LEAD_UPDATE_ALL"], <LeadEditPage />),
 					},
 					{
-						path: "users",
-						element: withPermissions(["USER_READ"], <UsersPage />),
+						path: "admins",
+						element: withPermissions(["ADMIN_READ", "USER_READ"], <AdminsPage />),
+					},
+					{
+						path: "counsellors",
+						element: withPermissions(["COUNSELLOR_READ", "USER_READ"], <CounsellorsPage />),
 					},
 					{
 						path: "sales-users",

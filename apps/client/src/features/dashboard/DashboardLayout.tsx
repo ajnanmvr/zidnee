@@ -16,9 +16,10 @@ const titles: Record<string, string> = {
 	"/processes": "Processes",
 	"/process-history": "Process History",
 	"/mentors": "Mentors",
+	"/counsellors": "Counsellors",
+	"/admins": "Admins",
 	"/counsellor/mentors": "Counsellor Mentors",
 	"/time-slots": "Time Slots",
-	"/users": "Users",
 	"/users/create": "Create User",
 	"/roles": "Role Permissions",
 	"/roles/create": "Create Role",
@@ -61,10 +62,6 @@ const resolveTitle = (pathname: string, search: string): string => {
 
 	if (/^\/roles\/[^/]+\/edit$/.test(pathname)) {
 		return "Edit Role";
-	}
-
-	if (pathname === "/users" && search.includes("role=sales")) {
-		return "Sales";
 	}
 
 	if (pathname === "/sales-users") {

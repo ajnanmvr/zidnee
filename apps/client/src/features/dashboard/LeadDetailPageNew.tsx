@@ -6,12 +6,15 @@ import toast from "react-hot-toast";
 import { FOLLOW_UP_PERIOD_MS, type LeadStatus } from "@repo/schema";
 import {
 	HiAcademicCap,
+	HiAdjustmentsHorizontal,
 	HiArrowLeft,
 	HiBanknotes,
 	HiCalendarDays,
+	HiCheck,
 	HiCheckCircle,
 	HiClock,
 	HiLink,
+	HiMagnifyingGlass,
 	HiPaperAirplane,
 	HiPencilSquare,
 	HiPhone,
@@ -19,7 +22,7 @@ import {
 	HiUser,
 	HiUsers,
 } from "react-icons/hi2";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Modal } from "@/components/dashboard-ui";
@@ -115,38 +118,52 @@ const SectionCard = ({
 	title,
 	icon: Icon,
 	children,
+	dense = false,
 }: {
 	title: string;
 	icon: typeof HiUser;
 	children: React.ReactNode;
+	/** Tighter padding/heading for cards packed with many small fields. */
+	dense?: boolean;
 }) => (
-	<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-		<div className="mb-4 flex items-center gap-2">
-			<Icon className="h-5 w-5 text-blue-600" />
-			<h3 className="text-lg font-bold text-gray-900">{title}</h3>
+	<div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+		<div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+			<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+				<Icon className="h-4 w-4" />
+			</span>
+			<h3 className="text-sm font-bold uppercase tracking-wide text-gray-700">{title}</h3>
 		</div>
-		{children}
+		<div className={dense ? "p-4" : "p-5"}>{children}</div>
 	</div>
 );
 
+/** Compact label-over-value tile, designed to sit in a responsive grid for quick scanning. */
 const DetailRow = ({
 	label,
 	value,
 	icon: Icon,
+	wide = false,
 }: {
 	label: string;
 	value?: string | React.ReactNode;
 	icon?: typeof HiUser;
+	/** Span both grid columns — use for longer values (links, badges, multi-line text). */
+	wide?: boolean;
 }) => (
-	<div className="flex items-start justify-between gap-4 border-b border-gray-100 py-3 last:border-b-0">
-		<div className="flex items-start gap-2">
-			{Icon ? <Icon className="mt-1 h-4 w-4 text-gray-400" /> : null}
-			<span className="text-sm font-medium text-gray-600">{label}</span>
-		</div>
-		<span className="text-right text-sm font-semibold text-gray-900">
+	<div className={`flex flex-col gap-1 rounded-xl border border-gray-100 bg-gray-50/50 px-3.5 py-2.5 ${wide ? "sm:col-span-2" : ""}`}>
+		<span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+			{Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+			{label}
+		</span>
+		<span className="text-sm font-semibold text-gray-900 wrap-break-word">
 			{value ?? "-"}
 		</span>
 	</div>
+);
+
+/** Responsive 2-column grid for packing DetailRow tiles densely. */
+const DetailGrid = ({ children }: { children: React.ReactNode }) => (
+	<div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">{children}</div>
 );
 
 const tabs: Array<{ id: LeadDetailTab; label: string; icon: typeof HiUser }> = [
@@ -222,27 +239,82 @@ export const LeadDetailPageNew = () => {
 
 	const counsellorsQuery = useCounsellorsQuery(token);
 	const [selectedCounsellorId, setSelectedCounsellorId] = useState<string>("");
+	const [counsellorSearch, setCounsellorSearch] = useState("");
 
 	const lead = leadQuery.data?.lead ?? null;
 	const allUsers = usersQuery.data?.users ?? [];
 	const counsellors = counsellorsQuery.data?.users ?? [];
 	const findUserById = (id?: string | null) =>
 		id ? (allUsers.find((user) => user.id === id) ?? null) : null;
-	const formatUserIdentity = (
-		user: (typeof allUsers)[number] | null,
-		role: "mentor" | "counsellor",
-	) => {
+	/** Renders a staff member as "ZID · Name", linking to their mentor profile when one exists. */
+	const UserIdentity = ({
+		user,
+		role,
+		fallback = "-",
+	}: {
+		user: (typeof allUsers)[number] | null;
+		role?: "mentor" | "counsellor" | "sales" | "admin";
+		fallback?: string;
+	}) => {
 		if (!user) {
-			return "-";
+			return <span className="text-gray-400">{fallback}</span>;
 		}
 
+		const mentorId = user.zids?.mentor ?? user.mentorId;
+		const zid =
+			(role ? user.zids?.[role] : undefined) ??
+			mentorId ??
+			user.zids?.counsellor ??
+			user.counsellorId ??
+			user.zids?.sales ??
+			user.zids?.admin;
 		const displayName = user.name || user.username || "Unknown";
-		const roleCode =
-			role === "mentor"
-				? (user.zids?.mentor ?? user.mentorId)
-				: (user.zids?.counsellor ?? user.counsellorId);
+		const label = zid ? `${zid.toUpperCase()} · ${displayName}` : displayName;
 
-		return `${displayName} (${roleCode ?? user.id})`;
+		if (mentorId) {
+			return (
+				<Link to={`/mentors/${user.id}`} className="font-semibold text-blue-700 hover:underline">
+					{label}
+				</Link>
+			);
+		}
+
+		return <span className="font-medium text-gray-700">{label}</span>;
+	};
+	/** Selectable row for the counsellor-search list in the Request Demo modal. */
+	const CounsellorOption = ({
+		counsellor,
+		selected,
+		onSelect,
+	}: {
+		counsellor: (typeof allUsers)[number];
+		selected: boolean;
+		onSelect: () => void;
+	}) => {
+		const displayName = counsellor.name || counsellor.username || "Unknown";
+		const zid = counsellor.zids?.counsellor;
+		return (
+			<button
+				type="button"
+				onClick={onSelect}
+				className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+					selected
+						? "border-sky-500 bg-sky-50 ring-1 ring-sky-200"
+						: "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
+				}`}
+			>
+				<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selected ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+					{displayName[0]?.toUpperCase()}
+				</span>
+				<span className="min-w-0 flex-1">
+					<span className="block truncate text-sm font-semibold text-gray-900">{displayName}</span>
+					<span className="block truncate text-xs text-gray-400">
+						{[zid?.toUpperCase(), counsellor.email].filter(Boolean).join(" · ") || "—"}
+					</span>
+				</span>
+				{selected ? <HiCheck className="h-5 w-5 shrink-0 text-sky-600" /> : null}
+			</button>
+		);
 	};
 	const formatTimeValue = (value: string) => {
 		const [hoursText, minutesText] = value.split(":");
@@ -275,9 +347,6 @@ export const LeadDetailPageNew = () => {
 		startTime: string;
 		endTime: string;
 	}>;
-	const preferredPlan = lead?.preferredPlan as
-		| { timesPerWeek: number; durationMinutes: number }
-		| undefined;
 	const demoCount = useMemo(() => lead?.demos?.length ?? 0, [lead?.demos]);
 	const latestDemoMentor = useMemo(
 		() => findUserById(latestDemo?.mentorId ?? null),
@@ -297,6 +366,33 @@ export const LeadDetailPageNew = () => {
 			allUsers.find((user) => user.id === lead?.demoRequestAssignedTo) ?? null,
 		[allUsers, lead?.demoRequestAssignedTo],
 	);
+
+	/** Counsellors with prior history on this lead — surfaced first as quick picks. */
+	const suggestedCounsellors = useMemo(() => {
+		const candidates = [demoRequestAssignedToUser, latestDemoCounsellor];
+		const seen = new Set<string>();
+		const suggestions: typeof counsellors = [];
+		for (const candidate of candidates) {
+			if (!candidate || seen.has(candidate.id)) continue;
+			const match = counsellors.find((c) => c.id === candidate.id);
+			if (!match) continue;
+			seen.add(match.id);
+			suggestions.push(match);
+		}
+		return suggestions;
+	}, [counsellors, demoRequestAssignedToUser, latestDemoCounsellor]);
+
+	const counsellorSearchResults = useMemo(() => {
+		const q = counsellorSearch.trim().toLowerCase();
+		if (!q) return counsellors;
+		return counsellors.filter((c) => {
+			const haystack = [c.name, c.username, c.zids?.counsellor, c.email]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(q);
+		});
+	}, [counsellors, counsellorSearch]);
 
 	useEffect(() => {
 		if (editOpen && lead) {
@@ -716,8 +812,91 @@ export const LeadDetailPageNew = () => {
 				{activeTab === "details" && (
 					<div className="grid gap-6 lg:grid-cols-3">
 						<div className="lg:col-span-2 space-y-6">
+							<SectionCard title="Preferences" icon={HiAdjustmentsHorizontal}>
+								<DetailGrid>
+									<DetailRow
+										label="Course Type"
+										value={
+											lead.courseType
+												? lead.courseType === "GROUP"
+													? "Group"
+													: "Individual"
+												: "-"
+										}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Level"
+										value={lead.level ?? "-"}
+										icon={HiAcademicCap}
+									/>
+									<DetailRow
+										label="Preferred Plan"
+										value={formatPreferredPlanValue(lead.preferredPlan)}
+										icon={HiClock}
+									/>
+									<DetailRow
+										label="Preferred Schedule"
+										value={lead.preferredSchedule ?? "-"}
+										icon={HiCalendarDays}
+									/>
+									<DetailRow
+										label="Preferred Days"
+										value={lead.preferredDays?.join(", ") || "-"}
+										icon={HiCalendarDays}
+									/>
+									<DetailRow
+										label="Preferred Language"
+										value={lead.preferredLanguage ?? "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Demo Availability"
+										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
+										icon={HiClock}
+									/>
+									<DetailRow
+										label="Mentor Gender Preference"
+										value={lead.preferredMentorGender ?? "-"}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Hear About Us"
+										value={lead.hearAboutUs ?? "-"}
+										icon={HiLink}
+									/>
+									{preferredTimeslots.length ? (
+										<DetailRow
+											label="Preferred Timeslots"
+											wide
+											value={
+												<div className="flex flex-wrap gap-1.5">
+													{preferredTimeslots.map((slot, index) => (
+														<span
+															key={`${slot.startTime}-${slot.endTime}-${index}`}
+															className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700"
+														>
+															{formatTimeValue(slot.startTime)} – {formatTimeValue(slot.endTime)}
+														</span>
+													))}
+												</div>
+											}
+										/>
+									) : null}
+									{lead.studentInfo ? (
+										<DetailRow label="Student Info" value={lead.studentInfo} wide />
+									) : null}
+								</DetailGrid>
+							</SectionCard>
+
 							<SectionCard title="Lead Identity" icon={HiUser}>
-								<div className="space-y-3">
+								<DetailGrid>
+									<DetailRow
+										label="Name"
+										value={lead.name ?? "-"}
+										icon={HiUser}
+										wide
+									/>
 									<DetailRow
 										label="SL No"
 										value={lead.slNo ? String(lead.slNo) : "-"}
@@ -739,45 +918,18 @@ export const LeadDetailPageNew = () => {
 										icon={HiUsers}
 									/>
 									<DetailRow
-										label="Assigned To"
-										value={formatUserIdentity(assignedToUser, "mentor")}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Created By"
-										value={lead.createdBy ? (allUsers.find((u) => u.id === lead.createdBy)?.name ?? lead.createdBy) : "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
 										label="Student ID"
-										value={lead.studentId ?? "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Preferred Plan"
-										value={formatPreferredPlanValue(lead.preferredPlan)}
-										icon={HiClock}
-									/>
-									<DetailRow
-										label="Name"
-										value={lead.name ?? "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Level"
-										value={lead.level ?? "-"}
-										icon={HiAcademicCap}
-									/>
-									<DetailRow
-										label="Course Type"
+										wide
 										value={
-											lead.courseType
-												? lead.courseType === "GROUP"
-													? "Group"
-													: "Individual"
-												: "-"
+											lead.studentId ? (
+												<Link to={`/students/${lead.studentId}`} className="font-semibold text-teal-700 hover:underline">
+													View student profile
+												</Link>
+											) : (
+												"-"
+											)
 										}
-										icon={HiUsers}
+										icon={HiUser}
 									/>
 									<DetailRow
 										label="Created On"
@@ -802,11 +954,11 @@ export const LeadDetailPageNew = () => {
 										value={lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
 										icon={HiCheckCircle}
 									/>
-								</div>
+								</DetailGrid>
 							</SectionCard>
 
 							<SectionCard title="Contact Information" icon={HiPhone}>
-								<div className="space-y-3">
+								<DetailGrid>
 									<DetailRow
 										label="Primary WhatsApp"
 										value={lead.primaryWhatsappNumber ?? "-"}
@@ -856,11 +1008,11 @@ export const LeadDetailPageNew = () => {
 										}
 										icon={HiCalendarDays}
 									/>
-								</div>
+								</DetailGrid>
 							</SectionCard>
 
 							<SectionCard title="Form Submission Details" icon={HiCheckCircle}>
-								<div className="space-y-3">
+								<DetailGrid>
 									<DetailRow
 										label="Form Status"
 										value={
@@ -885,121 +1037,43 @@ export const LeadDetailPageNew = () => {
 										value={lead.formCompleted ? "Yes" : "No"}
 										icon={HiCheckCircle}
 									/>
-									<DetailRow
-										label="Preferred Schedule"
-										value={lead.preferredSchedule ?? "-"}
-									/>
-									<DetailRow
-										label="Preferred Days"
-										value={lead.preferredDays?.join(", ") ?? "-"}
-									/>
-									<DetailRow
-										label="Preferred Language"
-										value={lead.preferredLanguage ?? "-"}
-									/>
-									<DetailRow
-										label="Demo Availability"
-										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
-									/>
-									<DetailRow
-										label="Hear About Us"
-										value={lead.hearAboutUs ?? "-"}
-									/>
-									<DetailRow
-										label="Mentor Gender Preference"
-										value={lead.preferredMentorGender ?? "-"}
-									/>
-									{preferredPlan || preferredTimeslots.length ? (
-										<div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-											<p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-												Preferred Plan
-											</p>
-											<div className="space-y-3">
-												{preferredPlan ? (
-													<div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
-														<span className="font-medium text-gray-900">
-															{formatPreferredPlanValue(preferredPlan)}
-														</span>
-													</div>
-												) : null}
-												<div className="space-y-2">
-													{preferredTimeslots.length ? (
-														preferredTimeslots.map((slot, index) => (
-															<div
-																key={`${slot.startTime}-${slot.endTime}-${index}`}
-																className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-															>
-																{formatTimeValue(slot.startTime)} - {formatTimeValue(slot.endTime)}
-															</div>
-														))
-													) : (
-														<div className="text-xs text-gray-500">No timings selected</div>
-													)}
-												</div>
-											</div>
-										</div>
-									) : null}
-									{lead.studentInfo ? (
-										<DetailRow label="Student Info" value={lead.studentInfo} />
-									) : null}
-								</div>
+								</DetailGrid>
 							</SectionCard>
 						</div>
 
 						<div className="space-y-6">
 							<SectionCard title="Next Follow-up" icon={HiClock}>
 								<div className="space-y-3">
-									<DetailRow
-										label="Scheduled For"
-										value={
-											lead.nextFollowUpAt
-												? format(new Date(lead.nextFollowUpAt), "MMM dd, hh:mm a")
-												: "-"
-										}
-										icon={HiCalendarDays}
-									/>
-									{lead.nextFollowUpAt ? (
-										<DetailRow
-											label="Time Remaining"
-											value={formatDistance(
-												new Date(lead.nextFollowUpAt),
-												new Date(),
-												{ addSuffix: true },
-											)}
-											icon={HiClock}
-										/>
-									) : null}
-									<div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3">
-										<p className="text-xs font-semibold text-blue-700">
-											{isPast(new Date(lead.nextFollowUpAt))
-												? "Overdue for follow-up"
-												: "On schedule"}
+									<div className={`rounded-xl border p-4 ${followUpOverdue ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
+										<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Scheduled for</p>
+										<p className="mt-1 text-lg font-bold text-gray-900">
+											{lead.nextFollowUpAt
+												? format(new Date(lead.nextFollowUpAt), "MMM dd, yyyy · hh:mm a")
+												: "Not scheduled"}
 										</p>
+										{lead.nextFollowUpAt ? (
+											<p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold ${followUpOverdue ? "text-rose-700" : "text-blue-700"}`}>
+												<HiClock className="h-3.5 w-3.5" />
+												{followUpOverdue ? "Overdue —" : ""}{" "}
+												{formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true })}
+											</p>
+										) : null}
 									</div>
 								</div>
 							</SectionCard>
 
 							<SectionCard title="Ownership & Assignment" icon={HiUsers}>
-								<div className="space-y-3">
-									<DetailRow
-										label="Created By"
-										value={
-											lead.createdBy
-												? (allUsers.find((user) => user.id === lead.createdBy)?.name ?? lead.createdBy)
-												: "-"
-										}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Sales Owner"
-										value={assignedToUser ? `${assignedToUser.name ?? assignedToUser.username} (${assignedToUser.username})` : "Unassigned"}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Demo Owner"
-										value={demoRequestAssignedToUser ? `${demoRequestAssignedToUser.name ?? demoRequestAssignedToUser.username} (${demoRequestAssignedToUser.username})` : "Not assigned"}
-										icon={HiAcademicCap}
-									/>
+								<div className="space-y-1">
+									{[
+										{ label: "Created By", user: findUserById(lead.createdBy), role: undefined as "mentor" | "counsellor" | "sales" | "admin" | undefined, fallback: "-" },
+										{ label: "Sales Owner", user: assignedToUser, role: "sales" as const, fallback: "Unassigned" },
+										{ label: "Demo Owner", user: demoRequestAssignedToUser, role: "counsellor" as const, fallback: "Not assigned" },
+									].map((row) => (
+										<div key={row.label} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{row.label}</span>
+											<UserIdentity user={row.user} role={row.role} fallback={row.fallback} />
+										</div>
+									))}
 								</div>
 							</SectionCard>
 
@@ -1008,27 +1082,22 @@ export const LeadDetailPageNew = () => {
 									title="Current Demo Assignment"
 									icon={HiAcademicCap}
 								>
-									<div className="space-y-3">
-										<DetailRow
-											label="Mentor"
-											value={formatUserIdentity(latestDemoMentor, "mentor")}
-											icon={HiUser}
-										/>
-										<DetailRow
-											label="Counsellor"
-											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
-											icon={HiUser}
-										/>
-										{lead.nextFollowUpAt ? (
-											<DetailRow
-												label="Next Follow-up"
-												value={formatDistance(
-													new Date(lead.nextFollowUpAt),
-													new Date(),
-													{ addSuffix: true },
-												)}
-												icon={HiClock}
-											/>
+									<div className="space-y-1">
+										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mentor</span>
+											<UserIdentity user={latestDemoMentor} role="mentor" />
+										</div>
+										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Counsellor</span>
+											<UserIdentity user={latestDemoCounsellor} role="counsellor" />
+										</div>
+										{latestDemo.demoScheduledFor ? (
+											<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+												<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Scheduled For</span>
+												<span className="text-sm font-semibold text-gray-900">
+													{format(new Date(latestDemo.demoScheduledFor), "MMM dd, hh:mm a")}
+												</span>
+											</div>
 										) : null}
 									</div>
 								</SectionCard>
@@ -1072,16 +1141,15 @@ export const LeadDetailPageNew = () => {
 												</div>
 											</div>
 											<div className="flex gap-6 text-sm text-gray-700">
-												<div>
-													Mentor:{" "}
-													{formatUserIdentity(findUserById(demo.mentorId), "mentor")}
+												<div className="flex items-center gap-1.5">
+													Mentor: <UserIdentity user={findUserById(demo.mentorId)} role="mentor" />
 												</div>
-												<div>
+												<div className="flex items-center gap-1.5">
 													Counsellor:{" "}
-													{formatUserIdentity(
-														findUserById(findUserById(demo.mentorId)?.counsellorId ?? null),
-														"counsellor",
-													)}
+													<UserIdentity
+														user={findUserById(findUserById(demo.mentorId)?.counsellorId ?? null)}
+														role="counsellor"
+													/>
 												</div>
 											</div>
 											<div className="text-sm text-gray-600 text-right">
@@ -1609,13 +1677,13 @@ export const LeadDetailPageNew = () => {
 
 			<Modal
 				open={requestDemoOpen}
-				onClose={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); }}
+				onClose={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); setCounsellorSearch(""); }}
 				title="Request demo and assign counsellor"
 				footer={
 					<>
 						<button
 							type="button"
-							onClick={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); }}
+							onClick={() => { setRequestDemoOpen(false); setSelectedCounsellorId(""); setCounsellorSearch(""); }}
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 						>
 							Cancel
@@ -1640,18 +1708,60 @@ export const LeadDetailPageNew = () => {
 							No counsellors available
 						</div>
 					) : (
-						<select
-							value={selectedCounsellorId}
-							onChange={(e) => setSelectedCounsellorId(e.target.value)}
-							className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
-						>
-							<option value="" disabled>Select counsellor</option>
-							{counsellors.map((c) => (
-								<option key={c.id} value={c.id}>
-									{c.zids?.counsellor ? `${c.zids.counsellor} - ${c.name ?? c.username}` : (c.name || c.username)}
-								</option>
-							))}
-						</select>
+						<>
+							<div className="relative">
+								<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								<input
+									type="text"
+									value={counsellorSearch}
+									onChange={(e) => setCounsellorSearch(e.target.value)}
+									placeholder="Search counsellors by name, ZID, or email…"
+									className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+								/>
+							</div>
+
+							<div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+								{!counsellorSearch.trim() && suggestedCounsellors.length > 0 ? (
+									<div className="space-y-1.5">
+										<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+											Suggested — previously involved with this lead
+										</p>
+										<div className="space-y-1.5">
+											{suggestedCounsellors.map((c) => (
+												<CounsellorOption
+													key={c.id}
+													counsellor={c}
+													selected={selectedCounsellorId === c.id}
+													onSelect={() => setSelectedCounsellorId(c.id)}
+												/>
+											))}
+										</div>
+									</div>
+								) : null}
+
+								<div className="space-y-1.5">
+									{!counsellorSearch.trim() && suggestedCounsellors.length > 0 ? (
+										<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+											All counsellors
+										</p>
+									) : null}
+									{counsellorSearchResults.length === 0 ? (
+										<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-sm text-slate-500">
+											No counsellors match "{counsellorSearch}"
+										</div>
+									) : (
+										counsellorSearchResults.map((c) => (
+											<CounsellorOption
+												key={c.id}
+												counsellor={c}
+												selected={selectedCounsellorId === c.id}
+												onSelect={() => setSelectedCounsellorId(c.id)}
+											/>
+										))
+									)}
+								</div>
+							</div>
+						</>
 					)}
 				</div>
 			</Modal>

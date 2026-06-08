@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { HiCalendarDays, HiClipboardDocumentList } from "react-icons/hi2";
+import { HiCalendarDays, HiCheck, HiClipboardDocumentList, HiMagnifyingGlass } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import { Modal } from "@/components/dashboard-ui";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -29,6 +29,42 @@ function ordinal(n: number): string {
 	return `${n}th`;
 }
 
+/** Selectable row for the mentor-search list in the Assign Mentor modal. */
+const MentorOption = ({
+	mentor,
+	selected,
+	onSelect,
+}: {
+	mentor: { id: string; name?: string | null; username?: string | null; email?: string | null; zids?: { mentor?: string } | null };
+	selected: boolean;
+	onSelect: () => void;
+}) => {
+	const displayName = mentor.name || mentor.username || "Unknown";
+	const zid = mentor.zids?.mentor;
+	return (
+		<button
+			type="button"
+			onClick={onSelect}
+			className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+				selected
+					? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-200"
+					: "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/40"
+			}`}
+		>
+			<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selected ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+				{displayName[0]?.toUpperCase()}
+			</span>
+			<span className="min-w-0 flex-1">
+				<span className="block truncate text-sm font-semibold text-gray-900">{displayName}</span>
+				<span className="block truncate text-xs text-gray-400">
+					{[zid?.toUpperCase(), mentor.email].filter(Boolean).join(" · ") || "—"}
+				</span>
+			</span>
+			{selected ? <HiCheck className="h-5 w-5 shrink-0 text-emerald-600" /> : null}
+		</button>
+	);
+};
+
 export const UnassignedDemosPage = () => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
@@ -45,6 +81,7 @@ export const UnassignedDemosPage = () => {
 	const [selectedRequirements, setSelectedRequirements] = useState<LeadResponse | null>(null);
 	const [viewScope, setViewScope] = useState<"mine" | "all">(canViewMine ? "mine" : "all");
 	const [search, setSearch] = useState("");
+	const [mentorSearch, setMentorSearch] = useState("");
 
 	const canToggleScope = canViewMine && canViewAll;
 	const demosQuery = usePendingDemoRequestsQuery(token, viewScope === "all" || !canViewMine);
@@ -89,6 +126,36 @@ export const UnassignedDemosPage = () => {
 	const mentors = usersQuery.data?.users.filter((u) =>
 		u.roles?.some((r) => (r.type ?? "admin") === "mentor"),
 	) ?? [];
+
+	/** Mentor previously assigned to this lead's demos — surfaced first as a quick pick. */
+	const suggestedMentors = useMemo(() => {
+		if (!selectedDemo) return [];
+		const candidateIds = selectedDemo.demos
+			.map((d) => d.mentorId)
+			.filter((id): id is string => Boolean(id));
+		const seen = new Set<string>();
+		const suggestions: typeof mentors = [];
+		for (const id of candidateIds.reverse()) {
+			if (seen.has(id)) continue;
+			const match = mentors.find((m) => m.id === id);
+			if (!match) continue;
+			seen.add(id);
+			suggestions.push(match);
+		}
+		return suggestions;
+	}, [mentors, selectedDemo]);
+
+	const mentorSearchResults = useMemo(() => {
+		const q = mentorSearch.trim().toLowerCase();
+		if (!q) return mentors;
+		return mentors.filter((m) => {
+			const haystack = [m.name, m.username, m.zids?.mentor, m.email]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(q);
+		});
+	}, [mentors, mentorSearch]);
 
 	const userNameById = useMemo(() => new Map(
 		(usersQuery.data?.users ?? []).map((u) => [u.id, u.name || u.username]),
@@ -249,10 +316,10 @@ export const UnassignedDemosPage = () => {
 				open={assignOpen}
 				title="Assign Mentor for Demo"
 				description={selectedDemo ? `Demo for ${selectedDemo.name ?? selectedDemo.phone}` : ""}
-				onClose={() => { setAssignOpen(false); setSelectedDemo(null); reset(); }}
+				onClose={() => { setAssignOpen(false); setSelectedDemo(null); setMentorSearch(""); reset(); }}
 				footer={
 					<>
-						<button type="button" onClick={() => { setAssignOpen(false); setSelectedDemo(null); reset(); }}
+						<button type="button" onClick={() => { setAssignOpen(false); setSelectedDemo(null); setMentorSearch(""); reset(); }}
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">
 							Cancel
 						</button>
@@ -269,18 +336,70 @@ export const UnassignedDemosPage = () => {
 				<form className="grid gap-4" onSubmit={onAssignMentor}>
 					<Controller name="mentorId" control={control} rules={{ required: "Mentor is required" }}
 						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
+							<div className="grid gap-2 text-sm font-medium text-gray-600">
 								<span>Select Mentor</span>
-								<select {...field} className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100">
-									<option value="">Choose a mentor…</option>
-									{mentors.map((m) => (
-										<option key={m.id} value={m.id}>
-											{m.zids?.mentor ? `${m.zids.mentor} - ${m.name || m.username}` : m.name || m.username}
-										</option>
-									))}
-								</select>
+								{mentors.length === 0 ? (
+									<div className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+										No mentors available
+									</div>
+								) : (
+									<>
+										<div className="relative">
+											<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+											<input
+												type="text"
+												value={mentorSearch}
+												onChange={(e) => setMentorSearch(e.target.value)}
+												placeholder="Search mentors by name, ZID, or email…"
+												className="w-full rounded-2xl border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+											/>
+										</div>
+
+										<div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+											{!mentorSearch.trim() && suggestedMentors.length > 0 ? (
+												<div className="space-y-1.5">
+													<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+														Suggested — previously involved with this lead
+													</p>
+													<div className="space-y-1.5">
+														{suggestedMentors.map((m) => (
+															<MentorOption
+																key={m.id}
+																mentor={m}
+																selected={field.value === m.id}
+																onSelect={() => field.onChange(m.id)}
+															/>
+														))}
+													</div>
+												</div>
+											) : null}
+
+											<div className="space-y-1.5">
+												{!mentorSearch.trim() && suggestedMentors.length > 0 ? (
+													<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+														All mentors
+													</p>
+												) : null}
+												{mentorSearchResults.length === 0 ? (
+													<div className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-center text-sm text-gray-500">
+														No mentors match "{mentorSearch}"
+													</div>
+												) : (
+													mentorSearchResults.map((m) => (
+														<MentorOption
+															key={m.id}
+															mentor={m}
+															selected={field.value === m.id}
+															onSelect={() => field.onChange(m.id)}
+														/>
+													))
+												)}
+											</div>
+										</div>
+									</>
+								)}
 								{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
-							</label>
+							</div>
 						)}
 					/>
 					<Controller name="demoScheduledFor" control={control}

@@ -150,10 +150,9 @@ export const StudentProcessesPage = () => {
 					<table className="w-full text-sm">
 						<thead>
 							<tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-								<th className="px-4 py-3">Type</th>
-								<th className="px-4 py-3">Process</th>
 								<th className="px-4 py-3">Student</th>
-								<th className="px-4 py-3">Tasks</th>
+								<th className="px-4 py-3">Process</th>
+								<th className="px-4 py-3">Type</th>
 								<th className="px-4 py-3">Progress</th>
 								<th className="px-4 py-3" />
 							</tr>
@@ -170,18 +169,6 @@ export const StudentProcessesPage = () => {
 								return (
 									<tr key={process.id} className="hover:bg-gray-50">
 										<td className="px-4 py-3">
-											<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.badge}`}>
-												<meta.Icon className="h-3 w-3 shrink-0" />
-												{kind.charAt(0).toUpperCase() + kind.slice(1)}
-											</span>
-										</td>
-										<td className="px-4 py-3">
-											<Link to={`/processes/${process.id}`} className="font-medium text-gray-800 hover:text-emerald-700">
-												{process.label}
-											</Link>
-											<p className="text-xs text-gray-400">{timeAgo(process.createdAt as any)}</p>
-										</td>
-										<td className="px-4 py-3">
 											<Link to={`/students/${process.student.id}`} className="font-medium text-gray-800 hover:text-emerald-700">
 												{process.student.zid}
 											</Link>
@@ -193,8 +180,17 @@ export const StudentProcessesPage = () => {
 												</span>
 											) : null}
 										</td>
-										<td className="px-4 py-3 text-gray-600">
-											{completedCount}/{process.tasks.length}
+										<td className="px-4 py-3">
+											<Link to={`/processes/${process.id}`} className="font-medium text-gray-800 hover:text-emerald-700">
+												{process.label}
+											</Link>
+											<p className="text-xs text-gray-400">{timeAgo(process.createdAt as any)}</p>
+										</td>
+										<td className="px-4 py-3">
+											<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.badge}`}>
+												<meta.Icon className="h-3 w-3 shrink-0" />
+												{kind.charAt(0).toUpperCase() + kind.slice(1)}
+											</span>
 										</td>
 										<td className="px-4 py-3">
 											<div className="flex items-center gap-2">

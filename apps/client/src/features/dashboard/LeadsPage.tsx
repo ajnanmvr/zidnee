@@ -13,6 +13,8 @@ import {
 	HiAcademicCap,
 	HiArrowPath,
 	HiCalendarDays,
+	HiCheck,
+	HiMagnifyingGlass,
 	HiPlusCircle,
 	HiPencilSquare,
 	HiTrash,
@@ -80,6 +82,42 @@ const isCounsellorRole = (roleType: string) => roleType === "counsellor";
 
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
+
+/** Selectable row for the counsellor-search list in the Request Demo modal. */
+const CounsellorOption = ({
+	counsellor,
+	selected,
+	onSelect,
+}: {
+	counsellor: { id: string; name?: string | null; username?: string | null; email?: string | null; zids?: { counsellor?: string } | null };
+	selected: boolean;
+	onSelect: () => void;
+}) => {
+	const displayName = counsellor.name || counsellor.username || "Unknown";
+	const zid = counsellor.zids?.counsellor;
+	return (
+		<button
+			type="button"
+			onClick={onSelect}
+			className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+				selected
+					? "border-sky-500 bg-sky-50 ring-1 ring-sky-200"
+					: "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
+			}`}
+		>
+			<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selected ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+				{displayName[0]?.toUpperCase()}
+			</span>
+			<span className="min-w-0 flex-1">
+				<span className="block truncate text-sm font-semibold text-gray-900">{displayName}</span>
+				<span className="block truncate text-xs text-gray-400">
+					{[zid?.toUpperCase(), counsellor.email].filter(Boolean).join(" · ") || "—"}
+				</span>
+			</span>
+			{selected ? <HiCheck className="h-5 w-5 shrink-0 text-sky-600" /> : null}
+		</button>
+	);
+};
 
 export const LeadsPage = () => {
 	const { token } = useSession();
@@ -220,6 +258,7 @@ export const LeadsPage = () => {
 	const [selectedRequestCounsellor, setSelectedRequestCounsellor] = useState<
 		string | undefined
 	>(undefined);
+	const [counsellorSearch, setCounsellorSearch] = useState("");
 	const [selectedDuration, setSelectedDuration] = useState<number | null>(1);
 	const isRequestingDemo =
 		updateLeadMutation.isPending || requestDemoMutation.isPending;
@@ -369,6 +408,18 @@ export const LeadsPage = () => {
 		[counsellorsQuery.data, combinedUsers],
 	);
 
+	const counsellorSearchResults = useMemo(() => {
+		const q = counsellorSearch.trim().toLowerCase();
+		if (!q) return counsellors;
+		return counsellors.filter((c: any) => {
+			const haystack = [c.name, c.username, c.zids?.counsellor, c.email]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(q);
+		});
+	}, [counsellors, counsellorSearch]);
+
 	const closeAdmissionModal = () => {
 		setAdmissionLeadId(null);
 		setSelectedAdmissionMentorId(null);
@@ -392,6 +443,20 @@ export const LeadsPage = () => {
 	const currentUserId = meQuery.data?.id;
 	const scopeLeads = activeLeadsQuery.data?.leads ?? [];
 	const pagination = activeLeadsQuery.data?.pagination;
+
+	const requestDemoLead = useMemo(
+		() => scopeLeads.find((l) => l.id === requestDemoLeadId) ?? null,
+		[scopeLeads, requestDemoLeadId],
+	);
+
+	/** Counsellor already tied to this lead's demo — surfaced first as a quick pick. */
+	const suggestedCounsellors = useMemo(() => {
+		const assignedId = requestDemoLead?.demoRequestAssignedTo;
+		if (!assignedId) return [];
+		const match = counsellors.find((c) => c.id === assignedId);
+		return match ? [match] : [];
+	}, [counsellors, requestDemoLead?.demoRequestAssignedTo]);
+
 	const activeStageDefinition = leadStageDefinitions.find(
 		(stage) => stage.id === activeStage,
 	);
@@ -490,15 +555,18 @@ export const LeadsPage = () => {
 	const onCreateLead = async (payload: CreateLeadForm) => {
 		const validation = CreateLeadPayloadSchema.safeParse(payload);
 		if (!validation.success) {
-			toast.error("Validation failed");
+			toast.error(validation.error.issues[0]?.message ?? "Validation failed");
 			return;
 		}
 
 		try {
-			await createLeadMutation.mutateAsync(validation.data);
+			const result = await createLeadMutation.mutateAsync(validation.data);
 			toast.success("Lead created successfully.");
 			resetCreate();
 			setCreateOpen(false);
+			if (result?.lead?.id) {
+				navigate(`/leads/${result.lead.id}`);
+			}
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Unable to create lead");
@@ -1315,8 +1383,46 @@ export const LeadsPage = () => {
 
 			<Modal
 				open={requestDemoOpen}
-				onClose={() => setRequestDemoOpen(false)}
+				onClose={() => {
+					setRequestDemoOpen(false);
+					setRequestDemoLeadId(null);
+					setSelectedRequestCounsellor(undefined);
+					setCounsellorSearch("");
+				}}
 				title="Request demo and assign counsellor"
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setRequestDemoOpen(false);
+								setRequestDemoLeadId(null);
+								setSelectedRequestCounsellor(undefined);
+								setCounsellorSearch("");
+							}}
+							disabled={isRequestingDemo}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void confirmRequestDemo()}
+							disabled={!selectedRequestCounsellor || isRequestingDemo}
+							className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+							aria-busy={isRequestingDemo}
+						>
+							{isRequestingDemo ? (
+								<>
+									<HiArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
+									<span>Requesting...</span>
+								</>
+							) : (
+								"Request Demo"
+							)}
+						</button>
+					</>
+				}
 			>
 				<div className="space-y-4">
 					<p className="text-sm text-slate-600">
@@ -1327,47 +1433,61 @@ export const LeadsPage = () => {
 							No counsellors available
 						</div>
 					) : (
-						<select
-							value={selectedRequestCounsellor ?? ""}
-							onChange={(e) => setSelectedRequestCounsellor(e.target.value)}
-							className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2"
-						>
-							<option value="" disabled>
-								Select counsellor
-							</option>
-							{counsellors.map((c) => (
-								<option key={c.id} value={c.id}>
-									{c.zids?.counsellor ? `${c.zids.counsellor} - ${c.name ?? c.username}` : c.name || c.username}
-								</option>
-							))}
-						</select>
+						<>
+							<div className="relative">
+								<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								<input
+									type="text"
+									value={counsellorSearch}
+									onChange={(e) => setCounsellorSearch(e.target.value)}
+									placeholder="Search counsellors by name, ZID, or email…"
+									className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+								/>
+							</div>
+
+							<div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+								{!counsellorSearch.trim() && suggestedCounsellors.length > 0 ? (
+									<div className="space-y-1.5">
+										<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+											Suggested — previously assigned to this lead
+										</p>
+										<div className="space-y-1.5">
+											{suggestedCounsellors.map((c) => (
+												<CounsellorOption
+													key={c.id}
+													counsellor={c}
+													selected={selectedRequestCounsellor === c.id}
+													onSelect={() => setSelectedRequestCounsellor(c.id)}
+												/>
+											))}
+										</div>
+									</div>
+								) : null}
+
+								<div className="space-y-1.5">
+									{!counsellorSearch.trim() && suggestedCounsellors.length > 0 ? (
+										<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+											All counsellors
+										</p>
+									) : null}
+									{counsellorSearchResults.length === 0 ? (
+										<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-sm text-slate-500">
+											No counsellors match "{counsellorSearch}"
+										</div>
+									) : (
+										counsellorSearchResults.map((c) => (
+											<CounsellorOption
+												key={c.id}
+												counsellor={c}
+												selected={selectedRequestCounsellor === c.id}
+												onSelect={() => setSelectedRequestCounsellor(c.id)}
+											/>
+										))
+									)}
+								</div>
+							</div>
+						</>
 					)}
-					<div className="flex justify-end gap-2">
-						<button
-							type="button"
-							onClick={() => setRequestDemoOpen(false)}
-							disabled={isRequestingDemo}
-							className="rounded-2xl border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							Cancel
-						</button>
-						<button
-							type="button"
-							onClick={confirmRequestDemo}
-							disabled={!selectedRequestCounsellor || isRequestingDemo}
-							className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
-							aria-busy={isRequestingDemo}
-						>
-							{isRequestingDemo ? (
-								<>
-									<HiArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
-									<span>Requesting...</span>
-								</>
-							) : (
-								"Confirm"
-							)}
-						</button>
-					</div>
 				</div>
 			</Modal>
 

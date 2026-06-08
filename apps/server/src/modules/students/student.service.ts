@@ -3,7 +3,6 @@ import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
 import { Types } from "mongoose";
 import { AppError } from "../../utils/errors.util.js";
 import { ReminderService } from "../reminders/reminder.service.js";
-import { LeadActivityModel } from "../leads/activity.model.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { BatchModel } from "./batch.model.js";
@@ -1013,11 +1012,16 @@ export const StudentService = {
 				note,
 			});
 
-			// Delete all activities for this lead
-			await LeadActivityModel.deleteMany({ leadId });
-
-			// Delete the lead
-			await LeadModel.findByIdAndDelete(leadId);
+			// Mark the lead as converted instead of deleting it — keeps the lead
+			// record and its activity history intact for the Converted Leads view.
+			// Clear its follow-up since a converted lead no longer needs one.
+			await LeadModel.findByIdAndUpdate(leadId, {
+				$set: {
+					status: "CONVERTED",
+					studentId: updatedExisting._id.toString(),
+				},
+				$unset: { nextFollowUpAt: 1 },
+			});
 
 			return toStudent((syncedStudent ?? updatedExisting) as StudentDocument);
 		}
@@ -1066,14 +1070,19 @@ export const StudentService = {
 			admittedAt,
 		});
 
-		// Move admission info to top-level lead fields
+		// Move admission info to top-level lead fields and mark the lead as
+		// converted instead of deleting it — keeps the lead record and its
+		// activity history intact for the Converted Leads view. Clear its
+		// follow-up since a converted lead no longer needs one.
 		await LeadModel.findByIdAndUpdate(leadId, {
 			$set: {
 				formSent: true,
 				formCompleted: true,
 				admissionRequestedAt: admittedAt,
 				studentId: createdStudent._id.toString(),
+				status: "CONVERTED",
 			},
+			$unset: { nextFollowUpAt: 1 },
 		});
 
 		const syncedStudent = await syncStudentProcess(
@@ -1118,12 +1127,6 @@ export const StudentService = {
 				note,
 			);
 		}
-
-		// Delete all activities for this lead
-		await LeadActivityModel.deleteMany({ leadId });
-
-		// Delete the lead
-		await LeadModel.findByIdAndDelete(leadId);
 
 		return toStudent(
 			(syncedStudent ?? createdStudent.toObject()) as StudentDocument,

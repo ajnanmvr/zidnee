@@ -21,8 +21,8 @@ const PhoneNumberSchema = z.preprocess(
 		typeof value === "string" ? value.trim().replace(/[\s\-().]/g, "") : value,
 	z
 		.string()
-		.min(8)
-		.max(20)
+		.min(8, "Phone number must be at least 8 digits")
+		.max(20, "Phone number must be at most 20 digits")
 		.regex(/^[+]?\d{8,20}$/, "Enter a valid phone number with country code"),
 );
 
