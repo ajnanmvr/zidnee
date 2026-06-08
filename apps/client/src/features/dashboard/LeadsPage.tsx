@@ -31,6 +31,7 @@ import { fetchSimilarLeads } from "@/features/leads/leads.service";
 import { getLatestLeadDemo } from "@/features/dashboard/lead-demo-utils";
 import { formatUserName } from "@/features/dashboard/lead-table";
 import { LeadTableView } from "@/features/leads/LeadTableView";
+import { AllLeadsListView } from "@/features/leads/AllLeadsListView";
 import {
 	type LeadStageId,
 	leadStageDefinitions,
@@ -999,7 +1000,7 @@ export const LeadsPage = () => {
 
 			{/* Stage navigation */}
 			<div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1">
-				{leadStageDefinitions.map((stage) => {
+				{leadStageDefinitions.filter((stage) => stage.id !== "demoCompleted").map((stage) => {
 					const isActive = stage.id === activeStage;
 					const STAGE_PILL_COLOR: Record<string, string> = {
 						all:           "text-teal-700",
@@ -1058,12 +1059,16 @@ export const LeadsPage = () => {
 					<p className="py-8 text-center text-sm text-gray-400">Unable to load leads.</p>
 				) : (
 					<>
-						<LeadTableView
-							leads={scopeLeads}
-							activeStage={activeStage}
-							userNameById={userNameById}
-							getActions={getActions}
-						/>
+						{activeStage === "all" ? (
+							<AllLeadsListView leads={scopeLeads} />
+						) : (
+							<LeadTableView
+								leads={scopeLeads}
+								activeStage={activeStage}
+								userNameById={userNameById}
+								getActions={getActions}
+							/>
+						)}
 						{pagination ? (
 							<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
 								<p className="text-xs text-gray-400">

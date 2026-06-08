@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { HiAcademicCap } from "react-icons/hi2";
 import { Modal } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { StudentTableView, type StudentTableRow } from "@/features/students/StudentTableView";
@@ -27,9 +28,12 @@ export const StudentsPage = () => {
 	const canUpdateStudent = useHasPermission("STUDENT_UPDATE");
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllStudents ? "all" : "mine";
 
+	const courseTypeFilter = courseTab === "group" ? "GROUP" : courseTab === "individual" ? "INDIVIDUAL" : undefined;
+
 	const studentsQuery = useStudentsQuery(token, {
 		scope: activeScope,
 		status: "STUDENT",
+		courseType: courseTypeFilter,
 		search: searchTerm || undefined,
 		sortBy,
 		sortOrder,
@@ -64,8 +68,6 @@ export const StudentsPage = () => {
 			.filter((s) => {
 				const hasProcess = Boolean(s.processId || s.processLabel);
 				if (!showProcessStudents && hasProcess) return false;
-				if (courseTab === "group") return s.courseType === "GROUP";
-				if (courseTab === "individual") return s.courseType === "INDIVIDUAL";
 				return true;
 			})
 			.map((s) => ({
@@ -74,7 +76,7 @@ export const StudentsPage = () => {
 				nextFollowUpAt: s.nextFollowUpAt ? new Date(s.nextFollowUpAt) : undefined,
 				customNextFollowUpAt: s.customNextFollowUpAt ? new Date(s.customNextFollowUpAt) : undefined,
 			})) as unknown as StudentTableRow[];
-	}, [showProcessStudents, courseTab, studentsQuery.data?.students]);
+	}, [showProcessStudents, studentsQuery.data?.students]);
 
 	const mentorNameById = useMemo(() => {
 		const map: Record<string, string> = {};
@@ -118,23 +120,22 @@ export const StudentsPage = () => {
 	const totalPages = (studentsQuery.data as any)?.pagination?.totalPages ?? 1;
 	const totalCount = (studentsQuery.data as any)?.pagination?.total ?? filteredStudents.length;
 
-	const COURSE_TABS: { id: CourseTab; label: string; count: number }[] = [
-		{ id: "all", label: "All Active", count: allActive.length },
-		{ id: "group", label: "Group", count: groupCount },
-		{ id: "individual", label: "Individual", count: individualCount },
-	];
-
 	return (
 		<div className="space-y-3">
 			{/* Page header */}
 			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
-				<div>
-					<h1 className="text-lg font-bold text-gray-900">Students</h1>
-					<p className="mt-0.5 text-sm text-gray-500">
-						{allActive.length > 0 ? `${allActive.length} active` : "No active students"}
-						{groupCount > 0 ? ` · ${groupCount} group` : ""}
-						{individualCount > 0 ? ` · ${individualCount} individual` : ""}
-					</p>
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100">
+						<HiAcademicCap className="h-5 w-5 text-teal-600" />
+					</div>
+					<div>
+						<h1 className="text-lg font-bold text-gray-900">Students</h1>
+						<p className="mt-0.5 text-sm text-gray-500">
+							{allActive.length > 0 ? `${allActive.length} active` : "No active students"}
+							{groupCount > 0 ? ` · ${groupCount} group` : ""}
+							{individualCount > 0 ? ` · ${individualCount} individual` : ""}
+						</p>
+					</div>
 				</div>
 				<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
 					<button
@@ -155,28 +156,10 @@ export const StudentsPage = () => {
 				</div>
 			</div>
 
-			{/* Course type tabs + shortcuts */}
-			<div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
-				{COURSE_TABS.map((tab) => {
-					const isActive = courseTab === tab.id;
-					return (
-						<button
-							key={tab.id}
-							type="button"
-							onClick={() => { setQueryParam("type", tab.id === "all" ? undefined : tab.id); setQueryParam("page", undefined); }}
-							className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition ${isActive ? "bg-white text-teal-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-						>
-							{tab.label}
-							{tab.count > 0
-								? <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-bold ${isActive ? "bg-teal-100 text-teal-700" : "bg-gray-200 text-gray-600"}`}>{tab.count}</span>
-								: null}
-						</button>
-					);
-				})}
-				<div className="ml-auto flex items-center gap-1 px-1">
-					<Link to="/students/break" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-amber-300 hover:text-amber-700">On Break</Link>
-					<Link to="/students/dropped" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-rose-300 hover:text-rose-600">Dropped</Link>
-				</div>
+			{/* Shortcuts */}
+			<div className="flex items-center justify-end gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+				<Link to="/students/break" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-amber-300 hover:text-amber-700">On Break</Link>
+				<Link to="/students/dropped" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-rose-300 hover:text-rose-600">Dropped</Link>
 			</div>
 
 			{/* Toolbar – search + process toggle + sort */}

@@ -1,12 +1,15 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HiAcademicCap, HiArrowPath, HiMagnifyingGlass, HiMinusCircle, HiUserPlus } from "react-icons/hi2";
+import toast from "react-hot-toast";
+import { HiAcademicCap, HiArrowPath, HiExclamationTriangle, HiMagnifyingGlass, HiMinusCircle, HiTrash, HiUserPlus } from "react-icons/hi2";
 import {
 	useStudentProcessesQuery,
 	useCompleteProcessMutation,
+	useDeleteProcessMutation,
 } from "@/features/students/students.queries";
 import { useSession } from "@/lib/session";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { ApiError } from "@/api/request";
 
 type ProcessKind = "admission" | "drop" | "change" | "other";
 
@@ -67,6 +70,7 @@ export const StudentProcessesPage = () => {
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllProcesses ? "all" : "mine";
 	const processesQuery = useStudentProcessesQuery(token, { scope: activeScope });
 	const completeProcess = useCompleteProcessMutation();
+	const deleteProcess = useDeleteProcessMutation();
 	const [searchTerm, setSearchTerm] = useState("");
 
 	const allProcesses = processesQuery.data?.processes ?? [];
@@ -162,6 +166,7 @@ export const StudentProcessesPage = () => {
 									: 0;
 								const kind = getProcessKind(process.label);
 								const meta = PROCESS_KIND_META[kind];
+								const isDroppedStudent = process.student.status === "DROPPED";
 								return (
 									<tr key={process.id} className="hover:bg-gray-50">
 										<td className="px-4 py-3">
@@ -181,6 +186,12 @@ export const StudentProcessesPage = () => {
 												{process.student.zid}
 											</Link>
 											<p className="text-xs text-gray-400">{process.student.name ?? process.student.phone}</p>
+											{isDroppedStudent ? (
+												<span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600">
+													<HiExclamationTriangle className="h-3 w-3 shrink-0" />
+													Dropped student
+												</span>
+											) : null}
 										</td>
 										<td className="px-4 py-3 text-gray-600">
 											{completedCount}/{process.tasks.length}
@@ -197,28 +208,54 @@ export const StudentProcessesPage = () => {
 											</div>
 										</td>
 										<td className="px-4 py-3 text-right">
-											{progress === 100 ? (
-												<button
-													type="button"
-													onClick={async () => {
-														if (confirm("Mark this process as completed?")) {
-															await completeProcess.mutateAsync({ processId: process.id });
-															navigate("/processes");
-														}
-													}}
-													disabled={completeProcess.isPending}
-													className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-												>
-													Complete
-												</button>
-											) : (
-												<Link
-													to={`/processes/${process.id}`}
-													className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-600 hover:border-emerald-300 hover:text-emerald-700"
-												>
-													View
-												</Link>
-											)}
+											<div className="flex items-center justify-end gap-2">
+												{isDroppedStudent ? (
+													<button
+														type="button"
+														onClick={async () => {
+															if (confirm("This student has been dropped. Delete this process?")) {
+																try {
+																	await deleteProcess.mutateAsync({ processId: process.id });
+																	toast.success("Process deleted");
+																} catch (error) {
+																	toast.error(
+																		error instanceof ApiError
+																			? (error.payload.message ?? "Unable to delete process")
+																			: error instanceof Error ? error.message : "Unable to delete process",
+																	);
+																}
+															}
+														}}
+														disabled={deleteProcess.isPending}
+														className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+													>
+														<HiTrash className="h-3.5 w-3.5" />
+														Delete
+													</button>
+												) : null}
+												{progress === 100 ? (
+													<button
+														type="button"
+														onClick={async () => {
+															if (confirm("Mark this process as completed?")) {
+																await completeProcess.mutateAsync({ processId: process.id });
+																navigate("/processes");
+															}
+														}}
+														disabled={completeProcess.isPending}
+														className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+													>
+														Complete
+													</button>
+												) : (
+													<Link
+														to={`/processes/${process.id}`}
+														className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-600 hover:border-emerald-300 hover:text-emerald-700"
+													>
+														View
+													</Link>
+												)}
+											</div>
 										</td>
 									</tr>
 								);

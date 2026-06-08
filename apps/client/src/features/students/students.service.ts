@@ -15,23 +15,28 @@ export const fetchStudents = async (
 	token: string,
 	options?: {
 		status?: string;
+		courseType?: string;
 		search?: string;
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
 		page?: number;
 		limit?: number;
 		scope?: "mine" | "all";
+		/** Powers the "Converted Leads" mine/all scope: "me" restricts to leads converted by the current user, "all" lists every converted lead (gated by lead-read permissions, bypassing STUDENT_READ_ALL). */
+		admittedBy?: "me" | "all";
 	},
 ) => {
 	const query = new URLSearchParams();
 
 	if (options?.status) query.set("status", options.status);
+	if (options?.courseType) query.set("courseType", options.courseType);
 	if (options?.search) query.set("search", options.search);
 	if (options?.sortBy) query.set("sortBy", options.sortBy);
 	if (options?.sortOrder) query.set("sortOrder", options.sortOrder);
 	if (options?.page) query.set("page", String(options.page));
 	if (options?.limit) query.set("limit", String(options.limit));
 	if (options?.scope) query.set("scope", options.scope);
+	if (options?.admittedBy) query.set("admittedBy", options.admittedBy);
 
 	return requestWithSchema(
 		`/students${query.toString() ? `?${query.toString()}` : ""}`,
@@ -175,6 +180,16 @@ export const completeStudentProcess = async (token: string, processId: string) =
 		`/students/processes/${processId}/complete`,
 		MessageResponseSchema,
 		"POST",
+		undefined,
+		token,
+	);
+};
+
+export const deleteStudentProcess = async (token: string, processId: string) => {
+	return requestWithSchema(
+		`/students/processes/${processId}`,
+		MessageResponseSchema,
+		"DELETE",
 		undefined,
 		token,
 	);

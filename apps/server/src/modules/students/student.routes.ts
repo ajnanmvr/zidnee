@@ -14,6 +14,7 @@ import {
 	markStudentProcessTaskController,
 	setStudentProcessTaskCompletionController,
 	completeStudentProcessController,
+	deleteStudentProcessController,
 	recordStudentFollowUpController,
 	updateStudentAssessmentController,
  	updateStudentController,
@@ -122,6 +123,12 @@ router.post(
 	"/processes/:processId/complete",
 	requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
 	asyncHandler(completeStudentProcessController),
+);
+
+router.delete(
+	"/processes/:processId",
+	requirePermissionKey("STUDENT_UPDATE" satisfies PermissionKey),
+	asyncHandler(deleteStudentProcessController),
 );
 
 router.get(

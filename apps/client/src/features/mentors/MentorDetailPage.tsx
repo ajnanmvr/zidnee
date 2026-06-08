@@ -76,7 +76,7 @@ export const MentorDetailPage = () => {
 	const [customFollowUpModalOpen, setCustomFollowUpModalOpen] = useState(false);
 	const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-	const [activeTab, setActiveTab] = useState<MentorTabKey>("overview");
+	const [activeTab, setActiveTab] = useState<MentorTabKey>("activity");
 	const [studentStatusTab, setStudentStatusTab] = useState<StudentStatusTabKey>("STUDENT");
 	const [changeMentorMode, setChangeMentorMode] = useState(false);
 	const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
@@ -320,8 +320,8 @@ export const MentorDetailPage = () => {
 		label: string;
 		description: string;
 	}> = [
+		{ key: "activity", label: "Activities", description: "Recent actions" },
 		{ key: "overview", label: "Overview", description: "Mentor summary" },
-		{ key: "activity", label: "Activity", description: "Recent actions" },
 		{ key: "reminders", label: "Reminders", description: "Tasks" },
 		{ key: "students", label: "Students", description: "Assigned list" },
 		{ key: "groups", label: "Groups", description: "Batches" },
@@ -494,7 +494,10 @@ export const MentorDetailPage = () => {
 
 			{activeTab === "activity" ? (
 				<div className="rounded-2xl border border-gray-200 bg-white p-5">
-					<p className="mb-4 text-sm font-semibold text-gray-800">Activity timeline</p>
+					<div className="mb-4">
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Activity Trail</p>
+						<h2 className="mt-1 text-base font-bold text-gray-900">Recent Activities</h2>
+					</div>
 					<ActivityTimeline
 						activities={activities.map((a) => ({ id: a.id, type: a.type, performedByName: a.performedByName, description: a.description, oldValue: a.oldValue, newValue: a.newValue, note: a.note, createdAt: a.createdAt }))}
 						emptyMessage="No activities yet. Follow-ups and reminders will appear here."

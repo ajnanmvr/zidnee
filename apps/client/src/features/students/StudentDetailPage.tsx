@@ -1,7 +1,19 @@
 ﻿import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import type { Area } from "react-easy-crop";
 import { toast } from "react-hot-toast";
-import { HiArrowLeft } from "react-icons/hi2";
+import {
+	HiArrowLeft,
+	HiBell,
+	HiCamera,
+	HiChatBubbleLeftRight,
+	HiClipboardDocumentCheck,
+	HiClipboardDocumentList,
+	HiClock,
+	HiPencilSquare,
+	HiTrash,
+	HiUserCircle,
+	HiUserGroup,
+} from "react-icons/hi2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { API_BASE_URL } from "@/api/client";
@@ -89,6 +101,66 @@ const dropReasonOptions = [
 	{ value: "Other", label: "Other" },
 ];
 
+const AVATAR_GRADIENTS = [
+	"from-teal-500 to-emerald-600",
+	"from-blue-500 to-indigo-600",
+	"from-violet-500 to-purple-600",
+	"from-rose-500 to-pink-600",
+	"from-amber-500 to-orange-500",
+];
+
+function avatarGradient(id: string) {
+	let h = 0;
+	for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+	return AVATAR_GRADIENTS[Math.abs(h) % AVATAR_GRADIENTS.length] ?? AVATAR_GRADIENTS[0];
+}
+
+const STAT_ACCENT: Record<string, string> = {
+	teal: "bg-teal-100 text-teal-600",
+	rose: "bg-rose-100 text-rose-600",
+	violet: "bg-violet-100 text-violet-600",
+	blue: "bg-blue-100 text-blue-600",
+	amber: "bg-amber-100 text-amber-600",
+	emerald: "bg-emerald-100 text-emerald-600",
+};
+
+const StatTile = ({
+	icon,
+	accent,
+	label,
+	value,
+}: {
+	icon: React.ReactNode;
+	accent: keyof typeof STAT_ACCENT;
+	label: string;
+	value: React.ReactNode;
+}) => (
+	<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+		<div className="flex items-center gap-2.5">
+			<span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${STAT_ACCENT[accent]}`}>
+				{icon}
+			</span>
+			<p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+		</div>
+		<p className="mt-2 truncate text-base font-bold text-gray-900">{value}</p>
+	</div>
+);
+
+const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+	<div className="flex items-start justify-between gap-4 py-2.5">
+		<dt className="text-sm text-gray-500">{label}</dt>
+		<dd className="text-right text-sm font-semibold text-gray-900">{value}</dd>
+	</div>
+);
+
+const DETAIL_TABS: { key: "activities" | "follow-up" | "profile" | "reminders" | "assessment"; label: string; icon: React.ReactNode }[] = [
+	{ key: "activities", label: "Activities", icon: <HiClock className="h-4 w-4" /> },
+	{ key: "follow-up", label: "Follow-up", icon: <HiChatBubbleLeftRight className="h-4 w-4" /> },
+	{ key: "profile", label: "Profile", icon: <HiUserCircle className="h-4 w-4" /> },
+	{ key: "reminders", label: "Reminders", icon: <HiBell className="h-4 w-4" /> },
+	{ key: "assessment", label: "Assessment", icon: <HiClipboardDocumentCheck className="h-4 w-4" /> },
+];
+
 export const StudentDetailPage = () => {
 	const { studentId } = useParams<{ studentId: string }>();
 	const navigate = useNavigate();
@@ -103,8 +175,8 @@ export const StudentDetailPage = () => {
 	const updateStudentMutation = useUpdateStudentMutation();
 	const profilePicInputRef = useRef<HTMLInputElement | null>(null);
 	const [activeTab, setActiveTab] = useState<
-		"follow-up" | "assessment" | "profile" | "reminders"
-	>("follow-up");
+		"activities" | "follow-up" | "assessment" | "profile" | "reminders"
+	>("activities");
 	const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
 	const [followUpNote, setFollowUpNote] = useState("");
 	const [followUpNextDate, setFollowUpNextDate] = useState("");
@@ -604,25 +676,35 @@ export const StudentDetailPage = () => {
 
 	if (studentsQuery.isLoading) {
 		return (
-			<div className="flex items-center justify-center py-12">
-				<p className="text-gray-600">Loading student details...</p>
+			<div className="flex items-center justify-center py-20">
+				<div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
 			</div>
 		);
 	}
 
 	if (!student) {
 		return (
-			<div className="text-center py-12">
-				<p className="text-gray-600 mb-4">Student not found</p>
+			<div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white py-16 text-center">
+				<div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+					<HiUserCircle className="h-6 w-6 text-gray-400" />
+				</div>
+				<p className="text-sm font-medium text-gray-600">Student not found</p>
 				<button
 					onClick={() => navigate(-1)}
-					className="text-teal-600 hover:underline text-sm font-medium"
+					className="text-sm font-semibold text-teal-600 hover:underline"
 				>
 					Go back
 				</button>
 			</div>
 		);
 	}
+
+	const heroGradient = avatarGradient(student.id);
+	const linkedProcesses = (() => {
+		const active = studentProcessesQuery.data?.processes ?? [];
+		const history = studentProcessHistoryQuery.data?.processes ?? [];
+		return [...active, ...history].filter((p) => p.student?.id === studentId);
+	})();
 
 	return (
 		<div className="space-y-4">
@@ -633,199 +715,200 @@ export const StudentDetailPage = () => {
 				ref={profilePicInputRef}
 				className="hidden"
 			/>
-			<div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-					<div className="flex items-start gap-3">
-						<button
-							onClick={() => navigate(-1)}
-							className="mt-1 text-gray-600 hover:text-gray-900"
-						>
-							<HiArrowLeft className="h-5 w-5" />
-						</button>
-						<button
-							onClick={() => student.profilePic && setImageViewerOpen(true)}
-							className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 ${student.profilePic ? "cursor-pointer hover:opacity-80 transition" : ""
-								}`}
-						>
-							{student.profilePic ? (
-								<img
-									src={student.profilePic}
-									alt={`${student.name ?? student.zid} profile`}
-									className="h-full w-full object-cover"
-								/>
-							) : (
-								<span className="text-xl font-bold text-gray-400">{profileAvatarLabel}</span>
-							)}
-						</button>
-						<div>
-							<div className="flex items-center gap-2">
-								<h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
-								<span
-									className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(
-										student.status,
-									)}`}
-								>
-									{getStudentStatusLabel(student.status)}
-								</span>
-							</div>
-							<p className="text-sm text-gray-600 mt-1">
-								ZID: <span className="font-mono font-semibold">{student.zid.toUpperCase()}</span>
-							</p>
-							<div className="mt-3 flex flex-wrap items-center gap-2">
-								{hasPermission("STUDENT_UPLOAD_PROFILE_PIC") && (
-									<button
-										type="button"
-										onClick={openProfilePicPicker}
-										className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
-									>
-										{student.profilePic ? "Change picture" : "Upload profile picture"}
-									</button>
+
+			{/* Hero card */}
+			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+				<div className={`relative h-20 bg-linear-to-br sm:h-24 ${heroGradient}`}>
+					<button
+						onClick={() => navigate(-1)}
+						className="absolute left-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
+					>
+						<HiArrowLeft className="h-5 w-5" />
+					</button>
+					<div
+						className={`absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold backdrop-blur ${followUpMeta.bg} ${followUpMeta.border} ${followUpMeta.tone}`}
+					>
+						<HiClock className="h-3.5 w-3.5" />
+						{followUpMeta.label}
+					</div>
+				</div>
+				<div className="px-5 pb-5 sm:px-6">
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+						<div className="flex items-start gap-4">
+							<button
+								onClick={() => student.profilePic && setImageViewerOpen(true)}
+								className={`relative z-10 -mt-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-linear-to-br shadow-md sm:-mt-12 sm:h-24 sm:w-24 ${heroGradient} ${student.profilePic ? "cursor-pointer hover:opacity-90 transition" : ""
+									}`}
+							>
+								{student.profilePic ? (
+									<img
+										src={student.profilePic}
+										alt={`${student.name ?? student.zid} profile`}
+										className="h-full w-full object-cover"
+									/>
+								) : (
+									<span className="text-2xl font-bold text-white sm:text-3xl">{profileAvatarLabel}</span>
 								)}
-								{/* Certificate download moved to Assessments tab */}
-								{student.profilePic && hasPermission("STUDENT_UPDATE") ? (
-									<button
-										type="button"
-										onClick={() => setRemovePicConfirmOpen(true)}
-										className="rounded-2xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+							</button>
+							<div className="pt-1">
+								<div className="flex flex-wrap items-center gap-2">
+									<h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{student.name}</h1>
+									<span
+										className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${getStudentStatusColor(
+											student.status,
+										)}`}
 									>
-										Remove picture
-									</button>
-								) : null}
+										{getStudentStatusLabel(student.status)}
+									</span>
+								</div>
+								<p className="mt-1 text-sm text-gray-500">
+									ZID <span className="font-mono font-semibold text-gray-700">{student.zid.toUpperCase()}</span>
+									{student.courseType ? <> · {student.courseType}</> : null}
+									{student.level ? <> · {getLevelLabel(student.level)}</> : null}
+								</p>
 							</div>
 						</div>
-					</div>
-					<div
-						className={`rounded-2xl border px-4 py-3 ${followUpMeta.bg} ${followUpMeta.border}`}
-					>
-						<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-							Follow-up state
-						</p>
-						<p className={`mt-1 text-sm font-semibold ${followUpMeta.tone}`}>
-							{followUpMeta.label}
-						</p>
-						<p className="mt-1 text-sm text-gray-700">
-							{followUpDate
-								? new Date(followUpDate).toLocaleString("en-IN", {
-									year: "numeric",
-									month: "short",
-									day: "numeric",
-									hour: "2-digit",
-									minute: "2-digit",
-								})
-								: "Set a follow-up date to surface this student in the worklist"}
-						</p>
+						<div className="flex flex-wrap items-center gap-2 pb-1">
+							{hasPermission("STUDENT_UPLOAD_PROFILE_PIC") && (
+								<button
+									type="button"
+									onClick={openProfilePicPicker}
+									className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:border-teal-300 hover:text-teal-700"
+								>
+									<HiCamera className="h-4 w-4" />
+									{student.profilePic ? "Change picture" : "Upload picture"}
+								</button>
+							)}
+							{student.profilePic && hasPermission("STUDENT_UPDATE") ? (
+								<button
+									type="button"
+									onClick={() => setRemovePicConfirmOpen(true)}
+									className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+								>
+									<HiTrash className="h-4 w-4" />
+									Remove
+								</button>
+							) : null}
+							{hasPermission("STUDENT_UPDATE") && (
+								<button
+									className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+									type="button"
+									onClick={() => navigate(`/students/${studentId}/edit`)}
+								>
+									<HiPencilSquare className="h-4 w-4" />
+									Edit
+								</button>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
-			{hasPermission("STUDENT_UPDATE") && (
-				<button
-					className="ml-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800 hover:bg-sky-100"
-					type="button"
-					onClick={() => navigate(`/students/${studentId}/edit`)}
-				>
-					Edit
-				</button>
-			)}
 
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Next follow-up</p>
-					<p className="text-lg font-semibold text-gray-900 mt-1">
-						{followUpDate
+			{/* Stat tiles */}
+			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+				<StatTile
+					icon={<HiClock className="h-4 w-4" />}
+					accent="teal"
+					label="Next follow-up"
+					value={
+						followUpDate
 							? new Date(followUpDate).toLocaleDateString("en-IN", {
 								year: "numeric",
 								month: "short",
 								day: "numeric",
 							})
-							: "-"}
-					</p>
-				</div>
+							: "Not set"
+					}
+				/>
+				<StatTile
+					icon={<HiUserCircle className="h-4 w-4" />}
+					accent="violet"
+					label="Mentor"
+					value={mentorName}
+				/>
+				<StatTile
+					icon={<HiUserGroup className="h-4 w-4" />}
+					accent="blue"
+					label="Counsellor"
+					value={counsellorName}
+				/>
+				<StatTile
+					icon={<HiClipboardDocumentList className="h-4 w-4" />}
+					accent="amber"
+					label="Status"
+					value={getStudentStatusLabel(student.status)}
+				/>
+				<StatTile
+					icon={<HiClipboardDocumentCheck className="h-4 w-4" />}
+					accent="rose"
+					label="Process"
+					value={student.processLabel ?? "-"}
+				/>
+			</div>
 
-				{/* Linked processes (compact) */}
-				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Linked processes</p>
-					<div className="mt-2">
-						{(studentProcessesQuery.isLoading || studentProcessHistoryQuery.isLoading) ? (
-							<div className="text-sm text-gray-500">Loading...</div>
-						) : (
-							(() => {
-								const active = studentProcessesQuery.data?.processes ?? [];
-								const history = studentProcessHistoryQuery.data?.processes ?? [];
-								const linked = [...active, ...history].filter((p) => p.student?.id === studentId);
-								if (linked.length === 0) {
-									return <div className="text-sm text-gray-500">No linked processes</div>;
-								}
-								return (
-									<ul className="divide-y">
-										{linked.slice(0, 6).map((p) => (
-											<li key={p.id} className="flex items-center justify-between py-2">
-												<div>
-													<div className="text-sm font-medium text-slate-900">{p.label}</div>
-													<div className="text-xs text-slate-500">{p.student.zid} · {p.student.name ?? "-"}</div>
-												</div>
-												<div className="flex items-center gap-3">
-													<span className="text-xs text-slate-600">{p.tasks.filter((t) => t.completed).length}/{p.tasks.length}</span>
-													<Link to={`/processes/${p.id}`} className="text-xs text-emerald-600">Open</Link>
-												</div>
-											</li>
-										))}
-									</ul>
-								);
-							})()
-						)}
-					</div>
-				</div>
-				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Mentor</p>
-					<p className="text-lg font-semibold text-gray-900 mt-1">{mentorName}</p>
-				</div>
-				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Counsellor</p>
-					<p className="text-lg font-semibold text-gray-900 mt-1">{counsellorName}</p>
-				</div>
-				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Status</p>
-					<p
-						className={`mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(
-							student.status,
-						)}`}
-					>
-						{getStudentStatusLabel(student.status)}
-					</p>
-				</div>
-				<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-					<p className="text-xs text-gray-600 uppercase tracking-wide">Process</p>
-					<p className="text-lg font-semibold text-gray-900 mt-1">
-						{student.processLabel ?? "-"}
-					</p>
+			{/* Linked processes */}
+			<div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+				<p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Linked processes</p>
+				<div className="mt-2">
+					{(studentProcessesQuery.isLoading || studentProcessHistoryQuery.isLoading) ? (
+						<div className="text-sm text-gray-500">Loading...</div>
+					) : linkedProcesses.length === 0 ? (
+						<div className="text-sm text-gray-500">No linked processes</div>
+					) : (
+						<ul className="divide-y divide-gray-100">
+							{linkedProcesses.slice(0, 6).map((p) => (
+								<li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+									<div className="min-w-0">
+										<p className="truncate text-sm font-semibold text-gray-900">{p.label}</p>
+										<p className="truncate text-xs text-gray-500">{p.student.zid} · {p.student.name ?? "-"}</p>
+									</div>
+									<div className="flex shrink-0 items-center gap-3">
+										<span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+											{p.tasks.filter((t) => t.completed).length}/{p.tasks.length}
+										</span>
+										<Link to={`/processes/${p.id}`} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">Open</Link>
+									</div>
+								</li>
+							))}
+						</ul>
+					)}
 				</div>
 			</div>
 
-			<div className="border-b border-gray-200">
-				<nav className="flex gap-8">
-					{[
-						{ key: "follow-up", label: "Follow-up" },
-						{ key: "profile", label: "Profile" },
-						{ key: "reminders", label: "Reminder" },
-						{ key: "assessment", label: "Assessment" },
-					].map((tab) => (
+			{/* Tabs */}
+			<div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
+				{DETAIL_TABS.map((tab) => {
+					const isActive = activeTab === tab.key;
+					return (
 						<button
 							key={tab.key}
-							onClick={() =>
-								setActiveTab(
-									tab.key as "follow-up" | "assessment" | "profile" | "reminders",
-								)
-							}
-							className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
-								? "border-teal-600 text-teal-600"
-								: "border-transparent text-gray-600 hover:text-gray-900"
+							onClick={() => setActiveTab(tab.key)}
+							className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition ${isActive ? "bg-white text-teal-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
 								}`}
 						>
+							{tab.icon}
 							{tab.label}
 						</button>
-					))}
-				</nav>
+					);
+				})}
 			</div>
+
+			{activeTab === "activities" && (
+				<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+					<div className="mb-4">
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+							Activity Trail
+						</p>
+						<h2 className="mt-1 text-xl font-bold text-gray-900">
+							Student Activities
+						</h2>
+					</div>
+					<ActivityTimeline
+						activities={studentActivitiesQuery.data?.activities ?? []}
+						emptyMessage="No student history yet. All follow-up changes will appear here."
+					/>
+				</div>
+			)}
 
 			{activeTab === "follow-up" && (
 				<div className="space-y-4">
@@ -861,7 +944,7 @@ export const StudentDetailPage = () => {
 						<div className="grid gap-4 sm:grid-cols-3">
 							<div>
 								<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
-								<p className="mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white" style={{ backgroundColor: "#14b8a6" }}>
+								<p className={`mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold text-white ${getStudentStatusColor(student.status)}`}>
 									{getStudentStatusLabel(student.status)}
 								</p>
 							</div>
@@ -884,13 +967,6 @@ export const StudentDetailPage = () => {
 								<p className="mt-1 text-base font-semibold text-gray-900">{student.processLabel ?? "-"}</p>
 							</div>
 						</div>
-					</Panel>
-
-					<Panel title="Follow-up history">
-						<ActivityTimeline
-							activities={studentActivitiesQuery.data?.activities ?? []}
-							emptyMessage="No student history yet. All follow-up changes will appear here."
-						/>
 					</Panel>
 				</div>
 			)}
@@ -1058,133 +1134,54 @@ export const StudentDetailPage = () => {
 						</div>
 					</Panel>
 
-					<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-					<Panel title="Profile picture">
-						<div className="flex flex-col items-center gap-4">
-							<button
-								onClick={() => student?.profilePic && setImageViewerOpen(true)}
-								className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-50 ${student?.profilePic ? "cursor-pointer hover:opacity-80 transition" : ""
-									}`}
-							>
-								{student?.profilePic ? (
-									<img
-										src={student.profilePic}
-										alt={`${student.name ?? student.zid} profile`}
-										className="h-full w-full object-cover"
-									/>
-								) : (
-									<span className="text-4xl font-bold text-gray-400">{profileAvatarLabel}</span>
-								)}
-							</button>
-							{hasPermission("STUDENT_UPLOAD_PROFILE_PIC") && (
-								<label className="inline-flex cursor-pointer items-center rounded-2xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
-									<input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
-									Upload profile picture
-								</label>
-							)}
-							{student?.profilePic && hasPermission("STUDENT_UPDATE") ? (
-								<button
-									type="button"
-									onClick={removeProfilePic}
-									className="text-sm font-medium text-rose-600 hover:text-rose-700"
-								>
-									Remove picture
-								</button>
-							) : null}
-						</div>
-					</Panel>
-
 					<Panel title="Quick profile">
-						<dl className="space-y-4">
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Admitted By</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{admittedByName}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Admitted On</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">
-									{new Date(student.admittedAt).toLocaleDateString("en-IN", {
-										year: "numeric",
-										month: "long",
-										day: "numeric",
-									})}
-								</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Primary WhatsApp</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.primaryWhatsappNumber ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Alternate WhatsApp</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.alternateWhatsappNumber ?? "-"}</dd>
-							</div>
-						</dl>
-					</Panel>
-
-					<Panel title="Student info">
-						<dl className="space-y-4">
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Background</dt>
-								<dd className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{student.studentInfo ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Schedule preference</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.preferredSchedule ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Language</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.preferredLanguage ?? "-"}</dd>
-							</div>
+						<dl className="divide-y divide-gray-100">
+							<InfoRow label="Admitted by" value={admittedByName} />
+							<InfoRow
+								label="Admitted on"
+								value={new Date(student.admittedAt).toLocaleDateString("en-IN", {
+									year: "numeric",
+									month: "long",
+									day: "numeric",
+								})}
+							/>
+							<InfoRow label="Phone" value={student.phone ?? "-"} />
+							<InfoRow label="Email" value={student.email ?? "-"} />
+							<InfoRow label="Primary WhatsApp" value={student.primaryWhatsappNumber ?? "-"} />
+							<InfoRow label="Alternate WhatsApp" value={student.alternateWhatsappNumber ?? "-"} />
 						</dl>
 					</Panel>
 
 					<Panel title="Academic profile">
-						<dl className="space-y-4">
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Course Type</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.courseType ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Level</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{getLevelLabel(student.level)}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Classes per week</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.timeslot?.classesPerWeek ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Duration</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">
-									{student.timeslot?.durationMinutes ? `${student.timeslot.durationMinutes} minutes` : "-"}
-								</dd>
-							</div>
+						<dl className="divide-y divide-gray-100">
+							<InfoRow label="Course type" value={student.courseType ?? "-"} />
+							<InfoRow label="Level" value={getLevelLabel(student.level)} />
+							<InfoRow label="Classes per week" value={student.timeslot?.classesPerWeek ?? "-"} />
+							<InfoRow
+								label="Duration"
+								value={student.timeslot?.durationMinutes ? `${student.timeslot.durationMinutes} minutes` : "-"}
+							/>
+							<InfoRow label="Schedule preference" value={student.preferredSchedule ?? "-"} />
+							<InfoRow label="Language" value={student.preferredLanguage ?? "-"} />
 						</dl>
 					</Panel>
 
 					<Panel title="Personal details">
-						<dl className="space-y-4">
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Date of Birth</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">
-									{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString("en-IN") : "-"}
-								</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Gender</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.gender ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">Country</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.residingCountry ?? "-"}</dd>
-							</div>
-							<div>
-								<dt className="text-xs text-gray-600 uppercase tracking-wide">How they heard about us</dt>
-								<dd className="text-sm font-medium text-gray-900 mt-1">{student.hearAboutUs ?? "-"}</dd>
-							</div>
+						<dl className="divide-y divide-gray-100">
+							<InfoRow
+								label="Date of birth"
+								value={student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString("en-IN") : "-"}
+							/>
+							<InfoRow label="Gender" value={student.gender ?? "-"} />
+							<InfoRow label="Country" value={student.residingCountry ?? "-"} />
+							<InfoRow label="How they heard about us" value={student.hearAboutUs ?? "-"} />
 						</dl>
 					</Panel>
+
+					<Panel title="Student background">
+						<p className="whitespace-pre-wrap text-sm text-gray-700">{student.studentInfo ?? "No background notes recorded."}</p>
+					</Panel>
 				</div>
-					</div>
 			)}
 
 			{activeTab === "reminders" && (
@@ -1227,8 +1224,9 @@ export const StudentDetailPage = () => {
 			)}
 
 			<div className="flex gap-2">
-				<Link to="/students" className="text-teal-600 hover:text-teal-700 text-sm font-medium">
-					? Back to Students
+				<Link to="/students" className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-600 hover:text-teal-700">
+					<HiArrowLeft className="h-4 w-4" />
+					Back to Students
 				</Link>
 			</div>
 

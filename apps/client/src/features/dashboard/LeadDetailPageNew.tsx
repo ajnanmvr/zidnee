@@ -7,6 +7,7 @@ import { FOLLOW_UP_PERIOD_MS, type LeadStatus } from "@repo/schema";
 import {
 	HiAcademicCap,
 	HiArrowLeft,
+	HiBanknotes,
 	HiCalendarDays,
 	HiCheckCircle,
 	HiClock,
@@ -34,12 +35,7 @@ import { useCounsellorsQuery, useUsersQuery } from "@/features/users/users.queri
 import type { PostponeLeadFollowUpForm } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
 
-type LeadDetailTab =
-	| "overview"
-	| "details"
-	| "demos"
-	| "ownership"
-	| "activities";
+type LeadDetailTab = "details" | "demos" | "activities";
 
 type EditLeadFormState = {
 	name?: string;
@@ -51,19 +47,19 @@ type EditLeadFormState = {
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
 
-const getStatusColor = (status?: string): { badge: string } => {
-	const colors: Record<string, { badge: string }> = {
-		FOLLOW_UP: { badge: "bg-blue-100 text-blue-700" },
-		FORM_SENT: { badge: "bg-amber-100 text-amber-700" },
-		FORM_FILLED: { badge: "bg-cyan-100 text-cyan-700" },
-		DEMO_REQUEST: { badge: "bg-orange-100 text-orange-700" },
-		DEMO_ASSIGNED: { badge: "bg-emerald-100 text-emerald-700" },
-		DEMO_COMPLETED: { badge: "bg-violet-100 text-violet-700" },
-		CONVERTED: { badge: "bg-green-100 text-green-700" },
-		CLOSED: { badge: "bg-gray-100 text-gray-700" },
+const getStatusColor = (status?: string): { badge: string; gradient: string } => {
+	const colors: Record<string, { badge: string; gradient: string }> = {
+		FOLLOW_UP: { badge: "bg-blue-100 text-blue-700", gradient: "from-blue-500 to-indigo-600" },
+		FORM_SENT: { badge: "bg-amber-100 text-amber-700", gradient: "from-amber-500 to-orange-500" },
+		FORM_FILLED: { badge: "bg-cyan-100 text-cyan-700", gradient: "from-cyan-500 to-blue-600" },
+		DEMO_REQUEST: { badge: "bg-orange-100 text-orange-700", gradient: "from-orange-500 to-rose-500" },
+		DEMO_ASSIGNED: { badge: "bg-emerald-100 text-emerald-700", gradient: "from-emerald-500 to-teal-600" },
+		DEMO_COMPLETED: { badge: "bg-violet-100 text-violet-700", gradient: "from-violet-500 to-purple-600" },
+		CONVERTED: { badge: "bg-green-100 text-green-700", gradient: "from-green-500 to-emerald-600" },
+		CLOSED: { badge: "bg-gray-100 text-gray-700", gradient: "from-gray-400 to-gray-600" },
 	};
 
-	const fallback: { badge: string } = { badge: "bg-blue-100 text-blue-700" };
+	const fallback = { badge: "bg-blue-100 text-blue-700", gradient: "from-blue-500 to-indigo-600" };
 	const selected = colors[status ?? "FOLLOW_UP"];
 	return selected ?? fallback;
 };
@@ -153,10 +149,10 @@ const DetailRow = ({
 	</div>
 );
 
-const tabs: Array<{ id: LeadDetailTab; label: string }> = [
-	{ id: "details", label: "Lead Details" },
-	{ id: "demos", label: "Demo History" },
-	{ id: "activities", label: "Activities" },
+const tabs: Array<{ id: LeadDetailTab; label: string; icon: typeof HiUser }> = [
+	{ id: "activities", label: "Activities", icon: HiClock },
+	{ id: "details", label: "Lead Details", icon: HiUser },
+	{ id: "demos", label: "Demo History", icon: HiCalendarDays },
 ];
 
 const LEAD_STAGE_OPTIONS: LeadStatus[] = [
@@ -525,175 +521,197 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
-	if (!leadId) {
+	if (!leadId || (!leadQuery.isLoading && !lead)) {
 		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<p className="text-gray-600">Lead not found</p>
+			<div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white py-16 text-center">
+				<div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+					<HiUser className="h-6 w-6 text-gray-400" />
+				</div>
+				<p className="text-sm font-medium text-gray-600">Lead not found</p>
+				<button
+					onClick={() => navigate("/leads")}
+					className="text-sm font-semibold text-blue-600 hover:underline"
+				>
+					Back to leads
+				</button>
 			</div>
 		);
 	}
 
-	if (leadQuery.isLoading) {
+	if (leadQuery.isLoading || !lead) {
 		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<p className="text-gray-600">Loading lead details...</p>
-			</div>
-		);
-	}
-
-	if (!lead) {
-		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<p className="text-gray-600">Lead not found</p>
+			<div className="flex items-center justify-center py-20">
+				<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
 			</div>
 		);
 	}
 
 	const statusColor = getStatusColor(lead.status);
+	const followUpOverdue = lead.nextFollowUpAt ? isPast(new Date(lead.nextFollowUpAt)) : false;
+	const leadInitial = (lead.name?.trim().charAt(0) || lead.phone?.charAt(0) || "L").toUpperCase();
+
+	const actionButtons: Array<{
+		key: string;
+		label: string;
+		icon: typeof HiUser;
+		onClick: () => void;
+		className: string;
+	}> = [
+		{
+			key: "edit",
+			label: "Edit",
+			icon: HiPencilSquare,
+			onClick: () => navigate(`/leads/${lead.id}/edit`),
+			className: "bg-blue-600 text-white hover:bg-blue-700",
+		},
+		{
+			key: "postpone",
+			label: "Postpone",
+			icon: HiClock,
+			onClick: () => setPostponeOpen(true),
+			className: "bg-amber-500 text-white hover:bg-amber-600",
+		},
+		{
+			key: "stage",
+			label: "Change Stage",
+			icon: HiCheckCircle,
+			onClick: onOpenStageChange,
+			className: "bg-violet-600 text-white hover:bg-violet-700",
+		},
+		...(!lead.formSent
+			? [{
+				key: "send-form",
+				label: "Send Form",
+				icon: HiPaperAirplane,
+				onClick: () => void onGenerateFormLink(),
+				className: "bg-emerald-600 text-white hover:bg-emerald-700",
+			}]
+			: [{
+				key: "form-link",
+				label: "Form Link",
+				icon: HiLink,
+				onClick: () => void onGenerateFormLink(),
+				className: "bg-blue-600 text-white hover:bg-blue-700",
+			}]),
+		...(lead.formCompleted && !latestDemo
+			? [{
+				key: "request-demo",
+				label: "Request Demo",
+				icon: HiCalendarDays,
+				onClick: () => setRequestDemoOpen(true),
+				className: "bg-sky-600 text-white hover:bg-sky-700",
+			}]
+			: []),
+		{
+			key: "delete",
+			label: "Delete",
+			icon: HiTrash,
+			onClick: () => setDeleteOpen(true),
+			className: "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+		},
+	];
 
 	return (
-		<div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
-			<div className="sticky top-0 z-20">
-				<div className="px-6 max-w-7xl mx-6 py-2 border rounded-3xl bg-orange-50/50 border-orange-100 backdrop-blur-xl sm:mx-8">
-					<div className="flex items-center justify-between gap-4">
-						<div className="flex items-center gap-4">
-							<button
-								type="button"
-								onClick={() => navigate("/leads")}
-								className="rounded-full bg-orange-100 p-2 transition-colors hover:bg-orange-200"
-							>
-								<HiArrowLeft className="h-6 w-6 text-gray-600" />
-							</button>
-							<div>
-								<h1 className="text-2xl font-bold text-gray-900">
-									{lead.name || "Lead Profile"}
-								</h1>
-								<p className="mt-1 text-sm text-gray-600">{lead.phone}</p>
-								<div className="mt-2 flex items-center gap-2">
-									{lead.price ? (
-										<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-											<span className="text-sm">₹</span>
-											<span>{lead.price}</span>
-										</span>
-									) : (
-										<button
-											type="button"
-											onClick={() => setPriceEditOpen(true)}
-											className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-										>
-											Set amount
-										</button>
-									)}
-									<span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-										<span>{lead.courseType ? (lead.courseType === "GROUP" ? "Group" : "Individual") : "Not specified"}</span>
+		<div className="space-y-4">
+			{/* Hero card */}
+			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+				<div className={`relative h-20 bg-linear-to-br sm:h-24 ${statusColor.gradient}`}>
+					<button
+						onClick={() => navigate("/leads")}
+						className="absolute left-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
+					>
+						<HiArrowLeft className="h-5 w-5" />
+					</button>
+					<div
+						className={`absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold backdrop-blur ${followUpOverdue ? "border-rose-200 bg-rose-50 text-rose-700" : "border-white/40 bg-white/20 text-white"
+							}`}
+					>
+						<HiClock className="h-3.5 w-3.5" />
+						{lead.nextFollowUpAt
+							? followUpOverdue
+								? "Follow-up overdue"
+								: `Follow-up ${formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true })}`
+							: "No follow-up scheduled"}
+					</div>
+				</div>
+				<div className="px-5 pb-5 sm:px-6">
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+						<div className="flex items-start gap-4">
+							<div className={`relative z-10 -mt-10 flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-linear-to-br shadow-md sm:-mt-12 sm:h-24 sm:w-24 ${statusColor.gradient}`}>
+								<span className="text-2xl font-bold text-white sm:text-3xl">{leadInitial}</span>
+							</div>
+							<div className="pt-1">
+								<div className="flex flex-wrap items-center gap-2">
+									<h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{lead.name || "Lead Profile"}</h1>
+									<span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusColor.badge}`}>
+										{lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
 									</span>
 								</div>
-								<p className="mt-1 text-xs text-gray-500">
-									Created:{" "}
-									{lead.createdAt
-										? format(new Date(lead.createdAt), "MMM dd, yyyy HH:mm")
-										: "-"}{" "}
-									· Updated:{" "}
-									{lead.updatedAt
-										? format(new Date(lead.updatedAt), "MMM dd, yyyy HH:mm")
-										: "-"}
+								<p className="mt-1 text-sm text-gray-500">
+									{lead.phone ?? "-"}
+									{lead.courseType ? <> · {lead.courseType === "GROUP" ? "Group" : "Individual"}</> : null}
+								</p>
+								<p className="mt-1 text-xs text-gray-400">
+									Created {lead.createdAt ? format(new Date(lead.createdAt), "MMM dd, yyyy") : "-"}
+									{" · "}
+									Updated {lead.updatedAt ? format(new Date(lead.updatedAt), "MMM dd, yyyy") : "-"}
 								</p>
 							</div>
 						</div>
-						<span
-							className={`rounded-full px-3 py-1 text-xs font-bold ${statusColor.badge}`}
-						>
-							{lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<div className="sticky top-22 z-20 bg-white border-b border-gray-200">
-				<div className="mx-auto max-w-7xl px-6 py-4 sm:px-8">
-					<div className="flex flex-wrap gap-2">
-						<button
-							type="button"
-							onClick={() => navigate(`/leads/${lead.id}/edit`)}
-							className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-						>
-							<HiPencilSquare className="h-4 w-4" />
-							Edit
-						</button>
-						<button
-							type="button"
-							onClick={() => setPostponeOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
-						>
-							<HiClock className="h-4 w-4" />
-							Postpone
-						</button>
-						<button
-							type="button"
-							onClick={onOpenStageChange}
-							className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
-						>
-							<HiCheckCircle className="h-4 w-4" />
-							Change Stage
-						</button>
-						{!lead.formSent ? (
-							<button
-								type="button"
-								onClick={onGenerateFormLink}
-								className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-							>
-								<HiPaperAirplane className="h-4 w-4" />
-								Send Form
-							</button>
-						) : (
-							<>
+						<div className="flex flex-wrap items-center gap-2 pb-1">
+							{lead.price ? (
+								<span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700">
+									<HiBanknotes className="h-4 w-4 text-emerald-600" />
+									₹{lead.price}
+								</span>
+							) : (
 								<button
 									type="button"
-									onClick={onGenerateFormLink}
-									className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+									onClick={() => setPriceEditOpen(true)}
+									className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
 								>
-									<HiLink className="h-4 w-4" />
-									Form Link
+									<HiBanknotes className="h-4 w-4" />
+									Set amount
 								</button>
-							</>
-						)}
-						{lead.formCompleted && !latestDemo ? (
-							<button
-								type="button"
-								onClick={() => setRequestDemoOpen(true)}
-								className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700"
-							>
-								<HiCalendarDays className="h-4 w-4" />
-								Request Demo
-							</button>
-						) : null}
-						<button
-							type="button"
-							onClick={() => setDeleteOpen(true)}
-							className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
-						>
-							<HiTrash className="h-4 w-4" />
-							Delete
-						</button>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
 
-			<div className="mx-auto max-w-7xl px-6 py-8 sm:px-8">
-				<div className="mb-6 flex flex-wrap gap-2 rounded-3xl border border-gray-200 bg-white p-2 shadow-sm">
-					{tabs.map((tab) => (
+			{/* Action toolbar */}
+			<div className="flex flex-wrap gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+				{actionButtons.map((action) => (
+					<button
+						key={action.key}
+						type="button"
+						onClick={action.onClick}
+						className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold transition ${action.className}`}
+					>
+						<action.icon className="h-4 w-4" />
+						{action.label}
+					</button>
+				))}
+			</div>
+
+			{/* Tabs */}
+			<div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
+				{tabs.map((tab) => {
+					const isActive = activeTab === tab.id;
+					return (
 						<button
 							key={tab.id}
 							type="button"
 							onClick={() => setActiveTab(tab.id)}
-							className={`rounded-2xl px-4 py-2 text-sm font-semibold transition-colors ${activeTab === tab.id ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
+							className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+								}`}
 						>
+							<tab.icon className="h-4 w-4" />
 							{tab.label}
 						</button>
-					))}
-				</div>
-
-				{/* Overview removed per request */}
+					);
+				})}
+			</div>
 
 				{activeTab === "details" && (
 					<div className="grid gap-6 lg:grid-cols-3">
@@ -961,6 +979,30 @@ export const LeadDetailPageNew = () => {
 								</div>
 							</SectionCard>
 
+							<SectionCard title="Ownership & Assignment" icon={HiUsers}>
+								<div className="space-y-3">
+									<DetailRow
+										label="Created By"
+										value={
+											lead.createdBy
+												? (allUsers.find((user) => user.id === lead.createdBy)?.name ?? lead.createdBy)
+												: "-"
+										}
+										icon={HiUser}
+									/>
+									<DetailRow
+										label="Sales Owner"
+										value={assignedToUser ? `${assignedToUser.name ?? assignedToUser.username} (${assignedToUser.username})` : "Unassigned"}
+										icon={HiUsers}
+									/>
+									<DetailRow
+										label="Demo Owner"
+										value={demoRequestAssignedToUser ? `${demoRequestAssignedToUser.name ?? demoRequestAssignedToUser.username} (${demoRequestAssignedToUser.username})` : "Not assigned"}
+										icon={HiAcademicCap}
+									/>
+								</div>
+							</SectionCard>
+
 							{latestDemo && (
 								<SectionCard
 									title="Current Demo Assignment"
@@ -988,7 +1030,6 @@ export const LeadDetailPageNew = () => {
 												icon={HiClock}
 											/>
 										) : null}
-										{/* custom follow-up removed */}
 									</div>
 								</SectionCard>
 							)}
@@ -1075,127 +1116,19 @@ export const LeadDetailPageNew = () => {
 					</div>
 				)}
 
-				{activeTab === "overview" && (
-					<div className="grid gap-6 lg:grid-cols-3">
-						<div className="lg:col-span-2 space-y-6">
-							<SectionCard title="Ownership History" icon={HiUsers}>
-								<div className="space-y-3">
-									<DetailRow
-										label="Created By"
-										value={
-											lead.createdBy
-												? (allUsers.find((user) => user.id === lead.createdBy)
-														?.name ?? lead.createdBy)
-												: "-"
-										}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Sales Owner"
-										value={assignedToUser?.name ?? "Unassigned"}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Demo Owner"
-										value={demoRequestAssignedToUser?.name ?? "Not assigned"}
-										icon={HiAcademicCap}
-									/>
-								</div>
-							</SectionCard>
-						</div>
-						<div className="space-y-6">
-							<SectionCard title="Assignment & Ownership" icon={HiUsers}>
-								<div className="space-y-4">
-									<div>
-										<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-											Sales Owner
-										</p>
-										<div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-											<p className="font-semibold text-gray-900">
-												{assignedToUser?.name ?? "Unassigned"}
-											</p>
-											<p className="text-xs text-gray-600">
-												{assignedToUser?.username}
-											</p>
-										</div>
-									</div>
-									<div>
-										<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-											Demo Assigned To
-										</p>
-										<div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-											<p className="font-semibold text-gray-900">
-												{demoRequestAssignedToUser?.name ?? "Not assigned"}
-											</p>
-											{demoRequestAssignedToUser ? (
-												<p className="text-xs text-gray-600">
-													{demoRequestAssignedToUser.username}
-												</p>
-											) : null}
-										</div>
-									</div>
-								</div>
-							</SectionCard>
-
-							{latestDemo && (
-								<SectionCard
-									title="Current Demo Assignment"
-									icon={HiAcademicCap}
-								>
-									<div className="space-y-3">
-										<DetailRow
-											label="Mentor"
-											value={formatUserIdentity(latestDemoMentor, "mentor")}
-											icon={HiUser}
-										/>
-										<DetailRow
-											label="Counsellor"
-											value={formatUserIdentity(latestDemoCounsellor, "counsellor")}
-											icon={HiUser}
-										/>
-										<DetailRow
-											label="Next Follow-up"
-											value={
-												lead.nextFollowUpAt
-													? formatDistance(
-															new Date(lead.nextFollowUpAt),
-															new Date(),
-															{ addSuffix: true },
-														)
-													: "-"
-											}
-											icon={HiClock}
-										/>
-									</div>
-								</SectionCard>
-							)}
-						</div>
+			{activeTab === "activities" && leadId ? (
+				<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+					<div className="mb-4">
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+							Activity Trail
+						</p>
+						<h2 className="mt-1 text-xl font-bold text-gray-900">
+							Lead Activities
+						</h2>
 					</div>
-				)}
-
-				{activeTab === "activities" && leadId ? (
-					<div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-						<div className="mb-4 flex items-center justify-between gap-4">
-							<div>
-								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-									Activity Trail
-								</p>
-								<h2 className="mt-1 text-xl font-bold text-gray-900">
-									Lead Activities
-								</h2>
-							</div>
-							<button
-								type="button"
-								onClick={() => setActiveTab("overview")}
-								className="rounded-2xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:text-gray-900"
-							>
-								Back to overview
-							</button>
-						</div>
-						<ActivityFeed leadId={leadId} />
-					</div>
-				) : null}
-			</div>
+					<ActivityFeed leadId={leadId} />
+				</div>
+			) : null}
 
 			<Modal
 				open={stageChangeOpen}

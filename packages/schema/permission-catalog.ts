@@ -119,6 +119,30 @@ export const PERMISSION_CATALOG = {
 		resource: "students",
 		action: "read:all",
 	},
+	STUDENT_READ_MY_GROUP: {
+		name: "Read My Group Students",
+		description: "Limit \"my students\" access to group-course students only",
+		resource: "students",
+		action: "read:own:group",
+	},
+	STUDENT_READ_MY_INDIVIDUAL: {
+		name: "Read My Individual Students",
+		description: "Limit \"my students\" access to individual-course students only",
+		resource: "students",
+		action: "read:own:individual",
+	},
+	STUDENT_READ_ALL_GROUP: {
+		name: "Read All Group Students",
+		description: "Limit \"all students\" access to group-course students only",
+		resource: "students",
+		action: "read:all:group",
+	},
+	STUDENT_READ_ALL_INDIVIDUAL: {
+		name: "Read All Individual Students",
+		description: "Limit \"all students\" access to individual-course students only",
+		resource: "students",
+		action: "read:all:individual",
+	},
 	STUDENT_PROCESS_READ_MY: {
 		name: "Read My Processes",
 		description: "Read student processes assigned to the current user",

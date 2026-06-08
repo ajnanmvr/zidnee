@@ -62,6 +62,14 @@ const hasProfileFieldChange = (payload: Record<string, unknown>) => {
 
 type StudentListFilters = {
 	status?: string;
+	courseType?: string;
+	/**
+	 * When set, restricts results to students whose courseType is one of
+	 * these values, regardless of the `courseType` filter above. Used to
+	 * enforce course-type-scoped read permissions (e.g. a role that can
+	 * only read group-course students).
+	 */
+	allowedCourseTypes?: string[];
 	search?: string;
 	sortBy?: string;
 	sortOrder?: "asc" | "desc";
@@ -69,6 +77,12 @@ type StudentListFilters = {
 	limit?: number;
 	scope?: "mine" | "all";
 	userId?: string;
+	/**
+	 * When set, restricts results to students admitted (converted from a lead)
+	 * by this specific user. Used for "my converted leads" views, independent
+	 * of the mentor/batch-counsellor based `scope` filter.
+	 */
+	admittedBy?: string;
 };
 
 export type StudentProcessListItem = {
@@ -320,6 +334,24 @@ export const StudentService = {
 
 		if (filters.status) {
 			query.status = filters.status;
+		}
+
+		if (filters.courseType) {
+			query.courseType = filters.courseType;
+		}
+
+		if (filters.admittedBy && Types.ObjectId.isValid(filters.admittedBy)) {
+			query.admittedBy = new Types.ObjectId(filters.admittedBy);
+		}
+
+		if (filters.allowedCourseTypes && filters.allowedCourseTypes.length > 0) {
+			if (typeof query.courseType === "string") {
+				if (!filters.allowedCourseTypes.includes(query.courseType)) {
+					query.courseType = { $in: [] };
+				}
+			} else {
+				query.courseType = { $in: filters.allowedCourseTypes };
+			}
 		}
 
 		if (filters.search?.trim()) {
@@ -632,6 +664,52 @@ export const StudentService = {
 				oldValue: {
 					processId: student.processId?.toString() ?? null,
 					processLabel: student.processLabel ?? null,
+				},
+				newValue: {
+					processId: null,
+					processLabel: null,
+				},
+			});
+		}
+
+		return true;
+	},
+
+	deleteStudentProcess: async (processId: string, performedBy: string): Promise<boolean> => {
+		const objectId = Types.ObjectId.isValid(processId)
+			? new Types.ObjectId(processId)
+			: null;
+		if (!objectId) return false;
+
+		const existingProcess = await StudentProcessModel.findById(objectId).lean<StudentProcessDocument | null>();
+		if (!existingProcess) {
+			return false;
+		}
+
+		const student = await StudentModel.findById(existingProcess.studentId).lean<StudentDocument | null>();
+		if (student && student.status !== "DROPPED") {
+			throw new AppError(400, "Only processes for dropped students can be deleted");
+		}
+
+		await StudentProcessModel.findByIdAndDelete(objectId).exec();
+
+		if (student && student.processId?.toString() === existingProcess._id.toString()) {
+			await StudentModel.findByIdAndUpdate(
+				student._id,
+				{ $unset: { processId: 1, processLabel: 1 } },
+				{ returnDocument: "after" },
+			).exec();
+		}
+
+		if (student) {
+			await logStudentActivity({
+				studentId: student._id.toString(),
+				type: "PROCESS_UPDATED",
+				performedBy,
+				description: "Process deleted (dropped student)",
+				oldValue: {
+					processId: existingProcess._id.toString(),
+					processLabel: existingProcess.label,
 				},
 				newValue: {
 					processId: null,

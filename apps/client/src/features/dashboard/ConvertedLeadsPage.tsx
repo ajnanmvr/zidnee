@@ -5,6 +5,7 @@ import { useSession } from "@/lib/session";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { getStudentStatusColor, getStudentStatusLabel } from "@/features/students/student-table";
 
 function fmtDate(val?: string | Date | null): string {
 	if (!val) return "—";
@@ -44,13 +45,15 @@ export const ConvertedLeadsPage = () => {
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
 
-	const canReadAll = useHasPermission("STUDENT_READ_ALL");
+	const canReadAll = useHasPermission("LEAD_READ_ALL") || useHasPermission("LEADS_CONVERTED_READ");
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
 
 	const studentsQuery = useStudentsQuery(token, {
-		scope: activeScope,
-		status: "STUDENT",
+		admittedBy: activeScope === "mine" ? "me" : "all",
+		// No status filter — every student record originates from a lead conversion,
+		// so "Converted Leads" should include students on break/dropped too, not
+		// just currently-active ones.
 		search: searchTerm || undefined,
 		sortBy: "admittedAt",
 		sortOrder: "desc",
@@ -150,6 +153,7 @@ export const ConvertedLeadsPage = () => {
 									<tr className="border-b border-gray-100 bg-gray-50/80">
 										<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Student</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">ZID</th>
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Converted At</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Converted By</th>
 										<th className="px-4 py-2.5 pr-5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Lead</th>
@@ -179,6 +183,14 @@ export const ConvertedLeadsPage = () => {
 												<td className="px-4 py-3.5">
 													<span className="inline-flex rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-700">
 														{s.zid?.toUpperCase()}
+													</span>
+												</td>
+
+												{/* Status */}
+												<td className="px-4 py-3.5">
+													<span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+														<span className={`h-1.5 w-1.5 rounded-full ${getStudentStatusColor(s.status)}`} />
+														{getStudentStatusLabel(s.status)}
 													</span>
 												</td>
 

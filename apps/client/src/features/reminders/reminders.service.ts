@@ -4,6 +4,7 @@ import type {
 } from "@repo/schema";
 import {
 	CreateReminderPayloadSchema,
+	MessageResponseSchema,
 	ReminderResponseSchema,
 	RemindersResponseSchema,
 } from "@repo/schema";
@@ -87,7 +88,7 @@ export const updateReminder = async (
 export const deleteReminder = async (token: string, reminderId: string) => {
 	await requestWithSchema(
 		`/reminders/${reminderId}`,
-		RemindersResponseSchema,
+		MessageResponseSchema,
 		"DELETE",
 		undefined,
 		token,

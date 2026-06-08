@@ -213,6 +213,9 @@ export const useNavigationItems = () => {
 		}).length;
 
 	const allReminders = remindersQuery.data ?? [];
+	const droppedStudentIds = new Set(
+		allStudents.filter((student) => student.status === "DROPPED").map((student) => student.id),
+	);
 	const myLeads = leadsQuery.data?.leads ?? [];
 	const leadStageCounts = getLeadStageCounts(myLeads, currentUserId);
 
@@ -254,6 +257,9 @@ export const useNavigationItems = () => {
 	).length;
 
 	const reminderUrgentCount = allReminders.filter((reminder) => {
+		if (reminder.linkedPerson.type === "student" && droppedStudentIds.has(reminder.linkedPerson.id)) {
+			return false;
+		}
 		const dueStatus = getReminderDueStatus(reminder.date);
 		return dueStatus === "pastDue" || dueStatus === "today";
 	}).length;
@@ -331,8 +337,8 @@ export const useNavigationItems = () => {
 			? [
 					{
 						to: "/leads/overview",
-						label: "Lead Overview",
-						description: "Reports and charts",
+						label: "Lead Report",
+						description: "Time-framed reports and charts",
 						icon: createElement(HiPresentationChartLine, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
