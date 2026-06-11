@@ -576,7 +576,7 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("SALES_USERS_READ")
+		...(hasPermission("SALES_USERS_READ") || hasPermission("SALES_READ")
 			? [
 					{
 						to: "/sales-users",
@@ -621,7 +621,10 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("USER_READ")
+		...(hasPermission("USER_READ") ||
+		hasPermission("MENTOR_READ") ||
+		hasPermission("MENTOR_READ_MY") ||
+		hasPermission("MENTOR_READ_ALL")
 			? [
 					{
 						to: "/mentors",

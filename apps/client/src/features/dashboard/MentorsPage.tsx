@@ -12,13 +12,13 @@ import {
 	HiUserPlus,
 } from "react-icons/hi2";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSearchParams, Link } from "react-router-dom";
 import { useMeQuery } from "@/features/auth/auth.queries";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useGetAllSubstitutions } from "@/features/mentors/mentor-substitution.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { useMentorsQuery, useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { DataTable } from "@/components/DataTable";
 import { getStudentFollowUpState } from "@/features/students/student-table";
@@ -64,22 +64,31 @@ export const MentorsPage = () => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
 	const currentUserId = meQuery.data?.id ?? "";
+	const canReadAllMentors = useHasAnyPermission([
+		"MENTOR_READ_ALL",
+		"MENTOR_READ",
+		"USER_READ",
+		"LEAD_ASSIGN",
+		"LEAD_DEMO_ASSIGN",
+	]);
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const activeScope: "mine" | "all" = loadAllRequested ? "all" : "mine";
+	const activeScope: "mine" | "all" = loadAllRequested && canReadAllMentors ? "all" : "mine";
 
 	const usersQuery = useUsersQuery(token);
+	const mentorsQuery = useMentorsQuery(token, activeScope);
 	const studentsQuery = useStudentsQuery(token);
 	const batchesQuery = useBatchesQuery(token);
 	const { data: substitutions = [] } = useGetAllSubstitutions(token);
 
 	const mentors = useMemo(() => {
+		const mentorUsers = mentorsQuery.data?.users ?? [];
 		const allUsers = usersQuery.data?.users ?? [];
 		const allStudents = studentsQuery.data?.students ?? [];
 		const allBatches = batchesQuery.data?.batches ?? [];
-		const mentorUsers = allUsers.filter((u) => u.roles.some((r) => r.type === "mentor"));
-		const scoped = activeScope === "mine" ? mentorUsers.filter((m) => m.counsellorId === currentUserId) : mentorUsers;
-		return scoped.map((mentor) => {
-			const counsellor = allUsers.find((u) => u.id === mentor.counsellorId) ?? undefined;
+		return mentorUsers.map((mentor) => {
+			const counsellor =
+				allUsers.find((u) => u.id === mentor.counsellorId) ??
+				(mentor.counsellorId === currentUserId ? meQuery.data : undefined);
 			const mentorStudents = allStudents.filter((s) => s.mentorId === mentor.id);
 			const individualStudents = mentorStudents.filter((s) => s.batchId == null).length;
 			const groupStudents = mentorStudents.filter((s) => s.batchId != null).length;
@@ -87,27 +96,35 @@ export const MentorsPage = () => {
 			const substitutionSummary = getMentorSubstitutionSummary(mentor.id, substitutions, allUsers);
 			return { mentor, counsellor, individualStudents, groupStudents, groupCount, substitutionSummary };
 		});
-	}, [activeScope, batchesQuery.data?.batches, currentUserId, studentsQuery.data?.students, substitutions, usersQuery.data?.users]);
+	}, [mentorsQuery.data?.users, usersQuery.data?.users, batchesQuery.data?.batches, currentUserId, meQuery.data, studentsQuery.data?.students, substitutions]);
 
 	// quick create modal state
 	const [createModalOpen, setCreateModalOpen] = useState(false);
-	const canCreateUser = useHasPermission("USER_CREATE");
+	const canCreateUser = useHasAnyPermission(["USER_CREATE", "MENTOR_CREATE"]);
 	const createMentor = useCreateMentorMutation();
+
+	const isCurrentUserCounsellor = meQuery.data?.roles?.some((r) => r.type === "counsellor") ?? false;
+	const defaultCounsellorId = isCurrentUserCounsellor ? currentUserId : undefined;
 
 	const counsellors = useMemo(() => {
 		const all = usersQuery.data?.users ?? [];
-		return all.filter((u: any) => u.roles.some((r: any) => r.type === "counsellor"));
-	}, [usersQuery.data]);
+		const fromUsers = all.filter((u: any) => u.roles.some((r: any) => r.type === "counsellor"));
+		if (isCurrentUserCounsellor && meQuery.data && !fromUsers.some((u) => u.id === currentUserId)) {
+			return [...fromUsers, meQuery.data];
+		}
+		return fromUsers;
+	}, [usersQuery.data, isCurrentUserCounsellor, meQuery.data, currentUserId]);
 
 	type FormValues = { name: string; gender: "male" | "female"; counsellorId?: string };
-	const { register, handleSubmit, reset } = useForm<FormValues>({ defaultValues: { gender: "male", name: "" } });
+	const getDefaultFormValues = (): FormValues => ({ gender: "male", name: "", counsellorId: defaultCounsellorId });
+	const { register, handleSubmit, reset } = useForm<FormValues>({ defaultValues: getDefaultFormValues() });
 
 	const onCreateSubmit = async (data: FormValues) => {
 		try {
 			await createMentor.mutateAsync({ name: data.name, gender: data.gender, counsellorId: data.counsellorId });
 			toast.success("Mentor created");
 			setCreateModalOpen(false);
-			reset();
+			reset(getDefaultFormValues());
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to create mentor");
 		}
@@ -134,28 +151,48 @@ export const MentorsPage = () => {
 			counsellorName: m.counsellor ? formatUserName(m.counsellor.name, m.counsellor.username) : null,
 			individualStudents: m.individualStudents,
 			groupStudents: m.groupStudents,
+			totalStudents: m.individualStudents + m.groupStudents,
 			groupCount: m.groupCount,
 			substitutionSummary: m.substitutionSummary,
 			nextFollowUpAt: m.mentor.nextFollowUpAt ? new Date(m.mentor.nextFollowUpAt) : undefined,
 			customNextFollowUpAt: m.mentor.customNextFollowUpAt ? new Date(m.mentor.customNextFollowUpAt) : undefined,
 			lastContactedAt: m.mentor.lastContactedAt ? new Date(m.mentor.lastContactedAt) : undefined,
+			createdAt: m.mentor.createdAt ? new Date(m.mentor.createdAt) : undefined,
 		})),
 		[mentors],
 	);
+
+	const sortBy = searchParams.get("sortBy") ?? "followUp";
 
 	const filteredRows = useMemo(() => {
 		const q = searchTerm.trim().toLowerCase();
 		let out = rows;
 		if (q) out = rows.filter((r) => [r.name ?? "", r.username ?? "", r.displayId ?? "", r.counsellorName ?? ""].join(" ").toLowerCase().includes(q));
-		// default sort by follow-up
 		out = out.slice().sort((a, b) => {
-			const da = (a.customNextFollowUpAt ?? a.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-			const db = (b.customNextFollowUpAt ?? b.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-			return da - db;
+			switch (sortBy) {
+				case "nameAsc":
+					return a.name.localeCompare(b.name);
+				case "nameDesc":
+					return b.name.localeCompare(a.name);
+				case "studentsDesc":
+					return b.totalStudents - a.totalStudents;
+				case "studentsAsc":
+					return a.totalStudents - b.totalStudents;
+				case "createdNewest":
+					return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
+				case "createdOldest":
+					return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+				case "followUp":
+				default: {
+					const da = (a.customNextFollowUpAt ?? a.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+					const db = (b.customNextFollowUpAt ?? b.nextFollowUpAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+					return da - db;
+				}
+			}
 		});
 		const start = (page - 1) * limit;
 		return out.slice(start, start + limit);
-	}, [rows, searchTerm, page, limit]);
+	}, [rows, searchTerm, sortBy, page, limit]);
 
 	const totalCount = rows.length;
 
@@ -288,7 +325,7 @@ export const MentorsPage = () => {
 				</div>
 				<button
 					type="button"
-					onClick={() => setCreateModalOpen(true)}
+					onClick={() => { reset(getDefaultFormValues()); setCreateModalOpen(true); }}
 					className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
 				>
 					<HiUserPlus className="h-4 w-4" aria-hidden="true" />
@@ -299,22 +336,24 @@ export const MentorsPage = () => {
 			{/* Toolbar: scope toggle + search + page size */}
 			<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
 				<div className="flex items-center gap-2">
-					<div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-						<button
-							type="button"
-							onClick={() => setLoadAllRequested(false)}
-							className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeScope === "mine" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-						>
-							My mentors
-						</button>
-						<button
-							type="button"
-							onClick={() => setLoadAllRequested(true)}
-							className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeScope === "all" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-						>
-							All mentors
-						</button>
-					</div>
+					{canReadAllMentors ? (
+						<div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+							<button
+								type="button"
+								onClick={() => setLoadAllRequested(false)}
+								className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeScope === "mine" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+							>
+								My mentors
+							</button>
+							<button
+								type="button"
+								onClick={() => setLoadAllRequested(true)}
+								className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeScope === "all" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+							>
+								All mentors
+							</button>
+						</div>
+					) : null}
 					<div className="relative min-w-50 max-w-sm">
 						<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 						<input
@@ -324,6 +363,22 @@ export const MentorsPage = () => {
 							className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 						/>
 					</div>
+				</div>
+				<div className="flex items-center gap-2">
+					<label className="text-xs font-medium text-gray-500">Sort by</label>
+					<select
+						value={sortBy}
+						onChange={(e) => setQueryParam("sortBy", e.target.value === "followUp" ? undefined : e.target.value)}
+						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+					>
+						<option value="followUp">Next follow-up</option>
+						<option value="nameAsc">Name (A-Z)</option>
+						<option value="nameDesc">Name (Z-A)</option>
+						<option value="studentsDesc">Most students</option>
+						<option value="studentsAsc">Fewest students</option>
+						<option value="createdNewest">Newest first</option>
+						<option value="createdOldest">Oldest first</option>
+					</select>
 				</div>
 				<div className="flex items-center gap-2">
 					<label className="text-xs font-medium text-gray-500">Rows per page</label>
@@ -380,7 +435,7 @@ export const MentorsPage = () => {
 				onClose={() => setCreateModalOpen(false)}
 				footer={
 					<>
-						<button type="button" onClick={() => { setCreateModalOpen(false); reset(); }} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">Cancel</button>
+						<button type="button" onClick={() => { setCreateModalOpen(false); reset(getDefaultFormValues()); }} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">Cancel</button>
 						<button type="button" onClick={handleSubmit(onCreateSubmit)} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Create mentor</button>
 					</>
 				}
@@ -409,7 +464,7 @@ export const MentorsPage = () => {
 						</div>
 
 						<div>
-							<label className="block text-sm font-medium text-gray-700">Assign counsellor (optional)</label>
+							<label className="block text-sm font-medium text-gray-700">Assign counsellor</label>
 							<select {...register("counsellorId")} className="mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2">
 								<option value="">— none —</option>
 								{counsellors.map((c: any) => (

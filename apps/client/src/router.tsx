@@ -347,23 +347,32 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "counsellors/create",
-						element: withPermissions(["USER_CREATE"], <CreateCounsellorPage />),
+						element: withPermissions(["USER_CREATE", "COUNSELLOR_CREATE"], <CreateCounsellorPage />),
 					},
 					{
 						path: "mentors/create",
-						element: withPermissions(["USER_CREATE"], <CreateMentorPage />),
+						element: withPermissions(["USER_CREATE", "MENTOR_CREATE"], <CreateMentorPage />),
 					},
 					{
 						path: "mentors",
-						element: withPermissions(["USER_READ"], <MentorsPage />),
+						element: withPermissions(
+							["USER_READ", "MENTOR_READ", "MENTOR_READ_MY", "MENTOR_READ_ALL"],
+							<MentorsPage />,
+						),
 					},
 					{
 						path: "mentors/:mentorId",
-						element: withPermissions(["USER_READ"], <MentorDetailPage />),
+						element: withPermissions(
+							["USER_READ", "MENTOR_READ", "MENTOR_READ_MY", "MENTOR_READ_ALL"],
+							<MentorDetailPage />,
+						),
 					},
 					{
 						path: "mentors/substitutions",
-						element: withPermissions(["USER_READ"], <SubstitutionsPage />),
+						element: withPermissions(
+							["USER_READ", "MENTOR_READ", "MENTOR_READ_MY", "MENTOR_READ_ALL"],
+							<SubstitutionsPage />,
+						),
 					},
 					{
 						path: "groups",
@@ -395,15 +404,18 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "sales-users",
-						element: withPermissions(["SALES_USERS_READ"], <SalesUsersPage />),
+						element: withPermissions(["SALES_USERS_READ", "SALES_READ"], <SalesUsersPage />),
 					},
 					{
 						path: "users/create",
-						element: withPermissions(["USER_CREATE"], <CreateUserPage />),
+						element: withPermissions(["USER_CREATE", "ADMIN_CREATE"], <CreateUserPage />),
 					},
 					{
 						path: "users/:userId/edit",
-						element: withPermissions(["USER_UPDATE"], <EditUserPage />),
+						element: withPermissions(
+							["USER_UPDATE", "MENTOR_UPDATE", "COUNSELLOR_UPDATE", "ADMIN_UPDATE", "SALES_UPDATE"],
+							<EditUserPage />,
+						),
 					},
 					{
 						path: "roles",

@@ -3,7 +3,6 @@ import { Router } from "express";
 import {
 	authMiddleware,
 	requireAnyPermissionKey,
-	requirePermissionKey,
 } from "../../middlewares/auth.middleware.js";
 import { RoleService, UserService, getUserWithRelations } from "../rbac/rbac.service.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
@@ -71,28 +70,45 @@ router.use(authMiddleware);
  */
 router.post(
 	"/",
-	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_CREATE" satisfies PermissionKey,
+		"ADMIN_CREATE" satisfies PermissionKey,
+	]),
 	asyncHandler(createUserController),
 );
 router.post(
 	"/counsellors",
-	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_CREATE" satisfies PermissionKey,
+		"COUNSELLOR_CREATE" satisfies PermissionKey,
+	]),
 	asyncHandler(createCounsellorController),
 );
 router.post(
 	"/mentors",
-	requirePermissionKey("USER_CREATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_CREATE" satisfies PermissionKey,
+		"MENTOR_CREATE" satisfies PermissionKey,
+	]),
 	asyncHandler(createMentorController),
 );
 router.get(
 	"/",
-	requirePermissionKey("USER_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_READ" satisfies PermissionKey,
+		"MENTOR_READ" satisfies PermissionKey,
+		"COUNSELLOR_READ" satisfies PermissionKey,
+		"ADMIN_READ" satisfies PermissionKey,
+		"SALES_READ" satisfies PermissionKey,
+		"SALES_USERS_READ" satisfies PermissionKey,
+	]),
 	asyncHandler(listUsersController),
 );
 
 router.get(
 	"/counsellors",
 	requireAnyPermissionKey([
+		"COUNSELLOR_READ" satisfies PermissionKey,
 		"LEAD_DEMO_REQUEST" satisfies PermissionKey,
 		"LEAD_DEMO_ASSIGN" satisfies PermissionKey,
 	]),
@@ -102,6 +118,9 @@ router.get(
 router.get(
 	"/mentors",
 	requireAnyPermissionKey([
+		"MENTOR_READ" satisfies PermissionKey,
+		"MENTOR_READ_MY" satisfies PermissionKey,
+		"MENTOR_READ_ALL" satisfies PermissionKey,
 		"LEAD_ASSIGN" satisfies PermissionKey,
 		"LEAD_DEMO_ASSIGN" satisfies PermissionKey,
 	]),
@@ -111,6 +130,7 @@ router.get(
 router.get(
 	"/sales",
 	requireAnyPermissionKey([
+		"SALES_READ" satisfies PermissionKey,
 		"SALES_USERS_READ" satisfies PermissionKey,
 		"LEAD_ASSIGN" satisfies PermissionKey,
 	]),
@@ -219,7 +239,13 @@ router.patch("/me/password", asyncHandler(changeMyPasswordController));
  */
 router.get(
 	"/:userId",
-	requirePermissionKey("USER_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_READ" satisfies PermissionKey,
+		"MENTOR_READ" satisfies PermissionKey,
+		"COUNSELLOR_READ" satisfies PermissionKey,
+		"ADMIN_READ" satisfies PermissionKey,
+		"SALES_READ" satisfies PermissionKey,
+	]),
 	asyncHandler(getUserController),
 );
 router.patch(
@@ -227,12 +253,19 @@ router.patch(
 	requireAnyPermissionKey([
 		"LEAD_ASSIGN" satisfies PermissionKey,
 		"USER_UPDATE" satisfies PermissionKey,
+		"MENTOR_UPDATE" satisfies PermissionKey,
 	]),
 	asyncHandler(assignUserCounsellorController),
 );
 router.patch(
 	"/:userId",
-	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_UPDATE" satisfies PermissionKey,
+		"MENTOR_UPDATE" satisfies PermissionKey,
+		"COUNSELLOR_UPDATE" satisfies PermissionKey,
+		"ADMIN_UPDATE" satisfies PermissionKey,
+		"SALES_UPDATE" satisfies PermissionKey,
+	]),
 	asyncHandler(updateUserController),
 );
 
@@ -267,7 +300,13 @@ router.patch(
  */
 router.patch(
 	"/:userId/status",
-	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_UPDATE" satisfies PermissionKey,
+		"MENTOR_UPDATE" satisfies PermissionKey,
+		"COUNSELLOR_UPDATE" satisfies PermissionKey,
+		"ADMIN_UPDATE" satisfies PermissionKey,
+		"SALES_UPDATE" satisfies PermissionKey,
+	]),
 	asyncHandler(setUserStatusController),
 );
 
@@ -302,12 +341,24 @@ router.patch(
  */
 router.patch(
 	"/:userId/password",
-	requirePermissionKey("USER_CHANGE_PASSWORD" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_CHANGE_PASSWORD" satisfies PermissionKey,
+		"MENTOR_UPDATE" satisfies PermissionKey,
+		"COUNSELLOR_UPDATE" satisfies PermissionKey,
+		"ADMIN_UPDATE" satisfies PermissionKey,
+		"SALES_UPDATE" satisfies PermissionKey,
+	]),
 	asyncHandler(changeUserPasswordController),
 );
 router.delete(
 	"/:userId",
-	requirePermissionKey("USER_DELETE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_DELETE" satisfies PermissionKey,
+		"MENTOR_DELETE" satisfies PermissionKey,
+		"COUNSELLOR_DELETE" satisfies PermissionKey,
+		"ADMIN_DELETE" satisfies PermissionKey,
+		"SALES_DELETE" satisfies PermissionKey,
+	]),
 	asyncHandler(deleteUserController),
 );
 
@@ -358,12 +409,24 @@ router.delete(
  */
 router.post(
 	"/:userId/roles",
-	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_UPDATE" satisfies PermissionKey,
+		"MENTOR_UPDATE" satisfies PermissionKey,
+		"COUNSELLOR_UPDATE" satisfies PermissionKey,
+		"ADMIN_UPDATE" satisfies PermissionKey,
+		"SALES_UPDATE" satisfies PermissionKey,
+	]),
 	asyncHandler(assignRoleController),
 );
 router.delete(
 	"/:userId/roles",
-	requirePermissionKey("USER_UPDATE" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"USER_UPDATE" satisfies PermissionKey,
+		"MENTOR_UPDATE" satisfies PermissionKey,
+		"COUNSELLOR_UPDATE" satisfies PermissionKey,
+		"ADMIN_UPDATE" satisfies PermissionKey,
+		"SALES_UPDATE" satisfies PermissionKey,
+	]),
 	asyncHandler(removeRoleController),
 );
 

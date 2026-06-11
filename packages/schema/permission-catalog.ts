@@ -350,6 +350,18 @@ export const PERMISSION_CATALOG = {
 		resource: "mentors",
 		action: "read",
 	},
+	MENTOR_READ_MY: {
+		name: "Read My Mentors",
+		description: "Read mentors assigned to the current user as their counsellor",
+		resource: "mentors",
+		action: "read:own",
+	},
+	MENTOR_READ_ALL: {
+		name: "Read All Mentors",
+		description: "Read all mentors in the system",
+		resource: "mentors",
+		action: "read:all",
+	},
 	MENTOR_UPDATE: {
 		name: "Update Mentor",
 		description: "Update mentor profile or assignment details",
@@ -538,4 +550,44 @@ export const getPermissionKeyFromResourceAction = (
 	action: string,
 ): PermissionKey | null => {
 	return permissionKeyByResourceAction.get(`${resource}:${action}`) ?? null;
+};
+
+// Groups related resources together for display purposes (e.g. role
+// creation/edit screens). Resources not listed here fall back to "Other".
+export const PERMISSION_CATEGORIES: Record<string, string> = {
+	users: "User Management",
+	sales: "User Management",
+	mentors: "User Management",
+	counsellors: "User Management",
+	admins: "User Management",
+	roles: "Roles & Permissions",
+	permissions: "Roles & Permissions",
+	leads: "Leads & Admissions",
+	"demo-management": "Leads & Admissions",
+	students: "Students",
+	"student-processes": "Students",
+	"student-process-history": "Students",
+	batches: "Batches & Groups",
+	reminders: "Reminders & Follow-ups",
+	timeslots: "Scheduling",
+	reports: "Reports",
+	orders: "Orders",
+};
+
+// Display order for the categories above. Anything not listed (including
+// "Other") is appended after these, sorted alphabetically.
+export const PERMISSION_CATEGORY_ORDER: string[] = [
+	"User Management",
+	"Roles & Permissions",
+	"Leads & Admissions",
+	"Students",
+	"Batches & Groups",
+	"Reminders & Follow-ups",
+	"Scheduling",
+	"Reports",
+	"Orders",
+];
+
+export const getPermissionCategory = (resource: string): string => {
+	return PERMISSION_CATEGORIES[resource] ?? "Other";
 };

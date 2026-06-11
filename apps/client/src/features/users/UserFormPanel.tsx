@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { Field, Panel } from "@/components/dashboard-ui";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type CreateUserFormData = {
@@ -57,8 +57,14 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 	submitLabel,
 }) => {
 	const { token } = useSession();
-	const canCreateUser = useHasPermission("USER_CREATE");
-	const canUpdateUser = useHasPermission("USER_UPDATE");
+	const canCreateUser = useHasAnyPermission(["USER_CREATE", "ADMIN_CREATE"]);
+	const canUpdateUser = useHasAnyPermission([
+		"USER_UPDATE",
+		"MENTOR_UPDATE",
+		"COUNSELLOR_UPDATE",
+		"ADMIN_UPDATE",
+		"SALES_UPDATE",
+	]);
 	const rolesQuery = useRolesQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(

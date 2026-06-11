@@ -1,26 +1,16 @@
 ﻿import { CreateRolePayloadSchema } from "@repo/schema";
-import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { HiPlusCircle, HiXCircle } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { Field, SelectField, TextAreaField } from "@/components/dashboard-ui";
+import { PermissionPicker } from "@/features/permissions/PermissionPicker";
 import { usePermissionsQuery } from "@/features/permissions/permissions.queries";
 import { useCreateRoleMutation } from "@/features/roles/use-create-role-mutation";
 import type { CreateRoleForm } from "@/lib/dashboard-types";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
-
-type PermissionGroup = {
-	resource: string;
-	items: Array<{
-		id: string;
-		name: string;
-		key: string;
-		action: string;
-	}>;
-};
 
 export const CreateRolePage = () => {
 	const { token } = useSession();
@@ -38,29 +28,6 @@ export const CreateRolePage = () => {
 		});
 	const formValues = watch();
 	const selectedPermissionIds = formValues.permissionIds ?? [];
-
-	const groupedPermissions = useMemo<PermissionGroup[]>(() => {
-		const groups = new Map<string, PermissionGroup["items"]>();
-
-		for (const permission of permissionsQuery.data?.permissions ?? []) {
-			const resource = permission.resource.toUpperCase();
-			const existing = groups.get(resource) ?? [];
-			existing.push({
-				id: permission.id,
-				name: permission.name,
-				key: permission.key,
-				action: permission.action,
-			});
-			groups.set(resource, existing);
-		}
-
-		return Array.from(groups.entries())
-			.sort(([left], [right]) => left.localeCompare(right))
-			.map(([resource, items]) => ({
-				resource,
-				items: items.sort((left, right) => left.name.localeCompare(right.name)),
-			}));
-	}, [permissionsQuery.data?.permissions]);
 
 	const togglePermission = (permissionId: string) => {
 		const nextPermissionIds = selectedPermissionIds.includes(permissionId)
@@ -227,43 +194,11 @@ export const CreateRolePage = () => {
 
 				<div className="grid gap-3">
 					<p className="text-sm font-semibold text-gray-900">Permissions</p>
-					{groupedPermissions.map((group) => (
-						<div
-							key={group.resource}
-							className="rounded-3xl border border-gray-300 bg-gray-50 p-4"
-						>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-600">
-								{group.resource}
-							</p>
-							<div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-								{group.items.map((permission) => {
-									const selected = selectedPermissionIds.includes(
-										permission.id,
-									);
-
-									return (
-										<button
-											type="button"
-											key={permission.id}
-											className={
-												selected
-													? "rounded-2xl border border-blue-600 bg-blue-100 px-3 py-2 text-left transition"
-													: "rounded-2xl border border-gray-300 bg-white px-3 py-2 text-left transition hover:border-blue-600/30"
-											}
-											onClick={() => togglePermission(permission.id)}
-										>
-											<p className="text-xs font-semibold text-gray-900">
-												{permission.name}
-											</p>
-											<p className="mt-0.5 text-[11px] text-gray-600">
-												{permission.action} â€¢ {permission.key}
-											</p>
-										</button>
-									);
-								})}
-							</div>
-						</div>
-					))}
+					<PermissionPicker
+						permissions={permissionsQuery.data?.permissions ?? []}
+						selectedPermissionIds={selectedPermissionIds}
+						onToggle={togglePermission}
+					/>
 				</div>
 
 				{formState.errors.permissionIds?.message ? (

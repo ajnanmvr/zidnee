@@ -21,9 +21,12 @@ export const fetchUsers = async (token: string) => {
 	);
 };
 
-export const fetchMentors = async (token: string) => {
+export const fetchMentors = async (
+	token: string,
+	scope: "mine" | "all" = "all",
+) => {
 	return requestWithSchema(
-		"/users/mentors",
+		`/users/mentors?scope=${scope}`,
 		UsersResponseSchema,
 		"GET",
 		undefined,
