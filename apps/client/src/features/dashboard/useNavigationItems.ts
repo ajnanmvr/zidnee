@@ -679,5 +679,6 @@ export const useNavigationItems = () => {
 		meName,
 		roleLabel,
 		hasPermission,
+		isLoading: meQuery.isLoading,
 	};
 };

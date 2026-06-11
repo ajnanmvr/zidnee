@@ -1,6 +1,7 @@
 ﻿import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -202,7 +203,7 @@ const PermissionRoute = ({
 	const { data: me, error, isLoading } = useMeQuery(token);
 
 	if (!token || isLoading) {
-		return routeFallback;
+		return <LoadingScreen />;
 	}
 
 	if (error instanceof ApiError && error.status === 401) {
@@ -266,7 +267,7 @@ export const router = createBrowserRouter([
 		children: [
 			{
 				element: (
-					<Suspense fallback={routeFallback}>
+					<Suspense fallback={<LoadingScreen />}>
 						<DashboardLayout />
 					</Suspense>
 				),

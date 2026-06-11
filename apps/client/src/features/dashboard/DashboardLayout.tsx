@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { DashboardHeader, Modal, Sidebar } from "@/components/dashboard-ui";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { HiArrowRightOnRectangle } from "react-icons/hi2";
 import { useSession } from "@/lib/session";
 import { useNavigationItems } from "./useNavigationItems";
@@ -77,7 +78,7 @@ export const DashboardLayout = () => {
 	const { clearToken } = useSession();
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-	const { error, navItems, meName, roleLabel } = useNavigationItems();
+	const { error, navItems, meName, roleLabel, isLoading } = useNavigationItems();
 
 	const visitedKeysRef = useRef(new Set<string>());
 	const [canGoBack, setCanGoBack] = useState(false);
@@ -95,6 +96,10 @@ export const DashboardLayout = () => {
 			navigate("/login", { replace: true });
 		}
 	}, [clearToken, error, navigate]);
+
+	if (isLoading) {
+		return <LoadingScreen />;
+	}
 
 	const title = resolveTitle(location.pathname, location.search);
 	const currentLocation = `${location.pathname}${location.search}`;
