@@ -149,16 +149,21 @@ const initializeDefaults = async (): Promise<void> => {
 		}
 
 		const allPermissions = await PermissionModel.find()
-			.select("_id action")
-			.lean<Pick<PermissionDocument, "_id" | "action">[]>();
+			.select("_id action resource")
+			.lean<Pick<PermissionDocument, "_id" | "action" | "resource">[]>();
 
 		const adminPermissionIds = allPermissions.map((permission) =>
 			permission._id.toString(),
 		);
+		// Role & permission management is sensitive enough that it shouldn't be
+		// bundled into the default "read everything" set every user gets —
+		// access to the Roles & Permissions pages must be granted explicitly.
 		const userPermissionIds = allPermissions
 			.filter(
 				(permission) =>
-					permission.action === "read" || permission.action === "view",
+					(permission.action === "read" || permission.action === "view") &&
+					permission.resource !== "roles" &&
+					permission.resource !== "permissions",
 			)
 			.map((permission) => permission._id.toString());
 

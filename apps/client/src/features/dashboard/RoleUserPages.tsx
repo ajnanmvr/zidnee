@@ -25,9 +25,17 @@ import {
 	useSetUserStatusMutation,
 } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type RoleType = "admin" | "mentor" | "counsellor" | "sales";
+
+const PERMISSION_PREFIX: Record<RoleType, string> = {
+	admin: "ADMIN",
+	mentor: "MENTOR",
+	counsellor: "COUNSELLOR",
+	sales: "SALES",
+};
 
 type RoleUsersPageProps = {
 	title: string;
@@ -119,10 +127,24 @@ export const RoleUsersPage = ({
 	const allUsers = usersQuery.data?.users ?? [];
 	const theme = ROLE_THEME[roleType];
 	const Icon = theme.icon;
+	const permissionPrefix = PERMISSION_PREFIX[roleType];
+	const canCreate = useHasAnyPermission(["USER_CREATE", `${permissionPrefix}_CREATE`]);
+	const canUpdate = useHasAnyPermission(["USER_UPDATE", `${permissionPrefix}_UPDATE`]);
+	const canDelete = useHasAnyPermission(["USER_DELETE", `${permissionPrefix}_DELETE`]);
 
 	const userNameById = new Map(allUsers.map((u) => [u.id, u.name]));
 	const getCounsellorName = (counsellorId?: string) =>
 		counsellorId ? (userNameById.get(counsellorId) ?? "—") : "—";
+
+	const mentorCountByCounsellorId = useMemo(() => {
+		const counts = new Map<string, number>();
+		for (const user of allUsers) {
+			if (user.counsellorId && user.roles.some((role) => (role.type ?? "admin") === "mentor")) {
+				counts.set(user.counsellorId, (counts.get(user.counsellorId) ?? 0) + 1);
+			}
+		}
+		return counts;
+	}, [allUsers]);
 
 	const users = useMemo(() => {
 		const filtered = allUsers.filter((user) =>
@@ -254,13 +276,15 @@ export const RoleUsersPage = ({
 						</p>
 					</div>
 				</div>
-				<Link
-					to={createPath}
-					className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
-				>
-					<HiUserPlus className="h-4 w-4" aria-hidden="true" />
-					Create {title.replace(/s$/, "")}
-				</Link>
+				{canCreate ? (
+					<Link
+						to={createPath}
+						className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
+					>
+						<HiUserPlus className="h-4 w-4" aria-hidden="true" />
+						Create {title.replace(/s$/, "")}
+					</Link>
+				) : null}
 			</div>
 
 			{/* Search toolbar */}
@@ -314,6 +338,9 @@ export const RoleUsersPage = ({
 											<SortHeader label="Counsellor" sortKey="counsellor" />
 										</th>
 									) : null}
+									{roleType === "counsellor" ? (
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Mentors</th>
+									) : null}
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Roles</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
 									<th className="px-4 py-2.5 pr-5 text-right text-[11px] font-bold uppercase tracking-widest text-gray-400">Actions</th>
@@ -359,6 +386,15 @@ export const RoleUsersPage = ({
 												</td>
 											) : null}
 
+											{/* Mentor count (counsellor rows only) */}
+											{roleType === "counsellor" ? (
+												<td className="px-4 py-3">
+													<span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+														{mentorCountByCounsellorId.get(user.id) ?? 0}
+													</span>
+												</td>
+											) : null}
+
 											{/* Roles */}
 											<td className="px-4 py-3">
 												<div className="flex flex-wrap gap-1.5">
@@ -381,46 +417,55 @@ export const RoleUsersPage = ({
 											{/* Actions */}
 											<td className="px-4 py-3 pr-5">
 												<div className="flex items-center justify-end gap-1.5">
-													<button
-														type="button"
-														onClick={() => navigate(`/users/${user.id}/edit`)}
-														title="Edit"
-														aria-label="Edit user"
-														className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
-													>
-														<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
-													</button>
-													<button
-														type="button"
-														onClick={() => { setPasswordUserId(user.id); reset({ newPassword: "" }); }}
-														title="Change password"
-														aria-label="Change password"
-														className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
-													>
-														<HiLockClosed className="h-4 w-4" aria-hidden="true" />
-													</button>
-													<button
-														type="button"
-														onClick={() => void handleToggleStatus(user.id, user.isActive)}
-														title={user.isActive ? "Deactivate" : "Activate"}
-														aria-label={user.isActive ? "Deactivate user" : "Activate user"}
-														className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${
-															user.isActive
-																? "border-gray-200 text-gray-500 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
-																: "border-gray-200 text-gray-500 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-														}`}
-													>
-														<HiPower className="h-4 w-4" aria-hidden="true" />
-													</button>
-													<button
-														type="button"
-														onClick={() => setDeleteUserId(user.id)}
-														title="Delete"
-														aria-label="Delete user"
-														className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
-													>
-														<HiTrash className="h-4 w-4" aria-hidden="true" />
-													</button>
+													{canUpdate ? (
+														<>
+															<button
+																type="button"
+																onClick={() => navigate(`/users/${user.id}/edit`)}
+																title="Edit"
+																aria-label="Edit user"
+																className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
+															>
+																<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
+															</button>
+															<button
+																type="button"
+																onClick={() => { setPasswordUserId(user.id); reset({ newPassword: "" }); }}
+																title="Change password"
+																aria-label="Change password"
+																className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+															>
+																<HiLockClosed className="h-4 w-4" aria-hidden="true" />
+															</button>
+															<button
+																type="button"
+																onClick={() => void handleToggleStatus(user.id, user.isActive)}
+																title={user.isActive ? "Deactivate" : "Activate"}
+																aria-label={user.isActive ? "Deactivate user" : "Activate user"}
+																className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+																	user.isActive
+																		? "border-gray-200 text-gray-500 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+																		: "border-gray-200 text-gray-500 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+																}`}
+															>
+																<HiPower className="h-4 w-4" aria-hidden="true" />
+															</button>
+														</>
+													) : null}
+													{canDelete ? (
+														<button
+															type="button"
+															onClick={() => setDeleteUserId(user.id)}
+															title="Delete"
+															aria-label="Delete user"
+															className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+														>
+															<HiTrash className="h-4 w-4" aria-hidden="true" />
+														</button>
+													) : null}
+													{!canUpdate && !canDelete ? (
+														<span className="text-xs text-gray-300">—</span>
+													) : null}
 												</div>
 											</td>
 										</tr>

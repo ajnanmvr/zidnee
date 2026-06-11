@@ -21,7 +21,7 @@ import type {
 	CreateMentorForm,
 	CreateUserForm,
 } from "@/lib/dashboard-types";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 export type CreateAccountRoleType = "admin" | "sales" | "mentor" | "counsellor";
@@ -108,7 +108,13 @@ export const CreateAccountPage = ({
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { token } = useSession();
-	const canCreateUser = useHasPermission("USER_CREATE");
+	const canCreateUser = useHasAnyPermission([
+		"USER_CREATE",
+		"ADMIN_CREATE",
+		"SALES_CREATE",
+		"MENTOR_CREATE",
+		"COUNSELLOR_CREATE",
+	]);
 	const usersQuery = useUsersQuery(token);
 	const rolesQuery = useRolesQuery(token);
 	const createUserMutation = useCreateUserMutation();

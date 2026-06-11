@@ -19,6 +19,8 @@ export const PublicUserResponseSchema = UserSchema.omit({
 	password: true,
 	createdAt: true,
 	updatedAt: true,
+}).extend({
+	createdAt: z.coerce.date().optional(),
 });
 
 export type PublicUserResponse = z.infer<typeof PublicUserResponseSchema>;

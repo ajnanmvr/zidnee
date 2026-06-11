@@ -8,6 +8,16 @@ export const useHasPermission = (permissionKey: string): boolean => {
 	return meQuery.data?.permissions?.some((permission) => permission.key === permissionKey) ?? false;
 };
 
+export const useHasAnyPermission = (permissionKeys: string[]): boolean => {
+	const { token } = useSession();
+	const meQuery = useMeQuery(token);
+	const granted = meQuery.data?.permissions ?? [];
+
+	return permissionKeys.some((permissionKey) =>
+		granted.some((permission) => permission.key === permissionKey),
+	);
+};
+
 export const usePermissionMap = (): Record<string, boolean> => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);

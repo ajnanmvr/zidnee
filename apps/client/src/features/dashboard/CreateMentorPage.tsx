@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Panel } from "@/components/dashboard-ui";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useMemo, useEffect } from "react";
@@ -19,7 +19,7 @@ export const CreateMentorPage = () => {
 	const navigate = useNavigate();
 	const createMentor = useCreateMentorMutation();
 	const { token } = useSession();
-	const canCreateUser = useHasPermission("USER_CREATE");
+	const canCreateUser = useHasAnyPermission(["USER_CREATE", "MENTOR_CREATE"]);
 	const usersQuery = useUsersQuery(token);
 
 	const counsellors = useMemo(() => {
@@ -60,7 +60,7 @@ export const CreateMentorPage = () => {
 		<div className="grid gap-6">
 			{!canCreateUser ? (
 				<Panel title="Access denied" description="You do not have permission to create mentors.">
-					<p className="text-sm text-gray-600">Ask an administrator to grant USER_CREATE.</p>
+					<p className="text-sm text-gray-600">Ask an administrator to grant MENTOR_CREATE.</p>
 				</Panel>
 			) : null}
 			{canCreateUser ? (
@@ -86,7 +86,7 @@ export const CreateMentorPage = () => {
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-700">Assign counsellor (optional)</label>
+						<label className="block text-sm font-medium text-gray-700">Assign counsellor</label>
 						<select {...register("counsellorId")} value={selectedCounsellorId ?? ""} className="mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2">
 							<option value="">— none —</option>
 							{counsellors.map((c: any) => (

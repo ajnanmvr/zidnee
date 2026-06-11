@@ -12,6 +12,7 @@ import { AUTH_CONSTANTS } from "@repo/schema";
 import type { Request, Response } from "express";
 import {
 	AuthenticationError,
+	AuthorizationError,
 	ConflictError,
 	NotFoundError,
 	ValidationError,
@@ -19,6 +20,7 @@ import {
 import { hashPassword, verifyPassword } from "../auth/auth.password.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import {
+	getEffectivePermissions,
 	getUserWithRelations,
 	RoleService,
 	UserService,
@@ -50,6 +52,18 @@ const findRoleByType = async (
 	return (
 		(await RoleService.findAll()).find((role) => role.type === roleType) ?? null
 	);
+};
+
+// Multiple roles can share the same `type` (e.g. custom roles like
+// "Operation Manager" alongside the seeded "Counsellor" role both have
+// type "counsellor"). Use this when checking/listing "is this user a
+// counsellor/mentor/etc." so custom roles of that type are included too.
+const findRoleIdsByType = async (
+	roleType: "admin" | "mentor" | "counsellor" | "sales",
+): Promise<string[]> => {
+	return (await RoleService.findAll())
+		.filter((role) => role.type === roleType)
+		.map((role) => role.id);
 };
 
 const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
@@ -160,11 +174,10 @@ export const createMentorController = async (
 			throw new NotFoundError("Counsellor");
 		}
 
-		const counsellorRole = await findRoleByType("counsellor");
-
-		const isCounsellor = counsellorRole
-			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
-			: false;
+		const counsellorRoleIds = await findRoleIdsByType("counsellor");
+		const isCounsellor = counsellor.roleIds.some((roleId) =>
+			counsellorRoleIds.includes(roleId),
+		);
 		if (!isCounsellor) {
 			throw new ValidationError({
 				counsellorId: ["Selected user is not a counsellor"],
@@ -268,19 +281,49 @@ export const listUsersController = async (
 };
 
 export const listMentorsController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const mentorRole = await findRoleByType("mentor");
-	if (!mentorRole) {
+	if (!req.user) {
+		throw new AuthenticationError("User not authenticated");
+	}
+
+	const mentorRoleIds = await findRoleIdsByType("mentor");
+	if (mentorRoleIds.length === 0) {
 		res.json({ ok: true, users: [] });
 		return;
 	}
 
-	const users = await UserService.findAll();
-	const mentors = users.filter((user) =>
-		(user.roleIds ?? []).some((roleId) => roleId === mentorRole.id),
+	const effectivePermissions = await getEffectivePermissions(req.user.roleIds);
+	const permissionKeys = new Set(
+		effectivePermissions.map((permission) => permission.key),
 	);
+	const hasReadAll =
+		permissionKeys.has("MENTOR_READ_ALL") ||
+		permissionKeys.has("MENTOR_READ") ||
+		permissionKeys.has("USER_READ") ||
+		permissionKeys.has("LEAD_ASSIGN") ||
+		permissionKeys.has("LEAD_DEMO_ASSIGN");
+	const hasReadMy = hasReadAll || permissionKeys.has("MENTOR_READ_MY");
+
+	const scope = req.query.scope === "mine" ? "mine" : "all";
+
+	if (scope === "all" && !hasReadAll) {
+		throw new AuthorizationError("Insufficient permissions to view all mentors");
+	}
+	if (scope === "mine" && !hasReadMy) {
+		throw new AuthorizationError("Insufficient permissions to view your mentors");
+	}
+
+	const users = await UserService.findAll();
+	let mentors = users.filter((user) =>
+		(user.roleIds ?? []).some((roleId) => mentorRoleIds.includes(roleId)),
+	);
+
+	if (scope === "mine") {
+		mentors = mentors.filter((user) => user.counsellorId === req.user!.userId);
+	}
+
 	const usersWithRelations = await Promise.all(
 		mentors.map((user) => getUserWithRelations(user)),
 	);
@@ -295,15 +338,15 @@ export const listCounsellorsController = async (
 	_req: Request,
 	res: Response,
 ): Promise<void> => {
-	const counsellorRole = await findRoleByType("counsellor");
-	if (!counsellorRole) {
+	const counsellorRoleIds = await findRoleIdsByType("counsellor");
+	if (counsellorRoleIds.length === 0) {
 		res.json({ ok: true, users: [] });
 		return;
 	}
 
 	const users = await UserService.findAll();
 	const counsellors = users.filter((user) =>
-		(user.roleIds ?? []).some((roleId) => roleId === counsellorRole.id),
+		(user.roleIds ?? []).some((roleId) => counsellorRoleIds.includes(roleId)),
 	);
 	const usersWithRelations = await Promise.all(
 		counsellors.map((user) => getUserWithRelations(user)),
@@ -376,22 +419,20 @@ export const updateUserController = async (
 			throw new NotFoundError("Counsellor");
 		}
 
-		const counsellorRole = await findRoleByType("counsellor");
-		const isCounsellor = counsellorRole
-			? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
-			: false;
+		const counsellorRoleIds = await findRoleIdsByType("counsellor");
+		const isCounsellor = counsellor.roleIds.some((roleId) =>
+			counsellorRoleIds.includes(roleId),
+		);
 		if (!isCounsellor) {
 			throw new ValidationError({
 				counsellorId: ["Selected user is not a counsellor"],
 			});
 		}
 
-		const mentorRole = await findRoleByType("mentor");
-		const isMentor = mentorRole
-			? (result.data.roleIds ?? existingUser.roleIds).some(
-					(roleId) => roleId === mentorRole.id,
-				)
-			: false;
+		const mentorRoleIds = await findRoleIdsByType("mentor");
+		const isMentor = (result.data.roleIds ?? existingUser.roleIds).some(
+			(roleId) => mentorRoleIds.includes(roleId),
+		);
 		if (!isMentor) {
 			throw new ValidationError({
 				counsellorId: ["Counsellor can only be assigned to mentor accounts"],
@@ -443,8 +484,8 @@ export const assignUserCounsellorController = async (
 		throw new ValidationError(result.error.flatten().fieldErrors);
 	}
 
-	const mentorRole = await findRoleByType("mentor");
-	if (!mentorRole) {
+	const mentorRoleIds = await findRoleIdsByType("mentor");
+	if (mentorRoleIds.length === 0) {
 		throw new NotFoundError("Mentor role");
 	}
 
@@ -460,7 +501,7 @@ export const assignUserCounsellorController = async (
 		throw new NotFoundError("User");
 	}
 
-	const isMentor = targetUser.roleIds.some((roleId) => roleId === mentorRole.id);
+	const isMentor = targetUser.roleIds.some((roleId) => mentorRoleIds.includes(roleId));
 	if (!isMentor) {
 		throw new ValidationError({
 			counsellorId: ["Counsellor can only be assigned to mentor accounts"],
@@ -472,10 +513,10 @@ export const assignUserCounsellorController = async (
 		throw new NotFoundError("Counsellor");
 	}
 
-	const counsellorRole = await findRoleByType("counsellor");
-	const isCounsellor = counsellorRole
-		? counsellor.roleIds.some((roleId) => roleId === counsellorRole.id)
-		: false;
+	const counsellorRoleIds = await findRoleIdsByType("counsellor");
+	const isCounsellor = counsellor.roleIds.some((roleId) =>
+		counsellorRoleIds.includes(roleId),
+	);
 	if (!isCounsellor) {
 		throw new ValidationError({
 			counsellorId: ["Selected user is not a counsellor"],

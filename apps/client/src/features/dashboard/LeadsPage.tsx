@@ -129,11 +129,13 @@ export const LeadsPage = () => {
 		Boolean(meQuery.data?.permissions?.some((p) => p.key === key));
 	const canAssignLeadToOthers =
 		hasPermission("LEAD_READ_ALL") || hasPermission("LEAD_UPDATE_ALL");
-	const canReadUsers = hasPermission("USER_READ");
-	// Allow reading sales users either with explicit SALES_USERS_READ
+	const canReadUsers = hasPermission("USER_READ") || hasPermission("MENTOR_READ");
+	// Allow reading sales users either with explicit SALES_USERS_READ/SALES_READ
 	// or with LEAD_ASSIGN (server accepts either via requireAnyPermissionKey).
 	const canReadSalesUsers =
-		hasPermission("SALES_USERS_READ") || hasPermission("LEAD_ASSIGN");
+		hasPermission("SALES_USERS_READ") ||
+		hasPermission("SALES_READ") ||
+		hasPermission("LEAD_ASSIGN");
 	const canRequestOrConfirmAdmission =
 		hasPermission("LEAD_ADMISSION_REQUEST") || hasPermission("LEAD_ADMISSION_CONFIRM");
 	const [currentPage, setCurrentPage] = useState(1);
@@ -391,7 +393,7 @@ export const LeadsPage = () => {
 	});
 
 	const allUsers = usersQuery.data?.users ?? [];
-	const mentorsQuery = useMentorsQuery(token, Boolean(token));
+	const mentorsQuery = useMentorsQuery(token, "all", Boolean(token));
 	const allMentors = mentorsQuery.data?.users ?? [];
 	const salesUsersQuery = useSalesUsersQuery(token, canReadSalesUsers);
 	const salesUsers = salesUsersQuery.data?.users ?? [];
