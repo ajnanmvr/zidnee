@@ -18,6 +18,17 @@
 	--color-warm-soft: #f4ece3;
 	--color-danger: #d98f9a;
 	--color-danger-soft: #f7e3e6;
+	--animate-blink: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.2;
+	}
 }
 
 @layer base {

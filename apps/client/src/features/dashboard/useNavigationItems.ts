@@ -145,6 +145,12 @@ export const useNavigationItems = () => {
 				permission.key === "DEMO_SCHEDULED_READ_MY" ||
 				permission.key === "DEMO_SCHEDULED_READ_ALL",
 		) ?? false;
+	const canReadConverted =
+		me?.permissions?.some(
+			(permission) =>
+				permission.key === "LEADS_CONVERTED_READ" ||
+				permission.key === "LEAD_READ_ALL",
+		) ?? false;
 
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: "mine",
@@ -169,6 +175,11 @@ export const useNavigationItems = () => {
 		{ scope: "mine", status: "DROPPED", limit: 1 },
 		canReadStudents,
 	);
+	const convertedCountQuery = useStudentsQuery(
+		token,
+		{ admittedBy: "me", limit: 1 },
+		canReadConverted,
+	);
 	const myActiveProcessesQuery = useStudentProcessesQuery(
 		token,
 		{ scope: "mine" },
@@ -176,6 +187,7 @@ export const useNavigationItems = () => {
 	);
 	const breakCount = (breakCountQuery.data as any)?.pagination?.total ?? 0;
 	const droppedCount = (droppedCountQuery.data as any)?.pagination?.total ?? 0;
+	const convertedCount = (convertedCountQuery.data as any)?.pagination?.total ?? 0;
 	const remindersQuery = useGetAllReminders({
 		scope: "mine",
 		enabled: canReadReminders,
@@ -198,6 +210,7 @@ export const useNavigationItems = () => {
 				breakCountQuery.refetch();
 				droppedCountQuery.refetch();
 			}
+			if (canReadConverted) convertedCountQuery.refetch();
 			if (canReadStudentProcesses) myActiveProcessesQuery.refetch();
 			if (canReadReminders) remindersQuery.refetch();
 			if (canReadUnassignedDemos) pendingDemosQuery.refetch();
@@ -218,10 +231,12 @@ export const useNavigationItems = () => {
 		canReadUnassignedDemos,
 		canReadScheduledDemos,
 		canReadStudentProcesses,
+		canReadConverted,
 		leadsQuery,
 		studentsQuery,
 		breakCountQuery,
 		droppedCountQuery,
+		convertedCountQuery,
 		remindersQuery,
 		pendingDemosQuery,
 		scheduledDemosQuery,
@@ -390,6 +405,7 @@ export const useNavigationItems = () => {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
 						}),
+						count: convertedCount,
 						accent: "emerald",
 						section: "Lead Pipeline",
 					},
@@ -679,5 +695,6 @@ export const useNavigationItems = () => {
 		meName,
 		roleLabel,
 		hasPermission,
+		isLoading: meQuery.isLoading,
 	};
 };

@@ -38,8 +38,11 @@ type PublicFormValues = {
 	preferredTimeslots: PreferredTimeslot[];
 	preferredPlan: PreferredPlan | null;
 	preferredStartTime: string; // hh:mm
+	preferredTimeIstConfirmed: boolean;
 	hearAboutUs: string;
-	demoAvailability: string;
+	demoAvailabilityDate: string; // YYYY-MM-DD
+	demoAvailabilityTime: string; // hh:mm
+	demoTimeIstConfirmed: boolean;
 	preferredMentorGender: "" | "male" | "female" | "both";
 };
 
@@ -65,10 +68,14 @@ type FormOptions = {
 
 type ValidateFormLinkResponse = {
 	isValid: boolean;
-	prefill?: Partial<PublicFormValues> & { courseType?: "GROUP" | "INDIVIDUAL" };
+	prefill?: Partial<PublicFormValues> & {
+		courseType?: "GROUP" | "INDIVIDUAL";
+		demoAvailability?: string;
+	};
 };
 
 const ALLOWED_COUNTRIES = [
+	"Australia",
 	"Bahrain",
 	"Canada",
 	"China",
@@ -76,6 +83,7 @@ const ALLOWED_COUNTRIES = [
 	"Egypt",
 	"France",
 	"Germany",
+	"India",
 	"Ireland",
 	"Iraq",
 	"Italy",
@@ -165,6 +173,12 @@ const addMinutesToTime = (time24: string, durationMinutes: number): string => {
 	return `${end.getHours().toString().padStart(2, "0")}:${end.getMinutes().toString().padStart(2, "0")}`;
 };
 
+const splitDemoAvailability = (value?: string): { date: string; time: string } => {
+	if (!value) return { date: "", time: "" };
+	const [date, time] = value.split("T");
+	return { date: date ?? "", time: (time ?? "").slice(0, 5) };
+};
+
 const extractReadableErrorMessage = (payload: unknown): string | null => {
 	if (!payload) {
 		return null;
@@ -212,6 +226,13 @@ const extractReadableErrorMessage = (payload: unknown): string | null => {
 };
 
 const GROUP_ALLOWED_LEVELS = ["1", "2", "3", "4", "5"] as const;
+
+const GROUP_TIME_SLOTS: PreferredTimeslot[] = [
+	{ startTime: "06:00", endTime: "08:00" },
+	{ startTime: "16:00", endTime: "18:00" },
+	{ startTime: "18:00", endTime: "20:00" },
+	{ startTime: "20:00", endTime: "22:00" },
+];
 
 const PHONE_NUMBER_PATTERN = /^[+]?\d{8,20}$/;
 const validatePhoneNumber = (value: string) => {
@@ -307,12 +328,15 @@ const PublicFormPage = () => {
 			studentInfo: "",
 			preferredSchedule: "",
 			preferredStartTime: "",
+			preferredTimeIstConfirmed: false,
 			preferredPlan: null,
 			preferredLanguage: "",
 			preferredDays: [],
 			preferredTimeslots: [],
 			hearAboutUs: "",
-			demoAvailability: "",
+			demoAvailabilityDate: "",
+			demoAvailabilityTime: "",
+			demoTimeIstConfirmed: false,
 			preferredMentorGender: "",
 		},
 	});
@@ -426,8 +450,11 @@ const PublicFormPage = () => {
 				preferredTimeslots: "preferred class timing",
 				preferredPlan: "choose a plan",
 				preferredStartTime: "preferred class time",
+				preferredTimeIstConfirmed: "IST confirmation for class time",
 				hearAboutUs: "how you heard about us",
-				demoAvailability: "demo availability",
+				demoAvailabilityTime: "demo time",
+				demoAvailabilityDate: "demo date",
+				demoTimeIstConfirmed: "IST confirmation for demo time",
 				preferredMentorGender: "preferred mentor gender",
 				preferredDays: "preferred days",
 			};
@@ -443,9 +470,12 @@ const PublicFormPage = () => {
 					"preferredLanguage",
 					"preferredPlan",
 					"preferredStartTime",
+					"preferredTimeIstConfirmed",
 					"preferredDays",
 					"hearAboutUs",
-					"demoAvailability",
+					"demoAvailabilityTime",
+					"demoAvailabilityDate",
+					"demoTimeIstConfirmed",
 					"preferredMentorGender",
 				];
 			}
@@ -478,14 +508,25 @@ const PublicFormPage = () => {
 		}
 
 		setCurrentStep((step) => (step === 3 ? step : ((step + 1) as StepId)));
-		if (typeof window !== "undefined" && document.scrollingElement) {
-			window.scrollTo({ top: 0, behavior: "smooth" });
+
+		// Drop focus from the "Continue" button so it can't be re-activated as
+		// the new "Submit application" button takes its place in the layout.
+		if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
 		}
 	};
 
 	const goBack = () => {
 		setCurrentStep((step) => (step === 1 ? step : ((step - 1) as StepId)));
 	};
+
+	// Scroll to the top of the page whenever the step changes, after the new
+	// step's content has rendered (avoids landing mid-page on taller steps).
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			window.scrollTo({ top: 0, behavior: "smooth" });
+		}
+	}, [currentStep]);
 
 	// Preload form options on mount
 	useEffect(() => {
@@ -551,10 +592,14 @@ const PublicFormPage = () => {
 				setIsValid(result.isValid);
 
 				if (result.isValid && result.prefill) {
-					const prefill = result.prefill;
+					const { demoAvailability: prefillDemoAvailability, ...prefill } = result.prefill;
+					const prefillDemo = splitDemoAvailability(prefillDemoAvailability);
 					reset((currentValues) => ({
 						...currentValues,
 						...prefill,
+						// Unlike other fields (e.g. primary WhatsApp number), the student's
+						// name is not prefilled — the user fills it in themselves.
+						name: currentValues.name,
 						dateOfBirth: toInputDate(prefill.dateOfBirth),
 						preferredDays: prefill.preferredDays ?? currentValues.preferredDays,
 						preferredTimeslots:
@@ -574,8 +619,10 @@ const PublicFormPage = () => {
 						gender: prefill.gender ?? currentValues.gender,
 						preferredLanguage:
 							prefill.preferredLanguage ?? currentValues.preferredLanguage,
-						demoAvailability:
-							prefill.demoAvailability ?? currentValues.demoAvailability,
+						demoAvailabilityDate:
+							prefillDemo.date || currentValues.demoAvailabilityDate,
+						demoAvailabilityTime:
+							prefillDemo.time || currentValues.demoAvailabilityTime,
 						preferredMentorGender:
 							String(prefill.courseType).toUpperCase() === "INDIVIDUAL"
 								? (prefill.preferredMentorGender ??
@@ -614,6 +661,10 @@ const PublicFormPage = () => {
 	}, [leadId, token, reset]);
 
 	const onSubmit = async (data: PublicFormValues) => {
+		if (currentStep !== 3) {
+			return;
+		}
+
 		if (!leadId || !token) {
 			toast.error(
 				"This form link is invalid or missing. Please request a new link.",
@@ -646,6 +697,10 @@ const PublicFormPage = () => {
 							},
 						]
 						: [];
+			const demoAvailability =
+				data.demoAvailabilityDate && data.demoAvailabilityTime
+					? `${data.demoAvailabilityDate}T${data.demoAvailabilityTime}`
+					: "";
 			const payload = {
 				name: data.name,
 				email: data.email,
@@ -664,7 +719,7 @@ const PublicFormPage = () => {
 				preferredTimeslots,
 				preferredStartTime: toOptionalValue(data.preferredStartTime),
 				hearAboutUs: data.hearAboutUs,
-				demoAvailability: toOptionalValue(data.demoAvailability),
+				demoAvailability: toOptionalValue(demoAvailability),
 				preferredMentorGender: isIndividualSubmission
 					? toOptionalValue(data.preferredMentorGender)
 					: undefined,
@@ -841,7 +896,20 @@ const PublicFormPage = () => {
 						</div>
 					</div>
 
-					<form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+					<form
+						onSubmit={handleSubmit(onSubmit)}
+						noValidate
+						onKeyDown={(event) => {
+							if (
+								event.key === "Enter" &&
+								currentStep !== 3 &&
+								(event.target as HTMLElement).tagName !== "TEXTAREA"
+							) {
+								event.preventDefault();
+							}
+						}}
+						className="space-y-5"
+					>
 						{currentStep === 1 ? (
 							<div className="grid gap-4 sm:grid-cols-2">
 								<div className="sm:col-span-2">
@@ -1132,7 +1200,25 @@ const PublicFormPage = () => {
 											</label>
 											<p className="mb-3 text-xs text-slate-500">
 												Select all days you can attend individual classes.
+												{selectedPlanSnapshot
+													? ` Select at least ${selectedPlanSnapshot.timesPerWeek} day${selectedPlanSnapshot.timesPerWeek > 1 ? "s" : ""} to match your plan (${selectedPlanSnapshot.timesPerWeek}x/week).`
+													: ""}
 											</p>
+											<input
+												type="hidden"
+												{...register("preferredDays", {
+													validate: (value) => {
+														if (!value || value.length === 0) {
+															return "Select at least one day";
+														}
+														const required = selectedPlanSnapshot?.timesPerWeek ?? 0;
+														if (value.length < required) {
+															return `Select at least ${required} day${required > 1 ? "s" : ""} to match your plan`;
+														}
+														return true;
+													},
+												})}
+											/>
 											<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 												{formOptions.days.map((day) => {
 													const currentDays = watch("preferredDays") || [];
@@ -1166,13 +1252,17 @@ const PublicFormPage = () => {
 										</div>
 										<div>
 											<label className="mb-2 block text-sm font-semibold text-slate-700">
-												Preferred class time (Indian Time)
+												Preferred class time
 											</label>
 											{!selectedPlanSnapshot ? (
 												<p className="mb-2 text-xs text-slate-500">
 													Choose a plan first to calculate the class end time.
 												</p>
 											) : null}
+											<div className="mb-2 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+												<span className="text-base leading-none">🇮🇳</span>
+												<span>Please enter the time in <strong>Indian Standard Time (IST)</strong>.</span>
+											</div>
 											<input
 												type="time"
 												disabled={!selectedPlanSnapshot}
@@ -1185,6 +1275,21 @@ const PublicFormPage = () => {
 											{errors.preferredStartTime?.message ? (
 												<p className="mt-1 text-xs text-red-600">
 													{errors.preferredStartTime.message}
+												</p>
+											) : null}
+											<label className="mt-2 flex items-start gap-2 text-xs text-slate-600">
+												<input
+													type="checkbox"
+													{...register("preferredTimeIstConfirmed", {
+														required: "Please confirm the time is in IST",
+													})}
+													className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+												/>
+												<span>I confirm the time above is given in Indian Standard Time (IST) 🇮🇳.</span>
+											</label>
+											{errors.preferredTimeIstConfirmed?.message ? (
+												<p className="mt-1 text-xs text-red-600">
+													{errors.preferredTimeIstConfirmed.message}
 												</p>
 											) : null}
 										</div>
@@ -1228,16 +1333,59 @@ const PublicFormPage = () => {
 											<label className="mb-2 block text-sm font-semibold text-slate-700">
 												When can we give a demo?
 											</label>
-											<input
-												type="datetime-local"
-												{...register("demoAvailability", {
-													required: "Demo time is required",
-												})}
-												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-											/>
-											{errors.demoAvailability?.message ? (
+											<div className="mb-2 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+												<span className="text-base leading-none">🇮🇳</span>
+												<span>Please enter the time in <strong>Indian Standard Time (IST)</strong>.</span>
+											</div>
+											<div className="grid gap-4 sm:grid-cols-2">
+												<div>
+													<label className="mb-1 block text-xs font-semibold text-slate-500">
+														Time
+													</label>
+													<input
+														type="time"
+														{...register("demoAvailabilityTime", {
+															required: "Demo time is required",
+														})}
+														className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+													/>
+													{errors.demoAvailabilityTime?.message ? (
+														<p className="mt-1 text-xs text-red-600">
+															{errors.demoAvailabilityTime.message}
+														</p>
+													) : null}
+												</div>
+												<div>
+													<label className="mb-1 block text-xs font-semibold text-slate-500">
+														Date
+													</label>
+													<input
+														type="date"
+														{...register("demoAvailabilityDate", {
+															required: "Demo date is required",
+														})}
+														className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+													/>
+													{errors.demoAvailabilityDate?.message ? (
+														<p className="mt-1 text-xs text-red-600">
+															{errors.demoAvailabilityDate.message}
+														</p>
+													) : null}
+												</div>
+											</div>
+											<label className="mt-2 flex items-start gap-2 text-xs text-slate-600">
+												<input
+													type="checkbox"
+													{...register("demoTimeIstConfirmed", {
+														required: "Please confirm the time is in IST",
+													})}
+													className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+												/>
+												<span>I confirm the time above is given in Indian Standard Time (IST) 🇮🇳.</span>
+											</label>
+											{errors.demoTimeIstConfirmed?.message ? (
 												<p className="mt-1 text-xs text-red-600">
-													{errors.demoAvailability.message}
+													{errors.demoTimeIstConfirmed.message}
 												</p>
 											) : null}
 										</div>
@@ -1251,15 +1399,11 @@ const PublicFormPage = () => {
 											Preferred class timing (Indian Time)
 										</label>
 										<p className="mb-3 text-xs text-slate-500">
-											Tap one or more hourly tiles to select preferred timings for group classes.
+											Tap one or more slots to select preferred timings for group classes.
 										</p>
 
-										<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
-											{Array.from({ length: 20 }).map((_, i) => {
-												const hour = 4 + i; // 4..23
-												const start = `${hour.toString().padStart(2, "0")}:00`;
-												const endHour = (hour + 1) % 24;
-												const end = `${endHour.toString().padStart(2, "0")}:00`;
+										<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+											{GROUP_TIME_SLOTS.map(({ startTime: start, endTime: end }) => {
 												const currentPreferred = watch("preferredTimeslots") || [];
 												const isAdded = currentPreferred.some(
 													(t) => t.startTime === start && t.endTime === end,
@@ -1410,6 +1554,7 @@ const PublicFormPage = () => {
 							</button>
 							{currentStep < 3 ? (
 								<button
+									key="step-nav-continue"
 									type="button"
 									onClick={goNext}
 									className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] sm:w-auto sm:py-2.5"
@@ -1429,6 +1574,7 @@ const PublicFormPage = () => {
 								</button>
 							) : (
 								<button
+									key="step-nav-submit"
 									type="submit"
 									disabled={isSubmitting}
 									className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"

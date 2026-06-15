@@ -11,6 +11,7 @@ import { useMeQuery } from "@/features/auth/auth.queries";
 import { usePendingDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { GROUP_DEMO_TIME_SLOTS, formatTimeSlotLabel } from "@/lib/constants/group-demo-slots";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { RequirementsModal } from "./RequirementsModal";
@@ -34,10 +35,13 @@ const MentorOption = ({
 	mentor,
 	selected,
 	onSelect,
+	counsellorName,
 }: {
 	mentor: { id: string; name?: string | null; username?: string | null; email?: string | null; zids?: { mentor?: string } | null };
 	selected: boolean;
 	onSelect: () => void;
+	/** Shown for mentors not managed by the current counsellor, for less-prominent context. */
+	counsellorName?: string | null;
 }) => {
 	const displayName = mentor.name || mentor.username || "Unknown";
 	const zid = mentor.zids?.mentor;
@@ -60,6 +64,11 @@ const MentorOption = ({
 					{[zid?.toUpperCase(), mentor.email].filter(Boolean).join(" · ") || "—"}
 				</span>
 			</span>
+			{counsellorName ? (
+				<span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+					{counsellorName}
+				</span>
+			) : null}
 			{selected ? <HiCheck className="h-5 w-5 shrink-0 text-emerald-600" /> : null}
 		</button>
 	);
@@ -160,6 +169,16 @@ export const UnassignedDemosPage = () => {
 	const userNameById = useMemo(() => new Map(
 		(usersQuery.data?.users ?? []).map((u) => [u.id, u.name || u.username]),
 	), [usersQuery.data]);
+
+	/** Mentors managed by the current counsellor get their own section, surfaced before everyone else's mentors. */
+	const myMentorResults = useMemo(
+		() => mentorSearchResults.filter((m) => m.counsellorId === currentUserId),
+		[mentorSearchResults, currentUserId],
+	);
+	const otherMentorResults = useMemo(
+		() => mentorSearchResults.filter((m) => m.counsellorId !== currentUserId),
+		[mentorSearchResults, currentUserId],
+	);
 
 	const allDemos = demosQuery.data?.leads ?? [];
 	const scopedDemos = viewScope === "mine"
@@ -374,10 +393,28 @@ export const UnassignedDemosPage = () => {
 												</div>
 											) : null}
 
+											{myMentorResults.length > 0 ? (
+												<div className="space-y-1.5 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-2">
+													<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+														My mentors
+													</p>
+													<div className="space-y-1.5">
+														{myMentorResults.map((m) => (
+															<MentorOption
+																key={m.id}
+																mentor={m}
+																selected={field.value === m.id}
+																onSelect={() => field.onChange(m.id)}
+															/>
+														))}
+													</div>
+												</div>
+											) : null}
+
 											<div className="space-y-1.5">
-												{!mentorSearch.trim() && suggestedMentors.length > 0 ? (
+												{otherMentorResults.length > 0 ? (
 													<p className="px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-														All mentors
+														{myMentorResults.length > 0 ? "Other mentors" : "All mentors"}
 													</p>
 												) : null}
 												{mentorSearchResults.length === 0 ? (
@@ -385,12 +422,13 @@ export const UnassignedDemosPage = () => {
 														No mentors match "{mentorSearch}"
 													</div>
 												) : (
-													mentorSearchResults.map((m) => (
+													otherMentorResults.map((m) => (
 														<MentorOption
 															key={m.id}
 															mentor={m}
 															selected={field.value === m.id}
 															onSelect={() => field.onChange(m.id)}
+															counsellorName={m.counsellorId ? (userNameById.get(m.counsellorId) ?? null) : null}
 														/>
 													))
 												)}
@@ -404,17 +442,58 @@ export const UnassignedDemosPage = () => {
 					/>
 					<Controller name="demoScheduledFor" control={control}
 						rules={{ required: "Demo time is required", validate: (v) => v > new Date() || "Demo time must be in the future" }}
-						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
-								<span>Demo Scheduled For</span>
-								<input type="datetime-local"
-									value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
-									onChange={(e) => field.onChange(new Date(e.target.value))}
-									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-								/>
-								{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
-							</label>
-						)}
+						render={({ field, fieldState }) => {
+							if (selectedDemo?.courseType === "GROUP") {
+								const currentDate = field.value instanceof Date ? format(field.value, "yyyy-MM-dd") : "";
+								const currentTime = field.value instanceof Date ? format(field.value, "HH:mm") : "";
+								return (
+									<div className="grid gap-2 text-sm font-medium text-gray-600">
+										<span>Demo Scheduled For</span>
+										<input type="date"
+											value={currentDate}
+											onChange={(e) => {
+												const time = currentTime || GROUP_DEMO_TIME_SLOTS[0]?.startTime || "06:00";
+												field.onChange(new Date(`${e.target.value}T${time}`));
+											}}
+											className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+										/>
+										<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+											{GROUP_DEMO_TIME_SLOTS.map((slot) => {
+												const selected = currentTime === slot.startTime;
+												return (
+													<button key={slot.startTime} type="button"
+														onClick={() => {
+															const date = currentDate || format(new Date(), "yyyy-MM-dd");
+															field.onChange(new Date(`${date}T${slot.startTime}`));
+														}}
+														className={`rounded-xl border px-2 py-2 text-xs font-semibold transition ${
+															selected
+																? "border-emerald-500 bg-emerald-50 text-emerald-700"
+																: "border-gray-200 text-gray-700 hover:bg-gray-50"
+														}`}
+													>
+														{formatTimeSlotLabel(slot)}
+													</button>
+												);
+											})}
+										</div>
+										{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
+									</div>
+								);
+							}
+
+							return (
+								<label className="grid gap-2 text-sm font-medium text-gray-600">
+									<span>Demo Scheduled For</span>
+									<input type="datetime-local"
+										value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
+										onChange={(e) => field.onChange(new Date(e.target.value))}
+										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+									/>
+									{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
+								</label>
+							);
+						}}
 					/>
 				</form>
 			</Modal>
