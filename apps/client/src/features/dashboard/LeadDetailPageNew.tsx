@@ -50,6 +50,51 @@ type EditLeadFormState = {
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
 
+type DeleteLeadReasonCategory = "not_interested" | "not_responding" | "other";
+
+type NotInterestedSubReason = "high_fee" | "normal_madrasa" | "demo_not_satisfied" | "other";
+
+const DELETE_LEAD_REASON_CATEGORIES: Array<{ value: DeleteLeadReasonCategory; label: string }> = [
+	{ value: "not_interested", label: "Not interested" },
+	{ value: "not_responding", label: "Not responding" },
+	{ value: "other", label: "Other" },
+];
+
+const NOT_INTERESTED_SUB_REASONS: Array<{ value: NotInterestedSubReason; label: string }> = [
+	{ value: "high_fee", label: "High fee" },
+	{ value: "normal_madrasa", label: "Normal madrasa needed" },
+	{ value: "demo_not_satisfied", label: "Demo not satisfied" },
+	{ value: "other", label: "Other" },
+];
+
+/** Builds the free-text note sent to the server from the structured delete-reason selection. */
+const composeDeleteLeadNote = (
+	reason: DeleteLeadReasonCategory | null,
+	subReason: NotInterestedSubReason | null,
+	note: string,
+): string => {
+	const trimmedNote = note.trim();
+
+	if (reason === "not_interested") {
+		if (subReason === "other") {
+			return trimmedNote ? `Not interested — Other: ${trimmedNote}` : "";
+		}
+
+		const subLabel = NOT_INTERESTED_SUB_REASONS.find((item) => item.value === subReason)?.label;
+		return subLabel ? `Not interested — ${subLabel}` : "";
+	}
+
+	if (reason === "not_responding") {
+		return trimmedNote ? `Not responding — ${trimmedNote}` : "Not responding";
+	}
+
+	if (reason === "other") {
+		return trimmedNote ? `Other: ${trimmedNote}` : "";
+	}
+
+	return "";
+};
+
 const getStatusColor = (status?: string): { badge: string; gradient: string } => {
 	const colors: Record<string, { badge: string; gradient: string }> = {
 		FOLLOW_UP: { badge: "bg-blue-100 text-blue-700", gradient: "from-blue-500 to-indigo-600" },
@@ -202,7 +247,8 @@ export const LeadDetailPageNew = () => {
 	const [postponeOpen, setPostponeOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleteNote, setDeleteNote] = useState("");
-	const [deleteReason, setDeleteReason] = useState<string | null>(null);
+	const [deleteReason, setDeleteReason] = useState<DeleteLeadReasonCategory | null>(null);
+	const [deleteSubReason, setDeleteSubReason] = useState<NotInterestedSubReason | null>(null);
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
 	const [formLinkOpen, setFormLinkOpen] = useState(false);
 	const [formLinkData, setFormLinkData] = useState<{ formLink: string } | null>(
@@ -454,18 +500,17 @@ export const LeadDetailPageNew = () => {
 			toast.error("Please select a reason for deleting the lead.");
 			return;
 		}
+		if (deleteReason === "not_interested" && !deleteSubReason) {
+			toast.error("Please select a reason for not being interested.");
+			return;
+		}
 
-		const reasonLabel =
-			{
-				not_interested: "Not interested",
-				not_responding: "Not responding",
-				wrong_number: "Wrong number / Disconnected",
-				other: "Other",
-			}[deleteReason] ?? deleteReason;
+		const noteToSend = composeDeleteLeadNote(deleteReason, deleteSubReason, deleteNote);
 
-		const noteToSend = deleteNote?.trim()
-			? `${reasonLabel} — ${deleteNote.trim()}`
-			: reasonLabel;
+		if (!noteToSend) {
+			toast.error("Please add a brief note for this reason.");
+			return;
+		}
 
 		try {
 			await deleteMutation.mutateAsync({ leadId: lead.id, note: noteToSend });
@@ -473,6 +518,7 @@ export const LeadDetailPageNew = () => {
 			setDeleteOpen(false);
 			setDeleteNote("");
 			setDeleteReason(null);
+			setDeleteSubReason(null);
 			navigate("/leads");
 		} catch (error) {
 			if (error instanceof ApiError) {
@@ -1481,6 +1527,7 @@ export const LeadDetailPageNew = () => {
 					setDeleteOpen(false);
 					setDeleteNote("");
 					setDeleteReason(null);
+					setDeleteSubReason(null);
 				}}
 				title="Delete Lead"
 				footer={
@@ -1491,6 +1538,7 @@ export const LeadDetailPageNew = () => {
 								setDeleteOpen(false);
 								setDeleteNote("");
 								setDeleteReason(null);
+								setDeleteSubReason(null);
 							}}
 							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
 						>
@@ -1499,7 +1547,11 @@ export const LeadDetailPageNew = () => {
 						<button
 							type="button"
 							onClick={onDeleteLead}
-							className={`rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 ${!deleteReason ? "opacity-50 pointer-events-none" : ""}`}
+							className={`rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 ${
+								!composeDeleteLeadNote(deleteReason, deleteSubReason, deleteNote)
+									? "opacity-50 pointer-events-none"
+									: ""
+							}`}
 						>
 							Delete
 						</button>
@@ -1509,43 +1561,87 @@ export const LeadDetailPageNew = () => {
 				<div className="space-y-4">
 					<p className="text-sm text-gray-700">
 						Are you sure you want to delete this lead? This action cannot be
-						undone. Select a reason and optionally add a short note.
+						undone. Select a reason for dropping this lead.
 					</p>
 					<div className="grid gap-2">
-						{[
-							{ key: "not_interested", label: "Not interested" },
-							{ key: "not_responding", label: "Not responding" },
-							{ key: "wrong_number", label: "Wrong number / Disconnected" },
-							{ key: "other", label: "Other" },
-						].map((r) => (
+						{DELETE_LEAD_REASON_CATEGORIES.map((r) => (
 							<label
-								key={r.key}
+								key={r.value}
 								className="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2"
 							>
 								<input
 									type="radio"
 									name="deleteReason"
-									value={r.key}
-									checked={deleteReason === r.key}
-									onChange={() => setDeleteReason(r.key)}
+									value={r.value}
+									checked={deleteReason === r.value}
+									onChange={() => {
+										setDeleteReason(r.value);
+										setDeleteSubReason(null);
+										setDeleteNote("");
+									}}
 									className="h-4 w-4"
 								/>
 								<span className="text-sm text-gray-700">{r.label}</span>
 							</label>
 						))}
 					</div>
-					<label className="grid gap-2">
-						<span className="text-sm font-semibold text-gray-700">
-							Optional note
-						</span>
-						<textarea
-							value={deleteNote}
-							onChange={(event) => setDeleteNote(event.target.value)}
-							rows={3}
-							className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-							placeholder="Add a brief note (optional)..."
-						/>
-					</label>
+
+					{deleteReason === "not_interested" ? (
+						<div className="grid gap-2 pl-4">
+							{NOT_INTERESTED_SUB_REASONS.map((r) => (
+								<label
+									key={r.value}
+									className="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2"
+								>
+									<input
+										type="radio"
+										name="deleteSubReason"
+										value={r.value}
+										checked={deleteSubReason === r.value}
+										onChange={() => {
+											setDeleteSubReason(r.value);
+											if (r.value !== "other") {
+												setDeleteNote("");
+											}
+										}}
+										className="h-4 w-4"
+									/>
+									<span className="text-sm text-gray-700">{r.label}</span>
+								</label>
+							))}
+						</div>
+					) : null}
+
+					{deleteReason === "other" ||
+					(deleteReason === "not_interested" && deleteSubReason === "other") ? (
+						<label className="grid gap-2">
+							<span className="text-sm font-semibold text-gray-700">
+								Brief note
+							</span>
+							<textarea
+								value={deleteNote}
+								onChange={(event) => setDeleteNote(event.target.value)}
+								rows={3}
+								className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+								placeholder="Tell us more..."
+							/>
+						</label>
+					) : null}
+
+					{deleteReason === "not_responding" ? (
+						<label className="grid gap-2">
+							<span className="text-sm font-semibold text-gray-700">
+								Additional note (optional)
+							</span>
+							<textarea
+								value={deleteNote}
+								onChange={(event) => setDeleteNote(event.target.value)}
+								rows={3}
+								className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+								placeholder="Add any additional context (optional)..."
+							/>
+						</label>
+					) : null}
 				</div>
 			</Modal>
 

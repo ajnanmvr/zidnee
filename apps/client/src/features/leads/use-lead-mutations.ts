@@ -265,6 +265,9 @@ export const useConfirmAdmissionMutation = () => {
 			await queryClient.invalidateQueries({
 				queryKey: studentsQueryKeys.list(token),
 			});
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.processes(token),
+			});
 		},
 	});
 };
@@ -295,6 +298,9 @@ export const useRequestAdmissionMutation = () => {
 			await invalidateLeadQueries(queryClient, token, variables.leadId);
 			await queryClient.invalidateQueries({
 				queryKey: studentsQueryKeys.list(token),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.processes(token),
 			});
 		},
 	});

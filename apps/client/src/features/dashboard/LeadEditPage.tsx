@@ -37,6 +37,61 @@ type LeadEditFormState = {
 	isOrganic: boolean;
 };
 
+const to12HourFormat = (value: string): string => {
+	const [hoursText, minutesText] = value.split(":");
+	const hour = Number(hoursText);
+	const minute = Number(minutesText);
+	if (Number.isNaN(hour) || Number.isNaN(minute)) {
+		return "";
+	}
+
+	const meridiem = hour >= 12 ? "PM" : "AM";
+	const hour12 = hour % 12 || 12;
+	return `${hour12.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")} ${meridiem}`;
+};
+
+const addMinutesToTime = (time24: string, durationMinutes: number): string => {
+	const [hoursText, minutesText] = time24.split(":");
+	const hours = Number(hoursText);
+	const minutes = Number(minutesText);
+	if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+		return "";
+	}
+
+	const start = new Date();
+	start.setHours(hours, minutes, 0, 0);
+	const end = new Date(start.getTime() + durationMinutes * 60000);
+	return `${end.getHours().toString().padStart(2, "0")}:${end.getMinutes().toString().padStart(2, "0")}`;
+};
+
+/** Difference between two HH:MM times in minutes (0 if either time is missing/invalid). */
+const getTimeDifferenceMinutes = (startTime: string, endTime: string): number => {
+	const [startHours, startMinutes] = startTime.split(":").map(Number);
+	const [endHours, endMinutes] = endTime.split(":").map(Number);
+	if ([startHours, startMinutes, endHours, endMinutes].some((value) => Number.isNaN(value))) {
+		return 0;
+	}
+
+	const diff = (endHours! * 60 + endMinutes!) - (startHours! * 60 + startMinutes!);
+	return diff > 0 ? diff : 0;
+};
+
+/** Builds the human-readable "Preferred Schedule" text from the selected timeslots. */
+const formatScheduleFromTimeslots = (
+	timeslots: Array<{ startTime: string; endTime: string }>,
+	courseType: string,
+): string => {
+	const ranges = timeslots
+		.filter((slot) => slot.startTime && slot.endTime)
+		.map((slot) => `${to12HourFormat(slot.startTime)} - ${to12HourFormat(slot.endTime)}`);
+
+	if (!ranges.length) {
+		return "";
+	}
+
+	return courseType === "GROUP" ? ranges.join(", ") : `${ranges[0]} IST`;
+};
+
 const DetailCard = ({
 	title,
 	icon: Icon,
@@ -63,7 +118,7 @@ export const LeadEditPage = () => {
 	const updateMutation = useUpdateLeadMutation();
 	const [banner, setBanner] = useState("");
 
-	const { control, formState, handleSubmit, reset, setError } =
+	const { control, formState, handleSubmit, reset, setError, getValues, setValue } =
 		useForm<LeadEditFormState>({
 			defaultValues: {
 				name: "",
@@ -134,6 +189,30 @@ export const LeadEditPage = () => {
 			isOrganic: lead.isOrganic ?? false,
 		});
 	}, [lead, reset]);
+
+	/**
+	 * Keeps the "Preferred Schedule" text (and, for individual leads, the plan
+	 * duration) in sync whenever the admin edits the timing/timeslots directly.
+	 */
+	const syncScheduleFromTimeslots = (
+		timeslots: Array<{ startTime: string; endTime: string }>,
+	) => {
+		const courseType = getValues("courseType");
+		const scheduleText = formatScheduleFromTimeslots(timeslots, courseType);
+		if (scheduleText) {
+			setValue("preferredSchedule", scheduleText, { shouldDirty: true });
+		}
+
+		if (courseType === "INDIVIDUAL") {
+			const [firstSlot] = timeslots;
+			if (firstSlot?.startTime && firstSlot?.endTime) {
+				const duration = getTimeDifferenceMinutes(firstSlot.startTime, firstSlot.endTime);
+				if (duration > 0) {
+					setValue("preferredPlanDurationMinutes", String(duration), { shouldDirty: true });
+				}
+			}
+		}
+	};
 
 	const onSubmit = handleSubmit(async (payload) => {
 		if (!lead) {
@@ -550,7 +629,40 @@ export const LeadEditPage = () => {
 											label="Duration (minutes)"
 											type="number"
 											value={field.value}
-											onChange={field.onChange}
+											onChange={(value) => {
+												field.onChange(value);
+
+												if (getValues("courseType") !== "INDIVIDUAL") {
+													return;
+												}
+
+												const duration = Number(value);
+												if (!duration || Number.isNaN(duration)) {
+													return;
+												}
+
+												const slots = getValues("preferredTimeslots") ?? [];
+												const firstSlot = slots[0];
+												if (!firstSlot?.startTime) {
+													return;
+												}
+
+												const nextEndTime = addMinutesToTime(firstSlot.startTime, duration);
+												if (!nextEndTime) {
+													return;
+												}
+
+												const nextSlots = [
+													{ startTime: firstSlot.startTime, endTime: nextEndTime },
+													...slots.slice(1),
+												];
+												setValue("preferredTimeslots", nextSlots, { shouldDirty: true });
+
+												const scheduleText = formatScheduleFromTimeslots(nextSlots, "INDIVIDUAL");
+												if (scheduleText) {
+													setValue("preferredSchedule", scheduleText, { shouldDirty: true });
+												}
+											}}
 											placeholder="e.g. 45"
 											error={fieldState.error?.message}
 										/>
@@ -586,6 +698,7 @@ export const LeadEditPage = () => {
 														endTime: next[index]?.endTime ?? "",
 													};
 														field.onChange(next);
+														syncScheduleFromTimeslots(next);
 													}}
 												/>
 												<Field
@@ -599,15 +712,16 @@ export const LeadEditPage = () => {
 														endTime: value,
 													};
 														field.onChange(next);
+														syncScheduleFromTimeslots(next);
 													}}
 												/>
 												<div className="flex items-end">
 													<button
 														type="button"
 														onClick={() => {
-															field.onChange(
-																(field.value ?? []).filter((_, slotIndex) => slotIndex !== index),
-															);
+															const next = (field.value ?? []).filter((_, slotIndex) => slotIndex !== index);
+															field.onChange(next);
+															syncScheduleFromTimeslots(next);
 														}}
 														className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
 													>
@@ -618,12 +732,14 @@ export const LeadEditPage = () => {
 										))}
 										<button
 											type="button"
-											onClick={() =>
-												field.onChange([
+											onClick={() => {
+												const next = [
 													...(field.value ?? []),
 													{ startTime: "", endTime: "" },
-												])
-											}
+												];
+												field.onChange(next);
+												syncScheduleFromTimeslots(next);
+											}}
 											className="rounded-xl border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-white"
 										>
 											Add slot

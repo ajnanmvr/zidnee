@@ -3,6 +3,7 @@ import { useMeQuery } from "@/features/auth/auth.queries";
 import { useDemoRequestsQuery } from "@/features/leads/leads.queries";
 import { useAssignDemoMentorMutation, useMarkDemoCompletedMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
+import { GROUP_DEMO_TIME_SLOTS, formatTimeSlotLabel } from "@/lib/constants/group-demo-slots";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import type { LeadResponse } from "@repo/schema";
@@ -341,17 +342,58 @@ export const ScheduledDemosPage = () => {
 					/>
 					<Controller name="demoScheduledFor" control={control}
 						rules={{ required: "Demo time is required", validate: (v) => v > new Date() || "Demo time must be in the future" }}
-						render={({ field, fieldState }) => (
-							<label className="grid gap-2 text-sm font-medium text-gray-600">
-								<span>New Demo Time</span>
-								<input type="datetime-local"
-									value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
-									onChange={(e) => field.onChange(new Date(e.target.value))}
-									className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-								/>
-								{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
-							</label>
-						)}
+						render={({ field, fieldState }) => {
+							if (selectedDemo?.courseType === "GROUP") {
+								const currentDate = field.value instanceof Date ? format(field.value, "yyyy-MM-dd") : "";
+								const currentTime = field.value instanceof Date ? format(field.value, "HH:mm") : "";
+								return (
+									<div className="grid gap-2 text-sm font-medium text-gray-600">
+										<span>New Demo Time</span>
+										<input type="date"
+											value={currentDate}
+											onChange={(e) => {
+												const time = currentTime || GROUP_DEMO_TIME_SLOTS[0]?.startTime || "06:00";
+												field.onChange(new Date(`${e.target.value}T${time}`));
+											}}
+											className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+										/>
+										<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+											{GROUP_DEMO_TIME_SLOTS.map((slot) => {
+												const selected = currentTime === slot.startTime;
+												return (
+													<button key={slot.startTime} type="button"
+														onClick={() => {
+															const date = currentDate || format(new Date(), "yyyy-MM-dd");
+															field.onChange(new Date(`${date}T${slot.startTime}`));
+														}}
+														className={`rounded-xl border px-2 py-2 text-xs font-semibold transition ${
+															selected
+																? "border-emerald-500 bg-emerald-50 text-emerald-700"
+																: "border-gray-200 text-gray-700 hover:bg-gray-50"
+														}`}
+													>
+														{formatTimeSlotLabel(slot)}
+													</button>
+												);
+											})}
+										</div>
+										{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
+									</div>
+								);
+							}
+
+							return (
+								<label className="grid gap-2 text-sm font-medium text-gray-600">
+									<span>New Demo Time</span>
+									<input type="datetime-local"
+										value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
+										onChange={(e) => field.onChange(new Date(e.target.value))}
+										className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+									/>
+									{fieldState.error?.message ? <p className="text-xs text-red-600">{fieldState.error.message}</p> : null}
+								</label>
+							);
+						}}
 					/>
 				</form>
 			</Modal>

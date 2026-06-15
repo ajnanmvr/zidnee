@@ -61,6 +61,7 @@ import type {
 	RedemoLeadForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { formatTableDate } from "@/lib/utils/date";
 import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
 
 const toInputDateTimeLocal = (value: string | null): string => {
@@ -78,10 +79,82 @@ const toInputDateTimeLocal = (value: string | null): string => {
 	return localDate.toISOString().slice(0, 16);
 };
 
+const LEADS_SORT_STORAGE_KEY = "leads:sort";
+
+type LeadsSortState = { sortBy: string; sortOrder: "asc" | "desc" };
+
+const DEFAULT_LEADS_SORT: LeadsSortState = {
+	sortBy: "nextFollowUpAt",
+	sortOrder: "asc",
+};
+
+const getStoredLeadsSort = (): LeadsSortState => {
+	if (typeof window === "undefined") {
+		return DEFAULT_LEADS_SORT;
+	}
+
+	try {
+		const raw = window.sessionStorage.getItem(LEADS_SORT_STORAGE_KEY);
+		if (!raw) {
+			return DEFAULT_LEADS_SORT;
+		}
+
+		const parsed = JSON.parse(raw) as Partial<LeadsSortState>;
+		return {
+			sortBy: typeof parsed.sortBy === "string" ? parsed.sortBy : DEFAULT_LEADS_SORT.sortBy,
+			sortOrder: parsed.sortOrder === "desc" ? "desc" : "asc",
+		};
+	} catch {
+		return DEFAULT_LEADS_SORT;
+	}
+};
+
 const isCounsellorRole = (roleType: string) => roleType === "counsellor";
 
 const getWhatsappNumber = (phone?: string | null) =>
 	phone?.replace(/\D/g, "") ?? "";
+
+const formatFormResponseGender = (value?: string | null) => {
+	if (!value) {
+		return undefined;
+	}
+
+	return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
+/** Builds a plain-text summary of a lead's form response for copying to the clipboard. */
+const buildFormResponseSummary = (lead: LeadResponse): string => {
+	const plan = lead.preferredPlan as
+		| { timesPerWeek?: number; durationMinutes?: number }
+		| undefined;
+	const timeslots = lead.preferredTimeslots as
+		| Array<{ startTime: string; endTime: string }>
+		| undefined;
+
+	const lines: Array<string | null> = [
+		`Name: ${lead.name ?? lead.phone ?? "-"}`,
+		`Date of Birth: ${lead.dateOfBirth ? formatTableDate(lead.dateOfBirth) : "-"}`,
+		`Standard / Level: ${lead.level ?? "-"}`,
+		`Gender: ${formatFormResponseGender(lead.gender) ?? "-"}`,
+		`Residing Country: ${lead.residingCountry ?? "-"}`,
+		`Primary WhatsApp: ${lead.primaryWhatsappNumber ?? "-"}`,
+		`Alternate WhatsApp: ${lead.alternateWhatsappNumber ?? "-"}`,
+		`Email: ${lead.email ?? "-"}`,
+		`Preferred Language: ${lead.preferredLanguage ?? "-"}`,
+		`Preferred Schedule: ${lead.preferredSchedule ?? "-"}`,
+		lead.preferredDays?.length ? `Preferred Days: ${lead.preferredDays.join(", ")}` : null,
+		`Demo Availability: ${lead.demoAvailability ?? "-"}`,
+		`Hear About Us: ${lead.hearAboutUs ?? "-"}`,
+		`Preferred Mentor Gender: ${lead.preferredMentorGender ?? "-"}`,
+		lead.studentInfo ? `Student Info: ${lead.studentInfo}` : null,
+		plan ? `Preferred Plan: ${plan.durationMinutes} min · ${plan.timesPerWeek} days/week` : null,
+		timeslots?.length
+			? `Preferred Timeslots: ${timeslots.map((slot) => `${slot.startTime} - ${slot.endTime}`).join(", ")}`
+			: null,
+	];
+
+	return lines.filter((line): line is string => Boolean(line)).join("\n");
+};
 
 /** Selectable row for the counsellor-search list in the Request Demo modal. */
 const CounsellorOption = ({
@@ -139,11 +212,23 @@ export const LeadsPage = () => {
 	const canRequestOrConfirmAdmission =
 		hasPermission("LEAD_ADMISSION_REQUEST") || hasPermission("LEAD_ADMISSION_CONFIRM");
 	const [currentPage, setCurrentPage] = useState(1);
-	const [sortBy, setSortBy] = useState<string>("nextFollowUpAt");
-	// Default sort: past → future (ascending)
-	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+	// Sort selection is persisted to sessionStorage so it survives navigating
+	// away to a lead's detail page and back to the list.
+	const [sortBy, setSortBy] = useState<string>(() => getStoredLeadsSort().sortBy);
+	const [sortOrder, setSortOrder] = useState<"asc" | "desc">(() => getStoredLeadsSort().sortOrder);
 	const [searchInput, setSearchInput] = useState("");
 	const [search, setSearch] = useState("");
+
+	useEffect(() => {
+		try {
+			window.sessionStorage.setItem(
+				LEADS_SORT_STORAGE_KEY,
+				JSON.stringify({ sortBy, sortOrder }),
+			);
+		} catch {
+			// Ignore storage errors (e.g. private browsing quota limits).
+		}
+	}, [sortBy, sortOrder]);
 
 	const stageParam = searchParams.get("stage");
 	const activeStage: LeadStageId = leadStageDefinitions.some(
@@ -430,6 +515,7 @@ export const LeadsPage = () => {
 		resetAdmission({ counsellorId: undefined, note: "" });
 		setAssigningCounsellorToMentor(false);
 		setSelectedCounsellorForMentor(null);
+		setAdmissionPriceInput("");
 	};
 
 	const userNameById = useMemo(
@@ -1011,6 +1097,7 @@ export const LeadsPage = () => {
 										setAssigningCounsellorToMentor(false);
 										setSelectedCounsellorForMentor(null);
 										resetAdmission({ counsellorId: undefined, note: "" });
+										setAdmissionPriceInput(item.price ? String(item.price) : "");
 									},
 									className:
 										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
@@ -1570,18 +1657,45 @@ export const LeadsPage = () => {
 				description={formResponseLead ? `${formResponseLead.name ?? formResponseLead.phone}` : ""}
 				onClose={() => setFormResponseLead(null)}
 				footer={
-					<button
-						type="button"
-						className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
-						onClick={() => setFormResponseLead(null)}
-					>
-						Close
-					</button>
+					<>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+							onClick={() => {
+								if (!formResponseLead) {
+									return;
+								}
+								navigator.clipboard.writeText(buildFormResponseSummary(formResponseLead));
+								toast.success("Form response copied to clipboard");
+							}}
+						>
+							Copy
+						</button>
+						<button
+							type="button"
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+							onClick={() => setFormResponseLead(null)}
+						>
+							Close
+						</button>
+					</>
 				}
 			>
 				{formResponseLead ? (
 					<div className="grid gap-3 text-sm">
 						{[
+							{
+								label: "Date of Birth",
+								value: formResponseLead.dateOfBirth
+									? formatTableDate(formResponseLead.dateOfBirth)
+									: undefined,
+							},
+							{ label: "Standard / Level", value: formResponseLead.level },
+							{ label: "Gender", value: formatFormResponseGender(formResponseLead.gender) },
+							{ label: "Residing Country", value: formResponseLead.residingCountry },
+							{ label: "Primary WhatsApp", value: formResponseLead.primaryWhatsappNumber },
+							{ label: "Alternate WhatsApp", value: formResponseLead.alternateWhatsappNumber },
+							{ label: "Email", value: formResponseLead.email },
 							{ label: "Preferred Language", value: formResponseLead.preferredLanguage },
 							{ label: "Preferred Schedule", value: formResponseLead.preferredSchedule },
 							{
@@ -2074,24 +2188,22 @@ export const LeadsPage = () => {
 						)}
 					/>
 
-					{/* Price input for admission - required if lead has no price */}
+					{/* Price input for admission - always editable manually */}
 					<div>
 						<label className="block text-sm font-medium text-slate-600 mb-2">Price (₹)</label>
+						<input
+							type="number"
+							min="0"
+							value={admissionPriceInput}
+							onChange={(e) => setAdmissionPriceInput(e.target.value)}
+							placeholder="Enter price to proceed"
+							className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none"
+						/>
 						{admissionLead?.price ? (
-							<div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-								<span className="text-sm">₹</span>
-								<span>{admissionLead.price}</span>
-							</div>
-						) : (
-							<input
-								type="number"
-								min="0"
-								value={admissionPriceInput}
-								onChange={(e) => setAdmissionPriceInput(e.target.value)}
-								placeholder="Enter price to proceed"
-								className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none"
-							/>
-						)}
+							<p className="mt-1 text-xs text-gray-500">
+								Last fixed payment: ₹{admissionLead.price}. Edit above if it has changed.
+							</p>
+						) : null}
 					</div>
 				</form>
 			</Modal>
