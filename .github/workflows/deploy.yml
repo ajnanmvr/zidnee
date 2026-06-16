@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -19,12 +23,27 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
 
           script: |
+            set -e
+
             cd ~/zidnee
 
-            git pull origin master
+            echo "Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/master
 
-            pnpm install
+            echo "Installing dependencies..."
+            pnpm install --frozen-lockfile
 
-            pnpm build
+            echo "Building schema..."
+            pnpm --filter @repo/schema build
 
+            echo "Building API..."
+            pnpm --filter @repo/api build
+
+            echo "Restarting API..."
             pm2 restart zidnee-api
+
+            echo "Saving PM2 state..."
+            pm2 save
+
+            echo "Deployment complete!"

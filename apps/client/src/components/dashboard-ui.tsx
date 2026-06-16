@@ -645,8 +645,8 @@ export const Modal = ({
 			role="dialog"
 			aria-modal="true"
 		>
-			<div className="w-full max-w-xl rounded-3xl border border-gray-300 bg-white p-5 shadow-lg">
-				<div className="flex items-start justify-between gap-3">
+			<div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-3xl border border-gray-300 bg-white p-5 shadow-lg">
+				<div className="flex shrink-0 items-start justify-between gap-3">
 					<div>
 						<h4 className="text-lg font-semibold text-gray-900">{title}</h4>
 						{description ? (
@@ -663,10 +663,10 @@ export const Modal = ({
 					</button>
 				</div>
 
-				<div className="mt-4">{children}</div>
+				<div className="mt-4 min-h-0 flex-1 overflow-y-auto">{children}</div>
 
 				{footer ? (
-					<div className="mt-5 flex items-center justify-end gap-2">
+					<div className="mt-5 flex shrink-0 items-center justify-end gap-2">
 						{footer}
 					</div>
 				) : null}

@@ -671,7 +671,7 @@ export const LeadDetailPageNew = () => {
 				</div>
 				<p className="text-sm font-medium text-gray-600">Lead not found</p>
 				<button
-					onClick={() => navigate("/leads")}
+					onClick={() => navigate(-1)}
 					className="text-sm font-semibold text-blue-600 hover:underline"
 				>
 					Back to leads
@@ -759,7 +759,7 @@ export const LeadDetailPageNew = () => {
 			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 				<div className={`relative h-20 bg-linear-to-br sm:h-24 ${statusColor.gradient}`}>
 					<button
-						onClick={() => navigate("/leads")}
+						onClick={() => navigate(-1)}
 						className="absolute left-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
 					>
 						<HiArrowLeft className="h-5 w-5" />

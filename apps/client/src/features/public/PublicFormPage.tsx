@@ -227,6 +227,26 @@ const extractReadableErrorMessage = (payload: unknown): string | null => {
 
 const GROUP_ALLOWED_LEVELS = ["1", "2", "3", "4", "5"] as const;
 
+const fmtShortDate = (ymd: string): string => {
+	if (!ymd) return "—";
+	const d = new Date(`${ymd}T00:00:00`);
+	if (Number.isNaN(d.getTime())) return ymd;
+	return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+};
+
+const ReviewRow = ({ label, value }: { label: string; value: string }) => (
+	<div className="flex items-start justify-between gap-4 px-4 py-2.5">
+		<span className="shrink-0 text-xs text-slate-500">{label}</span>
+		<span className="text-right text-xs font-medium text-slate-800 wrap-break-word max-w-[60%]">{value || "—"}</span>
+	</div>
+);
+
+const ReviewSectionHeader = ({ title }: { title: string }) => (
+	<div className="bg-slate-50 px-4 py-1.5">
+		<p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{title}</p>
+	</div>
+);
+
 const GROUP_TIME_SLOTS: PreferredTimeslot[] = [
 	{ startTime: "06:00", endTime: "08:00" },
 	{ startTime: "16:00", endTime: "18:00" },
@@ -1475,71 +1495,120 @@ const PublicFormPage = () => {
 						) : null}
 
 						{currentStep === 3 ? (
-							<div className="space-y-4">
-								<div className="rounded-2xl border border-slate-200 bg-white p-4">
-									<p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
-										Review before submit
-									</p>
-									<p className="mt-2 text-sm leading-6 text-slate-600">
-										Check the essentials below. If something looks off, go back
-										and edit it.
-									</p>
+							<div className="space-y-3">
+								<div className="flex items-start justify-between gap-2 px-1">
+									<div>
+										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+											Review before submit
+										</p>
+										<p className="mt-1 text-xs text-slate-500">
+											Check all details below. Go back if anything needs editing.
+										</p>
+									</div>
+									{courseType ? (
+										<span className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${courseType === "GROUP" ? "bg-violet-100 text-violet-700" : "bg-teal-100 text-teal-700"}`}>
+											{courseType === "GROUP" ? "Group" : "Individual"}
+										</span>
+									) : null}
 								</div>
-								<div className="grid gap-3 sm:grid-cols-2">
-									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-											Student
-										</p>
-										<p className="mt-2 text-sm font-medium text-slate-900">
-											{watch("name") || "Not filled"}
-										</p>
-										<p className="mt-1 text-sm text-slate-600">
-											{watch("level")
-												? `Standard ${watch("level")}`
-												: "Standard not selected"}
-										</p>
-									</div>
-									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-											Phone
-										</p>
-										<p className="mt-2 text-sm font-medium text-slate-900">{`+91${watch("primaryWhatsappNumber") || ""}`}</p>
-										<p className="mt-1 text-sm text-slate-600">
-											{watch("residingCountry") || "Country not selected"}
-										</p>
-									</div>
-									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-											Schedule
-										</p>
-										<p className="mt-2 text-sm font-medium text-slate-900">
-											{selectedStartTime
-												? to12HourFormat(selectedStartTime)
-												: "No time chosen"}
-										</p>
-										{courseType === "INDIVIDUAL" && (
-											<p className="mt-1 text-sm text-slate-600">
-												{calculatedEndTime
-													? `End ${to12HourFormat(calculatedEndTime)}`
-													: "Duration to be determined"}
-											</p>
-										)}
-										{courseType === "GROUP" && (
-											<p className="mt-1 text-sm text-slate-600">
-												Scheduling to be arranged
-											</p>
-										)}
-									</div>
-									<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-											Notes
-										</p>
-										<p className="mt-2 text-sm leading-6 text-slate-700">
-											{watch("studentInfo")?.trim()
-												? watch("studentInfo")
-												: "No extra details added."}
-										</p>
-									</div>
+
+								<div className="overflow-hidden rounded-2xl border border-slate-200 bg-white divide-y divide-slate-100 text-sm">
+									<ReviewSectionHeader title="Personal" />
+									<ReviewRow label="Name" value={watch("name") || "—"} />
+									<ReviewRow label="Email" value={watch("email") || "—"} />
+									<ReviewRow
+										label="Gender"
+										value={watch("gender") === "male" ? "Male" : watch("gender") === "female" ? "Female" : "—"}
+									/>
+									<ReviewRow label="Date of birth" value={fmtShortDate(watch("dateOfBirth"))} />
+									<ReviewRow
+										label="Level"
+										value={watch("level") ? `Standard ${watch("level")}` : "—"}
+									/>
+									<ReviewRow
+										label="Country"
+										value={
+											watch("residingCountry") === "Other"
+												? watch("residingCountryOther") || "Other"
+												: watch("residingCountry") || "—"
+										}
+									/>
+									<ReviewRow
+										label="Course type"
+										value={courseType === "INDIVIDUAL" ? "Individual (1:1)" : courseType === "GROUP" ? "Group" : "—"}
+									/>
+
+									<ReviewSectionHeader title={courseType === "GROUP" ? "Preferred Time Slots" : "Class Schedule"} />
+									{courseType === "INDIVIDUAL" ? (
+										<>
+											<ReviewRow
+												label="Preferred days"
+												value={(watch("preferredDays") ?? []).length > 0 ? watch("preferredDays").join(", ") : "—"}
+											/>
+											<ReviewRow
+												label="Start time"
+												value={selectedStartTime ? to12HourFormat(selectedStartTime) : "—"}
+											/>
+											<ReviewRow
+												label="End time"
+												value={calculatedEndTime ? to12HourFormat(calculatedEndTime) : "—"}
+											/>
+											<ReviewRow
+												label="Plan"
+												value={selectedPlan ? `${selectedPlan.timesPerWeek}× per week · ${selectedPlan.durationMinutes} min` : "—"}
+											/>
+										</>
+									) : null}
+									{courseType === "GROUP" ? (
+										<ReviewRow
+											label="Time slots"
+											value={
+												(watch("preferredTimeslots") ?? []).length > 0
+													? watch("preferredTimeslots")
+														.map((s) => `${to12HourFormat(s.startTime)} – ${to12HourFormat(s.endTime)}`)
+														.join(", ")
+													: "—"
+											}
+										/>
+									) : null}
+
+									<ReviewSectionHeader title="Contact & Preferences" />
+									<ReviewRow
+										label="WhatsApp"
+										value={watch("primaryWhatsappNumber") ? `+91 ${watch("primaryWhatsappNumber")}` : "—"}
+									/>
+									{watch("alternateWhatsappNumber") ? (
+										<ReviewRow label="Alt. WhatsApp" value={`+91 ${watch("alternateWhatsappNumber")}`} />
+									) : null}
+									<ReviewRow label="Language" value={watch("preferredLanguage") || "—"} />
+									{courseType === "INDIVIDUAL" ? (
+										<ReviewRow
+											label="Preferred mentor"
+											value={
+												watch("preferredMentorGender") === "male"
+													? "Male mentor"
+													: watch("preferredMentorGender") === "female"
+													? "Female mentor"
+													: watch("preferredMentorGender") === "both"
+													? "No preference"
+													: "—"
+											}
+										/>
+									) : null}
+									<ReviewRow label="How you heard" value={watch("hearAboutUs") || "—"} />
+
+									<ReviewSectionHeader title="Demo & Notes" />
+									<ReviewRow
+										label="Demo availability"
+										value={[
+											watch("demoAvailabilityDate") ? fmtShortDate(watch("demoAvailabilityDate")) : "",
+											watch("demoAvailabilityTime") ? to12HourFormat(watch("demoAvailabilityTime")) : "",
+										].filter(Boolean).join(" · ") || "—"}
+									/>
+									<ReviewRow
+										label="Additional info"
+										value={watch("studentInfo")?.trim() || "None"}
+									/>
 								</div>
 							</div>
 						) : null}
