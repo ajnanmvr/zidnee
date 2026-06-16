@@ -480,6 +480,12 @@ export const PERMISSION_CATALOG = {
 		resource: "students",
 		action: "assessment:update",
 	},
+	STUDENT_STARTING_DATE_READ: {
+		name: "View Starting Date Monitor",
+		description: "View the starting date monitoring dashboard for students",
+		resource: "students",
+		action: "starting-date:read",
+	},
 	// Batches
 	BATCH_CREATE: {
 		name: "Create Batch",

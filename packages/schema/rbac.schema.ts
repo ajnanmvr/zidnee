@@ -120,6 +120,7 @@ export const UpdateUserPayloadSchema = z.object({
 	gender: z.enum(["male", "female"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
 	counsellorId: ObjectIdStringSchema.optional(),
+	zids: z.record(z.string(), z.string()).optional(),
 });
 
 export type UpdateUserPayload = z.infer<typeof UpdateUserPayloadSchema>;

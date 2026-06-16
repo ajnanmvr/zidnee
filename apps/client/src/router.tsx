@@ -42,6 +42,9 @@ const BreakStudentsPage = lazy(() =>
 const DroppedStudentsPage = lazy(() =>
 	import("@/features/dashboard/DroppedStudentsPage").then((m) => ({ default: m.DroppedStudentsPage })),
 );
+const StartingDatePage = lazy(() =>
+	import("@/features/dashboard/StartingDatePage").then((m) => ({ default: m.StartingDatePage })),
+);
 const WelcomePosterPage = lazy(() =>
 	import("@/features/dashboard/WelcomePosterPage").then((m) => ({ default: m.WelcomePosterPage })),
 );
@@ -321,6 +324,10 @@ export const router = createBrowserRouter([
 					{
 						path: "students/dropped",
 						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <DroppedStudentsPage />),
+					},
+					{
+						path: "students/starting-dates",
+						element: withPermissions(["STUDENT_STARTING_DATE_READ"], <StartingDatePage />),
 					},
 					{
 						path: "students/posters",

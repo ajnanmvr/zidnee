@@ -451,6 +451,10 @@ export const updateUserController = async (
 			}
 		}
 	}
+	// Allow explicitly provided ZIDs to override auto-generated values (e.g. manual ZM number correction)
+	if (result.data.zids) {
+		Object.assign(zidsToSet, result.data.zids);
+	}
 
 	const updatedUser = await UserService.update(userId, {
 		username: result.data.username,

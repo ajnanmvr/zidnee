@@ -198,6 +198,8 @@ export const StudentDetailPage = () => {
 	const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 	const [certificateConfirmOpen, setCertificateConfirmOpen] = useState(false);
 	const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
+	const [transferModalOpen, setTransferModalOpen] = useState(false);
+	const [transferMentorId, setTransferMentorId] = useState("");
 	const [breakModalOpen, setBreakModalOpen] = useState(false);
 	const [breakModalMode, setBreakModalMode] = useState<"break" | "extend">("break");
 	const [breakFromDate, setBreakFromDate] = useState("");
@@ -240,6 +242,30 @@ export const StudentDetailPage = () => {
 		const user = usersQuery.data?.users.find((u) => u.id === student.admittedBy);
 		return user?.name ?? user?.username ?? "Unknown";
 	}, [student?.admittedBy, usersQuery.data?.users]);
+
+	const mentorUsers = useMemo(
+		() => (usersQuery.data?.users ?? []).filter((u) => (u as any).roles?.some((r: any) => r.type === "mentor")),
+		[usersQuery.data?.users],
+	);
+
+	const handleTransfer = async () => {
+		if (!studentId || !transferMentorId) return;
+		try {
+			await updateStudentMutation.mutateAsync({
+				studentId,
+				payload: { mentorId: transferMentorId },
+			});
+			toast.success("Student transferred to new mentor");
+			setTransferModalOpen(false);
+			setTransferMentorId("");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Failed to transfer student");
+				return;
+			}
+			toast.error("Failed to transfer student");
+		}
+	};
 
 	const profileAvatarLabel = useMemo(() => {
 		if (!student) {
@@ -1181,6 +1207,26 @@ export const StudentDetailPage = () => {
 					<Panel title="Student background">
 						<p className="whitespace-pre-wrap text-sm text-gray-700">{student.studentInfo ?? "No background notes recorded."}</p>
 					</Panel>
+
+					{hasPermission("STUDENT_UPDATE") && student.status !== "DROPPED" ? (
+						<Panel
+							title="Transfer Mentor"
+							action={
+								<button
+									type="button"
+									onClick={() => { setTransferMentorId(student.mentorId ?? ""); setTransferModalOpen(true); }}
+									className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-100"
+								>
+									Transfer
+								</button>
+							}
+						>
+							<div className="space-y-2 text-sm text-gray-700">
+								<p><span className="font-medium text-gray-500">Current mentor:</span> {mentorName}</p>
+								<p><span className="font-medium text-gray-500">Counsellor:</span> {counsellorName}</p>
+							</div>
+						</Panel>
+					) : null}
 				</div>
 			)}
 
@@ -1544,6 +1590,47 @@ export const StudentDetailPage = () => {
 					onZoomChange={setZoom}
 					onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
 				/>
+			) : null}
+
+			{/* Transfer Mentor Modal */}
+			{transferModalOpen ? (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+					<div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+						<div className="border-b border-gray-100 px-5 py-4">
+							<p className="text-sm font-bold text-gray-900">Transfer Mentor</p>
+							<p className="text-xs text-gray-500 mt-0.5">{student?.name ?? student?.zid} · Current: {mentorName}</p>
+						</div>
+						<div className="space-y-3 px-5 py-4">
+							<p className="text-xs text-gray-500">Select a new mentor. The transfer will be recorded in the activity log.</p>
+							<select
+								value={transferMentorId}
+								onChange={(e) => setTransferMentorId(e.target.value)}
+								className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+							>
+								<option value="">— Select mentor —</option>
+								{mentorUsers.map((u) => (
+									<option key={u.id} value={u.id} disabled={u.id === student?.mentorId}>
+										{u.name ?? u.username}
+										{u.id === student?.mentorId ? " (current)" : ""}
+									</option>
+								))}
+							</select>
+						</div>
+						<div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+							<button type="button" onClick={() => setTransferModalOpen(false)} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={() => void handleTransfer()}
+								disabled={!transferMentorId || transferMentorId === student?.mentorId || updateStudentMutation.isPending}
+								className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+							>
+								{updateStudentMutation.isPending ? "Transferring…" : "Transfer"}
+							</button>
+						</div>
+					</div>
+				</div>
 			) : null}
 
 			{/* Image Viewer Modal */}

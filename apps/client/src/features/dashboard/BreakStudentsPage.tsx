@@ -36,11 +36,18 @@ function toInputDate(val?: Date | string | null): string {
 	return d.toISOString().slice(0, 10);
 }
 
-function isOverdue(val?: Date | string | null): boolean {
-	if (!val) return false;
+type BreakUrgency = "overdue" | "critical" | "warning" | "normal" | "unknown";
+
+function getBreakUrgency(val?: Date | string | null): BreakUrgency {
+	if (!val) return "unknown";
 	const d = val instanceof Date ? val : new Date(val);
-	return d.getTime() < Date.now();
+	const msLeft = d.getTime() - Date.now();
+	if (msLeft < 0) return "overdue";
+	if (msLeft < 3 * 24 * 60 * 60 * 1000) return "critical";
+	if (msLeft < 7 * 24 * 60 * 60 * 1000) return "warning";
+	return "normal";
 }
+
 
 export const BreakStudentsPage = () => {
 	const { token } = useSession();
@@ -107,7 +114,8 @@ export const BreakStudentsPage = () => {
 		[studentsQuery.data?.students],
 	);
 
-	const overdueCount = rows.filter((s) => isOverdue(s.inactiveUntil)).length;
+	const overdueCount = rows.filter((s) => getBreakUrgency(s.inactiveUntil) === "overdue").length;
+	const criticalCount = rows.filter((s) => getBreakUrgency(s.inactiveUntil) === "critical").length;
 	const totalPages = (studentsQuery.data as any)?.pagination?.totalPages ?? 1;
 	const totalCount = (studentsQuery.data as any)?.pagination?.total ?? rows.length;
 
@@ -124,6 +132,7 @@ export const BreakStudentsPage = () => {
 						<p className="text-xs text-amber-700">
 							{totalCount} student{totalCount !== 1 ? "s" : ""}
 							{overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
+							{criticalCount > 0 ? ` · ${criticalCount} ending soon` : ""}
 						</p>
 					</div>
 				</div>
@@ -180,7 +189,8 @@ export const BreakStudentsPage = () => {
 								</thead>
 								<tbody>
 									{rows.map((s) => {
-										const overdue = isOverdue(s.inactiveUntil);
+										const urgency = getBreakUrgency(s.inactiveUntil);
+										const dateColor = urgency === "overdue" ? "text-red-700" : urgency === "critical" ? "text-orange-600" : urgency === "warning" ? "text-amber-600" : "text-gray-700";
 										const mentor = s.mentorId ? (mentorNameById[s.mentorId] ?? null) : null;
 										return (
 											<tr key={s.id} className="border-b border-gray-100 transition-colors hover:bg-slate-50">
@@ -208,11 +218,15 @@ export const BreakStudentsPage = () => {
 												</td>
 												<td className="px-4 py-3.5">
 													<div className="flex flex-col gap-0.5">
-														<span className={`text-sm font-medium ${overdue ? "text-red-700" : "text-gray-700"}`}>
+														<span className={`text-sm font-medium ${dateColor}`}>
 															{fmtDate(s.inactiveUntil)}
 														</span>
-														{overdue && s.inactiveUntil ? (
+														{urgency === "overdue" && s.inactiveUntil ? (
 															<span className="inline-flex w-fit rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">Overdue</span>
+														) : urgency === "critical" ? (
+															<span className="inline-flex w-fit rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700">Ends soon · &lt;3 days</span>
+														) : urgency === "warning" ? (
+															<span className="inline-flex w-fit rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Ending this week</span>
 														) : !s.inactiveUntil ? (
 															<span className="inline-flex w-fit rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">No end date</span>
 														) : null}

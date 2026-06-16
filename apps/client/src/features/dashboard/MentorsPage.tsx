@@ -7,11 +7,13 @@ import {
 	HiChevronLeft,
 	HiChevronRight,
 	HiEye,
+	HiHashtag,
 	HiMagnifyingGlass,
 	HiPencilSquare,
 	HiUserPlus,
 } from "react-icons/hi2";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
+import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSearchParams, Link } from "react-router-dom";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -101,7 +103,23 @@ export const MentorsPage = () => {
 	// quick create modal state
 	const [createModalOpen, setCreateModalOpen] = useState(false);
 	const canCreateUser = useHasAnyPermission(["USER_CREATE", "MENTOR_CREATE"]);
+	const canEditUser = useHasAnyPermission(["USER_UPDATE", "USER_CREATE"]);
 	const createMentor = useCreateMentorMutation();
+	const updateUser = useUpdateUserMutation();
+
+	const [zmModal, setZmModal] = useState<{ userId: string; name: string; currentZm: string } | null>(null);
+	const [zmInput, setZmInput] = useState("");
+
+	const handleZmSave = async () => {
+		if (!zmModal || !zmInput.trim()) return;
+		try {
+			await updateUser.mutateAsync({ userId: zmModal.userId, payload: { zids: { mentor: zmInput.trim() } } });
+			toast.success("ZM number updated");
+			setZmModal(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update ZM number");
+		}
+	};
 
 	const isCurrentUserCounsellor = meQuery.data?.roles?.some((r) => r.type === "counsellor") ?? false;
 	const defaultCounsellorId = isCurrentUserCounsellor ? currentUserId : undefined;
@@ -294,6 +312,17 @@ export const MentorsPage = () => {
 					>
 						<HiEye className="h-4 w-4" aria-hidden="true" />
 					</Link>
+					{canEditUser ? (
+						<button
+							type="button"
+							title="Edit ZM number"
+							aria-label="Edit ZM number"
+							onClick={() => { setZmInput(row.original.displayId !== "-" ? row.original.displayId : ""); setZmModal({ userId: row.original.id, name: row.original.name, currentZm: row.original.displayId }); }}
+							className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+						>
+							<HiHashtag className="h-4 w-4" aria-hidden="true" />
+						</button>
+					) : null}
 					<Link
 						to={`/users/${row.original.id}/edit`}
 						title="Edit"
@@ -477,6 +506,51 @@ export const MentorsPage = () => {
 					</form>
 				)}
 			</Modal>
+
+			{/* ZM Number edit modal */}
+			{zmModal ? (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+					<div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+						<div className="border-b border-gray-100 px-5 py-4">
+							<div className="flex items-center gap-2">
+								<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+									<HiHashtag className="h-4 w-4 text-blue-600" />
+								</div>
+								<div>
+									<p className="text-sm font-bold text-gray-900">Edit ZM Number</p>
+									<p className="text-xs text-gray-500">{zmModal.name}</p>
+								</div>
+							</div>
+						</div>
+						<div className="space-y-3 px-5 py-4">
+							<p className="text-xs text-gray-500">Current ZM number: <span className="font-semibold text-gray-800">{zmModal.currentZm}</span></p>
+							<div>
+								<label className="mb-1.5 block text-sm font-semibold text-gray-700">New ZM number</label>
+								<input
+									type="text"
+									value={zmInput}
+									onChange={(e) => setZmInput(e.target.value)}
+									placeholder="e.g. ZM0012"
+									className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+								/>
+							</div>
+						</div>
+						<div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+							<button type="button" onClick={() => setZmModal(null)} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={() => void handleZmSave()}
+								disabled={!zmInput.trim() || updateUser.isPending}
+								className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+							>
+								{updateUser.isPending ? "Saving…" : "Save"}
+							</button>
+						</div>
+					</div>
+				</div>
+			) : null}
 			</>
 			);
 		};

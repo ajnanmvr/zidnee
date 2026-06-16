@@ -1,15 +1,22 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { HiAcademicCap, HiArrowPath, HiExclamationTriangle, HiMagnifyingGlass, HiMinusCircle, HiTrash, HiUserPlus } from "react-icons/hi2";
+import { HiAcademicCap, HiArrowPath, HiExclamationTriangle, HiMagnifyingGlass, HiMinusCircle, HiTrash, HiUserPlus, HiXCircle } from "react-icons/hi2";
 import {
 	useStudentProcessesQuery,
 	useCompleteProcessMutation,
 	useDeleteProcessMutation,
 } from "@/features/students/students.queries";
+import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import { useSession } from "@/lib/session";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { ApiError } from "@/api/request";
+
+const DROP_REASONS = [
+	"Dropped",
+	"Not Interested",
+	"Admission Cancelled",
+] as const;
 
 type ProcessKind = "admission" | "drop" | "change" | "other";
 
@@ -67,11 +74,30 @@ export const StudentProcessesPage = () => {
 	const navigate = useNavigate();
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
 	const canReadAllProcesses = useHasPermission("STUDENT_PROCESS_READ_ALL");
+	const canUpdateStudent = useHasPermission("STUDENT_UPDATE");
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllProcesses ? "all" : "mine";
 	const processesQuery = useStudentProcessesQuery(token, { scope: activeScope });
 	const completeProcess = useCompleteProcessMutation();
 	const deleteProcess = useDeleteProcessMutation();
+	const updateStudent = useUpdateStudentMutation();
 	const [searchTerm, setSearchTerm] = useState("");
+
+	const [dropModal, setDropModal] = useState<{ studentId: string; studentName: string } | null>(null);
+	const [dropReason, setDropReason] = useState<string>(DROP_REASONS[0]);
+
+	const handleDrop = async () => {
+		if (!dropModal) return;
+		try {
+			await updateStudent.mutateAsync({
+				studentId: dropModal.studentId,
+				payload: { status: "DROPPED", dropReason },
+			});
+			toast.success("Student marked as dropped");
+			setDropModal(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to drop student");
+		}
+	};
 
 	const allProcesses = processesQuery.data?.processes ?? [];
 
@@ -228,6 +254,18 @@ export const StudentProcessesPage = () => {
 														<HiTrash className="h-3.5 w-3.5" />
 														Delete
 													</button>
+												) : canUpdateStudent ? (
+													<button
+														type="button"
+														onClick={() => {
+															setDropReason(DROP_REASONS[0]);
+															setDropModal({ studentId: process.student.id, studentName: process.student.name ?? process.student.zid });
+														}}
+														className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+													>
+														<HiXCircle className="h-3.5 w-3.5" />
+														Drop
+													</button>
 												) : null}
 												{progress === 100 ? (
 													<button
@@ -281,6 +319,61 @@ export const StudentProcessesPage = () => {
 					</>
 				)}
 			</div>
+
+		{/* Drop student modal */}
+		{dropModal ? (
+			<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+				<div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+					<div className="border-b border-gray-100 px-5 py-4">
+						<div className="flex items-center gap-2">
+							<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100">
+								<HiXCircle className="h-4 w-4 text-rose-600" />
+							</div>
+							<div>
+								<p className="text-sm font-bold text-gray-900">Drop Student</p>
+								<p className="text-xs text-gray-500">{dropModal.studentName}</p>
+							</div>
+						</div>
+					</div>
+					<div className="space-y-3 px-5 py-4">
+						<p className="text-xs text-gray-500">Select a reason for dropping this student. This action changes the student's status to Dropped.</p>
+						<div className="space-y-2">
+							{DROP_REASONS.map((reason) => (
+								<label key={reason} className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 hover:border-rose-200 hover:bg-rose-50">
+									<input
+										type="radio"
+										name="dropReason"
+										value={reason}
+										checked={dropReason === reason}
+										onChange={() => setDropReason(reason)}
+										className="accent-rose-600"
+									/>
+									<span className="text-sm font-medium text-gray-700">{reason}</span>
+								</label>
+							))}
+						</div>
+					</div>
+					<div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+						<button
+							type="button"
+							onClick={() => setDropModal(null)}
+							className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void handleDrop()}
+							disabled={updateStudent.isPending}
+							className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+						>
+							<HiXCircle className="h-4 w-4" />
+							{updateStudent.isPending ? "Dropping…" : "Drop Student"}
+						</button>
+					</div>
+				</div>
+			</div>
+		) : null}
 		</div>
 	);
 };

@@ -7,7 +7,6 @@ import { FOLLOW_UP_PERIOD_MS, type LeadStatus } from "@repo/schema";
 import {
 	HiAcademicCap,
 	HiAdjustmentsHorizontal,
-	HiArrowLeft,
 	HiBanknotes,
 	HiCalendarDays,
 	HiCheck,
@@ -343,11 +342,10 @@ export const LeadDetailPageNew = () => {
 			<button
 				type="button"
 				onClick={onSelect}
-				className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
-					selected
+				className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${selected
 						? "border-sky-500 bg-sky-50 ring-1 ring-sky-200"
 						: "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
-				}`}
+					}`}
 			>
 				<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selected ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>
 					{displayName[0]?.toUpperCase()}
@@ -699,71 +697,65 @@ export const LeadDetailPageNew = () => {
 		onClick: () => void;
 		className: string;
 	}> = [
-		{
-			key: "edit",
-			label: "Edit",
-			icon: HiPencilSquare,
-			onClick: () => navigate(`/leads/${lead.id}/edit`),
-			className: "bg-blue-600 text-white hover:bg-blue-700",
-		},
-		{
-			key: "postpone",
-			label: "Postpone",
-			icon: HiClock,
-			onClick: () => setPostponeOpen(true),
-			className: "bg-amber-500 text-white hover:bg-amber-600",
-		},
-		{
-			key: "stage",
-			label: "Change Stage",
-			icon: HiCheckCircle,
-			onClick: onOpenStageChange,
-			className: "bg-violet-600 text-white hover:bg-violet-700",
-		},
-		...(!lead.formSent
-			? [{
-				key: "send-form",
-				label: "Send Form",
-				icon: HiPaperAirplane,
-				onClick: () => void onGenerateFormLink(),
-				className: "bg-emerald-600 text-white hover:bg-emerald-700",
-			}]
-			: [{
-				key: "form-link",
-				label: "Form Link",
-				icon: HiLink,
-				onClick: () => void onGenerateFormLink(),
+			{
+				key: "edit",
+				label: "Edit",
+				icon: HiPencilSquare,
+				onClick: () => navigate(`/leads/${lead.id}/edit`),
 				className: "bg-blue-600 text-white hover:bg-blue-700",
-			}]),
-		...(lead.formCompleted && !latestDemo
-			? [{
-				key: "request-demo",
-				label: "Request Demo",
-				icon: HiCalendarDays,
-				onClick: () => setRequestDemoOpen(true),
-				className: "bg-sky-600 text-white hover:bg-sky-700",
-			}]
-			: []),
-		{
-			key: "delete",
-			label: "Delete",
-			icon: HiTrash,
-			onClick: () => setDeleteOpen(true),
-			className: "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
-		},
-	];
+			},
+			{
+				key: "postpone",
+				label: "Postpone",
+				icon: HiClock,
+				onClick: () => setPostponeOpen(true),
+				className: "bg-amber-500 text-white hover:bg-amber-600",
+			},
+			{
+				key: "stage",
+				label: "Change Stage",
+				icon: HiCheckCircle,
+				onClick: onOpenStageChange,
+				className: "bg-violet-600 text-white hover:bg-violet-700",
+			},
+			...(!lead.formSent
+				? [{
+					key: "send-form",
+					label: "Send Form",
+					icon: HiPaperAirplane,
+					onClick: () => void onGenerateFormLink(),
+					className: "bg-emerald-600 text-white hover:bg-emerald-700",
+				}]
+				: [{
+					key: "form-link",
+					label: "Form Link",
+					icon: HiLink,
+					onClick: () => void onGenerateFormLink(),
+					className: "bg-blue-600 text-white hover:bg-blue-700",
+				}]),
+			...(lead.formCompleted && !latestDemo
+				? [{
+					key: "request-demo",
+					label: "Request Demo",
+					icon: HiCalendarDays,
+					onClick: () => setRequestDemoOpen(true),
+					className: "bg-sky-600 text-white hover:bg-sky-700",
+				}]
+				: []),
+			{
+				key: "delete",
+				label: "Delete",
+				icon: HiTrash,
+				onClick: () => setDeleteOpen(true),
+				className: "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+			},
+		];
 
 	return (
 		<div className="space-y-4">
 			{/* Hero card */}
 			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 				<div className={`relative h-20 bg-linear-to-br sm:h-24 ${statusColor.gradient}`}>
-					<button
-						onClick={() => navigate(-1)}
-						className="absolute left-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
-					>
-						<HiArrowLeft className="h-5 w-5" />
-					</button>
 					<div
 						className={`absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold backdrop-blur ${followUpOverdue ? "border-rose-200 bg-rose-50 text-rose-700" : "border-white/40 bg-white/20 text-white"
 							}`}
@@ -855,380 +847,380 @@ export const LeadDetailPageNew = () => {
 				})}
 			</div>
 
-				{activeTab === "details" && (
-					<div className="grid gap-6 lg:grid-cols-3">
-						<div className="lg:col-span-2 space-y-6">
-							<SectionCard title="Preferences" icon={HiAdjustmentsHorizontal}>
-								<DetailGrid>
-									<DetailRow
-										label="Course Type"
-										value={
-											lead.courseType
-												? lead.courseType === "GROUP"
-													? "Group"
-													: "Individual"
-												: "-"
-										}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Level"
-										value={lead.level ?? "-"}
-										icon={HiAcademicCap}
-									/>
-									<DetailRow
-										label="Preferred Plan"
-										value={formatPreferredPlanValue(lead.preferredPlan)}
-										icon={HiClock}
-									/>
-									<DetailRow
-										label="Preferred Schedule"
-										value={lead.preferredSchedule ?? "-"}
-										icon={HiCalendarDays}
-									/>
-									<DetailRow
-										label="Preferred Days"
-										value={lead.preferredDays?.join(", ") || "-"}
-										icon={HiCalendarDays}
-									/>
-									<DetailRow
-										label="Preferred Language"
-										value={lead.preferredLanguage ?? "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Demo Availability"
-										value={formatRelativeDateTime(lead.demoAvailability ?? "")}
-										icon={HiClock}
-									/>
-									<DetailRow
-										label="Mentor Gender Preference"
-										value={lead.preferredMentorGender ?? "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Hear About Us"
-										value={lead.hearAboutUs ?? "-"}
-										icon={HiLink}
-									/>
-									{preferredTimeslots.length ? (
-										<DetailRow
-											label="Preferred Timeslots"
-											wide
-											value={
-												<div className="flex flex-wrap gap-1.5">
-													{preferredTimeslots.map((slot, index) => (
-														<span
-															key={`${slot.startTime}-${slot.endTime}-${index}`}
-															className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700"
-														>
-															{formatTimeValue(slot.startTime)} – {formatTimeValue(slot.endTime)}
-														</span>
-													))}
-												</div>
-											}
-										/>
-									) : null}
-									{lead.studentInfo ? (
-										<DetailRow label="Student Info" value={lead.studentInfo} wide />
-									) : null}
-								</DetailGrid>
-							</SectionCard>
-
-							<SectionCard title="Lead Identity" icon={HiUser}>
-								<DetailGrid>
-									<DetailRow
-										label="Name"
-										value={lead.name ?? "-"}
-										icon={HiUser}
-										wide
-									/>
-									<DetailRow
-										label="SL No"
-										value={lead.slNo ? String(lead.slNo) : "-"}
-										icon={HiAcademicCap}
-									/>
-									<DetailRow
-										label="Phone"
-										value={lead.phone ?? "-"}
-										icon={HiPhone}
-									/>
-									<DetailRow
-										label="Email"
-										value={lead.email ?? "-"}
-										icon={HiLink}
-									/>
-									<DetailRow
-										label="Is Organic"
-										value={lead.isOrganic ? "Yes" : "No"}
-										icon={HiUsers}
-									/>
-									<DetailRow
-										label="Student ID"
-										wide
-										value={
-											lead.studentId ? (
-												<Link to={`/students/${lead.studentId}`} className="font-semibold text-teal-700 hover:underline">
-													View student profile
-												</Link>
-											) : (
-												"-"
-											)
-										}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Created On"
-										value={
-											lead.createdAt
-												? format(new Date(lead.createdAt), "MMM dd, yyyy HH:mm")
-												: "-"
-										}
-										icon={HiCalendarDays}
-									/>
-									<DetailRow
-										label="Updated On"
-										value={
-											lead.updatedAt
-												? format(new Date(lead.updatedAt), "MMM dd, yyyy HH:mm")
-												: "-"
-										}
-										icon={HiCalendarDays}
-									/>
-									<DetailRow
-										label="Current Status"
-										value={lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
-										icon={HiCheckCircle}
-									/>
-								</DetailGrid>
-							</SectionCard>
-
-							<SectionCard title="Contact Information" icon={HiPhone}>
-								<DetailGrid>
-									<DetailRow
-										label="Primary WhatsApp"
-										value={lead.primaryWhatsappNumber ?? "-"}
-										icon={HiPhone}
-									/>
-									<DetailRow
-										label="Alternate WhatsApp"
-										value={lead.alternateWhatsappNumber || "-"}
-										icon={HiPhone}
-									/>
-									<DetailRow
-										label="Residing Country"
-										value={lead.residingCountry || "-"}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Gender"
-										value={
-											lead.gender ? (
-												<div className="flex items-center gap-2">
-													<HiUser
-														className={`h-4 w-4 ${lead.gender.toLowerCase() === "male" ? "text-blue-500" : "text-rose-500"}`}
-													/>
-													<span
-														className={
-															lead.gender.toLowerCase() === "male"
-																? "text-blue-600 font-semibold"
-																: "text-rose-600 font-semibold"
-														}
-													>
-														{lead.gender.charAt(0).toUpperCase() +
-															lead.gender.slice(1)}
-													</span>
-												</div>
-											) : (
-												"-"
-											)
-										}
-										icon={HiUser}
-									/>
-									<DetailRow
-										label="Date of Birth"
-										value={
-											lead.dateOfBirth
-												? format(new Date(lead.dateOfBirth), "MMM dd, yyyy")
-												: "-"
-										}
-										icon={HiCalendarDays}
-									/>
-								</DetailGrid>
-							</SectionCard>
-
-							<SectionCard title="Form Submission Details" icon={HiCheckCircle}>
-								<DetailGrid>
-									<DetailRow
-										label="Form Status"
-										value={
-											<span
-												className={`rounded-full px-2.5 py-1 text-xs font-semibold ${lead.formCompleted ? "bg-emerald-100 text-emerald-700" : lead.formSent ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}`}
-											>
-												{lead.formCompleted
-													? "Completed"
-													: lead.formSent
-														? "Sent"
-														: "Not Sent"}
-											</span>
-										}
-									/>
-									<DetailRow
-										label="Form Sent"
-										value={lead.formSent ? "Yes" : "No"}
-										icon={HiCalendarDays}
-									/>
-									<DetailRow
-										label="Form Completed"
-										value={lead.formCompleted ? "Yes" : "No"}
-										icon={HiCheckCircle}
-									/>
-								</DetailGrid>
-							</SectionCard>
-						</div>
-
-						<div className="space-y-6">
-							<SectionCard title="Next Follow-up" icon={HiClock}>
-								<div className="space-y-3">
-									<div className={`rounded-xl border p-4 ${followUpOverdue ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
-										<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Scheduled for</p>
-										<p className="mt-1 text-lg font-bold text-gray-900">
-											{lead.nextFollowUpAt
-												? format(new Date(lead.nextFollowUpAt), "MMM dd, yyyy · hh:mm a")
-												: "Not scheduled"}
-										</p>
-										{lead.nextFollowUpAt ? (
-											<p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold ${followUpOverdue ? "text-rose-700" : "text-blue-700"}`}>
-												<HiClock className="h-3.5 w-3.5" />
-												{followUpOverdue ? "Overdue —" : ""}{" "}
-												{formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true })}
-											</p>
-										) : null}
-									</div>
-								</div>
-							</SectionCard>
-
-							<SectionCard title="Ownership & Assignment" icon={HiUsers}>
-								<div className="space-y-1">
-									{[
-										{ label: "Created By", user: findUserById(lead.createdBy), role: undefined as "mentor" | "counsellor" | "sales" | "admin" | undefined, fallback: "-" },
-										{ label: "Sales Owner", user: assignedToUser, role: "sales" as const, fallback: "Unassigned" },
-										{ label: "Demo Owner", user: demoRequestAssignedToUser, role: "counsellor" as const, fallback: "Not assigned" },
-									].map((row) => (
-										<div key={row.label} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
-											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{row.label}</span>
-											<UserIdentity user={row.user} role={row.role} fallback={row.fallback} />
-										</div>
-									))}
-								</div>
-							</SectionCard>
-
-							{latestDemo && (
-								<SectionCard
-									title="Current Demo Assignment"
+			{activeTab === "details" && (
+				<div className="grid gap-6 lg:grid-cols-3">
+					<div className="lg:col-span-2 space-y-6">
+						<SectionCard title="Preferences" icon={HiAdjustmentsHorizontal}>
+							<DetailGrid>
+								<DetailRow
+									label="Course Type"
+									value={
+										lead.courseType
+											? lead.courseType === "GROUP"
+												? "Group"
+												: "Individual"
+											: "-"
+									}
+									icon={HiUsers}
+								/>
+								<DetailRow
+									label="Level"
+									value={lead.level ?? "-"}
 									icon={HiAcademicCap}
-								>
-									<div className="space-y-1">
-										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
-											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mentor</span>
-											<UserIdentity user={latestDemoMentor} role="mentor" />
-										</div>
-										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
-											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Counsellor</span>
-											<UserIdentity user={latestDemoCounsellor} role="counsellor" />
-										</div>
-										{latestDemo.demoScheduledFor ? (
-											<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
-												<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Scheduled For</span>
-												<span className="text-sm font-semibold text-gray-900">
-													{format(new Date(latestDemo.demoScheduledFor), "MMM dd, hh:mm a")}
+								/>
+								<DetailRow
+									label="Preferred Plan"
+									value={formatPreferredPlanValue(lead.preferredPlan)}
+									icon={HiClock}
+								/>
+								<DetailRow
+									label="Preferred Schedule"
+									value={lead.preferredSchedule ?? "-"}
+									icon={HiCalendarDays}
+								/>
+								<DetailRow
+									label="Preferred Days"
+									value={lead.preferredDays?.join(", ") || "-"}
+									icon={HiCalendarDays}
+								/>
+								<DetailRow
+									label="Preferred Language"
+									value={lead.preferredLanguage ?? "-"}
+									icon={HiUser}
+								/>
+								<DetailRow
+									label="Demo Availability"
+									value={formatRelativeDateTime(lead.demoAvailability ?? "")}
+									icon={HiClock}
+								/>
+								<DetailRow
+									label="Mentor Gender Preference"
+									value={lead.preferredMentorGender ?? "-"}
+									icon={HiUser}
+								/>
+								<DetailRow
+									label="Hear About Us"
+									value={lead.hearAboutUs ?? "-"}
+									icon={HiLink}
+								/>
+								{preferredTimeslots.length ? (
+									<DetailRow
+										label="Preferred Timeslots"
+										wide
+										value={
+											<div className="flex flex-wrap gap-1.5">
+												{preferredTimeslots.map((slot, index) => (
+													<span
+														key={`${slot.startTime}-${slot.endTime}-${index}`}
+														className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700"
+													>
+														{formatTimeValue(slot.startTime)} – {formatTimeValue(slot.endTime)}
+													</span>
+												))}
+											</div>
+										}
+									/>
+								) : null}
+								{lead.studentInfo ? (
+									<DetailRow label="Student Info" value={lead.studentInfo} wide />
+								) : null}
+							</DetailGrid>
+						</SectionCard>
+
+						<SectionCard title="Lead Identity" icon={HiUser}>
+							<DetailGrid>
+								<DetailRow
+									label="Name"
+									value={lead.name ?? "-"}
+									icon={HiUser}
+									wide
+								/>
+								<DetailRow
+									label="SL No"
+									value={lead.slNo ? String(lead.slNo) : "-"}
+									icon={HiAcademicCap}
+								/>
+								<DetailRow
+									label="Phone"
+									value={lead.phone ?? "-"}
+									icon={HiPhone}
+								/>
+								<DetailRow
+									label="Email"
+									value={lead.email ?? "-"}
+									icon={HiLink}
+								/>
+								<DetailRow
+									label="Is Organic"
+									value={lead.isOrganic ? "Yes" : "No"}
+									icon={HiUsers}
+								/>
+								<DetailRow
+									label="Student ID"
+									wide
+									value={
+										lead.studentId ? (
+											<Link to={`/students/${lead.studentId}`} className="font-semibold text-teal-700 hover:underline">
+												View student profile
+											</Link>
+										) : (
+											"-"
+										)
+									}
+									icon={HiUser}
+								/>
+								<DetailRow
+									label="Created On"
+									value={
+										lead.createdAt
+											? format(new Date(lead.createdAt), "MMM dd, yyyy HH:mm")
+											: "-"
+									}
+									icon={HiCalendarDays}
+								/>
+								<DetailRow
+									label="Updated On"
+									value={
+										lead.updatedAt
+											? format(new Date(lead.updatedAt), "MMM dd, yyyy HH:mm")
+											: "-"
+									}
+									icon={HiCalendarDays}
+								/>
+								<DetailRow
+									label="Current Status"
+									value={lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
+									icon={HiCheckCircle}
+								/>
+							</DetailGrid>
+						</SectionCard>
+
+						<SectionCard title="Contact Information" icon={HiPhone}>
+							<DetailGrid>
+								<DetailRow
+									label="Primary WhatsApp"
+									value={lead.primaryWhatsappNumber ?? "-"}
+									icon={HiPhone}
+								/>
+								<DetailRow
+									label="Alternate WhatsApp"
+									value={lead.alternateWhatsappNumber || "-"}
+									icon={HiPhone}
+								/>
+								<DetailRow
+									label="Residing Country"
+									value={lead.residingCountry || "-"}
+									icon={HiUser}
+								/>
+								<DetailRow
+									label="Gender"
+									value={
+										lead.gender ? (
+											<div className="flex items-center gap-2">
+												<HiUser
+													className={`h-4 w-4 ${lead.gender.toLowerCase() === "male" ? "text-blue-500" : "text-rose-500"}`}
+												/>
+												<span
+													className={
+														lead.gender.toLowerCase() === "male"
+															? "text-blue-600 font-semibold"
+															: "text-rose-600 font-semibold"
+													}
+												>
+													{lead.gender.charAt(0).toUpperCase() +
+														lead.gender.slice(1)}
 												</span>
 											</div>
-										) : null}
-									</div>
-								</SectionCard>
-							)}
-						</div>
-					</div>
-				)}
+										) : (
+											"-"
+										)
+									}
+									icon={HiUser}
+								/>
+								<DetailRow
+									label="Date of Birth"
+									value={
+										lead.dateOfBirth
+											? format(new Date(lead.dateOfBirth), "MMM dd, yyyy")
+											: "-"
+									}
+									icon={HiCalendarDays}
+								/>
+							</DetailGrid>
+						</SectionCard>
 
-				{activeTab === "demos" && (
-					<div className="space-y-6">
-						<SectionCard
-							title={`Demo History (${demoCount} attempts)`}
-							icon={HiCalendarDays}
-						>
-							{lead.demos.length > 0 ? (
-								<div className="space-y-3">
-									{lead.demos.map((demo, index) => (
-										<div
-											key={`${demo.requestedAt ?? "no-requested-at"}-${demo.mentorId ?? "no-mentor"}-${demo.demoScheduledFor ?? "no-scheduled-for"}`}
-											className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3"
+						<SectionCard title="Form Submission Details" icon={HiCheckCircle}>
+							<DetailGrid>
+								<DetailRow
+									label="Form Status"
+									value={
+										<span
+											className={`rounded-full px-2.5 py-1 text-xs font-semibold ${lead.formCompleted ? "bg-emerald-100 text-emerald-700" : lead.formSent ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}`}
 										>
-											<div className="flex items-center gap-3">
-												<div>
-													<div className="text-sm font-semibold">
-														Attempt #{index + 1}{" "}
-														{demo.completedAt ? (
-															<span className="ml-2 text-emerald-600 text-xs">
-																✓ Completed
-															</span>
-														) : null}
-													</div>
-													<div className="text-xs text-gray-600">
-														{demo.requestedAt
-															? formatDistance(
-																	new Date(demo.requestedAt),
-																	new Date(),
-																	{ addSuffix: true },
-																)
-															: "Not requested"}
-													</div>
+											{lead.formCompleted
+												? "Completed"
+												: lead.formSent
+													? "Sent"
+													: "Not Sent"}
+										</span>
+									}
+								/>
+								<DetailRow
+									label="Form Sent"
+									value={lead.formSent ? "Yes" : "No"}
+									icon={HiCalendarDays}
+								/>
+								<DetailRow
+									label="Form Completed"
+									value={lead.formCompleted ? "Yes" : "No"}
+									icon={HiCheckCircle}
+								/>
+							</DetailGrid>
+						</SectionCard>
+					</div>
+
+					<div className="space-y-6">
+						<SectionCard title="Next Follow-up" icon={HiClock}>
+							<div className="space-y-3">
+								<div className={`rounded-xl border p-4 ${followUpOverdue ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
+									<p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Scheduled for</p>
+									<p className="mt-1 text-lg font-bold text-gray-900">
+										{lead.nextFollowUpAt
+											? format(new Date(lead.nextFollowUpAt), "MMM dd, yyyy · hh:mm a")
+											: "Not scheduled"}
+									</p>
+									{lead.nextFollowUpAt ? (
+										<p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold ${followUpOverdue ? "text-rose-700" : "text-blue-700"}`}>
+											<HiClock className="h-3.5 w-3.5" />
+											{followUpOverdue ? "Overdue —" : ""}{" "}
+											{formatDistance(new Date(lead.nextFollowUpAt), new Date(), { addSuffix: true })}
+										</p>
+									) : null}
+								</div>
+							</div>
+						</SectionCard>
+
+						<SectionCard title="Ownership & Assignment" icon={HiUsers}>
+							<div className="space-y-1">
+								{[
+									{ label: "Created By", user: findUserById(lead.createdBy), role: undefined as "mentor" | "counsellor" | "sales" | "admin" | undefined, fallback: "-" },
+									{ label: "Sales Owner", user: assignedToUser, role: "sales" as const, fallback: "Unassigned" },
+									{ label: "Demo Owner", user: demoRequestAssignedToUser, role: "counsellor" as const, fallback: "Not assigned" },
+								].map((row) => (
+									<div key={row.label} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+										<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{row.label}</span>
+										<UserIdentity user={row.user} role={row.role} fallback={row.fallback} />
+									</div>
+								))}
+							</div>
+						</SectionCard>
+
+						{latestDemo && (
+							<SectionCard
+								title="Current Demo Assignment"
+								icon={HiAcademicCap}
+							>
+								<div className="space-y-1">
+									<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+										<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mentor</span>
+										<UserIdentity user={latestDemoMentor} role="mentor" />
+									</div>
+									<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+										<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Counsellor</span>
+										<UserIdentity user={latestDemoCounsellor} role="counsellor" />
+									</div>
+									{latestDemo.demoScheduledFor ? (
+										<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+											<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Scheduled For</span>
+											<span className="text-sm font-semibold text-gray-900">
+												{format(new Date(latestDemo.demoScheduledFor), "MMM dd, hh:mm a")}
+											</span>
+										</div>
+									) : null}
+								</div>
+							</SectionCard>
+						)}
+					</div>
+				</div>
+			)}
+
+			{activeTab === "demos" && (
+				<div className="space-y-6">
+					<SectionCard
+						title={`Demo History (${demoCount} attempts)`}
+						icon={HiCalendarDays}
+					>
+						{lead.demos.length > 0 ? (
+							<div className="space-y-3">
+								{lead.demos.map((demo, index) => (
+									<div
+										key={`${demo.requestedAt ?? "no-requested-at"}-${demo.mentorId ?? "no-mentor"}-${demo.demoScheduledFor ?? "no-scheduled-for"}`}
+										className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3"
+									>
+										<div className="flex items-center gap-3">
+											<div>
+												<div className="text-sm font-semibold">
+													Attempt #{index + 1}{" "}
+													{demo.completedAt ? (
+														<span className="ml-2 text-emerald-600 text-xs">
+															✓ Completed
+														</span>
+													) : null}
 												</div>
-											</div>
-											<div className="flex gap-6 text-sm text-gray-700">
-												<div className="flex items-center gap-1.5">
-													Mentor: <UserIdentity user={findUserById(demo.mentorId)} role="mentor" />
-												</div>
-												<div className="flex items-center gap-1.5">
-													Counsellor:{" "}
-													<UserIdentity
-														user={findUserById(findUserById(demo.mentorId)?.counsellorId ?? null)}
-														role="counsellor"
-													/>
-												</div>
-											</div>
-											<div className="text-sm text-gray-600 text-right">
-												<div>
-													Scheduled:{" "}
-													{demo.demoScheduledFor
-														? format(
-																new Date(demo.demoScheduledFor),
-																"MMM dd, hh:mm a",
-															)
-														: "-"}
-												</div>
-												<div>
-													Completed:{" "}
-													{demo.completedAt
-														? format(
-																new Date(demo.completedAt),
-																"MMM dd, hh:mm a",
-															)
-														: "-"}
+												<div className="text-xs text-gray-600">
+													{demo.requestedAt
+														? formatDistance(
+															new Date(demo.requestedAt),
+															new Date(),
+															{ addSuffix: true },
+														)
+														: "Not requested"}
 												</div>
 											</div>
 										</div>
-									))}
-								</div>
-							) : (
-								<p className="py-4 text-center text-gray-600">
-									No demo attempts yet
-								</p>
-							)}
-						</SectionCard>
-					</div>
-				)}
+										<div className="flex gap-6 text-sm text-gray-700">
+											<div className="flex items-center gap-1.5">
+												Mentor: <UserIdentity user={findUserById(demo.mentorId)} role="mentor" />
+											</div>
+											<div className="flex items-center gap-1.5">
+												Counsellor:{" "}
+												<UserIdentity
+													user={findUserById(findUserById(demo.mentorId)?.counsellorId ?? null)}
+													role="counsellor"
+												/>
+											</div>
+										</div>
+										<div className="text-sm text-gray-600 text-right">
+											<div>
+												Scheduled:{" "}
+												{demo.demoScheduledFor
+													? format(
+														new Date(demo.demoScheduledFor),
+														"MMM dd, hh:mm a",
+													)
+													: "-"}
+											</div>
+											<div>
+												Completed:{" "}
+												{demo.completedAt
+													? format(
+														new Date(demo.completedAt),
+														"MMM dd, hh:mm a",
+													)
+													: "-"}
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+						) : (
+							<p className="py-4 text-center text-gray-600">
+								No demo attempts yet
+							</p>
+						)}
+					</SectionCard>
+				</div>
+			)}
 
 			{activeTab === "activities" && leadId ? (
 				<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -1547,11 +1539,10 @@ export const LeadDetailPageNew = () => {
 						<button
 							type="button"
 							onClick={onDeleteLead}
-							className={`rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 ${
-								!composeDeleteLeadNote(deleteReason, deleteSubReason, deleteNote)
+							className={`rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 ${!composeDeleteLeadNote(deleteReason, deleteSubReason, deleteNote)
 									? "opacity-50 pointer-events-none"
 									: ""
-							}`}
+								}`}
 						>
 							Delete
 						</button>
@@ -1613,7 +1604,7 @@ export const LeadDetailPageNew = () => {
 					) : null}
 
 					{deleteReason === "other" ||
-					(deleteReason === "not_interested" && deleteSubReason === "other") ? (
+						(deleteReason === "not_interested" && deleteSubReason === "other") ? (
 						<label className="grid gap-2">
 							<span className="text-sm font-semibold text-gray-700">
 								Brief note
