@@ -1,4 +1,4 @@
-import { isPast, isToday } from "date-fns";
+import { isPast, isToday, isTomorrow } from "date-fns";
 import { createElement, useEffect } from "react";
 import {
 	HiAcademicCap,
@@ -309,7 +309,12 @@ export const useNavigationItems = () => {
 		},
 	).length;
 
-	const reminderUrgentCount = allReminders.filter((reminder) => !reminder.isDone).length;
+	const reminderUrgentCount = allReminders.filter((reminder) => {
+		if (reminder.isDone) return false;
+		const d = new Date(reminder.date as string | Date);
+		if (Number.isNaN(d.getTime())) return false;
+		return isPast(d) || isToday(d) || isTomorrow(d);
+	}).length;
 
 	const hasPermission = (key: string): boolean =>
 		me?.permissions?.some((p) => p.key === key) ?? false;

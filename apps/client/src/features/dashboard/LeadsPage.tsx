@@ -172,11 +172,10 @@ const CounsellorOption = ({
 		<button
 			type="button"
 			onClick={onSelect}
-			className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
-				selected
+			className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${selected
 					? "border-sky-500 bg-sky-50 ring-1 ring-sky-200"
 					: "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
-			}`}
+				}`}
 		>
 			<span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selected ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>
 				{displayName[0]?.toUpperCase()}
@@ -572,8 +571,8 @@ export const LeadsPage = () => {
 		control: createControl,
 		name: "phone",
 	});
-    const [similarLeads, setSimilarLeads] = useState<LeadResponse[] | null>(null);
-    const [isSearchingSimilar, setIsSearchingSimilar] = useState(false);
+	const [similarLeads, setSimilarLeads] = useState<LeadResponse[] | null>(null);
+	const [isSearchingSimilar, setIsSearchingSimilar] = useState(false);
 	const duplicateLeadCount = useMemo(() => {
 		const normalizedPhone = getWhatsappNumber(createPhoneValue);
 		if (!normalizedPhone) {
@@ -627,8 +626,8 @@ export const LeadsPage = () => {
 
 		const defaultAssignedTo = canAssignLeadToOthers
 			? (salesUsers.some((user: any) => user.id === currentUserId)
-					? (currentUserId ?? "")
-					: "")
+				? (currentUserId ?? "")
+				: "")
 			: (currentUserId ?? "");
 
 		resetCreate({
@@ -822,78 +821,78 @@ export const LeadsPage = () => {
 		}
 	};
 
-		const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
-			if (!admissionLeadId) return;
+	const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
+		if (!admissionLeadId) return;
 
-			const mentorId = admissionMentorId ?? undefined;
-			// Determine counsellor ID: use either mentor's existing or newly assigned
-			const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
-			if (!counsellorId) {
-				toast.error("Please assign a counsellor to the mentor first");
-				return;
-			}
+		const mentorId = admissionMentorId ?? undefined;
+		// Determine counsellor ID: use either mentor's existing or newly assigned
+		const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
+		if (!counsellorId) {
+			toast.error("Please assign a counsellor to the mentor first");
+			return;
+		}
 
-			// Ensure price exists: use admissionLead.price or admissionPriceInput
-			const currentPrice = admissionLead?.price;
-			const enteredPrice = admissionPriceInput.trim() ? parseInt(admissionPriceInput, 10) : undefined;
+		// Ensure price exists: use admissionLead.price or admissionPriceInput
+		const currentPrice = admissionLead?.price;
+		const enteredPrice = admissionPriceInput.trim() ? parseInt(admissionPriceInput, 10) : undefined;
 
-			if (!currentPrice && (enteredPrice === undefined || Number.isNaN(enteredPrice))) {
-				toast.error("Please enter a valid price before moving to admission.");
-				return;
-			}
+		if (!currentPrice && (enteredPrice === undefined || Number.isNaN(enteredPrice))) {
+			toast.error("Please enter a valid price before moving to admission.");
+			return;
+		}
 
-			try {
-				// If user entered a price (and it's different), update the lead first
-				if (enteredPrice !== undefined && enteredPrice !== currentPrice) {
-					await updateLeadMutation.mutateAsync({
-						leadId: admissionLeadId,
-						payload: { price: enteredPrice },
-					});
-				}
-
-				const finalPayload = {
-					...payload,
-					mentorId,
-					counsellorId,
-				};
-
-				const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
-				if (!validation.success) {
-					const errors = validation.error.flatten().fieldErrors;
-					if (errors.counsellorId?.[0]) {
-						toast.error(errors.counsellorId[0]);
-					}
-					if (errors.note?.[0]) {
-						toast.error(errors.note[0]);
-					}
-					return;
-				}
-
-				await requestAdmissionMutation.mutateAsync({
+		try {
+			// If user entered a price (and it's different), update the lead first
+			if (enteredPrice !== undefined && enteredPrice !== currentPrice) {
+				await updateLeadMutation.mutateAsync({
 					leadId: admissionLeadId,
-					payload: validation.data,
+					payload: { price: enteredPrice },
 				});
-				toast.success("Lead moved to for admission.");
-				closeAdmissionModal();
-				navigate("/leads?stage=converted");
-			} catch (error) {
-				if (error instanceof ApiError) {
-					const counsellorError = error.payload.errors?.counsellorId?.[0];
-					if (counsellorError) {
-						toast.error(counsellorError);
-					}
-					toast.error(
-						error.payload.message ?? "Unable to move lead to admission",
-					);
-					return;
+			}
+
+			const finalPayload = {
+				...payload,
+				mentorId,
+				counsellorId,
+			};
+
+			const validation = ConfirmAdmissionPayloadSchema.safeParse(finalPayload);
+			if (!validation.success) {
+				const errors = validation.error.flatten().fieldErrors;
+				if (errors.counsellorId?.[0]) {
+					toast.error(errors.counsellorId[0]);
+				}
+				if (errors.note?.[0]) {
+					toast.error(errors.note[0]);
+				}
+				return;
+			}
+
+			await requestAdmissionMutation.mutateAsync({
+				leadId: admissionLeadId,
+				payload: validation.data,
+			});
+			toast.success("Lead moved to for admission.");
+			closeAdmissionModal();
+			navigate("/leads?stage=converted");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				const counsellorError = error.payload.errors?.counsellorId?.[0];
+				if (counsellorError) {
+					toast.error(counsellorError);
 				}
 				toast.error(
-					error instanceof Error
-						? error.message
-						: "Unable to move lead to admission",
+					error.payload.message ?? "Unable to move lead to admission",
 				);
+				return;
 			}
-		};
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Unable to move lead to admission",
+			);
+		}
+	};
 
 	const selectedLead = leads.find((lead) => lead.id === postponeLeadId) ?? null;
 	const admissionLead =
@@ -905,9 +904,9 @@ export const LeadsPage = () => {
 		selectedAdmissionMentorId ?? admissionLeadLatestDemo?.mentorId ?? null;
 	const admissionLeadMentor = admissionMentorId
 		? allMentors.find((mentor) => mentor.id === admissionMentorId) ??
-		  allUsers.find((user) => user.id === admissionMentorId) ??
-		  salesUsers.find((user) => user.id === admissionMentorId) ??
-		  null
+		allUsers.find((user) => user.id === admissionMentorId) ??
+		salesUsers.find((user) => user.id === admissionMentorId) ??
+		null
 		: null;
 	const admissionLeadMentorName = admissionLeadMentor
 		? formatUserName(admissionLeadMentor.name ?? admissionLeadMentor.username)
@@ -916,203 +915,203 @@ export const LeadsPage = () => {
 		admissionLeadMentor?.counsellorId ?? mentorCounsellorOverrideId;
 
 	const getActions = (_lead: LeadResponse) => {
-					const canManageForm = hasPermission("LEAD_FORM_MANAGE");
-					const canRequestDemo = hasPermission("LEAD_DEMO_REQUEST");
-					const canCompleteDemo = hasPermission("LEAD_DEMO_COMPLETE");
+		const canManageForm = hasPermission("LEAD_FORM_MANAGE");
+		const canRequestDemo = hasPermission("LEAD_DEMO_REQUEST");
+		const canCompleteDemo = hasPermission("LEAD_DEMO_COMPLETE");
 
-					switch (activeStage) {
-						case "followUp":
-							return [
-								{
-									key: "postpone",
-									label: "Postpone",
-									onClick: (item: LeadResponse) => setPostponeLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
+		switch (activeStage) {
+			case "followUp":
+				return [
+					{
+						key: "postpone",
+						label: "Postpone",
+						onClick: (item: LeadResponse) => setPostponeLeadId(item.id),
+						className:
+							"inline-flex items-center rounded-2xl border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50",
+					},
+					...(canManageForm
+						? [
+							{
+								key: "sendForm",
+								label: "Send Form",
+								onClick: async (item: LeadResponse) => {
+									try {
+										await sendFormForLead(item);
+									} catch (error) {
+										toast.error(
+											error instanceof Error
+												? error.message
+												: "Unable to generate form link",
+										);
+									}
 								},
-								...(canManageForm
-									? [
-											{
-												key: "sendForm",
-												label: "Send Form",
-												onClick: async (item: LeadResponse) => {
-													try {
-														await sendFormForLead(item);
-													} catch (error) {
-														toast.error(
-															error instanceof Error
-																? error.message
-																: "Unable to generate form link",
-														);
-													}
-												},
-												className:
-													"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
-											},
-										]
-									: []),
-							];
-						case "formSent":
-							return [
-								{
-									key: "copyFormLink",
-									label: "Copy Form Link",
-									onClick: async (item: LeadResponse) => {
-										try {
-											const result = await generateFormLinkMutation.mutateAsync(
-												item.id,
-											);
-											setFormLinkData(result);
-											setFormLinkPhone(item.phone ?? null);
-											setFormLinkOpen(true);
-										} catch (error) {
-											if (error instanceof ApiError) {
-												toast.error(
-													error.payload.message ?? "Unable to open form link",
-												);
-												return;
-											}
-											toast.error(
-												error instanceof Error
-													? error.message
-													: "Unable to open form link",
-											);
-										}
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+								className:
+									"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+							},
+						]
+						: []),
+				];
+			case "formSent":
+				return [
+					{
+						key: "copyFormLink",
+						label: "Copy Form Link",
+						onClick: async (item: LeadResponse) => {
+							try {
+								const result = await generateFormLinkMutation.mutateAsync(
+									item.id,
+								);
+								setFormLinkData(result);
+								setFormLinkPhone(item.phone ?? null);
+								setFormLinkOpen(true);
+							} catch (error) {
+								if (error instanceof ApiError) {
+									toast.error(
+										error.payload.message ?? "Unable to open form link",
+									);
+									return;
+								}
+								toast.error(
+									error instanceof Error
+										? error.message
+										: "Unable to open form link",
+								);
+							}
+						},
+						className:
+							"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+					},
+				];
+			case "formFilled":
+				return [
+					{
+						key: "viewFormResponses",
+						label: "View Response",
+						onClick: (item: LeadResponse) => {
+							setFormResponseLead(item);
+						},
+						className:
+							"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+					},
+					...(canRequestDemo
+						? [
+							{
+								key: "requestDemo",
+								label: "Request Demo",
+								onClick: (item: LeadResponse) => {
+									setRequestDemoLeadId(item.id);
+									setRequestDemoOpen(true);
 								},
-							];
-						case "formFilled":
-							return [
-								{
-									key: "viewFormResponses",
-									label: "View Response",
-									onClick: (item: LeadResponse) => {
-										setFormResponseLead(item);
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50",
+								className:
+									"inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
+							},
+						]
+						: []),
+				];
+			case "demoRequest":
+				return [
+					{
+						key: "cancelRequest",
+						label: "Cancel Request",
+						onClick: async (item: LeadResponse) => {
+							if (!confirm("Cancel this demo request?")) {
+								return;
+							}
+							try {
+								await cancelLeadDemoMutation.mutateAsync(item.id);
+								toast.success("Demo request cancelled.");
+							} catch (error) {
+								if (error instanceof ApiError) {
+									toast.error(
+										error.payload.message ?? "Unable to cancel request",
+									);
+									return;
+								}
+								toast.error(
+									error instanceof Error
+										? error.message
+										: "Unable to cancel request",
+								);
+							}
+						},
+						className:
+							"inline-flex items-center rounded-2xl border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50",
+					},
+				];
+			case "demoAssigned":
+				return [
+					...(canCompleteDemo
+						? [
+							{
+								key: "markCompleted",
+								label: "Mark as Completed",
+								onClick: (item: LeadResponse) => {
+									setCompleteLeadId(item.id);
+									resetComplete({ note: "" });
 								},
-								...(canRequestDemo
-									? [
-											{
-												key: "requestDemo",
-												label: "Request Demo",
-												onClick: (item: LeadResponse) => {
-													setRequestDemoLeadId(item.id);
-													setRequestDemoOpen(true);
-												},
-												className:
-													"inline-flex items-center rounded-2xl border border-sky-300 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50",
-											},
-										]
-									: []),
-							];
-						case "demoRequest":
-							return [
-								{
-									key: "cancelRequest",
-									label: "Cancel Request",
-									onClick: async (item: LeadResponse) => {
-										if (!confirm("Cancel this demo request?")) {
-											return;
-										}
-										try {
-											await cancelLeadDemoMutation.mutateAsync(item.id);
-											toast.success("Demo request cancelled.");
-										} catch (error) {
-											if (error instanceof ApiError) {
-												toast.error(
-													error.payload.message ?? "Unable to cancel request",
-												);
-												return;
-											}
-											toast.error(
-												error instanceof Error
-													? error.message
-													: "Unable to cancel request",
-											);
-										}
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50",
-								},
-							];
-						case "demoAssigned":
-							return [
-								...(canCompleteDemo
-									? [
-											{
-												key: "markCompleted",
-												label: "Mark as Completed",
-												onClick: (item: LeadResponse) => {
-													setCompleteLeadId(item.id);
-													resetComplete({ note: "" });
-												},
-												className:
-													"inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
-											},
-										]
-									: []),
-								{
-									key: "cancel",
-									label: "Cancel",
-									onClick: async (item: LeadResponse) => {
-										if (!confirm("Cancel this scheduled demo?")) {
-											return;
-										}
-										try {
-											await cancelLeadDemoMutation.mutateAsync(item.id);
-											toast.success("Scheduled demo cancelled.");
-										} catch (error) {
-											if (error instanceof ApiError) {
-												toast.error(
-													error.payload.message ?? "Unable to cancel demo",
-												);
-												return;
-											}
-											toast.error(
-												error instanceof Error
-													? error.message
-													: "Unable to cancel demo",
-											);
-										}
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50",
-								},
-							];
-						case "demoCompleted":
-							return [
-								{
-									key: "toAdmission",
-									label: "To Admission",
-									onClick: (item: LeadResponse) => {
-										const latestDemo = getLatestLeadDemo(item);
-										setAdmissionLeadId(item.id);
-										setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
-										setIsChangingAdmissionMentor(!latestDemo?.mentorId);
-										setMentorCounsellorOverrideId(null);
-										setAssigningCounsellorToMentor(false);
-										setSelectedCounsellorForMentor(null);
-										resetAdmission({ counsellorId: undefined, note: "" });
-										setAdmissionPriceInput(item.price ? String(item.price) : "");
-									},
-									className:
-										"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
-								},
-								{
-									key: "redemo",
-									label: "Redemo",
-									onClick: (item: LeadResponse) => setRedemoLeadId(item.id),
-									className:
-										"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
-								},
-							];
-					default:
-							return [];
-				}
+								className:
+									"inline-flex items-center rounded-2xl border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50",
+							},
+						]
+						: []),
+					{
+						key: "cancel",
+						label: "Cancel",
+						onClick: async (item: LeadResponse) => {
+							if (!confirm("Cancel this scheduled demo?")) {
+								return;
+							}
+							try {
+								await cancelLeadDemoMutation.mutateAsync(item.id);
+								toast.success("Scheduled demo cancelled.");
+							} catch (error) {
+								if (error instanceof ApiError) {
+									toast.error(
+										error.payload.message ?? "Unable to cancel demo",
+									);
+									return;
+								}
+								toast.error(
+									error instanceof Error
+										? error.message
+										: "Unable to cancel demo",
+								);
+							}
+						},
+						className:
+							"inline-flex items-center rounded-2xl border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50",
+					},
+				];
+			case "demoCompleted":
+				return [
+					{
+						key: "toAdmission",
+						label: "To Admission",
+						onClick: (item: LeadResponse) => {
+							const latestDemo = getLatestLeadDemo(item);
+							setAdmissionLeadId(item.id);
+							setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
+							setIsChangingAdmissionMentor(!latestDemo?.mentorId);
+							setMentorCounsellorOverrideId(null);
+							setAssigningCounsellorToMentor(false);
+							setSelectedCounsellorForMentor(null);
+							resetAdmission({ counsellorId: undefined, note: "" });
+							setAdmissionPriceInput(item.price ? String(item.price) : "");
+						},
+						className:
+							"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
+					},
+					{
+						key: "redemo",
+						label: "Redemo",
+						onClick: (item: LeadResponse) => setRedemoLeadId(item.id),
+						className:
+							"inline-flex items-center rounded-2xl border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-50",
+					},
+				];
+			default:
+				return [];
+		}
 	};
 
 	return (
@@ -1160,12 +1159,12 @@ export const LeadsPage = () => {
 				{leadStageDefinitions.filter((stage) => stage.id !== "demoCompleted").map((stage) => {
 					const isActive = stage.id === activeStage;
 					const STAGE_PILL_COLOR: Record<string, string> = {
-						all:           "text-teal-700",
-						followUp:      "text-lime-700",
-						formSent:      "text-amber-700",
-						formFilled:    "text-cyan-700",
-						demoRequest:   "text-orange-700",
-						demoAssigned:  "text-emerald-700",
+						all: "text-teal-700",
+						followUp: "text-lime-700",
+						formSent: "text-amber-700",
+						formFilled: "text-cyan-700",
+						demoRequest: "text-orange-700",
+						demoAssigned: "text-emerald-700",
 						demoCompleted: "text-violet-700",
 					};
 					const activeColor = STAGE_PILL_COLOR[stage.id] ?? "text-teal-700";
@@ -1342,8 +1341,8 @@ export const LeadsPage = () => {
 														type="button"
 														className="ml-4 rounded px-3 py-1 text-xs bg-white border"
 														onClick={() => {
-														navigate(`/leads/${l.id}`);
-														setCreateOpen(false);
+															navigate(`/leads/${l.id}`);
+															setCreateOpen(false);
 														}}
 													>
 														Open
@@ -1445,7 +1444,7 @@ export const LeadsPage = () => {
 							}
 						>
 							{updateLeadMutation.isPending ||
-							generateFormLinkMutation.isPending
+								generateFormLinkMutation.isPending
 								? "Saving..."
 								: "Save & Send Form"}
 						</button>
@@ -1632,7 +1631,13 @@ export const LeadsPage = () => {
 							type="button"
 							className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700"
 							onClick={() => {
-								const message = `Check this form link: ${formLinkData.formLink}`;
+								const message = `Assalamu alaikum 🤝
+
+Here is the Zidnee Islamic School application form. Please fill and let us know once you have completed it.
+
+Thank you 😊
+
+${formLinkData.formLink}`;
 								const encodedMessage = encodeURIComponent(message);
 								const whatsappNumber = getWhatsappNumber(formLinkPhone);
 								window.open(
@@ -1782,11 +1787,10 @@ export const LeadsPage = () => {
 							<button
 								key={option.days}
 								type="button"
-								className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${
-									selectedDuration === option.days
+								className={`rounded-2xl border-2 px-3 py-2 text-sm font-semibold transition-all ${selectedDuration === option.days
 										? "border-blue-600 bg-blue-600 text-white"
 										: "border-gray-300 bg-gray-50 text-gray-900 hover:border-blue-600 hover:bg-blue-600 hover:text-white"
-								}`}
+									}`}
 								onClick={() => {
 									const futureDate = new Date(
 										Date.now() + option.days * 24 * 60 * 60 * 1000,
@@ -2022,8 +2026,8 @@ export const LeadsPage = () => {
 									<p className="mt-2 text-sm font-medium text-slate-900">
 										{admissionLeadLatestDemo?.mentorId
 											? admissionLeadMentorName ??
-											  userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
-											  "-"
+											userNameById.get(admissionMentorId ?? admissionLeadLatestDemo.mentorId) ??
+											"-"
 											: "No demo mentor found"}
 									</p>
 								</div>
@@ -2114,8 +2118,8 @@ export const LeadsPage = () => {
 													counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId)?.username ??
 													allUsers.find((u) => u.id === defaultCounsellorId)?.name ??
 													allUsers.find((u) => u.id === defaultCounsellorId)?.username ??
-													  "-",
-												  )
+													"-",
+												)
 												: "-"}
 										</p>
 									</div>
@@ -2167,7 +2171,7 @@ export const LeadsPage = () => {
 										onClick={() => void handleAssignCounsellorToMentor()}
 										disabled={!selectedCounsellorForMentor || assignUserCounsellorMutation.isPending}
 									>
-											{assignUserCounsellorMutation.isPending ? "Assigning..." : "Assign"}
+										{assignUserCounsellorMutation.isPending ? "Assigning..." : "Assign"}
 									</button>
 								</div>
 							</div>

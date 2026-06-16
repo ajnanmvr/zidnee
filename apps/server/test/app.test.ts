@@ -79,12 +79,12 @@ describe("app routes", () => {
 			.post("/api/leads")
 			.set("Authorization", `Bearer ${loginResponse.body.token}`)
 			.send({
-				phone: "+919876543210",
+				phone: "+918714131202",
 			});
 
 		expect(createResponse.status).toBe(201);
 		expect(createResponse.body.ok).toBe(true);
-		expect(createResponse.body.lead.phone).toBe("+919876543210");
+		expect(createResponse.body.lead.phone).toBe("+918714131202");
 
 		const leadId = createResponse.body.lead.id as string;
 
