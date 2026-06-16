@@ -571,7 +571,7 @@ export const useNavigationItems = () => {
 					{
 						to: "/students/starting-dates",
 						label: "Starting Dates",
-						description: "Monitor upcoming class start dates",
+						description: "Upcoming class starting",
 						icon: createElement(HiRocketLaunch, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
