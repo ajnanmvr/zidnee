@@ -1756,7 +1756,13 @@ export const LeadDetailPageNew = () => {
 						<button
 							type="button"
 							onClick={() => {
-								const message = `Check this form link: ${formLinkData.formLink}`;
+								const message = `Assalamu alaikum
+
+Here is the Zidnee Islamic School application form. Please fill and let us know once you have completed it.
+
+Thank you
+
+${formLinkData.formLink}`;
 								const whatsappNumber = getWhatsappNumber(lead.phone);
 								window.open(
 									`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`,
