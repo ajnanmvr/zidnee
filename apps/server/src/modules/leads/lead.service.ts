@@ -583,6 +583,10 @@ export const LeadService = {
 
 		if (filters.status) {
 			filtered = filtered.filter((lead) => lead.status === filters.status);
+		} else {
+			// When no explicit status filter is applied (the "All" tab),
+			// exclude closed/deleted leads — those are surfaced via separate views.
+			filtered = filtered.filter((lead) => lead.status !== "CLOSED");
 		}
 
 		if (filters.search) {

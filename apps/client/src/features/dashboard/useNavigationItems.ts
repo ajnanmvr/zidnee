@@ -19,6 +19,7 @@ import {
 	HiPhone,
 	HiPresentationChartLine,
 	HiRectangleGroup,
+	HiRocketLaunch,
 	HiShieldCheck,
 	HiSquares2X2,
 	HiTrash,
@@ -561,6 +562,21 @@ export const useNavigationItems = () => {
 						}),
 						count: droppedCount,
 						accent: "rose",
+						section: "Learners",
+					},
+				]
+			: []),
+		...(hasPermission("STUDENT_STARTING_DATE_READ")
+			? [
+					{
+						to: "/students/starting-dates",
+						label: "Starting Dates",
+						description: "Monitor upcoming class start dates",
+						icon: createElement(HiRocketLaunch, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "blue" as const,
 						section: "Learners",
 					},
 				]

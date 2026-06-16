@@ -210,6 +210,7 @@ const toStudent = (doc: StudentDocument): Student => {
 		nextFollowUpAt: doc.nextFollowUpAt,
 		customNextFollowUpAt: doc.customNextFollowUpAt,
 		status: doc.status,
+		classStartConfirmedAt: doc.classStartConfirmedAt ?? undefined,
 		admittedAt: doc.admittedAt,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,
@@ -278,13 +279,26 @@ const syncStudentProcess = async (
 	}
 
 	const template = explicitTemplate ?? getStudentProcessTemplate(student.status);
+
+	// Only reset task completions when there's a genuine reason to do so:
+	// an explicit template (admission/drop flow), no existing process, or a status change.
+	const priorProcess = await StudentProcessModel.findOne(
+		{ studentId: student._id },
+		{ status: 1 },
+	).lean<Pick<StudentProcessDocument, "status"> | null>();
+
+	const shouldResetTasks =
+		Boolean(explicitTemplate) ||
+		!priorProcess ||
+		priorProcess.status !== student.status;
+
 	const process = await StudentProcessModel.findOneAndUpdate(
 		{ studentId: student._id },
 		{
 			$set: {
 				status: student.status,
 				label: template.label,
-				tasks: template.tasks,
+				...(shouldResetTasks ? { tasks: template.tasks } : {}),
 			},
 			$setOnInsert: {
 				studentId: student._id,
