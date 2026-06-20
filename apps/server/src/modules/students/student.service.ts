@@ -326,6 +326,12 @@ const syncStudentProcess = async (
 };
 
 export const StudentService = {
+	findById: async (studentId: string): Promise<Student | null> => {
+		if (!Types.ObjectId.isValid(studentId)) return null;
+		const doc = await StudentModel.findById(studentId).lean<StudentDocument | null>();
+		return doc ? toStudent(doc) : null;
+	},
+
 	listStudents: async (
 		filters: StudentListFilters = {},
 	): Promise<Student[]> => {

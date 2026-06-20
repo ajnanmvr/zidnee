@@ -209,6 +209,18 @@ export const PERMISSION_CATALOG = {
 		resource: "demo-management",
 		action: "scheduled:read:all",
 	},
+	DEMO_COMPLETED_READ_MY: {
+		name: "View My Completed Demos",
+		description: "View completed demos assigned to me",
+		resource: "demo-management",
+		action: "completed:read:own",
+	},
+	DEMO_COMPLETED_READ_ALL: {
+		name: "View All Completed Demos",
+		description: "View all completed demos",
+		resource: "demo-management",
+		action: "completed:read:all",
+	},
 	LEAD_DEMO_COMPLETE: {
 		name: "Complete Demo",
 		description: "Mark demo as completed",
@@ -485,6 +497,18 @@ export const PERMISSION_CATALOG = {
 		description: "View the starting date monitoring dashboard for students",
 		resource: "students",
 		action: "starting-date:read",
+	},
+	STUDENT_PROFILE_READ: {
+		name: "View Student Profile",
+		description: "View the detailed profile page of an individual student",
+		resource: "students",
+		action: "profile:read",
+	},
+	LEAD_PROFILE_READ: {
+		name: "View Lead Profile",
+		description: "View the detailed profile page of an individual lead",
+		resource: "leads",
+		action: "profile:read",
 	},
 	// Batches
 	BATCH_CREATE: {

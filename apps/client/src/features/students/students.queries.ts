@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	fetchStudentActivities,
+	fetchStudentById,
 	fetchStudentProcessHistory,
 	fetchStudentProcesses,
 	fetchStudents,
@@ -10,6 +11,8 @@ import {
 import { useHasPermission, usePermissionMap } from "@/lib/hooks/use-has-permission";
 
 export const studentsQueryKeys = {
+	byId: (token: string, studentId: string) =>
+		["students", token, "by-id", studentId] as const,
 	list: (
 		token: string,
 		options?: {
@@ -65,6 +68,21 @@ export const useStudentsQuery = (
 		queryKey: studentsQueryKeys.list(token, options),
 		queryFn: () => fetchStudents(token, { ...options, scope }),
 		enabled: Boolean(token) && queryEnabled,
+	});
+};
+
+export const useStudentByIdQuery = (
+	token: string,
+	studentId?: string,
+	enabled = true,
+) => {
+	return useQuery({
+		queryKey: studentsQueryKeys.byId(token, studentId ?? ""),
+		queryFn: async () => {
+			const data = await fetchStudentById(token, studentId!);
+			return data.students[0] ?? null;
+		},
+		enabled: Boolean(token) && Boolean(studentId) && enabled,
 	});
 };
 

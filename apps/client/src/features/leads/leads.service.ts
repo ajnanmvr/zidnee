@@ -63,6 +63,16 @@ export const fetchDemoRequests = async (token: string) => {
 	);
 };
 
+export const fetchCompletedDemos = async (token: string) => {
+	return requestWithSchema(
+		"/leads/completed-demos",
+		LeadsResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
 export const fetchPendingDemoRequests = async (token: string) => {
 	return requestWithSchema(
 		"/leads/for-demo",
@@ -171,6 +181,16 @@ export const markDemoCompleted = async (
 		LeadResponseEnvelopeSchema,
 		"PATCH",
 		payload ?? {},
+		token,
+	);
+};
+
+export const unmarkDemoCompleted = async (token: string, leadId: string) => {
+	return requestWithSchema(
+		`/leads/${leadId}/demo/uncomplete`,
+		LeadResponseEnvelopeSchema,
+		"PATCH",
+		{},
 		token,
 	);
 };

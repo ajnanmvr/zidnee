@@ -320,6 +320,17 @@ export const useNavigationItems = () => {
 	const hasPermission = (key: string): boolean =>
 		me?.permissions?.some((p) => p.key === key) ?? false;
 
+	const startingDateUrgentCount = hasPermission("STUDENT_STARTING_DATE_READ")
+		? allStudents.filter((s) => {
+				if (s.status !== "STUDENT") return false;
+				const raw = (s as { classStartConfirmedAt?: string | null }).classStartConfirmedAt;
+				if (!raw) return false;
+				const d = new Date(raw);
+				if (Number.isNaN(d.getTime())) return false;
+				return isPast(d) || isToday(d) || isTomorrow(d);
+			}).length
+		: 0;
+
 	const getLeadStageItems = (): NavigationItem[] => {
 		return leadStageDefinitions
 			.filter((stage) => stage.id !== "all")
@@ -449,6 +460,11 @@ export const useNavigationItems = () => {
 						accent: "emerald",
 						section: "Demo Management",
 					},
+				]
+			: []),
+		...(hasPermission("DEMO_COMPLETED_READ_MY") ||
+		hasPermission("DEMO_COMPLETED_READ_ALL")
+			? [
 					{
 						to: "/demo-management/completed",
 						label: "Completed Demos",
@@ -571,11 +587,12 @@ export const useNavigationItems = () => {
 					{
 						to: "/students/starting-dates",
 						label: "Starting Dates",
-						description: "Monitor upcoming class start dates",
+						description: "Upcoming class starting",
 						icon: createElement(HiRocketLaunch, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
 						}),
+						count: startingDateUrgentCount,
 						accent: "blue" as const,
 						section: "Learners",
 					},

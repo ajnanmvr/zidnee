@@ -215,6 +215,7 @@ export const ScheduledDemosPage = () => {
 								<tr className="border-b border-gray-100 bg-gray-50/80">
 									<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Lead</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Level</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Sales</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Attempt</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Scheduled For</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
@@ -231,6 +232,9 @@ export const ScheduledDemosPage = () => {
 									const dateCls = DATE_COLOR[status];
 									const mentorName = latestDemo?.mentorId
 										? (userNameById.get(latestDemo.mentorId) ?? "—")
+										: "—";
+									const salesName = (demo as any).assignedTo
+										? (userNameById.get((demo as any).assignedTo) ?? "—")
 										: "—";
 									const borderCls = status === "overdue" ? "border-l-red-400" : status === "today" ? "border-l-amber-400" : "border-l-violet-300";
 
@@ -251,6 +255,9 @@ export const ScheduledDemosPage = () => {
 											</td>
 											<td className="px-4 py-3.5">
 												<span className="text-sm font-medium text-gray-700">{demo.level ?? "—"}</span>
+											</td>
+											<td className="px-4 py-3.5">
+												<span className="text-sm text-gray-700">{salesName}</span>
 											</td>
 											<td className="px-4 py-3.5">
 												<span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">

@@ -34,7 +34,7 @@ import {
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import {
 	useStudentActivitiesQuery,
-	useStudentsQuery,
+	useStudentByIdQuery,
 	useStudentProcessesQuery,
 	useStudentProcessHistoryQuery,
 } from "@/features/students/students.queries";
@@ -167,7 +167,7 @@ export const StudentDetailPage = () => {
 	const { token } = useSession();
 	const { data: me } = useMeQuery(token);
 	const hasPermission = (key: string) => me?.permissions?.some((p) => p.key === key) ?? false;
-	const studentsQuery = useStudentsQuery(token);
+	const studentByIdQuery = useStudentByIdQuery(token, studentId);
 	const studentActivitiesQuery = useStudentActivitiesQuery(token, studentId);
 	const usersQuery = useUsersQuery(token);
 	const recordFollowUpMutation = useRecordStudentFollowUpMutation();
@@ -216,10 +216,7 @@ export const StudentDetailPage = () => {
 	const studentProcessesQuery = useStudentProcessesQuery(token);
 	const studentProcessHistoryQuery = useStudentProcessHistoryQuery(token);
 
-	const student = useMemo(
-		() => studentsQuery.data?.students.find((s) => s.id === studentId),
-		[studentsQuery.data?.students, studentId],
-	);
+	const student = studentByIdQuery.data ?? null;
 
 	const mentorName = useMemo(() => {
 		if (!student?.mentorId) return "-";
@@ -535,7 +532,7 @@ export const StudentDetailPage = () => {
 				throw new ApiError(res.status, json);
 			}
 
-			await studentsQuery.refetch();
+			await studentByIdQuery.refetch();
 			toast.success("Profile picture updated");
 			setCropModalOpen(false);
 			setSelectedImageFile(null);
@@ -700,7 +697,7 @@ export const StudentDetailPage = () => {
 		}
 	};
 
-	if (studentsQuery.isLoading) {
+	if (studentByIdQuery.isLoading) {
 		return (
 			<div className="flex items-center justify-center py-20">
 				<div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />

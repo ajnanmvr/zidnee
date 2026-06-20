@@ -18,10 +18,12 @@ import {
 	getLeadByIdController,
 	listAdmissionLeadsController,
     listSimilarLeadsController,
+	listCompletedDemosController,
 	listDemoRequestsController,
 	listLeadsController,
 	listPendingDemoRequestsController,
 	markDemoCompletedController,
+	unmarkDemoCompletedController,
 	postponeLeadFollowUpController,
 	redemoLeadController,
 	requestAdmissionController,
@@ -149,6 +151,15 @@ router.get(
 	asyncHandler(listDemoRequestsController),
 );
 
+router.get(
+	"/completed-demos",
+	requireAnyPermissionKey([
+		"DEMO_COMPLETED_READ_MY" satisfies PermissionKey,
+		"DEMO_COMPLETED_READ_ALL" satisfies PermissionKey,
+	]),
+	asyncHandler(listCompletedDemosController),
+);
+
 /**
  * @swagger
  * /api/leads/admissions:
@@ -229,7 +240,10 @@ router.get(
  */
 router.get(
 	"/:leadId",
-	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"LEAD_PROFILE_READ" satisfies PermissionKey,
+		"LEAD_READ" satisfies PermissionKey,
+	]),
 	asyncHandler(getLeadByIdController),
 );
 
@@ -311,6 +325,12 @@ router.patch(
 	"/:leadId/demo/complete",
 	requirePermissionKey("LEAD_DEMO_COMPLETE" satisfies PermissionKey),
 	asyncHandler(markDemoCompletedController),
+);
+
+router.patch(
+	"/:leadId/demo/uncomplete",
+	requirePermissionKey("LEAD_DEMO_COMPLETE" satisfies PermissionKey),
+	asyncHandler(unmarkDemoCompletedController),
 );
 
 router.patch(
@@ -403,7 +423,10 @@ router.delete(
  */
 router.get(
 	"/:leadId/activities",
-	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"LEAD_PROFILE_READ" satisfies PermissionKey,
+		"LEAD_READ" satisfies PermissionKey,
+	]),
 	asyncHandler(getLeadActivitiesController),
 );
 

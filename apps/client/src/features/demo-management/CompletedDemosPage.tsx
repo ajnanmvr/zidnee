@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { HiCheckCircle } from "react-icons/hi2";
+import { HiArrowUturnLeft, HiCheckCircle } from "react-icons/hi2";
+import toast from "react-hot-toast";
 import { useSession } from "@/lib/session";
 import { useMeQuery } from "@/features/auth/auth.queries";
-import { fetchDueLeadFollowUps } from "@/features/leads/leads.service";
+import { fetchCompletedDemos } from "@/features/leads/leads.service";
+import { useUnmarkDemoCompletedMutation } from "@/features/leads/use-lead-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
@@ -44,9 +46,12 @@ export const CompletedDemosPage = () => {
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const requestedScope = (searchParams.get("scope") ?? "mine") as "mine" | "all";
 
-	const canViewMine = useHasPermission("DEMO_SCHEDULED_READ_MY");
-	const canViewAll = useHasPermission("DEMO_SCHEDULED_READ_ALL");
+	const canViewMine = useHasPermission("DEMO_COMPLETED_READ_MY");
+	const canViewAll = useHasPermission("DEMO_COMPLETED_READ_ALL");
 	const canToggleScope = canViewMine && canViewAll;
+	const canUnmark = useHasPermission("LEAD_DEMO_COMPLETE");
+	const unmarkMutation = useUnmarkDemoCompletedMutation();
+	const [confirmingId, setConfirmingId] = useState<string | null>(null);
 	const activeScope: "mine" | "all" = canToggleScope
 		? requestedScope
 		: canViewAll
@@ -75,13 +80,7 @@ export const CompletedDemosPage = () => {
 	// rather than the lead-ownership-based "mine" that the generic /leads endpoint applies.
 	const completedDemosQuery = useQuery({
 		queryKey: ["completed-demos", token],
-		queryFn: () => fetchDueLeadFollowUps(token ?? "", {
-			scope: "all",
-			status: "DEMO_COMPLETED",
-			sortBy: "updatedAt",
-			sortOrder: "desc",
-			limit: 1000,
-		}),
+		queryFn: () => fetchCompletedDemos(token ?? ""),
 		enabled: Boolean(token),
 	});
 
@@ -185,6 +184,7 @@ export const CompletedDemosPage = () => {
 									<tr className="border-b border-gray-100 bg-gray-50/80">
 										<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Lead</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Level</th>
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Sales</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Mentor</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Attempt</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Completed</th>
@@ -196,6 +196,9 @@ export const CompletedDemosPage = () => {
 										const latestDemo = lead.demos?.[(lead.demos?.length ?? 0) - 1];
 										const mentorName = latestDemo?.mentorId
 											? (userNameById.get(latestDemo.mentorId) ?? "—")
+											: "—";
+										const salesName = lead.assignedTo
+											? (userNameById.get(lead.assignedTo) ?? "—")
 											: "—";
 										const completedAt = latestDemo?.completedAt ?? lead.updatedAt;
 										const attemptNum = Math.max(1, lead.demos?.length ?? 1);
@@ -227,6 +230,11 @@ export const CompletedDemosPage = () => {
 													<span className="text-sm font-medium text-gray-700">{lead.level ?? "—"}</span>
 												</td>
 
+												{/* Sales */}
+												<td className="px-4 py-3.5">
+													<span className="text-sm text-gray-700">{salesName}</span>
+												</td>
+
 												{/* Mentor */}
 												<td className="px-4 py-3.5">
 													<span className="text-sm text-gray-700">{mentorName}</span>
@@ -249,14 +257,54 @@ export const CompletedDemosPage = () => {
 													</div>
 												</td>
 
-												{/* View */}
+												{/* Actions */}
 												<td className="px-4 py-3.5 pr-5">
-													<Link
-														to={`/leads/${lead.id}`}
-														className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-													>
-														View Lead
-													</Link>
+													<div className="flex items-center gap-2">
+														<Link
+															to={`/leads/${lead.id}`}
+															className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+														>
+															View Lead
+														</Link>
+														{canUnmark ? (
+															confirmingId === lead.id ? (
+																<div className="flex items-center gap-1">
+																	<button
+																		type="button"
+																		onClick={async () => {
+																			try {
+																				await unmarkMutation.mutateAsync(lead.id);
+																				toast.success("Demo marked as uncompleted");
+																				setConfirmingId(null);
+																			} catch {
+																				toast.error("Failed to revert demo");
+																			}
+																		}}
+																		disabled={unmarkMutation.isPending}
+																		className="rounded-xl bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+																	>
+																		{unmarkMutation.isPending ? "…" : "Confirm"}
+																	</button>
+																	<button
+																		type="button"
+																		onClick={() => setConfirmingId(null)}
+																		className="rounded-xl border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+																	>
+																		Cancel
+																	</button>
+																</div>
+															) : (
+																<button
+																	type="button"
+																	onClick={() => setConfirmingId(lead.id)}
+																	className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+																>
+																	<HiArrowUturnLeft className="h-3 w-3" />
+																	Undo
+																</button>
+															)
+														) : null}
+													</div>
 												</td>
 											</tr>
 										);

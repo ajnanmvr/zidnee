@@ -650,6 +650,13 @@ export const LeadService = {
 		return leads.filter((lead) => lead.status === "DEMO_ASSIGNED").map(mapLead);
 	},
 
+	listCompletedDemos: async (): Promise<Lead[]> => {
+		const leads = await LeadModel.find({ status: "DEMO_COMPLETED" })
+			.sort({ updatedAt: -1 })
+			.lean<LeadDocument[]>();
+		return leads.map(mapLead);
+	},
+
 	listAdmissionLeads: async (): Promise<Lead[]> => {
 		const leads = await LeadModel.find()
 			.sort({ createdAt: -1 })
@@ -749,6 +756,42 @@ export const LeadService = {
 				undefined,
 				{ completedAt: now.toISOString() },
 				note,
+			);
+		}
+
+		return updatedLead ? mapLead(updatedLead) : null;
+	},
+
+	unmarkDemoCompleted: async (
+		leadId: string,
+		performedBy?: string,
+	): Promise<Lead | null> => {
+		const existingLead = await LeadModel.findById(leadId).lean<LeadDocument | null>();
+		if (!existingLead) return null;
+
+		const demos = [...(existingLead.demos ?? [])];
+		if (demos.length === 0) return null;
+		const latestDemo = demos[demos.length - 1]!;
+		if (!latestDemo.completedAt) return mapLead(existingLead);
+
+		const { completedAt: _removed, ...demoWithoutCompleted } = latestDemo as any;
+		demos[demos.length - 1] = demoWithoutCompleted;
+
+		const revertedStatus =
+			latestDemo.mentorId && latestDemo.assignedAt ? "DEMO_ASSIGNED" : "DEMO_REQUEST";
+
+		const updatedLead = await LeadModel.findByIdAndUpdate(
+			leadId,
+			{ $set: { demos, status: revertedStatus } },
+			{ returnDocument: "after" },
+		).lean<LeadDocument | null>();
+
+		if (performedBy && updatedLead) {
+			await ActivityService.logActivity(
+				leadId,
+				"DEMO_REVERTED",
+				performedBy,
+				`Reverted demo completion for ${existingLead.phone}`,
 			);
 		}
 

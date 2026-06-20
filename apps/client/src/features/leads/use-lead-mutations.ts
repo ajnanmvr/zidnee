@@ -13,6 +13,7 @@ import {
 	deleteLead,
 	generateFormLink,
 	markDemoCompleted,
+	unmarkDemoCompleted,
 	postponeLeadFollowUp,
 	requestAdmission,
 	requestLeadDemo,
@@ -196,6 +197,28 @@ export const useMarkDemoCompletedMutation = () => {
 			await queryClient.invalidateQueries({
 				queryKey: leadsQueryKeys.pendingDemoRequests(token),
 			});
+			await queryClient.invalidateQueries({
+				queryKey: ["completed-demos", token],
+			});
+		},
+	});
+};
+
+export const useUnmarkDemoCompletedMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (leadId: string) => {
+			if (!token) throw new Error("Missing session token");
+			return unmarkDemoCompleted(token, leadId);
+		},
+		onSuccess: async (_data, leadId) => {
+			if (!token) return;
+			await invalidateLeadQueries(queryClient, token, leadId);
+			await queryClient.invalidateQueries({ queryKey: ["completed-demos"] });
+			await queryClient.invalidateQueries({ queryKey: leadsQueryKeys.demoRequests(token) });
+			await queryClient.invalidateQueries({ queryKey: leadsQueryKeys.pendingDemoRequests(token) });
 		},
 	});
 };

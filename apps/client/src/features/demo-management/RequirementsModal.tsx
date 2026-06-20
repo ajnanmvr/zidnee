@@ -96,15 +96,13 @@ export const RequirementsModal = ({
 
 		const preferredDays = lead.preferredDays?.length
 			? lead.preferredDays.join(", ")
-			: "N/A";
-		const timing = formatTimingLabel();
+			: null;
+		const timing = lead.preferredTimeslots?.length ? formatTimingLabel() : null;
 
-		// Plan for copy: show as "<timesPerWeek> days <durationMinutes>" when available
 		const planForCopy = lead.preferredPlan
 			? `${lead.preferredPlan.durationMinutes} mins for ${lead.preferredPlan.timesPerWeek} days in a week`
-			: lead.preferredSchedule || "N/A";
+			: lead.preferredSchedule || null;
 
-		// Demo time: format as readable date + am/pm when present
 		const rawDemoTime = latestDemo?.demoScheduledFor ?? lead.demoAvailability ?? null;
 		const demoTimeForCopy = rawDemoTime
 			? (() => {
@@ -115,21 +113,22 @@ export const RequirementsModal = ({
 					return String(rawDemoTime);
 				}
 			})()
-			: "N/A";
+			: null;
 
-		const contact = lead.primaryWhatsappNumber || lead.phone || "N/A";
+		const contact = lead.primaryWhatsappNumber || lead.phone || null;
 
 		const lines = [
 			`📋 *Student Requirements*`,
 			` `,
-			`*Name:* ${lead.name || "N/A"}`,
-			`*Contact Number:* ${contact}`,
-			`*Level:* ${lead.level || "N/A"}`,
-			`*Tutor Preference:* ${formatReadableGender(lead.preferredMentorGender)}`,
-			`*Preferred Days:* ${preferredDays}`,
-			`*Plan:* ${planForCopy}`,
-			`*Timing:* ${timing}`,
-			`*Demo Time:* ${demoTimeForCopy}`,
+			lead.name ? `*Name:* ${lead.name}` : null,
+			contact ? `*Contact Number:* ${contact}` : null,
+			lead.level ? `*Level:* ${lead.level}` : null,
+			lead.preferredLanguage ? `*Language:* ${lead.preferredLanguage}` : null,
+			lead.preferredMentorGender ? `*Tutor Preference:* ${formatReadableGender(lead.preferredMentorGender)}` : null,
+			preferredDays ? `*Preferred Days:* ${preferredDays}` : null,
+			planForCopy ? `*Plan:* ${planForCopy}` : null,
+			timing ? `*Timing:* ${timing}` : null,
+			demoTimeForCopy ? `*Demo Time:* ${demoTimeForCopy}` : null,
 			latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
 		]
 			.filter(Boolean)
@@ -412,52 +411,72 @@ export const RequirementsModal = ({
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
 							<tbody>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50 w-1/3">Student</td>
-									<td className="px-4 py-3 text-gray-900">{lead.name || "N/A"}</td>
-								</tr>
+								{lead.name ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50 w-1/3">Student</td>
+										<td className="px-4 py-3 text-gray-900">{lead.name}</td>
+									</tr>
+								) : null}
 								<tr className="border-b border-gray-200">
 									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Contact</td>
 									<td className="px-4 py-3 text-gray-900">{lead.primaryWhatsappNumber || lead.phone}</td>
 								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Gender</td>
-									<td className="px-4 py-3 text-gray-900">
-										{lead.gender
-											? lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)
-											: "N/A"}
-									</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Level</td>
-									<td className="px-4 py-3 text-gray-900">{lead.level || "N/A"}</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Language</td>
-									<td className="px-4 py-3 text-gray-900">{lead.preferredLanguage || "N/A"}</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Tutor Preference</td>
-									<td className="px-4 py-3 text-gray-900">{formatReadableGender(lead.preferredMentorGender)}</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Preferred Days</td>
-									<td className="px-4 py-3 text-gray-900">
-										{lead.preferredDays?.length ? lead.preferredDays.join(", ") : "N/A"}
-									</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Plan</td>
-									<td className="px-4 py-3 text-gray-900">{formatPlanLabel()}</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Demo Availability</td>
-									<td className="px-4 py-3 text-gray-900">{formatReadableDateTime(lead.demoAvailability)}</td>
-								</tr>
-								<tr className="border-b border-gray-200">
-									<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Preferred Schedule</td>
-									<td className="px-4 py-3 text-gray-900">{lead.preferredSchedule || "N/A"}</td>
-								</tr>
+								{lead.gender ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Gender</td>
+										<td className="px-4 py-3 text-gray-900">
+											{lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)}
+										</td>
+									</tr>
+								) : null}
+								{lead.level ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Level</td>
+										<td className="px-4 py-3 text-gray-900">{lead.level}</td>
+									</tr>
+								) : null}
+								{lead.preferredLanguage ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Language</td>
+										<td className="px-4 py-3 text-gray-900">{lead.preferredLanguage}</td>
+									</tr>
+								) : null}
+								{lead.preferredMentorGender ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Tutor Preference</td>
+										<td className="px-4 py-3 text-gray-900">{formatReadableGender(lead.preferredMentorGender)}</td>
+									</tr>
+								) : null}
+								{lead.preferredDays?.length ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Preferred Days</td>
+										<td className="px-4 py-3 text-gray-900">{lead.preferredDays.join(", ")}</td>
+									</tr>
+								) : null}
+								{lead.preferredPlan ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Plan</td>
+										<td className="px-4 py-3 text-gray-900">{formatPlanLabel()}</td>
+									</tr>
+								) : null}
+								{lead.preferredTimeslots?.length ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Timing</td>
+										<td className="px-4 py-3 text-gray-900">{formatTimingLabel()}</td>
+									</tr>
+								) : null}
+								{lead.demoAvailability ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Demo Availability</td>
+										<td className="px-4 py-3 text-gray-900">{formatReadableDateTime(lead.demoAvailability)}</td>
+									</tr>
+								) : null}
+								{lead.preferredSchedule ? (
+									<tr className="border-b border-gray-200">
+										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Preferred Schedule</td>
+										<td className="px-4 py-3 text-gray-900">{lead.preferredSchedule}</td>
+									</tr>
+								) : null}
 								{latestDemo?.demoScheduledFor && (
 									<tr className="border-b border-gray-200">
 										<td className="px-4 py-3 font-semibold text-gray-600 bg-gray-50">Demo Scheduled For</td>
