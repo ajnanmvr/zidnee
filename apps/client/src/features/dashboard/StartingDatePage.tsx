@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { HiCalendarDays, HiMagnifyingGlass, HiRocketLaunch } from "react-icons/hi2";
 import { useStudentsQuery } from "@/features/students/students.queries";
@@ -48,9 +48,11 @@ export const StartingDatePage = () => {
 	const { token } = useSession();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const searchTerm = searchParams.get("search") ?? "";
-	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	const requestedScope = (searchParams.get("scope") ?? "mine") as "mine" | "all";
+	const canViewMine = useHasPermission("STUDENT_STARTING_DATE_READ");
 	const canReadAll = useHasPermission("STUDENT_READ_ALL");
-	const activeScope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
+	const canToggleScope = canViewMine && canReadAll;
+	const activeScope: "mine" | "all" = canReadAll && requestedScope === "all" ? "all" : "mine";
 
 	const studentsQuery = useStudentsQuery(token, {
 		scope: activeScope,
@@ -97,6 +99,12 @@ export const StartingDatePage = () => {
 		setSearchParams(next);
 	};
 
+	const setScope = (scope: "mine" | "all") => {
+		const next = new URLSearchParams(searchParams);
+		if (scope === "mine") next.delete("scope"); else next.set("scope", scope);
+		setSearchParams(next);
+	};
+
 	return (
 		<div className="space-y-3">
 			{/* Page header */}
@@ -124,23 +132,24 @@ export const StartingDatePage = () => {
 							className="w-52 rounded-xl border border-blue-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
 						/>
 					</div>
-					<div className="flex items-center gap-1 rounded-xl border border-blue-200 bg-white p-1">
-						<button
-							type="button"
-							onClick={() => setLoadAllRequested(false)}
-							className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-blue-500 text-white shadow-sm" : "text-blue-700 hover:bg-blue-50"}`}
-						>
-							Mine
-						</button>
-						<button
-							type="button"
-							onClick={() => setLoadAllRequested(true)}
-							disabled={!canReadAll}
-							className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition disabled:opacity-40 ${activeScope === "all" ? "bg-blue-500 text-white shadow-sm" : "text-blue-700 hover:bg-blue-50"}`}
-						>
-							All
-						</button>
-					</div>
+					{canToggleScope ? (
+						<div className="flex items-center gap-1 rounded-xl border border-blue-200 bg-white p-1">
+							<button
+								type="button"
+								onClick={() => setScope("mine")}
+								className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-blue-500 text-white shadow-sm" : "text-blue-700 hover:bg-blue-50"}`}
+							>
+								Mine
+							</button>
+							<button
+								type="button"
+								onClick={() => setScope("all")}
+								className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-blue-500 text-white shadow-sm" : "text-blue-700 hover:bg-blue-50"}`}
+							>
+								All
+							</button>
+						</div>
+					) : null}
 				</div>
 			</div>
 

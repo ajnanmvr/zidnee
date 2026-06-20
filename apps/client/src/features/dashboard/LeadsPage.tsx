@@ -1126,6 +1126,7 @@ export const LeadsPage = () => {
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
+					{canReadAllLeads ? (
 					<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
 						<Link
 							to={buildSearch(activeStage, "mine")}
@@ -1142,6 +1143,7 @@ export const LeadsPage = () => {
 							All
 						</Link>
 					</div>
+				) : null}
 					{hasPermission("LEAD_CREATE") ? (
 						<button
 							type="button"
@@ -1152,32 +1154,6 @@ export const LeadsPage = () => {
 						</button>
 					) : null}
 				</div>
-			</div>
-
-			{/* Stage navigation */}
-			<div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1">
-				{leadStageDefinitions.filter((stage) => stage.id !== "demoCompleted").map((stage) => {
-					const isActive = stage.id === activeStage;
-					const STAGE_PILL_COLOR: Record<string, string> = {
-						all: "text-teal-700",
-						followUp: "text-lime-700",
-						formSent: "text-amber-700",
-						formFilled: "text-cyan-700",
-						demoRequest: "text-orange-700",
-						demoAssigned: "text-emerald-700",
-						demoCompleted: "text-violet-700",
-					};
-					const activeColor = STAGE_PILL_COLOR[stage.id] ?? "text-teal-700";
-					return (
-						<Link
-							key={stage.id}
-							to={buildSearch(stage.id, activeScope)}
-							className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition whitespace-nowrap ${isActive ? `bg-white shadow-sm ${activeColor}` : "text-slate-500 hover:text-slate-700"}`}
-						>
-							{stage.label}
-						</Link>
-					);
-				})}
 			</div>
 
 			{/* Search + table */}

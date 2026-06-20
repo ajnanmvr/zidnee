@@ -47,6 +47,16 @@ export const fetchStudents = async (
 	);
 };
 
+export const fetchStudentById = async (token: string, studentId: string) => {
+	return requestWithSchema(
+		`/students/${studentId}`,
+		StudentsResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
 export const updateStudent = async (
 	token: string,
 	studentId: string,

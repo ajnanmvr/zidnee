@@ -347,7 +347,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "students/:studentId",
-						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentDetailPage />),
+						element: withPermissions(["STUDENT_PROFILE_READ", "STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentDetailPage />),
 					},
 					{
 						path: "students/:studentId/edit",
@@ -396,7 +396,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "leads/:leadId",
-						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadDetailPageNew />),
+						element: withPermissions(["LEAD_PROFILE_READ", "LEAD_READ_MY", "LEAD_READ_ALL"], <LeadDetailPageNew />),
 					},
 					{
 						path: "leads/:leadId/edit",

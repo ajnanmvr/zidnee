@@ -8,6 +8,7 @@ import {
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
 	listStudentsController,
+	getStudentByIdController,
 	listStudentProcessesController,
 	listStudentProcessHistoryController,
 	getStudentProcessController,
@@ -76,6 +77,10 @@ router.get(
 		"STUDENT_READ_MY" satisfies PermissionKey,
 		"STUDENT_READ_ALL" satisfies PermissionKey,
 		"STUDENT_POSTER_DOWNLOAD" satisfies PermissionKey,
+		// admittedBy=me/all view uses lead-read permissions, not student-read
+		"LEADS_CONVERTED_READ" satisfies PermissionKey,
+		"LEAD_READ_MY" satisfies PermissionKey,
+		"LEAD_READ_ALL" satisfies PermissionKey,
 	]),
 	asyncHandler(listStudentsController),
 );
@@ -134,10 +139,21 @@ router.delete(
 router.get(
 	"/:studentId/activities",
 	requireAnyPermissionKey([
+		"STUDENT_PROFILE_READ" satisfies PermissionKey,
 		"STUDENT_READ_MY" satisfies PermissionKey,
 		"STUDENT_READ_ALL" satisfies PermissionKey,
 	]),
 	asyncHandler(getStudentActivitiesController),
+);
+
+router.get(
+	"/:studentId",
+	requireAnyPermissionKey([
+		"STUDENT_PROFILE_READ" satisfies PermissionKey,
+		"STUDENT_READ_MY" satisfies PermissionKey,
+		"STUDENT_READ_ALL" satisfies PermissionKey,
+	]),
+	asyncHandler(getStudentByIdController),
 );
 
 router.patch(

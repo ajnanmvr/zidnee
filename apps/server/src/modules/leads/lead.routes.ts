@@ -240,7 +240,10 @@ router.get(
  */
 router.get(
 	"/:leadId",
-	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"LEAD_PROFILE_READ" satisfies PermissionKey,
+		"LEAD_READ" satisfies PermissionKey,
+	]),
 	asyncHandler(getLeadByIdController),
 );
 
@@ -420,7 +423,10 @@ router.delete(
  */
 router.get(
 	"/:leadId/activities",
-	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
+	requireAnyPermissionKey([
+		"LEAD_PROFILE_READ" satisfies PermissionKey,
+		"LEAD_READ" satisfies PermissionKey,
+	]),
 	asyncHandler(getLeadActivitiesController),
 );
 

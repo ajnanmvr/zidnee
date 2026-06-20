@@ -10,7 +10,7 @@ import {
 } from "@repo/schema";
 import type { Request, Response } from "express";
 import { requireStringValue } from "../rbac/rbac.http.js";
-import { AuthorizationError } from "../../utils/errors.util.js";
+import { AuthorizationError, NotFoundError } from "../../utils/errors.util.js";
 import { getEffectivePermissions } from "../rbac/rbac.service.js";
 import { StudentService, type StudentProcessListItem } from "./student.service.js";
 import { uploadBuffer } from "../../lib/s3.js";
@@ -97,6 +97,23 @@ const toStudentProcessResponse = (process: StudentProcessListItem) => {
 		createdAt: process.createdAt.toISOString(),
 		updatedAt: process.updatedAt.toISOString(),
 	};
+};
+
+export const getStudentByIdController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	const studentId = requireStringValue(req.params.studentId, "studentId");
+	const student = await StudentService.findById(studentId);
+	if (!student) {
+		throw new NotFoundError("Student");
+	}
+	res.json(
+		StudentsResponseSchema.parse({
+			ok: true,
+			students: [toStudentResponse(student)],
+		}),
+	);
 };
 
 export const listStudentsController = async (

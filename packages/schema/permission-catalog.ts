@@ -498,6 +498,18 @@ export const PERMISSION_CATALOG = {
 		resource: "students",
 		action: "starting-date:read",
 	},
+	STUDENT_PROFILE_READ: {
+		name: "View Student Profile",
+		description: "View the detailed profile page of an individual student",
+		resource: "students",
+		action: "profile:read",
+	},
+	LEAD_PROFILE_READ: {
+		name: "View Lead Profile",
+		description: "View the detailed profile page of an individual lead",
+		resource: "leads",
+		action: "profile:read",
+	},
 	// Batches
 	BATCH_CREATE: {
 		name: "Create Batch",
