@@ -37,6 +37,7 @@ const leadActivitySchema = new Schema<LeadActivityDocument>(
 				"DEMO_REQUESTED",
 				"DEMO_SCHEDULED",
 				"DEMO_COMPLETED",
+				"DEMO_REVERTED",
 				"DEMO_COUNSELLOR_ASSIGNED",
 				"DEMO_CANCELLED",
 				"DEMO_REDONE",

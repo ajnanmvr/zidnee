@@ -256,6 +256,7 @@ export const UnassignedDemosPage = () => {
 								<tr className="border-b border-gray-100 bg-gray-50/80">
 									<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Lead</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Level</th>
+									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Sales</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Attempt</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Requested</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Assigned To</th>
@@ -269,6 +270,9 @@ export const UnassignedDemosPage = () => {
 									const attempt = Math.max(1, demo.demos.length || 1);
 									const assignedTo = demo.demoRequestAssignedTo
 										? (userNameById.get(demo.demoRequestAssignedTo) ?? "—")
+										: "—";
+									const salesName = (demo as any).assignedTo
+										? (userNameById.get((demo as any).assignedTo) ?? "—")
 										: "—";
 									return (
 										<tr key={demo.id} className="border-b border-gray-100 transition-colors hover:bg-slate-50">
@@ -287,6 +291,9 @@ export const UnassignedDemosPage = () => {
 											</td>
 											<td className="px-4 py-3.5">
 												<span className="text-sm font-medium text-gray-700">{demo.level ?? "—"}</span>
+											</td>
+											<td className="px-4 py-3.5">
+												<span className="text-sm text-gray-700">{salesName}</span>
 											</td>
 											<td className="px-4 py-3.5">
 												<span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">

@@ -470,8 +470,8 @@ export const router = createBrowserRouter([
 					{
 						path: "demo-management/completed",
 						element: withPermissions([
-							"DEMO_SCHEDULED_READ_MY",
-							"DEMO_SCHEDULED_READ_ALL",
+							"DEMO_COMPLETED_READ_MY",
+							"DEMO_COMPLETED_READ_ALL",
 						], <CompletedDemosPage />),
 					},
 					{

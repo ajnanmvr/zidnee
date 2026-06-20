@@ -313,6 +313,18 @@ export const listDemoRequestsController = async (
 	});
 };
 
+export const listCompletedDemosController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const leads = await LeadService.listCompletedDemos();
+
+	res.json({
+		ok: true,
+		leads: leads.map(toLeadResponse),
+	});
+};
+
 export const listAdmissionLeadsController = async (
 	_req: Request,
 	res: Response,
@@ -419,6 +431,27 @@ export const markDemoCompletedController = async (
 		req.user.userId,
 		result.data.note,
 	);
+
+	if (!updatedLead) {
+		throw new NotFoundError("Lead");
+	}
+
+	res.json({
+		ok: true,
+		lead: toLeadResponse(updatedLead),
+	});
+};
+
+export const unmarkDemoCompletedController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new AuthenticationError("User not authenticated");
+	}
+
+	const leadId = requireStringValue(req.params.leadId, "leadId");
+	const updatedLead = await LeadService.unmarkDemoCompleted(leadId, req.user.userId);
 
 	if (!updatedLead) {
 		throw new NotFoundError("Lead");

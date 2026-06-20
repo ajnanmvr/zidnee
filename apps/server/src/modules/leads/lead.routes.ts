@@ -18,10 +18,12 @@ import {
 	getLeadByIdController,
 	listAdmissionLeadsController,
     listSimilarLeadsController,
+	listCompletedDemosController,
 	listDemoRequestsController,
 	listLeadsController,
 	listPendingDemoRequestsController,
 	markDemoCompletedController,
+	unmarkDemoCompletedController,
 	postponeLeadFollowUpController,
 	redemoLeadController,
 	requestAdmissionController,
@@ -147,6 +149,15 @@ router.get(
 		"DEMO_SCHEDULED_READ_ALL" satisfies PermissionKey,
 	]),
 	asyncHandler(listDemoRequestsController),
+);
+
+router.get(
+	"/completed-demos",
+	requireAnyPermissionKey([
+		"DEMO_COMPLETED_READ_MY" satisfies PermissionKey,
+		"DEMO_COMPLETED_READ_ALL" satisfies PermissionKey,
+	]),
+	asyncHandler(listCompletedDemosController),
 );
 
 /**
@@ -311,6 +322,12 @@ router.patch(
 	"/:leadId/demo/complete",
 	requirePermissionKey("LEAD_DEMO_COMPLETE" satisfies PermissionKey),
 	asyncHandler(markDemoCompletedController),
+);
+
+router.patch(
+	"/:leadId/demo/uncomplete",
+	requirePermissionKey("LEAD_DEMO_COMPLETE" satisfies PermissionKey),
+	asyncHandler(unmarkDemoCompletedController),
 );
 
 router.patch(
