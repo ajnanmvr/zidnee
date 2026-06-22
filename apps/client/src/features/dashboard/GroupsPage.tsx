@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { HiPlus } from "react-icons/hi2";
+import { HiMagnifyingGlass, HiPlus, HiXMark } from "react-icons/hi2";
 import { Field, Modal, SelectField } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useCreateBatchMutation } from "@/features/batches/use-create-batch-mutation";
@@ -87,6 +87,9 @@ export const GroupsPage = () => {
 	const [open, setOpen] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
 	const [editingGroup, setEditingGroup] = useState<null | (typeof groups)[number]>(null);
+	const [editGroupId, setEditGroupId] = useState("");
+	const [createMentorSearch, setCreateMentorSearch] = useState("");
+	const [editMentorSearch, setEditMentorSearch] = useState("");
 
 	const { control, handleSubmit, reset } = useForm<CreateBatchPayload>({
 		defaultValues: { name: "", type: "GROUP", level: "", mentorId: "", description: undefined },
@@ -107,20 +110,31 @@ export const GroupsPage = () => {
 
 	const openEdit = (group: (typeof groups)[number]) => {
 		setEditingGroup(group);
+		setEditGroupId(group.groupId ?? "");
 		reset({ ...group });
+		setEditMentorSearch("");
 		setEditOpen(true);
 	};
 
 	const closeEdit = () => {
 		setEditingGroup(null);
+		setEditGroupId("");
 		reset();
+		setEditMentorSearch("");
 		setEditOpen(false);
 	};
 
 	const onEditSubmit = async (form: CreateBatchPayload) => {
 		if (!editingGroup) return;
 		try {
-			await updateBatchMutation.mutateAsync({ batchId: editingGroup.id, payload: form });
+			const trimmedGroupId = editGroupId.trim();
+			await updateBatchMutation.mutateAsync({
+				batchId: editingGroup.id,
+				payload: {
+					...form,
+					...(trimmedGroupId ? { groupId: trimmedGroupId } : {}),
+				},
+			});
 			toast.success("Group updated");
 			closeEdit();
 		} catch (err) {
@@ -210,17 +224,53 @@ export const GroupsPage = () => {
 			{canCreateBatch ? (
 				<Modal open={open} title="Create group" onClose={() => setOpen(false)}>
 					<form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
-						<Controller name="mentorId" control={control} render={({ field }) => (
-							<label className="grid gap-1.5 text-sm font-medium text-gray-600">
-								<span>Mentor</span>
-								<select value={field.value} onChange={(e) => field.onChange(e.target.value)} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white">
-									<option value="">Select mentor</option>
-									{mentors.map((m) => (
-										<option key={m.id} value={m.id}>{m.zids?.mentor ? `${m.zids.mentor} - ${m.name}` : m.name}</option>
-									))}
-								</select>
-							</label>
-						)} />
+						<Controller name="mentorId" control={control} render={({ field }) => {
+							const selected = mentors.find((m) => m.id === field.value);
+							const filtered = mentors.filter((m) => {
+								const q = createMentorSearch.toLowerCase();
+								return !q || (m.name ?? "").toLowerCase().includes(q) || (m.zids?.mentor ?? "").toLowerCase().includes(q);
+							});
+							return (
+								<label className="grid gap-1.5 text-sm font-medium text-gray-600">
+									<span>Mentor</span>
+									{selected ? (
+										<div className="flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+											<span>{selected.zids?.mentor ? `${selected.zids.mentor} - ${selected.name}` : selected.name}</span>
+											<button type="button" onClick={() => { field.onChange(""); setCreateMentorSearch(""); }} className="ml-2 text-emerald-500 hover:text-red-500">
+												<HiXMark className="h-4 w-4" />
+											</button>
+										</div>
+									) : (
+										<div className="relative">
+											<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+											<input
+												type="text"
+												value={createMentorSearch}
+												onChange={(e) => setCreateMentorSearch(e.target.value)}
+												placeholder="Search mentor…"
+												className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white"
+											/>
+											{createMentorSearch ? (
+												<div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+													{filtered.length === 0 ? (
+														<p className="px-3 py-2 text-xs text-gray-400">No mentors found</p>
+													) : filtered.map((m) => (
+														<button
+															key={m.id}
+															type="button"
+															onClick={() => { field.onChange(m.id); setCreateMentorSearch(""); }}
+															className="w-full px-3 py-2 text-left text-sm text-gray-800 hover:bg-emerald-50"
+														>
+															{m.zids?.mentor ? `${m.zids.mentor} - ${m.name}` : m.name}
+														</button>
+													))}
+												</div>
+											) : null}
+										</div>
+									)}
+								</label>
+							);
+						}} />
 						<div className="grid gap-4 sm:grid-cols-2">
 							<Controller name="level" control={control} render={({ field }) => (
 								<SelectField label="Level" value={field.value} onChange={field.onChange} options={[
@@ -246,17 +296,53 @@ export const GroupsPage = () => {
 			{canUpdateBatch ? (
 				<Modal open={editOpen} title="Edit group" onClose={closeEdit}>
 					<form className="grid gap-4" onSubmit={handleSubmit(onEditSubmit)}>
-						<Controller name="mentorId" control={control} render={({ field }) => (
-							<label className="grid gap-1.5 text-sm font-medium text-gray-600">
-								<span>Mentor</span>
-								<select value={field.value} onChange={(e) => field.onChange(e.target.value)} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white">
-									<option value="">Select mentor</option>
-									{mentors.map((m) => (
-										<option key={m.id} value={m.id}>{m.zids?.mentor ? `${m.zids.mentor} - ${m.name}` : m.name}</option>
-									))}
-								</select>
-							</label>
-						)} />
+						<Controller name="mentorId" control={control} render={({ field }) => {
+							const selected = mentors.find((m) => m.id === field.value);
+							const filtered = mentors.filter((m) => {
+								const q = editMentorSearch.toLowerCase();
+								return !q || (m.name ?? "").toLowerCase().includes(q) || (m.zids?.mentor ?? "").toLowerCase().includes(q);
+							});
+							return (
+								<label className="grid gap-1.5 text-sm font-medium text-gray-600">
+									<span>Mentor</span>
+									{selected ? (
+										<div className="flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+											<span>{selected.zids?.mentor ? `${selected.zids.mentor} - ${selected.name}` : selected.name}</span>
+											<button type="button" onClick={() => { field.onChange(""); setEditMentorSearch(""); }} className="ml-2 text-emerald-500 hover:text-red-500">
+												<HiXMark className="h-4 w-4" />
+											</button>
+										</div>
+									) : (
+										<div className="relative">
+											<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+											<input
+												type="text"
+												value={editMentorSearch}
+												onChange={(e) => setEditMentorSearch(e.target.value)}
+												placeholder="Search mentor…"
+												className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white"
+											/>
+											{editMentorSearch ? (
+												<div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+													{filtered.length === 0 ? (
+														<p className="px-3 py-2 text-xs text-gray-400">No mentors found</p>
+													) : filtered.map((m) => (
+														<button
+															key={m.id}
+															type="button"
+															onClick={() => { field.onChange(m.id); setEditMentorSearch(""); }}
+															className="w-full px-3 py-2 text-left text-sm text-gray-800 hover:bg-emerald-50"
+														>
+															{m.zids?.mentor ? `${m.zids.mentor} - ${m.name}` : m.name}
+														</button>
+													))}
+												</div>
+											) : null}
+										</div>
+									)}
+								</label>
+							);
+						}} />
 						<div className="grid gap-4 sm:grid-cols-2">
 							<Controller name="level" control={control} render={({ field }) => (
 								<SelectField label="Level" value={field.value} onChange={field.onChange} options={[
@@ -271,6 +357,16 @@ export const GroupsPage = () => {
 								<Field label="Group label (optional)" value={field.value ?? ""} onChange={field.onChange} />
 							)} />
 						</div>
+						<label className="grid gap-1.5 text-sm font-medium text-gray-600">
+							<span>Group ID (ZIG)</span>
+							<input
+								type="text"
+								value={editGroupId}
+								onChange={(e) => setEditGroupId(e.target.value.toUpperCase())}
+								placeholder="e.g. ZIG001"
+								className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white"
+							/>
+						</label>
 						<div className="flex justify-end">
 							<button type="submit" className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Save</button>
 						</div>

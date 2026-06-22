@@ -183,6 +183,11 @@ const leadSchema = new Schema(
 			required: false,
 			min: 0,
 		},
+		admissionFee: {
+			type: Number,
+			required: false,
+			min: 0,
+		},
 		hearAboutUs: {
 			type: String,
 			required: false,

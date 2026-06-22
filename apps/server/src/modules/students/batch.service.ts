@@ -79,22 +79,34 @@ export const BatchService = {
 		id: string,
 		payload: UpdateBatchPayload,
 	): Promise<Batch | null> => {
+		if (payload.groupId !== undefined) {
+			const trimmed = payload.groupId.trim().toUpperCase();
+			const conflict = await BatchModel.findOne({ groupId: trimmed, _id: { $ne: new Types.ObjectId(id) } }).lean();
+			if (conflict) {
+				throw new Error(`Group ID ${trimmed} is already in use`);
+			}
+			payload = { ...payload, groupId: trimmed };
+		}
+
+		const $set: Record<string, unknown> = {
+			name: payload.name?.trim() || undefined,
+			type: payload.type,
+			level: payload.level,
+			mentorId: payload.mentorId,
+			counsellorId: payload.counsellorId,
+			oralAssessmentDone: payload.oralAssessmentDone,
+			writtenAssessmentDone: payload.writtenAssessmentDone,
+			levelAssessmentDone: payload.levelAssessmentDone,
+			description: payload.description,
+			isActive: payload.isActive,
+		};
+		if (payload.groupId !== undefined) {
+			$set.groupId = payload.groupId;
+		}
+
 		const batch = await BatchModel.findByIdAndUpdate(
 			id,
-			{
-				$set: {
-					name: payload.name?.trim() || undefined,
-					type: payload.type,
-					level: payload.level,
-					mentorId: payload.mentorId,
-					counsellorId: payload.counsellorId,
-					oralAssessmentDone: payload.oralAssessmentDone,
-					writtenAssessmentDone: payload.writtenAssessmentDone,
-					levelAssessmentDone: payload.levelAssessmentDone,
-					description: payload.description,
-					isActive: payload.isActive,
-				},
-			},
+			{ $set },
 			{ returnDocument: "after" },
 		).lean<BatchDocument | null>();
 

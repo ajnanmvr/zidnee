@@ -8,7 +8,7 @@ import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 import { randomBytes } from "crypto";
 import { Types } from "mongoose";
 import { env } from "process";
-import { ConflictError, ValidationError } from "../../utils/errors.util.js";
+import { AppError, ConflictError, ValidationError } from "../../utils/errors.util.js";
 import {
 	type StudentDocument,
 	StudentModel,
@@ -63,6 +63,12 @@ const leadFieldPatch = (
 	const patch: Record<string, unknown> = {};
 	const oldValue: Record<string, unknown> = {};
 	const newValue: Record<string, unknown> = {};
+
+	if (updates.slNo !== undefined && updates.slNo !== existingLead.slNo) {
+		patch.slNo = updates.slNo;
+		oldValue.slNo = existingLead.slNo ?? null;
+		newValue.slNo = updates.slNo;
+	}
 
 	if (updates.name !== undefined && updates.name !== existingLead.name) {
 		patch.name = updates.name;
@@ -229,6 +235,12 @@ const leadFieldPatch = (
 		patch.price = updates.price;
 		oldValue.price = existingLead.price ?? null;
 		newValue.price = updates.price;
+	}
+
+	if (updates.admissionFee !== undefined && updates.admissionFee !== existingLead.admissionFee) {
+		patch.admissionFee = updates.admissionFee;
+		oldValue.admissionFee = existingLead.admissionFee ?? null;
+		newValue.admissionFee = updates.admissionFee;
 	}
 
 	if (
@@ -398,6 +410,7 @@ const mapLead = (doc: LeadDocument): Lead => ({
 	preferredPlan: doc.preferredPlan,
 	preferredTimeslots: doc.preferredTimeslots ?? [],
 	price: doc.price,
+	admissionFee: doc.admissionFee,
 	hearAboutUs: doc.hearAboutUs,
 	demoAvailability: doc.demoAvailability,
 	preferredMentorGender: doc.preferredMentorGender,
@@ -488,6 +501,13 @@ export const LeadService = {
 		}
 
 		const effectiveUpdates: UpdateLeadPayload = updates;
+
+		if (updates.slNo !== undefined && updates.slNo !== existingLead.slNo) {
+			const conflict = await LeadModel.findOne({ slNo: updates.slNo, _id: { $ne: existingLead._id } }).lean();
+			if (conflict) {
+				throw new AppError(409, `Serial number ${updates.slNo} is already in use`);
+			}
+		}
 
 		const { patch, oldValue, newValue } = leadFieldPatch(
 			existingLead,

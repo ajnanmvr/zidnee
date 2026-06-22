@@ -164,7 +164,7 @@ export const StudentProcessesPage = () => {
 			</div>
 
 			{/* Table */}
-			<div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+			<div className="rounded-xl border border-gray-200 bg-white overflow-x-auto">
 				{processesQuery.isLoading ? (
 					<p className="py-10 text-center text-sm text-gray-500">Loading…</p>
 				) : processesQuery.isError ? (
@@ -173,7 +173,7 @@ export const StudentProcessesPage = () => {
 					<p className="py-10 text-center text-sm text-gray-400">No matching processes.</p>
 				) : (
 					<>
-					<table className="w-full text-sm">
+					<table className="min-w-160 w-full text-sm">
 						<thead>
 							<tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
 								<th className="px-4 py-3">Student</th>

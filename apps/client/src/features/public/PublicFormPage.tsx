@@ -324,6 +324,7 @@ const PublicFormPage = () => {
 		useState<FormOptions>(DEFAULT_FORM_OPTIONS);
 	const [currentStep, setCurrentStep] = useState<StepId>(1);
 	const [courseType, setCourseType] = useState<"GROUP" | "INDIVIDUAL" | "">("");
+	const [extraStartTimes, setExtraStartTimes] = useState<string[]>([]);
 
 	const {
 		register,
@@ -700,22 +701,20 @@ const PublicFormPage = () => {
 				value && value.trim().length > 0 ? value : undefined;
 			const isIndividualSubmission = courseType === "INDIVIDUAL";
 			const selectedPlan = data.preferredPlan ?? selectedPlanSnapshot;
+			const allIndividualTimes = isIndividualSubmission && selectedPlan && data.preferredStartTime
+				? [data.preferredStartTime, ...extraStartTimes].filter(Boolean)
+				: [];
 			const preferredTimeslots =
 				data.preferredTimeslots.length > 0
 					? data.preferredTimeslots.map((timeslot) => ({
 						startTime: timeslot.startTime,
 						endTime: timeslot.endTime,
 					}))
-					: isIndividualSubmission && selectedPlan && data.preferredStartTime
-						? [
-							{
-								startTime: data.preferredStartTime,
-								endTime: addMinutesToTime(
-									data.preferredStartTime,
-									selectedPlan.durationMinutes,
-								),
-							},
-						]
+					: allIndividualTimes.length > 0
+						? allIndividualTimes.map((t) => ({
+							startTime: t,
+							endTime: addMinutesToTime(t, selectedPlan!.durationMinutes),
+						}))
 						: [];
 			const demoAvailability =
 				data.demoAvailabilityDate && data.demoAvailabilityTime
@@ -1272,7 +1271,7 @@ const PublicFormPage = () => {
 										</div>
 										<div>
 											<label className="mb-2 block text-sm font-semibold text-slate-700">
-												Preferred class time
+												Preferred class times
 											</label>
 											{!selectedPlanSnapshot ? (
 												<p className="mb-2 text-xs text-slate-500">
@@ -1281,31 +1280,90 @@ const PublicFormPage = () => {
 											) : null}
 											<div className="mb-2 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
 												<span className="text-base leading-none">🇮🇳</span>
-												<span>Please enter the time in <strong>Indian Standard Time (IST)</strong>.</span>
+												<span>Please enter times in <strong>Indian Standard Time (IST)</strong>.</span>
 											</div>
-											<input
-												type="time"
-												disabled={!selectedPlanSnapshot}
-												{...register("preferredStartTime", {
-													required: "Start time is required",
-												})}
-												value={selectedPlanSnapshot ? undefined : ""}
-												className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-											/>
+
+											{/* Primary time */}
+											<div className="mb-2 flex items-center gap-2">
+												<input
+													type="time"
+													disabled={!selectedPlanSnapshot}
+													{...register("preferredStartTime", { required: "At least one class time is required" })}
+													value={selectedPlanSnapshot ? undefined : ""}
+													className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+												/>
+												{selectedStartTime && selectedPlanSnapshot ? (
+													<span className="shrink-0 text-xs text-slate-500">
+														→ {to12HourFormat(addMinutesToTime(selectedStartTime, selectedPlanSnapshot.durationMinutes))}
+													</span>
+												) : null}
+												{extraStartTimes.length > 0 ? (
+													<button
+														type="button"
+														onClick={() => {
+															setValue("preferredStartTime", extraStartTimes[0] ?? "");
+															setExtraStartTimes((prev) => prev.slice(1));
+														}}
+														className="shrink-0 rounded-full p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+													>
+														✕
+													</button>
+												) : null}
+											</div>
 											{errors.preferredStartTime?.message ? (
-												<p className="mt-1 text-xs text-red-600">
-													{errors.preferredStartTime.message}
-												</p>
+												<p className="mb-2 text-xs text-red-600">{errors.preferredStartTime.message}</p>
 											) : null}
-											<label className="mt-2 flex items-start gap-2 text-xs text-slate-600">
+
+											{/* Extra times */}
+											{extraStartTimes.map((t, idx) => (
+												<div key={idx} className="mb-2 flex items-center gap-2">
+													<input
+														type="time"
+														disabled={!selectedPlanSnapshot}
+														value={t}
+														onChange={(e) => {
+															const next = [...extraStartTimes];
+															next[idx] = e.target.value;
+															setExtraStartTimes(next);
+														}}
+														className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+													/>
+													{t && selectedPlanSnapshot ? (
+														<span className="shrink-0 text-xs text-slate-500">
+															→ {to12HourFormat(addMinutesToTime(t, selectedPlanSnapshot.durationMinutes))}
+														</span>
+													) : null}
+													<button
+														type="button"
+														onClick={() => setExtraStartTimes((prev) => prev.filter((_, i) => i !== idx))}
+														className="shrink-0 rounded-full p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+													>
+														✕
+													</button>
+												</div>
+											))}
+
+											{/* Add another time */}
+											{selectedStartTime && selectedPlanSnapshot && (extraStartTimes.length === 0 || extraStartTimes[extraStartTimes.length - 1]) ? (
+												<button
+													type="button"
+													onClick={() => setExtraStartTimes((prev) => [...prev, ""])}
+													className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand/40 bg-brand/5 py-2.5 text-sm font-semibold text-brand transition hover:border-brand hover:bg-brand/10 active:scale-[0.98]"
+												>
+													<span className="text-lg leading-none">+</span>
+													Add another preferred time
+												</button>
+											) : null}
+
+											<label className="mt-3 flex items-start gap-2 text-xs text-slate-600">
 												<input
 													type="checkbox"
 													{...register("preferredTimeIstConfirmed", {
-														required: "Please confirm the time is in IST",
+														required: "Please confirm the times are in IST",
 													})}
 													className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
 												/>
-												<span>I confirm the time above is given in Indian Standard Time (IST) 🇮🇳.</span>
+												<span>I confirm all times above are in Indian Standard Time (IST) 🇮🇳.</span>
 											</label>
 											{errors.preferredTimeIstConfirmed?.message ? (
 												<p className="mt-1 text-xs text-red-600">
@@ -1313,19 +1371,6 @@ const PublicFormPage = () => {
 												</p>
 											) : null}
 										</div>
-
-										{selectedStartTime && calculatedEndTime ? (
-											<div className=" grid items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-3 sm:grid-cols-2">
-												<div>
-													<p className="text-xs font-semibold text-slate-600">Start time</p>
-													<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(selectedStartTime)}</p>
-												</div>
-												<div>
-													<p className="text-xs font-semibold text-slate-600">End time</p>
-													<p className="mt-1 font-semibold text-slate-900">{to12HourFormat(calculatedEndTime)}</p>
-												</div>
-											</div>
-										) : null}
 
 										<div className="sm:col-span-2">
 											<label className="mb-2 block text-sm font-semibold text-slate-700">

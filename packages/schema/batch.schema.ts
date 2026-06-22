@@ -44,6 +44,7 @@ export const CreateBatchPayloadSchema = z.object({
 export type CreateBatchPayload = z.infer<typeof CreateBatchPayloadSchema>;
 
 export const UpdateBatchPayloadSchema = z.object({
+	groupId: z.string().min(1).max(20).optional(),
 	name: z.preprocess((value) => {
 		if (typeof value === "string" && value.trim() === "") {
 			return undefined;

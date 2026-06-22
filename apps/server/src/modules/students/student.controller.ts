@@ -60,6 +60,7 @@ const toStudentResponse = (
 		customNextFollowUpAt: student.customNextFollowUpAt?.toISOString() ?? null,
 		status: student.status,
 		admittedAt: student.admittedAt.toISOString(),
+		classStartConfirmedAt: student.classStartConfirmedAt?.toISOString() ?? null,
 		createdAt: student.createdAt?.toISOString() ?? null,
 		updatedAt: student.updatedAt?.toISOString() ?? null,
 	};

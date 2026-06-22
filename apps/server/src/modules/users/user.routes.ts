@@ -133,17 +133,24 @@ router.get(
 		"SALES_READ" satisfies PermissionKey,
 		"SALES_USERS_READ" satisfies PermissionKey,
 		"LEAD_ASSIGN" satisfies PermissionKey,
+		"LEADS_OVERVIEW_READ" satisfies PermissionKey,
 	]),
 	asyncHandler(async (_req, res): Promise<void> => {
-		// Return users that have the sales role
-		const salesRole = (await RoleService.findAll()).find((r) => r.type === "sales");
-		if (!salesRole) {
+		// Return all users who have any role with type === "sales"
+		const allRoles = await RoleService.findAll();
+		const salesRoleIds = new Set(
+			allRoles.filter((r) => r.type === "sales").map((r) => r.id),
+		);
+
+		if (salesRoleIds.size === 0) {
 			res.json({ ok: true, users: [] });
 			return;
 		}
 
 		const users = await UserService.findAll();
-		const sales = users.filter((u) => (u.roleIds ?? []).some((id) => id === salesRole.id));
+		const sales = users.filter((u) =>
+			(u.roleIds ?? []).some((id) => salesRoleIds.has(id)),
+		);
 		const usersWithRelations = await Promise.all(
 			sales.map((user) => getUserWithRelations(user)),
 		);

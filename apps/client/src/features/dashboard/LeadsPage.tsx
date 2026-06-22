@@ -207,7 +207,8 @@ export const LeadsPage = () => {
 	const canReadSalesUsers =
 		hasPermission("SALES_USERS_READ") ||
 		hasPermission("SALES_READ") ||
-		hasPermission("LEAD_ASSIGN");
+		hasPermission("LEAD_ASSIGN") ||
+		hasPermission("LEADS_OVERVIEW_READ");
 	const canRequestOrConfirmAdmission =
 		hasPermission("LEAD_ADMISSION_REQUEST") || hasPermission("LEAD_ADMISSION_CONFIRM");
 	const [currentPage, setCurrentPage] = useState(1);
@@ -334,6 +335,7 @@ export const LeadsPage = () => {
 		string | null
 	>(null);
 	const [admissionPriceInput, setAdmissionPriceInput] = useState<string>("");
+	const [admissionFeeInput, setAdmissionFeeInput] = useState<string>("");
 	const [completeLeadId, setCompleteLeadId] = useState<string | null>(null);
 	const [redemoLeadId, setRedemoLeadId] = useState<string | null>(null);
 	const [requestDemoOpen, setRequestDemoOpen] = useState(false);
@@ -479,8 +481,10 @@ export const LeadsPage = () => {
 	const allUsers = usersQuery.data?.users ?? [];
 	const mentorsQuery = useMentorsQuery(token, "all", Boolean(token));
 	const allMentors = mentorsQuery.data?.users ?? [];
-	const salesUsersQuery = useSalesUsersQuery(token, canReadSalesUsers);
-	const salesUsers = salesUsersQuery.data?.users ?? [];
+	const salesUsersQuery = useSalesUsersQuery(token, canReadSalesUsers && allUsers.length === 0);
+	const salesUsers = allUsers.length > 0
+		? allUsers.filter((u: any) => u.roles?.some((r: any) => r.type === "sales"))
+		: salesUsersQuery.data?.users ?? [];
 	const counsellorsQuery = useCounsellorsQuery(token, Boolean(token));
 
 	// prefer full user list when available, otherwise fall back to sales users
@@ -515,6 +519,7 @@ export const LeadsPage = () => {
 		setAssigningCounsellorToMentor(false);
 		setSelectedCounsellorForMentor(null);
 		setAdmissionPriceInput("");
+		setAdmissionFeeInput("");
 	};
 
 	const userNameById = useMemo(
@@ -640,7 +645,10 @@ export const LeadsPage = () => {
 	}, [canAssignLeadToOthers, createOpen, currentUserId, resetCreate, salesUsers]);
 
 	const onCreateLead = async (payload: CreateLeadForm) => {
-		const validation = CreateLeadPayloadSchema.safeParse(payload);
+		const validation = CreateLeadPayloadSchema.safeParse({
+			...payload,
+			assignedTo: payload.assignedTo || undefined,
+		});
 		if (!validation.success) {
 			toast.error(validation.error.issues[0]?.message ?? "Validation failed");
 			return;
@@ -841,12 +849,28 @@ export const LeadsPage = () => {
 			return;
 		}
 
+		// Ensure admission fee exists
+		const currentAdmissionFee = admissionLead?.admissionFee;
+		const enteredAdmissionFee = admissionFeeInput.trim() ? parseInt(admissionFeeInput, 10) : undefined;
+
+		if (!currentAdmissionFee && (enteredAdmissionFee === undefined || Number.isNaN(enteredAdmissionFee))) {
+			toast.error("Please enter an admission fee before moving to admission.");
+			return;
+		}
+
 		try {
 			// If user entered a price (and it's different), update the lead first
 			if (enteredPrice !== undefined && enteredPrice !== currentPrice) {
 				await updateLeadMutation.mutateAsync({
 					leadId: admissionLeadId,
 					payload: { price: enteredPrice },
+				});
+			}
+			// Save admission fee if entered/changed
+			if (enteredAdmissionFee !== undefined && enteredAdmissionFee !== currentAdmissionFee) {
+				await updateLeadMutation.mutateAsync({
+					leadId: admissionLeadId,
+					payload: { admissionFee: enteredAdmissionFee },
 				});
 			}
 
@@ -1097,6 +1121,7 @@ export const LeadsPage = () => {
 							setSelectedCounsellorForMentor(null);
 							resetAdmission({ counsellorId: undefined, note: "" });
 							setAdmissionPriceInput(item.price ? String(item.price) : "");
+							setAdmissionFeeInput(item.admissionFee ? String(item.admissionFee) : "");
 						},
 						className:
 							"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
@@ -1685,7 +1710,22 @@ ${formLinkData.formLink}`;
 									? formResponseLead.preferredDays.join(", ")
 									: undefined,
 							},
-							{ label: "Demo Availability", value: formResponseLead.demoAvailability },
+							{
+								label: "Demo Availability",
+								value: formResponseLead.demoAvailability
+									? (() => {
+										try {
+											const d = new Date(formResponseLead.demoAvailability);
+											return d.toLocaleString("en-IN", {
+												day: "numeric", month: "short", year: "numeric",
+												hour: "2-digit", minute: "2-digit", hour12: true,
+											});
+										} catch {
+											return formResponseLead.demoAvailability;
+										}
+									})()
+									: undefined,
+							},
 							{ label: "Hear About Us", value: formResponseLead.hearAboutUs },
 							{ label: "Preferred Mentor Gender", value: formResponseLead.preferredMentorGender },
 							{ label: "Student Info", value: formResponseLead.studentInfo },
@@ -2182,6 +2222,26 @@ ${formLinkData.formLink}`;
 						{admissionLead?.price ? (
 							<p className="mt-1 text-xs text-gray-500">
 								Last fixed payment: ₹{admissionLead.price}. Edit above if it has changed.
+							</p>
+						) : null}
+					</div>
+
+					{/* Admission Fee - required */}
+					<div>
+						<label className="block text-sm font-medium text-slate-600 mb-2">
+							Admission Fee (₹) <span className="text-red-500">*</span>
+						</label>
+						<input
+							type="number"
+							min="0"
+							value={admissionFeeInput || (admissionLead?.admissionFee?.toString() ?? "")}
+							onChange={(e) => setAdmissionFeeInput(e.target.value)}
+							placeholder="Required to proceed"
+							className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+						/>
+						{admissionLead?.admissionFee && !admissionFeeInput ? (
+							<p className="mt-1 text-xs text-gray-500">
+								Current: ₹{admissionLead.admissionFee}. Edit if changed.
 							</p>
 						) : null}
 					</div>

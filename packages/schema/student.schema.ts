@@ -110,6 +110,7 @@ export type StudentFollowUpPayload = z.infer<
 >;
 
 export const UpdateStudentPayloadSchema = z.object({
+	zid: z.string().min(1).max(20).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional().nullable(),
 	profilePic: z.string().max(5000000).nullable().optional(),

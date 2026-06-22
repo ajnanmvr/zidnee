@@ -72,6 +72,7 @@ type Props = {
 	onAddToGroup?: (s: StudentTableRow) => void;
 	canAddToGroup?: boolean;
 	emptyMessage?: string;
+	studentsWithPendingProcessIds?: Set<string>;
 };
 
 export function StudentTableView({
@@ -81,6 +82,7 @@ export function StudentTableView({
 	onAddToGroup,
 	canAddToGroup,
 	emptyMessage = "No students match the current filter.",
+	studentsWithPendingProcessIds,
 }: Props) {
 	if (students.length === 0) {
 		return (
@@ -108,7 +110,9 @@ export function StudentTableView({
 						const fu = getStudentFollowUpState(s.customNextFollowUpAt, s.nextFollowUpAt);
 						const fuDate = fmtDate(s.customNextFollowUpAt ?? s.nextFollowUpAt);
 						const level = levelInfo(s.level);
-						const hasProcess = Boolean(s.processId || s.processLabel);
+						const hasProcess = studentsWithPendingProcessIds
+							? studentsWithPendingProcessIds.has(s.id)
+							: Boolean(s.processId || s.processLabel);
 						const mentor = s.mentorId ? (mentorNameById[s.mentorId] ?? null) : null;
 						const borderCls = URGENCY_BORDER[fu.label] ?? "border-l-gray-200";
 						const dotCls = URGENCY_DOT[fu.label] ?? "bg-gray-300";
