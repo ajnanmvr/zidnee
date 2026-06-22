@@ -619,11 +619,6 @@ export const LeadDetailPageNew = () => {
 		}
 	};
 
-	const onOpenStageChange = () => {
-		setSelectedStage((lead?.status as LeadStatus) ?? "FOLLOW_UP");
-		setStageChangeConfirmed(false);
-		setStageChangeOpen(true);
-	};
 
 	const onConfirmStageChange = async () => {
 		if (!lead) {
@@ -710,13 +705,6 @@ export const LeadDetailPageNew = () => {
 				icon: HiClock,
 				onClick: () => setPostponeOpen(true),
 				className: "bg-amber-500 text-white hover:bg-amber-600",
-			},
-			{
-				key: "stage",
-				label: "Change Stage",
-				icon: HiCheckCircle,
-				onClick: onOpenStageChange,
-				className: "bg-violet-600 text-white hover:bg-violet-700",
 			},
 			...(!lead.formSent
 				? [{
@@ -850,59 +838,72 @@ export const LeadDetailPageNew = () => {
 			{activeTab === "details" && (
 				<div className="grid gap-6 lg:grid-cols-3">
 					<div className="lg:col-span-2 space-y-6">
+						{(lead.courseType || lead.level || lead.preferredPlan || lead.preferredSchedule || lead.preferredDays?.length || lead.preferredLanguage || lead.demoAvailability || lead.preferredMentorGender || lead.hearAboutUs || preferredTimeslots.length) ? (
 						<SectionCard title="Preferences" icon={HiAdjustmentsHorizontal}>
 							<DetailGrid>
-								<DetailRow
-									label="Course Type"
-									value={
-										lead.courseType
-											? lead.courseType === "GROUP"
-												? "Group"
-												: "Individual"
-											: "-"
-									}
-									icon={HiUsers}
-								/>
-								<DetailRow
-									label="Level"
-									value={lead.level ?? "-"}
-									icon={HiAcademicCap}
-								/>
-								<DetailRow
-									label="Preferred Plan"
-									value={formatPreferredPlanValue(lead.preferredPlan)}
-									icon={HiClock}
-								/>
-								<DetailRow
-									label="Preferred Schedule"
-									value={lead.preferredSchedule ?? "-"}
-									icon={HiCalendarDays}
-								/>
-								<DetailRow
-									label="Preferred Days"
-									value={lead.preferredDays?.join(", ") || "-"}
-									icon={HiCalendarDays}
-								/>
-								<DetailRow
-									label="Preferred Language"
-									value={lead.preferredLanguage ?? "-"}
-									icon={HiUser}
-								/>
-								<DetailRow
-									label="Demo Availability"
-									value={formatRelativeDateTime(lead.demoAvailability ?? "")}
-									icon={HiClock}
-								/>
-								<DetailRow
-									label="Mentor Gender Preference"
-									value={lead.preferredMentorGender ?? "-"}
-									icon={HiUser}
-								/>
-								<DetailRow
-									label="Hear About Us"
-									value={lead.hearAboutUs ?? "-"}
-									icon={HiLink}
-								/>
+								{lead.courseType ? (
+									<DetailRow
+										label="Course Type"
+										value={lead.courseType === "GROUP" ? "Group" : "Individual"}
+										icon={HiUsers}
+									/>
+								) : null}
+								{lead.level ? (
+									<DetailRow
+										label="Level"
+										value={lead.level}
+										icon={HiAcademicCap}
+									/>
+								) : null}
+								{lead.preferredPlan ? (
+									<DetailRow
+										label="Preferred Plan"
+										value={formatPreferredPlanValue(lead.preferredPlan)}
+										icon={HiClock}
+									/>
+								) : null}
+								{lead.preferredSchedule ? (
+									<DetailRow
+										label="Preferred Schedule"
+										value={lead.preferredSchedule}
+										icon={HiCalendarDays}
+									/>
+								) : null}
+								{lead.preferredDays?.length ? (
+									<DetailRow
+										label="Preferred Days"
+										value={lead.preferredDays.join(", ")}
+										icon={HiCalendarDays}
+									/>
+								) : null}
+								{lead.preferredLanguage ? (
+									<DetailRow
+										label="Preferred Language"
+										value={lead.preferredLanguage}
+										icon={HiUser}
+									/>
+								) : null}
+								{lead.demoAvailability ? (
+									<DetailRow
+										label="Demo Availability"
+										value={formatRelativeDateTime(lead.demoAvailability)}
+										icon={HiClock}
+									/>
+								) : null}
+								{lead.preferredMentorGender ? (
+									<DetailRow
+										label="Mentor Gender Preference"
+										value={lead.preferredMentorGender}
+										icon={HiUser}
+									/>
+								) : null}
+								{lead.hearAboutUs ? (
+									<DetailRow
+										label="Hear About Us"
+										value={lead.hearAboutUs}
+										icon={HiLink}
+									/>
+								) : null}
 								{preferredTimeslots.length ? (
 									<DetailRow
 										label="Preferred Timeslots"
@@ -926,157 +927,118 @@ export const LeadDetailPageNew = () => {
 								) : null}
 							</DetailGrid>
 						</SectionCard>
+						) : null}
 
 						<SectionCard title="Lead Identity" icon={HiUser}>
 							<DetailGrid>
-								<DetailRow
-									label="Name"
-									value={lead.name ?? "-"}
-									icon={HiUser}
-									wide
-								/>
-								<DetailRow
-									label="SL No"
-									value={lead.slNo ? String(lead.slNo) : "-"}
-									icon={HiAcademicCap}
-								/>
-								<DetailRow
-									label="Phone"
-									value={lead.phone ?? "-"}
-									icon={HiPhone}
-								/>
-								<DetailRow
-									label="Email"
-									value={lead.email ?? "-"}
-									icon={HiLink}
-								/>
-								<DetailRow
-									label="Is Organic"
-									value={lead.isOrganic ? "Yes" : "No"}
-									icon={HiUsers}
-								/>
-								<DetailRow
-									label="Student ID"
-									wide
-									value={
-										lead.studentId ? (
+								{lead.name ? (
+									<DetailRow label="Name" value={lead.name} icon={HiUser} wide />
+								) : null}
+								{lead.slNo ? (
+									<DetailRow label="SL No" value={String(lead.slNo)} icon={HiAcademicCap} />
+								) : null}
+								{lead.phone ? (
+									<DetailRow label="Phone" value={lead.phone} icon={HiPhone} />
+								) : null}
+								{lead.email ? (
+									<DetailRow label="Email" value={lead.email} icon={HiLink} />
+								) : null}
+								{lead.isOrganic ? (
+									<DetailRow label="Is Organic" value="Yes" icon={HiUsers} />
+								) : null}
+								{lead.studentId ? (
+									<DetailRow
+										label="Student ID"
+										wide
+										value={
 											<Link to={`/students/${lead.studentId}`} className="font-semibold text-teal-700 hover:underline">
 												View student profile
 											</Link>
-										) : (
-											"-"
-										)
-									}
-									icon={HiUser}
-								/>
-								<DetailRow
-									label="Created On"
-									value={
-										lead.createdAt
-											? format(new Date(lead.createdAt), "MMM dd, yyyy HH:mm")
-											: "-"
-									}
-									icon={HiCalendarDays}
-								/>
-								<DetailRow
-									label="Updated On"
-									value={
-										lead.updatedAt
-											? format(new Date(lead.updatedAt), "MMM dd, yyyy HH:mm")
-											: "-"
-									}
-									icon={HiCalendarDays}
-								/>
-								<DetailRow
-									label="Current Status"
-									value={lead.status?.replace(/_/g, " ") ?? "FOLLOW UP"}
-									icon={HiCheckCircle}
-								/>
+										}
+										icon={HiUser}
+									/>
+								) : null}
+								{lead.createdAt ? (
+									<DetailRow
+										label="Created On"
+										value={format(new Date(lead.createdAt), "MMM dd, yyyy HH:mm")}
+										icon={HiCalendarDays}
+									/>
+								) : null}
+								{lead.updatedAt ? (
+									<DetailRow
+										label="Updated On"
+										value={format(new Date(lead.updatedAt), "MMM dd, yyyy HH:mm")}
+										icon={HiCalendarDays}
+									/>
+								) : null}
+								{lead.status ? (
+									<DetailRow
+										label="Current Status"
+										value={lead.status.replace(/_/g, " ")}
+										icon={HiCheckCircle}
+									/>
+								) : null}
 							</DetailGrid>
 						</SectionCard>
 
+						{(lead.primaryWhatsappNumber || lead.alternateWhatsappNumber || lead.residingCountry || lead.gender || lead.dateOfBirth) ? (
 						<SectionCard title="Contact Information" icon={HiPhone}>
 							<DetailGrid>
-								<DetailRow
-									label="Primary WhatsApp"
-									value={lead.primaryWhatsappNumber ?? "-"}
-									icon={HiPhone}
-								/>
-								<DetailRow
-									label="Alternate WhatsApp"
-									value={lead.alternateWhatsappNumber || "-"}
-									icon={HiPhone}
-								/>
-								<DetailRow
-									label="Residing Country"
-									value={lead.residingCountry || "-"}
-									icon={HiUser}
-								/>
-								<DetailRow
-									label="Gender"
-									value={
-										lead.gender ? (
+								{lead.primaryWhatsappNumber ? (
+									<DetailRow label="Primary WhatsApp" value={lead.primaryWhatsappNumber} icon={HiPhone} />
+								) : null}
+								{lead.alternateWhatsappNumber ? (
+									<DetailRow label="Alternate WhatsApp" value={lead.alternateWhatsappNumber} icon={HiPhone} />
+								) : null}
+								{lead.residingCountry ? (
+									<DetailRow label="Residing Country" value={lead.residingCountry} icon={HiUser} />
+								) : null}
+								{lead.gender ? (
+									<DetailRow
+										label="Gender"
+										value={
 											<div className="flex items-center gap-2">
-												<HiUser
-													className={`h-4 w-4 ${lead.gender.toLowerCase() === "male" ? "text-blue-500" : "text-rose-500"}`}
-												/>
-												<span
-													className={
-														lead.gender.toLowerCase() === "male"
-															? "text-blue-600 font-semibold"
-															: "text-rose-600 font-semibold"
-													}
-												>
-													{lead.gender.charAt(0).toUpperCase() +
-														lead.gender.slice(1)}
+												<HiUser className={`h-4 w-4 ${lead.gender.toLowerCase() === "male" ? "text-blue-500" : "text-rose-500"}`} />
+												<span className={lead.gender.toLowerCase() === "male" ? "text-blue-600 font-semibold" : "text-rose-600 font-semibold"}>
+													{lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)}
 												</span>
 											</div>
-										) : (
-											"-"
-										)
-									}
-									icon={HiUser}
-								/>
-								<DetailRow
-									label="Date of Birth"
-									value={
-										lead.dateOfBirth
-											? format(new Date(lead.dateOfBirth), "MMM dd, yyyy")
-											: "-"
-									}
-									icon={HiCalendarDays}
-								/>
+										}
+										icon={HiUser}
+									/>
+								) : null}
+								{lead.dateOfBirth ? (
+									<DetailRow
+										label="Date of Birth"
+										value={format(new Date(lead.dateOfBirth), "MMM dd, yyyy")}
+										icon={HiCalendarDays}
+									/>
+								) : null}
 							</DetailGrid>
 						</SectionCard>
+						) : null}
 
+						{(lead.formSent || lead.formCompleted) ? (
 						<SectionCard title="Form Submission Details" icon={HiCheckCircle}>
 							<DetailGrid>
 								<DetailRow
 									label="Form Status"
 									value={
-										<span
-											className={`rounded-full px-2.5 py-1 text-xs font-semibold ${lead.formCompleted ? "bg-emerald-100 text-emerald-700" : lead.formSent ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}`}
-										>
-											{lead.formCompleted
-												? "Completed"
-												: lead.formSent
-													? "Sent"
-													: "Not Sent"}
+										<span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${lead.formCompleted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+											{lead.formCompleted ? "Completed" : "Sent"}
 										</span>
 									}
 								/>
-								<DetailRow
-									label="Form Sent"
-									value={lead.formSent ? "Yes" : "No"}
-									icon={HiCalendarDays}
-								/>
-								<DetailRow
-									label="Form Completed"
-									value={lead.formCompleted ? "Yes" : "No"}
-									icon={HiCheckCircle}
-								/>
+								{lead.formSent ? (
+									<DetailRow label="Form Sent" value="Yes" icon={HiCalendarDays} />
+								) : null}
+								{lead.formCompleted ? (
+									<DetailRow label="Form Completed" value="Yes" icon={HiCheckCircle} />
+								) : null}
 							</DetailGrid>
 						</SectionCard>
+						) : null}
 					</div>
 
 					<div className="space-y-6">

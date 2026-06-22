@@ -19,6 +19,7 @@ type CreateUserFormData = {
 	gender: "male" | "female" | undefined;
 	roleIds: string[];
 	counsellorId?: string;
+	zids?: Record<string, string>;
 };
 
 /** Picks the dedicated directory page to return to, based on the user's primary role. */
@@ -39,6 +40,7 @@ export type UserFormPanelProps = {
 		email?: string;
 		roles: Array<{ id: string; name: string; type: string }>;
 		counsellorId?: string;
+		zids?: Record<string, string>;
 	};
 	onSubmit: (data: CreateUserFormData) => Promise<void>;
 	isLoading: boolean;
@@ -89,6 +91,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		mode === "edit" && mentorRoleId
 			? selectedRoleIds.includes(mentorRoleId)
 			: false;
+
+	const [zidValues, setZidValues] = useState<Record<string, string>>(
+		mode === "edit" && user?.zids ? { ...user.zids } : {},
+	);
 
 	const backTo = mode === "edit" && user ? resolveDirectoryPath(user.roles) : "/admins";
 
@@ -180,6 +186,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 						gender: form.gender,
 						roleIds: selectedRoleIds,
 						counsellorId: form.counsellorId,
+						zids: Object.keys(zidValues).length > 0 ? zidValues : undefined,
 					};
 
 		const validation = schema.safeParse(payload);
@@ -472,6 +479,52 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 									</label>
 								)}
 							/>
+						</div>
+					)}
+
+					{/* ZID / Identity Numbers (edit mode only) */}
+					{mode === "edit" && user && (
+						<div className="grid gap-3">
+							<div className="flex items-center gap-2">
+								<div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600">
+									#
+								</div>
+								<h3 className="text-base font-semibold text-gray-900">
+									Identity Numbers (ZID)
+								</h3>
+							</div>
+							<p className="text-xs text-gray-500">
+								These IDs are assigned per role. Editing will override the auto-generated value.
+							</p>
+							<div className="grid gap-3 md:grid-cols-2">
+								{(["mentor", "counsellor", "sales", "admin"] as const).map((roleType) => {
+									const label: Record<string, string> = {
+										mentor: "ZM (Mentor ID)",
+										counsellor: "ZIC (Counsellor ID)",
+										sales: "ZIS (Sales ID)",
+										admin: "ZIA (Admin ID)",
+									};
+									const hasRole = user.roles.some((r) => r.type === roleType);
+									if (!hasRole) return null;
+									return (
+										<label key={roleType} className="grid gap-1.5">
+											<span className="text-sm font-medium text-gray-700">{label[roleType]}</span>
+											<input
+												type="text"
+												value={zidValues[roleType] ?? ""}
+												onChange={(e) =>
+													setZidValues((prev) => ({
+														...prev,
+														[roleType]: e.target.value.toUpperCase(),
+													}))
+												}
+												placeholder={`e.g. ZM001`}
+												className="rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+											/>
+										</label>
+									);
+								})}
+							</div>
 						</div>
 					)}
 

@@ -14,10 +14,11 @@ import {
 	YAxis,
 } from "recharts";
 import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
+import { useSalesUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 
-type TimeScope = "currentMonth" | "previousMonth" | "last3months" | "last6months" | "currentYear" | "custom" | "all";
+type TimeScope = "today" | "last3days" | "thisWeek" | "currentMonth" | "previousMonth" | "last3months" | "last6months" | "currentYear" | "custom" | "all";
 
 type PeriodRange = { start: Date; end: Date; label: string };
 
@@ -110,6 +111,9 @@ const PIPELINE_ORDER = [
 ];
 
 const TIME_PRESETS: { id: TimeScope; label: string; hint: string }[] = [
+	{ id: "today", label: "Today", hint: "Leads created today" },
+	{ id: "last3days", label: "Last 3 Days", hint: "Rolling 3-day window" },
+	{ id: "thisWeek", label: "This Week", hint: "Current Mon–Sun week" },
 	{ id: "currentMonth", label: "This Month", hint: "Current calendar month" },
 	{ id: "previousMonth", label: "Last Month", hint: "Previous calendar month" },
 	{ id: "last3months", label: "Last 3 Months", hint: "Rolling 3-month window" },
@@ -137,12 +141,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export const LeadOverviewPage = () => {
 	const { token } = useSession();
 	const canReadAll = useHasPermission("LEAD_READ_ALL");
+	const canSeeSalesUsers = useHasPermission("SALES_READ") || useHasPermission("SALES_USERS_READ")
+		|| useHasPermission("LEADS_OVERVIEW_READ") || useHasPermission("LEAD_ASSIGN");
 	const [scope, setScope] = useState<"mine" | "all">("mine");
 	const [timeScope, setTimeScope] = useState<TimeScope>("currentMonth");
 	const [trendGranularity, setTrendGranularity] = useState<"weekly" | "monthly">("monthly");
+	const [selectedSalesUserId, setSelectedSalesUserId] = useState<string>("");
 	const now = useMemo(() => new Date(), []);
 	const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
 	const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+	const salesUsersQuery = useSalesUsersQuery(token, canReadAll && canSeeSalesUsers);
+	const salesUsers = salesUsersQuery.data?.users ?? [];
 
 	const leadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope,
@@ -153,7 +163,13 @@ export const LeadOverviewPage = () => {
 		enabled: Boolean(token),
 	});
 
-	const leads = leadsQuery.data?.leads ?? [];
+	const allLeads = leadsQuery.data?.leads ?? [];
+	const leads = useMemo(
+		() => selectedSalesUserId
+			? allLeads.filter((l) => (l as any).createdBy === selectedSalesUserId)
+			: allLeads,
+		[allLeads, selectedSalesUserId],
+	);
 
 	const availableYears = useMemo(() => {
 		const years = new Set<number>([now.getFullYear()]);
@@ -166,6 +182,17 @@ export const LeadOverviewPage = () => {
 
 	const selectedRange = useMemo<PeriodRange | null>(() => {
 		if (timeScope === "all") return null;
+		if (timeScope === "today") {
+			const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+			const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+			return { start, end, label: "Today" };
+		}
+		if (timeScope === "last3days") {
+			const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+			const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0, 0, 0);
+			return { start, end, label: "Last 3 Days" };
+		}
+		if (timeScope === "thisWeek") return weekRange(now);
 		if (timeScope === "previousMonth") return prevMonth(monthRange(now.getFullYear(), now.getMonth()));
 		if (timeScope === "currentMonth") return monthRange(now.getFullYear(), now.getMonth());
 		if (timeScope === "last3months") return nthMonthsAgo(3);
@@ -278,7 +305,7 @@ export const LeadOverviewPage = () => {
 
 	const periodLabel = selectedRange?.label ?? "All time";
 
-	const selectCls = "rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-white placeholder-white/60 outline-none backdrop-blur focus:border-white/40 focus:bg-white/15";
+	const selectCls = "rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-white placeholder-white/60 outline-none backdrop-blur focus:border-white/40 focus:bg-white/15 [&>option]:bg-white [&>option]:text-gray-900";
 
 	return (
 		<div className="space-y-6 pb-8">
@@ -293,17 +320,29 @@ export const LeadOverviewPage = () => {
 						<p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-300">Lead Reports</p>
 						<h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Lead Report</h1>
 						<p className="mt-1 text-sm text-indigo-200">
-							{periodLabel} · {scope === "all" ? "All users" : "My leads"} · {cur.created} leads
+							{periodLabel} · {selectedSalesUserId ? (salesUsers.find((u) => u.id === selectedSalesUserId)?.name ?? "Sales user") : scope === "all" ? "All users" : "My leads"} · {cur.created} leads
 						</p>
 					</div>
 
-					{/* Scope control */}
+					{/* Scope + sales person filter */}
 					{canReadAll ? (
 						<div className="flex flex-wrap items-center gap-2">
-							<select value={scope} onChange={(e) => setScope(e.target.value as "mine" | "all")} className={selectCls}>
+							<select value={scope} onChange={(e) => { setScope(e.target.value as "mine" | "all"); setSelectedSalesUserId(""); }} className={selectCls}>
 								<option value="mine">My leads</option>
 								<option value="all">All users</option>
 							</select>
+							{scope === "all" && salesUsers.length > 0 ? (
+								<select
+									value={selectedSalesUserId}
+									onChange={(e) => setSelectedSalesUserId(e.target.value)}
+									className={selectCls}
+								>
+									<option value="">All sales staff</option>
+									{salesUsers.map((u) => (
+										<option key={u.id} value={u.id}>{u.name ?? u.username}</option>
+									))}
+								</select>
+							) : null}
 						</div>
 					) : null}
 				</div>

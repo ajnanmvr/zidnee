@@ -6,7 +6,7 @@ import { Modal } from "@/components/dashboard-ui";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { StudentTableView, type StudentTableRow } from "@/features/students/StudentTableView";
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
-import { useStudentsQuery } from "@/features/students/students.queries";
+import { useStudentsQuery, useStudentProcessesQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
@@ -45,6 +45,7 @@ export const StudentsPage = () => {
 	const batchesQuery = useBatchesQuery(token);
 	const usersQuery = useUsersQuery(token);
 	const updateStudentMutation = useUpdateStudentMutation();
+	const processesQuery = useStudentProcessesQuery(token, { scope: activeScope });
 
 	const [addToGroupModalOpen, setAddToGroupModalOpen] = useState(false);
 	const [selectedStudent, setSelectedStudent] = useState<StudentTableRow | null>(null);
@@ -62,11 +63,21 @@ export const StudentsPage = () => {
 	const groupCount = allActive.filter((s) => s.courseType === "GROUP").length;
 	const individualCount = allActive.filter((s) => s.courseType === "INDIVIDUAL").length;
 
+	const studentsWithPendingProcessIds = useMemo(() => {
+		const set = new Set<string>();
+		(processesQuery.data?.processes ?? []).forEach((p) => {
+			if (p.tasks.some((t) => !t.completed)) {
+				set.add(p.student.id);
+			}
+		});
+		return set;
+	}, [processesQuery.data?.processes]);
+
 	const filteredStudents = useMemo(() => {
 		if (!studentsQuery.data?.students) return [];
 		return studentsQuery.data.students
 			.filter((s) => {
-				const hasProcess = Boolean(s.processId || s.processLabel);
+				const hasProcess = studentsWithPendingProcessIds.has(s.id);
 				if (!showProcessStudents && hasProcess) return false;
 				return true;
 			})
@@ -76,7 +87,7 @@ export const StudentsPage = () => {
 				nextFollowUpAt: s.nextFollowUpAt ? new Date(s.nextFollowUpAt) : undefined,
 				customNextFollowUpAt: s.customNextFollowUpAt ? new Date(s.customNextFollowUpAt) : undefined,
 			})) as unknown as StudentTableRow[];
-	}, [showProcessStudents, studentsQuery.data?.students]);
+	}, [showProcessStudents, studentsQuery.data?.students, studentsWithPendingProcessIds]);
 
 	const mentorNameById = useMemo(() => {
 		const map: Record<string, string> = {};
@@ -197,6 +208,7 @@ export const StudentsPage = () => {
 						groupLabelByBatchId={groupLabelByBatchId}
 						canAddToGroup={canUpdateStudent}
 						onAddToGroup={(s) => { setSelectedStudent(s); setSelectedGroupId(""); setGroupSearch(""); setAddToGroupModalOpen(true); }}
+						studentsWithPendingProcessIds={studentsWithPendingProcessIds}
 					/>
 					{/* Pagination */}
 					<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">

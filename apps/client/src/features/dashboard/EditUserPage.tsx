@@ -36,6 +36,7 @@ export const EditUserPage = () => {
 		gender?: "male" | "female";
 		roleIds: string[];
 		counsellorId?: string;
+		zids?: Record<string, string>;
 	}) => {
 		if (!userId) {
 			return;
@@ -51,6 +52,7 @@ export const EditUserPage = () => {
 					gender: form.gender,
 					roleIds: form.roleIds,
 					counsellorId: form.counsellorId,
+					zids: form.zids,
 				},
 			});
 			toast.success("User updated successfully!");
@@ -99,7 +101,10 @@ export const EditUserPage = () => {
 	return (
 		<UserFormPanel
 			mode="edit"
-			user={user}
+			user={{
+				...user,
+				zids: (user as any).zids ?? undefined,
+			}}
 			onSubmit={handleSubmit}
 			isLoading={updateUserMutation.isPending}
 		/>

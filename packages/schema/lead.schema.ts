@@ -69,6 +69,7 @@ export const LeadFormDataSchema = z
 		email: z.email().max(255),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
+		admissionFee: z.number().int().nonnegative().optional(),
 		hearAboutUs: z.string().min(1).max(255),
 		demoAvailability: z.string().min(1).max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -174,6 +175,7 @@ export const LeadSchema = z.object({
 	preferredPlan: LeadPreferredPlanSchema.optional(),
 	preferredTimeslots: z.array(LeadTimeslotSchema).default([]),
 	price: z.number().int().nonnegative().optional(),
+	admissionFee: z.number().int().nonnegative().optional(),
 	hearAboutUs: z.string().max(255).optional(),
 	demoAvailability: z.string().max(100).optional(),
 	preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -206,6 +208,7 @@ export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
 
 export const UpdateLeadPayloadSchema = z
 	.object({
+		slNo: z.number().int().positive().optional(),
 		status: LeadStatusSchema.optional(),
 		phone: PhoneNumberSchema.optional(),
 		name: OptionalTextSchema,
@@ -228,6 +231,7 @@ export const UpdateLeadPayloadSchema = z
 		preferredTimeslots: z.array(LeadTimeslotSchema).optional(),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
+		admissionFee: z.number().int().nonnegative().optional(),
 		hearAboutUs: z.string().max(255).optional(),
 		demoAvailability: z.string().max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),
@@ -308,6 +312,7 @@ export const SubmitLeadFormPayloadSchema = z
 		email: z.string().email().max(255),
 		courseType: BatchTypeSchema.optional(),
 		price: z.number().int().nonnegative().optional(),
+		admissionFee: z.number().int().nonnegative().optional(),
 		hearAboutUs: z.string().min(1).max(255),
 		demoAvailability: z.string().max(100).optional(),
 		preferredMentorGender: z.enum(["male", "female", "both"]).optional(),

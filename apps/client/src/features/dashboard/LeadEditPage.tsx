@@ -13,6 +13,7 @@ import { useUpdateLeadMutation } from "@/features/leads/use-lead-mutations";
 import { useSession } from "@/lib/session";
 
 type LeadEditFormState = {
+	slNo: string;
 	name: string;
 	phone: string;
 	email: string;
@@ -24,6 +25,7 @@ type LeadEditFormState = {
 	primaryWhatsappNumber: string;
 	alternateWhatsappNumber: string;
 	price: string;
+	admissionFee: string;
 	studentInfo: string;
 	preferredLanguage: string;
 	preferredSchedule: string;
@@ -121,6 +123,7 @@ export const LeadEditPage = () => {
 	const { control, formState, handleSubmit, reset, setError, getValues, setValue } =
 		useForm<LeadEditFormState>({
 			defaultValues: {
+				slNo: "",
 				name: "",
 				phone: "",
 				email: "",
@@ -132,6 +135,7 @@ export const LeadEditPage = () => {
 				primaryWhatsappNumber: "",
 				alternateWhatsappNumber: "",
 				price: "",
+				admissionFee: "",
 				studentInfo: "",
 				preferredLanguage: "",
 				preferredSchedule: "",
@@ -156,6 +160,7 @@ export const LeadEditPage = () => {
 		}
 
 		reset({
+			slNo: lead.slNo?.toString() ?? "",
 			name: lead.name ?? "",
 			phone: lead.phone ?? "",
 			email: lead.email ?? "",
@@ -169,6 +174,7 @@ export const LeadEditPage = () => {
 			primaryWhatsappNumber: lead.primaryWhatsappNumber ?? "",
 			alternateWhatsappNumber: lead.alternateWhatsappNumber ?? "",
 			price: lead.price?.toString() ?? "",
+			admissionFee: lead.admissionFee?.toString() ?? "",
 			studentInfo: lead.studentInfo ?? "",
 			preferredLanguage: lead.preferredLanguage ?? "",
 			preferredSchedule: lead.preferredSchedule ?? "",
@@ -223,6 +229,10 @@ export const LeadEditPage = () => {
 
 		// Convert date strings back to ISO format for the backend
 		const updates: Record<string, unknown> = {
+			slNo:
+				payload.slNo.trim().length > 0 && !Number.isNaN(Number(payload.slNo))
+					? Number(payload.slNo)
+					: undefined,
 			name: payload.name || undefined,
 			phone: payload.phone || undefined,
 			email: payload.email || undefined,
@@ -238,6 +248,10 @@ export const LeadEditPage = () => {
 			price:
 				payload.price.trim().length > 0 && !Number.isNaN(Number(payload.price))
 					? Number(payload.price)
+					: undefined,
+			admissionFee:
+				payload.admissionFee.trim().length > 0 && !Number.isNaN(Number(payload.admissionFee))
+					? Number(payload.admissionFee)
 					: undefined,
 			studentInfo: payload.studentInfo || undefined,
 			preferredLanguage: payload.preferredLanguage || undefined,
@@ -350,20 +364,37 @@ export const LeadEditPage = () => {
 			<form className="w-full" onSubmit={onSubmit}>
 				<DetailCard title="Editable fields" icon={HiPencilSquare}>
 					<div className="grid gap-4 md:grid-cols-2">
-						<div className="md:col-span-2">
-							<Controller
-								name="name"
-								control={control}
-								render={({ field, fieldState }) => (
-									<Field
-										label="Name"
-										value={field.value}
-										onChange={field.onChange}
-										placeholder="Lead name"
-										error={fieldState.error?.message}
-									/>
-								)}
-							/>
+						<div className="md:col-span-2 grid grid-cols-4 gap-4">
+							<div className="col-span-1">
+								<Controller
+									name="slNo"
+									control={control}
+									render={({ field, fieldState }) => (
+										<Field
+											label="Serial No."
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="e.g. 42"
+											error={fieldState.error?.message}
+										/>
+									)}
+								/>
+							</div>
+							<div className="col-span-3">
+								<Controller
+									name="name"
+									control={control}
+									render={({ field, fieldState }) => (
+										<Field
+											label="Name"
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="Lead name"
+											error={fieldState.error?.message}
+										/>
+									)}
+								/>
+							</div>
 						</div>
 
 						<Controller
@@ -533,6 +564,21 @@ export const LeadEditPage = () => {
 									value={field.value}
 									onChange={field.onChange}
 									placeholder="Course price"
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
+
+						<Controller
+							name="admissionFee"
+							control={control}
+							render={({ field, fieldState }) => (
+								<Field
+									label="Admission Fee"
+									type="number"
+									value={field.value}
+									onChange={field.onChange}
+									placeholder="Admission fee (required for admission)"
 									error={fieldState.error?.message}
 								/>
 							)}

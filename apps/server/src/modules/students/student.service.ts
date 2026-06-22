@@ -1156,6 +1156,7 @@ export const StudentService = {
 	update: async (
 		studentId: string,
 		payload: Partial<{
+			zid?: string;
 			mentorId?: string;
 			batchId?: string | null;
 			profilePic?: string | null;
@@ -1193,6 +1194,15 @@ export const StudentService = {
 			mentorId: payload.mentorId ?? student.mentorId,
 		};
 		const $unset: Record<string, 1> = {};
+
+		if (payload.zid !== undefined) {
+			const trimmed = payload.zid.trim().toUpperCase();
+			const conflict = await StudentModel.findOne({ zid: trimmed, _id: { $ne: student._id } }).lean();
+			if (conflict) {
+				throw new AppError(409, `ZID ${trimmed} is already in use`);
+			}
+			$set.zid = trimmed;
+		}
 
 		if (payload.name !== undefined) {
 			$set.name = payload.name;

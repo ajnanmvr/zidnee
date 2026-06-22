@@ -91,6 +91,7 @@ export const EditStudentPage = () => {
 
   const buildUpdatePayload = () => {
     const nextPayload: Record<string, unknown> = {
+      zid: form.zid?.trim() ? form.zid.trim() : undefined,
       name: form.name?.trim() ?? undefined,
       phone: form.phone?.trim() ?? undefined,
       email: form.email?.trim() ?? undefined,
@@ -127,6 +128,7 @@ export const EditStudentPage = () => {
   useEffect(() => {
     if (!student) return;
     setForm({
+      zid: student.zid ?? "",
       name: student.name ?? "",
       phone: student.phone ?? "",
       email: student.email ?? "",
@@ -275,10 +277,16 @@ export const EditStudentPage = () => {
               </div>
               <div className="pb-1">
                 <h1 className="text-xl font-bold text-gray-900">{student.name || student.zid}</h1>
-                <p className="mt-0.5 flex items-center gap-1.5 text-sm text-gray-500">
-                  <HiIdentification className="h-4 w-4 text-gray-400" />
-                  {student.zid.toUpperCase()}
-                </p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <HiIdentification className="h-4 w-4 shrink-0 text-gray-400" />
+                  <input
+                    type="text"
+                    value={form.zid ?? ""}
+                    onChange={(e) => setForm({ ...form, zid: e.target.value.toUpperCase() })}
+                    placeholder="ZID"
+                    className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-0.5 text-sm font-mono font-semibold text-gray-700 outline-none focus:border-teal-500 focus:bg-white"
+                  />
+                </div>
               </div>
             </div>
 
