@@ -551,11 +551,12 @@ export const Field = ({
 		<label className="grid gap-2 text-sm font-medium text-gray-600">
 			<span>{label}</span>
 			<input
-				className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-600/50 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+				className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-600/50 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 				type={type}
 				value={value}
 				onChange={(event) => onChange(event.target.value)}
 				placeholder={placeholder}
+				onWheel={type === "number" ? (e) => e.currentTarget.blur() : undefined}
 			/>
 			{error ? (
 				<p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

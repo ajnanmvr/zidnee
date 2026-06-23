@@ -124,6 +124,7 @@ const toLeadResponse = (lead: Lead): Record<string, unknown> => {
 		preferredPlan: lead.preferredPlan,
 		preferredTimeslots: lead.preferredTimeslots ?? [],
 		price: lead.price,
+		admissionFee: (lead as any).admissionFee,
 		hearAboutUs: lead.hearAboutUs,
 		demoAvailability: lead.demoAvailability,
 		preferredMentorGender: lead.preferredMentorGender,

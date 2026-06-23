@@ -1689,7 +1689,8 @@ const PublicFormPage = () => {
 							) : (
 								<button
 									key="step-nav-submit"
-									type="submit"
+									type="button"
+									onClick={() => onSubmit(getValues())}
 									disabled={isSubmitting}
 									className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-[#1a5d4a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
 								>

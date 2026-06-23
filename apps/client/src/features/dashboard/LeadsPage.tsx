@@ -478,13 +478,17 @@ export const LeadsPage = () => {
 		},
 	});
 
-	const allUsers = usersQuery.data?.users ?? [];
+	const allUsers = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data]);
 	const mentorsQuery = useMentorsQuery(token, "all", Boolean(token));
-	const allMentors = mentorsQuery.data?.users ?? [];
+	const allMentors = useMemo(() => mentorsQuery.data?.users ?? [], [mentorsQuery.data]);
 	const salesUsersQuery = useSalesUsersQuery(token, canReadSalesUsers && allUsers.length === 0);
-	const salesUsers = allUsers.length > 0
-		? allUsers.filter((u: any) => u.roles?.some((r: any) => r.type === "sales"))
-		: salesUsersQuery.data?.users ?? [];
+	const salesUsers = useMemo(
+		() =>
+			allUsers.length > 0
+				? allUsers.filter((u: any) => u.roles?.some((r: any) => r.type === "sales"))
+				: salesUsersQuery.data?.users ?? [],
+		[allUsers, salesUsersQuery.data],
+	);
 	const counsellorsQuery = useCounsellorsQuery(token, Boolean(token));
 
 	// prefer full user list when available, otherwise fall back to sales users
@@ -2216,8 +2220,9 @@ ${formLinkData.formLink}`;
 							min="0"
 							value={admissionPriceInput}
 							onChange={(e) => setAdmissionPriceInput(e.target.value)}
+							onWheel={(e) => e.currentTarget.blur()}
 							placeholder="Enter price to proceed"
-							className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none"
+							className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 						/>
 						{admissionLead?.price ? (
 							<p className="mt-1 text-xs text-gray-500">
@@ -2236,8 +2241,9 @@ ${formLinkData.formLink}`;
 							min="0"
 							value={admissionFeeInput || (admissionLead?.admissionFee?.toString() ?? "")}
 							onChange={(e) => setAdmissionFeeInput(e.target.value)}
+							onWheel={(e) => e.currentTarget.blur()}
 							placeholder="Required to proceed"
-							className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+							className="w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 						/>
 						{admissionLead?.admissionFee && !admissionFeeInput ? (
 							<p className="mt-1 text-xs text-gray-500">

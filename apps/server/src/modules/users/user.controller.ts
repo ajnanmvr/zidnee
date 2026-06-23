@@ -463,7 +463,9 @@ export const updateUserController = async (
 		roleIds: result.data.roleIds,
 		counsellorId: result.data.counsellorId,
 		zids: zidsToSet,
-	});
+		// Keep legacy mentorId in sync with zids.mentor so display logic stays consistent
+		...(zidsToSet.mentor ? { mentorId: zidsToSet.mentor } : {}),
+	} as any);
 
 	if (!updatedUser) {
 		throw new Error("Failed to update user");

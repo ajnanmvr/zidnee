@@ -262,6 +262,8 @@ export const LeadDetailPageNew = () => {
 	const [stageChangeConfirmed, setStageChangeConfirmed] = useState(false);
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
+	const [admissionFeeEditOpen, setAdmissionFeeEditOpen] = useState(false);
+	const [admissionFeeInput, setAdmissionFeeInput] = useState<string>("");
 
 	const {
 		control: editControl,
@@ -466,6 +468,14 @@ export const LeadDetailPageNew = () => {
 		}
 	}, [priceEditOpen, lead?.price]);
 
+	useEffect(() => {
+		if (admissionFeeEditOpen && lead?.admissionFee) {
+			setAdmissionFeeInput(lead.admissionFee.toString());
+		} else {
+			setAdmissionFeeInput("");
+		}
+	}, [admissionFeeEditOpen, lead?.admissionFee]);
+
 	const onEditSubmit = handleEditSubmit(async (payload) => {
 		if (!lead) return;
 		try {
@@ -615,6 +625,35 @@ export const LeadDetailPageNew = () => {
 
 			toast.error(
 				error instanceof Error ? error.message : "Unable to update price",
+			);
+		}
+	};
+
+	const onSaveAdmissionFee = async () => {
+		if (!lead || !admissionFeeInput.trim()) {
+			toast.error("Please enter a valid admission fee");
+			return;
+		}
+
+		const admissionFee = parseInt(admissionFeeInput, 10);
+		if (Number.isNaN(admissionFee) || admissionFee < 0) {
+			toast.error("Admission fee must be a valid positive number");
+			return;
+		}
+
+		try {
+			await updateMutation.mutateAsync({ leadId: lead.id, payload: { admissionFee } });
+			toast.success("Admission fee updated successfully.");
+			setAdmissionFeeEditOpen(false);
+			setAdmissionFeeInput("");
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.payload.message ?? "Unable to update admission fee");
+				return;
+			}
+
+			toast.error(
+				error instanceof Error ? error.message : "Unable to update admission fee",
 			);
 		}
 	};
@@ -781,21 +820,22 @@ export const LeadDetailPageNew = () => {
 							</div>
 						</div>
 						<div className="flex flex-wrap items-center gap-2 pb-1">
-							{lead.price ? (
-								<span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700">
-									<HiBanknotes className="h-4 w-4 text-emerald-600" />
-									₹{lead.price}
-								</span>
-							) : (
-								<button
-									type="button"
-									onClick={() => setPriceEditOpen(true)}
-									className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
-								>
-									<HiBanknotes className="h-4 w-4" />
-									Set amount
-								</button>
-							)}
+							<button
+								type="button"
+								onClick={() => setPriceEditOpen(true)}
+								className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${lead.price ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50" : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}
+							>
+								<HiBanknotes className={`h-4 w-4 ${lead.price ? "text-emerald-600" : ""}`} />
+								{lead.price ? `₹${lead.price}` : "Set amount"}
+							</button>
+							<button
+								type="button"
+								onClick={() => setAdmissionFeeEditOpen(true)}
+								className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${lead.admissionFee ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50" : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"}`}
+							>
+								<HiBanknotes className={`h-4 w-4 ${lead.admissionFee ? "text-violet-500" : ""}`} />
+								{lead.admissionFee ? `Admission: ₹${lead.admissionFee}` : "Set admission fee"}
+							</button>
 						</div>
 					</div>
 				</div>
@@ -1468,8 +1508,55 @@ export const LeadDetailPageNew = () => {
 							type="number"
 							value={priceInput}
 							onChange={(e) => setPriceInput(e.target.value)}
-							className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+							onWheel={(e) => e.currentTarget.blur()}
+							className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 							placeholder="Enter price"
+							min="0"
+						/>
+					</label>
+				</div>
+			</Modal>
+			<Modal
+				open={admissionFeeEditOpen}
+				onClose={() => {
+					setAdmissionFeeEditOpen(false);
+					setAdmissionFeeInput("");
+				}}
+				title={lead?.admissionFee ? "Edit Admission Fee" : "Add Admission Fee"}
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => {
+								setAdmissionFeeEditOpen(false);
+								setAdmissionFeeInput("");
+							}}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={onSaveAdmissionFee}
+							className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+						>
+							Save Admission Fee
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<label className="grid gap-2">
+						<span className="text-sm font-semibold text-gray-700">
+							Admission Fee (₹)
+						</span>
+						<input
+							type="number"
+							value={admissionFeeInput}
+							onChange={(e) => setAdmissionFeeInput(e.target.value)}
+							onWheel={(e) => e.currentTarget.blur()}
+							className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+							placeholder="Enter admission fee"
 							min="0"
 						/>
 					</label>
