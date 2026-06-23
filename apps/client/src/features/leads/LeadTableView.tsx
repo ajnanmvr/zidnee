@@ -130,7 +130,21 @@ export function LeadTableView({ leads, activeStage, userNameById, getActions }: 
 												<span className="mt-0.5 inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
 													<HiStar className="h-2.5 w-2.5" /> Organic
 												</span>
-											) :null}
+											) : null}
+											{(lead.price || lead.admissionFee) ? (
+												<div className="mt-1 flex flex-wrap gap-1">
+													{lead.price ? (
+														<span className="inline-flex rounded-full bg-emerald-50 px-1.5 py-px text-[10px] font-semibold text-emerald-700">
+															₹{lead.price}
+														</span>
+													) : null}
+													{lead.admissionFee ? (
+														<span className="inline-flex rounded-full bg-violet-50 px-1.5 py-px text-[10px] font-semibold text-violet-700">
+															Adm: ₹{lead.admissionFee}
+														</span>
+													) : null}
+												</div>
+											) : null}
 										</div>
 									</div>
 								</td>

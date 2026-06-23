@@ -80,6 +80,20 @@ export function AllLeadsListView({ leads }: Props) {
 									) : null}
 								</div>
 								<p className="truncate text-xs text-gray-500">{lead.phone}</p>
+								{(lead.price || lead.admissionFee) ? (
+									<div className="mt-0.5 flex flex-wrap gap-1">
+										{lead.price ? (
+											<span className="inline-flex rounded-full bg-emerald-50 px-1.5 py-px text-[10px] font-semibold text-emerald-700">
+												₹{lead.price}
+											</span>
+										) : null}
+										{lead.admissionFee ? (
+											<span className="inline-flex rounded-full bg-violet-50 px-1.5 py-px text-[10px] font-semibold text-violet-700">
+												Adm: ₹{lead.admissionFee}
+											</span>
+										) : null}
+									</div>
+								) : null}
 							</div>
 
 							{/* Status pill */}

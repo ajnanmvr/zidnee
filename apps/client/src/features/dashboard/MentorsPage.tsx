@@ -164,6 +164,7 @@ export const MentorsPage = () => {
 		mentors.map((m) => ({
 			id: m.mentor.id,
 			displayId: getMentorDisplayId(m.mentor),
+			zidsMentor: (m.mentor as any).zids?.mentor ?? (m.mentor as any).mentorId ?? "",
 			name: m.mentor.name ?? m.mentor.username ?? "-",
 			username: m.mentor.username,
 			counsellorName: m.counsellor ? formatUserName(m.counsellor.name, m.counsellor.username) : null,
@@ -317,7 +318,7 @@ export const MentorsPage = () => {
 							type="button"
 							title="Edit ZM number"
 							aria-label="Edit ZM number"
-							onClick={() => { setZmInput(row.original.displayId !== "-" ? row.original.displayId : ""); setZmModal({ userId: row.original.id, name: row.original.name, currentZm: row.original.displayId }); }}
+							onClick={() => { setZmInput(row.original.zidsMentor || ""); setZmModal({ userId: row.original.id, name: row.original.name, currentZm: row.original.displayId }); }}
 							className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
 						>
 							<HiHashtag className="h-4 w-4" aria-hidden="true" />
