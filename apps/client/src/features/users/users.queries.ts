@@ -31,13 +31,15 @@ export const useMentorsQuery = (
 	token: string,
 	scope?: "mine" | "all",
 	enabled = true,
+	search?: string,
 ) => {
 	const canReadAllMentors = useHasAnyPermission(MENTOR_READ_ALL_KEYS);
 	const resolvedScope = scope ?? (canReadAllMentors ? "all" : "mine");
+	const resolvedSearch = search?.trim() || undefined;
 
 	return useQuery({
-		queryKey: [...usersQueryKeys.users(token), "mentors", resolvedScope] as const,
-		queryFn: () => fetchMentors(token, resolvedScope),
+		queryKey: [...usersQueryKeys.users(token), "mentors", resolvedScope, resolvedSearch ?? ""] as const,
+		queryFn: () => fetchMentors(token, resolvedScope, resolvedSearch),
 		enabled: Boolean(token) && enabled,
 	});
 };

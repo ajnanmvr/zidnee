@@ -245,6 +245,11 @@ export const listLeadsController = async (
 		throw new AuthorizationError("Insufficient permissions to view your leads");
 	}
 
+	const assignedToFilter =
+		scope === "all" && typeof req.query.assignedTo === "string" && req.query.assignedTo
+			? req.query.assignedTo
+			: undefined;
+
 	const { leads, total, page, pageSize } = await LeadService.listLeads({
 		createdBy: req.user.userId,
 		scope,
@@ -255,6 +260,7 @@ export const listLeadsController = async (
 		sortBy,
 		sortOrder,
 		search,
+		assignedToFilter,
 	});
 
 	res.json({

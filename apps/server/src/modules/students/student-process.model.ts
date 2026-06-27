@@ -31,6 +31,7 @@ type StudentProcessTaskDefinition = {
 
 type StudentProcessTaskKey =
 	| "send-welcome-message"
+	| "check-admission-fee-collected"
 	| "data-confirmed-and-shared-class-group-awareness"
 	| "level-drive-link-shared-to-parent"
 	| "data-shared-to-mentor-for-confirmation-and-created-group"
@@ -59,6 +60,9 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<string, StudentProcessTaskDefinition>
 		label: "Send welcome message",
 		actionType: "WHATSAPP",
 		dynamic: true,
+	},
+	"check-admission-fee-collected": {
+		label: "Check Admission Fee Collected",
 	},
 	"data-confirmed-and-shared-class-group-awareness": {
 		label: "Data confirmed & Shared Class Group Awareness",
@@ -122,6 +126,7 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 		label: "Student Admission Process",
 		taskKeys: [
 			"send-welcome-message",
+			"check-admission-fee-collected",
 			"data-confirmed-and-shared-class-group-awareness",
 			"data-shared-to-mentor-for-confirmation-and-created-group",
 			"added-in-parents-group",
@@ -306,6 +311,7 @@ export const getAdmissionProcessTemplate = (
 
 	const taskKeys: StudentProcessTaskKey[] = [
 		"send-welcome-message",
+		"check-admission-fee-collected",
 		"data-confirmed-and-shared-class-group-awareness",
 		"level-drive-link-shared-to-parent",
 		"data-shared-to-mentor-for-confirmation-and-created-group",

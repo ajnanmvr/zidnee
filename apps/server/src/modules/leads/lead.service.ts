@@ -564,6 +564,7 @@ export const LeadService = {
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
 		search?: string;
+		assignedToFilter?: string;
 	}): Promise<{
 		leads: Lead[];
 		total: number;
@@ -584,6 +585,10 @@ export const LeadService = {
 		if (filters.scope === "mine") {
 			filtered = filtered.filter(
 				(lead) => toObjectIdString(lead.assignedTo) === filters.createdBy,
+			);
+		} else if (filters.assignedToFilter) {
+			filtered = filtered.filter(
+				(lead) => toObjectIdString(lead.assignedTo) === filters.assignedToFilter,
 			);
 		}
 
