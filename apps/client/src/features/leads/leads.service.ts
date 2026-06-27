@@ -25,6 +25,7 @@ export const fetchDueLeadFollowUps = async (
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
 		search?: string;
+		assignedTo?: string;
 	},
 ) => {
 	const scope = options?.scope ?? "all";
@@ -42,6 +43,9 @@ export const fetchDueLeadFollowUps = async (
 	}
 	if (options?.search) {
 		query += `&search=${encodeURIComponent(options.search)}`;
+	}
+	if (options?.assignedTo) {
+		query += `&assignedTo=${encodeURIComponent(options.assignedTo)}`;
 	}
 
 	return requestWithSchema(

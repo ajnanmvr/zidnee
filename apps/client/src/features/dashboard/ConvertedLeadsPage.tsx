@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { HiCheckCircle } from "react-icons/hi2";
+import { HiCheckCircle, HiMagnifyingGlass } from "react-icons/hi2";
 import { useSession } from "@/lib/session";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -44,6 +44,8 @@ export const ConvertedLeadsPage = () => {
 	const searchTerm = searchParams.get("search") ?? "";
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
+	const sortBy = searchParams.get("sortBy") ?? "admittedAt";
+	const [salesPersonFilter, setSalesPersonFilter] = useState("");
 
 	const canReadAll = useHasPermission("LEAD_READ_ALL") || useHasPermission("LEADS_CONVERTED_READ");
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
@@ -51,11 +53,8 @@ export const ConvertedLeadsPage = () => {
 
 	const studentsQuery = useStudentsQuery(token, {
 		admittedBy: activeScope === "mine" ? "me" : "all",
-		// No status filter — every student record originates from a lead conversion,
-		// so "Converted Leads" should include students on break/dropped too, not
-		// just currently-active ones.
 		search: searchTerm || undefined,
-		sortBy: "admittedAt",
+		sortBy: sortBy === "salesPerson" ? "admittedAt" : sortBy,
 		sortOrder: "desc",
 		page,
 		limit,
@@ -73,10 +72,45 @@ export const ConvertedLeadsPage = () => {
 		return new Map((users as any[]).map((u) => [u.id, u.name || u.username]));
 	}, [usersQuery.data]);
 
-	const rows = useMemo(
+	const allRows = useMemo(
 		() => (studentsQuery.data?.students ?? []) as any[],
 		[studentsQuery.data?.students],
 	);
+
+	// Client-side search + sales-person filter (server search is primary; this is a failsafe)
+	const rows = useMemo(() => {
+		let out = allRows;
+		if (searchTerm.trim()) {
+			const q = searchTerm.trim().toLowerCase();
+			out = out.filter((r) =>
+				[r.name ?? "", r.phone ?? "", r.zid ?? "", r.email ?? ""].join(" ").toLowerCase().includes(q),
+			);
+		}
+		if (salesPersonFilter) {
+			out = out.filter((r) => r.admittedBy === salesPersonFilter);
+		}
+		if (sortBy === "salesPerson") {
+			out = out.slice().sort((a, b) => {
+				const nameA = (userNameById.get(a.admittedBy) ?? "") as string;
+				const nameB = (userNameById.get(b.admittedBy) ?? "") as string;
+				return nameA.localeCompare(nameB);
+			});
+		}
+		return out;
+	}, [allRows, searchTerm, salesPersonFilter, sortBy, userNameById]);
+
+	// Build list of unique sales people from loaded rows
+	const salesPersonOptions = useMemo(() => {
+		const seen = new Set<string>();
+		const opts: Array<{ id: string; name: string }> = [];
+		allRows.forEach((r) => {
+			if (r.admittedBy && !seen.has(r.admittedBy)) {
+				seen.add(r.admittedBy);
+				opts.push({ id: r.admittedBy, name: (userNameById.get(r.admittedBy) ?? "Unknown") as string });
+			}
+		});
+		return opts.sort((a, b) => a.name.localeCompare(b.name));
+	}, [allRows, userNameById]);
 
 	const totalPages = (studentsQuery.data as any)?.pagination?.totalPages ?? 1;
 	const totalCount = (studentsQuery.data as any)?.pagination?.total ?? rows.length;
@@ -115,14 +149,22 @@ export const ConvertedLeadsPage = () => {
 				</div>
 			</div>
 
-			{/* Search toolbar */}
-			<div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3">
-				<input
-					value={searchTerm}
-					onChange={(e) => { setQueryParam("search", e.target.value); setQueryParam("page", undefined); }}
-					placeholder="Search by name, phone, or ZID…"
-					className="w-64 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-				/>
+			{/* Search + filter toolbar */}
+			<div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3">
+				<div className="relative">
+					<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+					<input
+						value={searchTerm}
+						onChange={(e) => {
+							const next = new URLSearchParams(searchParams);
+							if (e.target.value) next.set("search", e.target.value); else next.delete("search");
+							next.delete("page");
+							setSearchParams(next);
+						}}
+						placeholder="Search by name, phone, or ZID…"
+						className="w-60 rounded-lg border border-gray-200 py-1.5 pl-9 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+					/>
+				</div>
 				{searchTerm ? (
 					<button
 						type="button"
@@ -132,6 +174,30 @@ export const ConvertedLeadsPage = () => {
 						Clear
 					</button>
 				) : null}
+				{salesPersonOptions.length > 1 ? (
+					<select
+						value={salesPersonFilter}
+						onChange={(e) => setSalesPersonFilter(e.target.value)}
+						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+					>
+						<option value="">All sales people</option>
+						{salesPersonOptions.map((sp) => (
+							<option key={sp.id} value={sp.id}>{sp.name}</option>
+						))}
+					</select>
+				) : null}
+				<div className="ml-auto flex items-center gap-2">
+					<label className="text-xs font-medium text-gray-500">Sort by</label>
+					<select
+						value={sortBy}
+						onChange={(e) => setQueryParam("sortBy", e.target.value === "admittedAt" ? undefined : e.target.value)}
+						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+					>
+						<option value="admittedAt">Converted date</option>
+						<option value="name">Name (A-Z)</option>
+						<option value="salesPerson">Sales person (A-Z)</option>
+					</select>
+				</div>
 			</div>
 
 			{/* Table */}

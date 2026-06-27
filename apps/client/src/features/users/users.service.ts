@@ -24,9 +24,12 @@ export const fetchUsers = async (token: string) => {
 export const fetchMentors = async (
 	token: string,
 	scope: "mine" | "all" = "all",
+	search?: string,
 ) => {
+	const query = new URLSearchParams({ scope });
+	if (search?.trim()) query.set("search", search.trim());
 	return requestWithSchema(
-		`/users/mentors?scope=${scope}`,
+		`/users/mentors?${query.toString()}`,
 		UsersResponseSchema,
 		"GET",
 		undefined,

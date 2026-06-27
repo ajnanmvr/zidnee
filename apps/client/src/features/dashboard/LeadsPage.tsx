@@ -6,7 +6,7 @@
 	PostponeLeadFollowUpPayloadSchema,
 	RedemoLeadPayloadSchema,
 } from "@repo/schema";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import toast from "react-hot-toast";
 import {
@@ -14,6 +14,7 @@ import {
 	HiArrowPath,
 	HiCalendarDays,
 	HiCheck,
+	HiClipboard,
 	HiMagnifyingGlass,
 	HiPlusCircle,
 	HiPencilSquare,
@@ -61,6 +62,7 @@ import type {
 	RedemoLeadForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { format } from "date-fns";
 import { formatTableDate } from "@/lib/utils/date";
 import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
 
@@ -122,38 +124,64 @@ const formatFormResponseGender = (value?: string | null) => {
 	return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-/** Builds a plain-text summary of a lead's form response for copying to the clipboard. */
-const buildFormResponseSummary = (lead: LeadResponse): string => {
-	const plan = lead.preferredPlan as
-		| { timesPerWeek?: number; durationMinutes?: number }
-		| undefined;
+const _fmtTime12h = (t: string) => {
+	const parts = t.split(":").map(Number);
+	const h = parts[0] ?? NaN;
+	const m = parts[1] ?? NaN;
+	if (Number.isNaN(h) || Number.isNaN(m)) return t;
+	const mer = h >= 12 ? "PM" : "AM";
+	const h12 = h % 12 || 12;
+	return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${mer}`;
+};
+
+/** Builds the student requirements text — identical format to the RequirementsModal "Copy for WhatsApp". */
+const buildStudentRequirementsCopy = (lead: LeadResponse): string => {
 	const timeslots = lead.preferredTimeslots as
 		| Array<{ startTime: string; endTime: string }>
 		| undefined;
+	const plan = lead.preferredPlan as
+		| { timesPerWeek?: number; durationMinutes?: number }
+		| undefined;
 
-	const lines: Array<string | null> = [
-		`Name: ${lead.name ?? lead.phone ?? "-"}`,
-		`Date of Birth: ${lead.dateOfBirth ? formatTableDate(lead.dateOfBirth) : "-"}`,
-		`Standard / Level: ${lead.level ?? "-"}`,
-		`Gender: ${formatFormResponseGender(lead.gender) ?? "-"}`,
-		`Residing Country: ${lead.residingCountry ?? "-"}`,
-		`Primary WhatsApp: ${lead.primaryWhatsappNumber ?? "-"}`,
-		`Alternate WhatsApp: ${lead.alternateWhatsappNumber ?? "-"}`,
-		`Email: ${lead.email ?? "-"}`,
-		`Preferred Language: ${lead.preferredLanguage ?? "-"}`,
-		`Preferred Schedule: ${lead.preferredSchedule ?? "-"}`,
-		lead.preferredDays?.length ? `Preferred Days: ${lead.preferredDays.join(", ")}` : null,
-		`Demo Availability: ${lead.demoAvailability ?? "-"}`,
-		`Hear About Us: ${lead.hearAboutUs ?? "-"}`,
-		`Preferred Mentor Gender: ${lead.preferredMentorGender ?? "-"}`,
-		lead.studentInfo ? `Student Info: ${lead.studentInfo}` : null,
-		plan ? `Preferred Plan: ${plan.durationMinutes} min · ${plan.timesPerWeek} days/week` : null,
-		timeslots?.length
-			? `Preferred Timeslots: ${timeslots.map((slot) => `${slot.startTime} - ${slot.endTime}`).join(", ")}`
-			: null,
-	];
+	const preferredDays = lead.preferredDays?.length ? lead.preferredDays.join(", ") : null;
 
-	return lines.filter((line): line is string => Boolean(line)).join("\n");
+	const timing = timeslots?.length
+		? timeslots.map((s) => `${_fmtTime12h(s.startTime)} - ${_fmtTime12h(s.endTime)}`).join(", ")
+		: null;
+
+	const planForCopy = plan
+		? `${plan.durationMinutes} mins for ${plan.timesPerWeek} days in a week`
+		: (lead.preferredSchedule || null);
+
+	const latestDemo = lead.demos && lead.demos.length > 0
+		? lead.demos[lead.demos.length - 1]
+		: null;
+
+	const rawDemoTime = latestDemo?.demoScheduledFor ?? lead.demoAvailability ?? null;
+	const demoTimeForCopy = rawDemoTime
+		? (() => { try { return format(new Date(rawDemoTime), "dd MMM yyyy, hh:mm a"); } catch { return String(rawDemoTime); } })()
+		: null;
+
+	const contact = lead.primaryWhatsappNumber || lead.phone || null;
+
+	const mentorGender = lead.preferredMentorGender
+		? lead.preferredMentorGender.charAt(0).toUpperCase() + lead.preferredMentorGender.slice(1)
+		: null;
+
+	return [
+		`📋 *Student Requirements*`,
+		` `,
+		lead.name ? `*Name:* ${lead.name}` : null,
+		contact ? `*Contact Number:* ${contact}` : null,
+		lead.level ? `*Level:* ${lead.level}` : null,
+		lead.preferredLanguage ? `*Language:* ${lead.preferredLanguage}` : null,
+		mentorGender ? `*Tutor Preference:* ${mentorGender}` : null,
+		preferredDays ? `*Preferred Days:* ${preferredDays}` : null,
+		planForCopy ? `*Plan:* ${planForCopy}` : null,
+		timing ? `*Timing:* ${timing}` : null,
+		demoTimeForCopy ? `*Demo Time:* ${demoTimeForCopy}` : null,
+		latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
+	].filter(Boolean).join("\n");
 };
 
 /** Selectable row for the counsellor-search list in the Request Demo modal. */
@@ -245,6 +273,9 @@ export const LeadsPage = () => {
 	// the "All users in stage" control.
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
 	const activeScope = loadAllRequested && canReadAllLeads ? "all" : "mine";
+	const [filterPersonId, setFilterPersonId] = useState("");
+	const [othersDropdownOpen, setOthersDropdownOpen] = useState(false);
+	const othersDropdownRef = useRef<HTMLDivElement>(null);
 
 	// Map stage to status for backend filtering
 	const stageToStatus = (stage: LeadStageId): string | undefined => {
@@ -281,7 +312,20 @@ export const LeadsPage = () => {
 		setSearchInput("");
 		setSearch("");
 		setCurrentPage(1);
+		setFilterPersonId("");
+		setOthersDropdownOpen(false);
 	}, [activeStage, activeScope]);
+
+	useEffect(() => {
+		if (!othersDropdownOpen) return;
+		const handle = (e: MouseEvent) => {
+			if (othersDropdownRef.current && !othersDropdownRef.current.contains(e.target as Node)) {
+				setOthersDropdownOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handle);
+		return () => document.removeEventListener("mousedown", handle);
+	}, [othersDropdownOpen]);
 
 	const activeLeadsQuery = useDueLeadFollowUpsQuery(token, {
 		scope: activeScope,
@@ -291,6 +335,7 @@ export const LeadsPage = () => {
 		sortBy,
 		sortOrder,
 		search: search || undefined,
+		assignedTo: filterPersonId || undefined,
 		enabled: shouldEnableLeadsQuery,
 	});
 	const usersQuery = useUsersQuery(token, canReadUsers);
@@ -343,6 +388,7 @@ export const LeadsPage = () => {
 		null,
 	);
 	const [formResponseLead, setFormResponseLead] = useState<LeadResponse | null>(null);
+	const [formResponseCopied, setFormResponseCopied] = useState(false);
 	const [selectedRequestCounsellor, setSelectedRequestCounsellor] = useState<
 		string | undefined
 	>(undefined);
@@ -1154,23 +1200,70 @@ export const LeadsPage = () => {
 						{pagination ? ` · ${pagination.total} total` : ""}
 					</p>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex flex-wrap items-center gap-2">
 					{canReadAllLeads ? (
 					<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+						{/* Mine */}
 						<Link
 							to={buildSearch(activeStage, "mine")}
-							onClick={() => setLoadAllRequested(false)}
+							onClick={() => { setLoadAllRequested(false); setFilterPersonId(""); setOthersDropdownOpen(false); }}
 							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
 						>
 							Mine
 						</Link>
+						{/* All */}
 						<Link
 							to={buildSearch(activeStage, "all")}
-							onClick={() => setLoadAllRequested(true)}
-							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+							onClick={() => { setLoadAllRequested(true); setFilterPersonId(""); setOthersDropdownOpen(false); }}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "all" && !filterPersonId ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
 						>
 							All
 						</Link>
+						{/* Others */}
+						{salesUsers.length > 0 ? (
+							<div ref={othersDropdownRef} className="relative">
+								<button
+									type="button"
+									onClick={() => {
+										setLoadAllRequested(true);
+										setOthersDropdownOpen((o) => !o);
+									}}
+									className={`inline-flex items-center gap-1 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${filterPersonId ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+								>
+									{filterPersonId
+										? ((salesUsers.find((u: any) => u.id === filterPersonId) as any)?.name
+											|| (salesUsers.find((u: any) => u.id === filterPersonId) as any)?.username
+											|| "Others")
+										: "Others"}
+									<svg className="h-3 w-3 opacity-60" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10L6 8z"/></svg>
+								</button>
+								{othersDropdownOpen ? (
+									<div className="absolute right-0 top-full z-30 mt-1.5 w-52 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+										{salesUsers.map((u: any) => {
+											const name = u.name || u.username || "Unknown";
+											const isSelected = filterPersonId === u.id;
+											return (
+												<button
+													key={u.id}
+													type="button"
+													onClick={() => {
+														setFilterPersonId(u.id);
+														setCurrentPage(1);
+														setOthersDropdownOpen(false);
+													}}
+													className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm transition hover:bg-blue-50 ${isSelected ? "bg-blue-50 font-semibold text-blue-700" : "text-gray-700"}`}
+												>
+													<span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+														{name[0]?.toUpperCase()}
+													</span>
+													{name}
+												</button>
+											);
+										})}
+									</div>
+								) : null}
+							</div>
+						) : null}
 					</div>
 				) : null}
 					{hasPermission("LEAD_CREATE") ? (
@@ -1665,21 +1758,26 @@ ${formLinkData.formLink}`;
 				open={Boolean(formResponseLead)}
 				title="Form Responses"
 				description={formResponseLead ? `${formResponseLead.name ?? formResponseLead.phone}` : ""}
-				onClose={() => setFormResponseLead(null)}
+				onClose={() => { setFormResponseLead(null); setFormResponseCopied(false); }}
 				footer={
 					<>
 						<button
 							type="button"
 							className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
 							onClick={() => {
-								if (!formResponseLead) {
-									return;
-								}
-								navigator.clipboard.writeText(buildFormResponseSummary(formResponseLead));
-								toast.success("Form response copied to clipboard");
+								if (!formResponseLead) return;
+								void navigator.clipboard.writeText(buildStudentRequirementsCopy(formResponseLead)).then(() => {
+									toast.success("Student requirements copied!");
+									setFormResponseCopied(true);
+									setTimeout(() => setFormResponseCopied(false), 2000);
+								});
 							}}
 						>
-							Copy
+							{formResponseCopied ? (
+								<><HiCheck className="h-4 w-4" />Copied!</>
+							) : (
+								<><HiClipboard className="h-4 w-4" />Copy Student Requirements</>
+							)}
 						</button>
 						<button
 							type="button"

@@ -20,6 +20,7 @@ export const leadsQueryKeys = {
 		sortBy: string = "nextFollowUpAt",
 		sortOrder: "asc" | "desc" = "desc",
 		search?: string,
+		assignedTo?: string,
 	) =>
 		[
 			"leads",
@@ -33,6 +34,7 @@ export const leadsQueryKeys = {
 			sortBy,
 			sortOrder,
 			search,
+			assignedTo,
 		] as const,
 	demoRequests: (token: string) => ["leads", "demo-requests", token] as const,
 	pendingDemoRequests: (token: string) => ["leads", "for-demo", token] as const,
@@ -78,11 +80,11 @@ export const useDueLeadFollowUpsQuery = (
 		sortBy?: string;
 		sortOrder?: "asc" | "desc";
 		search?: string;
+		assignedTo?: string;
 		enabled?: boolean;
 	},
 ) => {
 	const requestedScope = options?.scope ?? "all";
-	// Only allow requesting the full "all" scope if the user has LEAD_READ_ALL
 	const canReadAll = useHasPermission("LEAD_READ_ALL");
 	const scope = requestedScope === "all" && !canReadAll ? "mine" : requestedScope;
 	const timeFilter = options?.timeFilter ?? "all";
@@ -92,6 +94,7 @@ export const useDueLeadFollowUpsQuery = (
 	const sortBy = options?.sortBy ?? "nextFollowUpAt";
 	const sortOrder = options?.sortOrder ?? "desc";
 	const search = options?.search;
+	const assignedTo = scope === "all" ? options?.assignedTo : undefined;
 	const enabled = options?.enabled ?? true;
 
 	return useQuery({
@@ -105,6 +108,7 @@ export const useDueLeadFollowUpsQuery = (
 			sortBy,
 			sortOrder,
 			search,
+			assignedTo,
 		),
 		queryFn: () =>
 			fetchDueLeadFollowUps(token, {
@@ -116,6 +120,7 @@ export const useDueLeadFollowUpsQuery = (
 				sortBy,
 				sortOrder,
 				search,
+				assignedTo,
 			}),
 		enabled: Boolean(token) && enabled,
 	});

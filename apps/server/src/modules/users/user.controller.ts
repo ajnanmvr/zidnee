@@ -324,6 +324,17 @@ export const listMentorsController = async (
 		mentors = mentors.filter((user) => user.counsellorId === req.user!.userId);
 	}
 
+	const search = typeof req.query.search === "string" ? req.query.search.trim().toLowerCase() : "";
+	if (search) {
+		mentors = mentors.filter((user) => {
+			const zmId = ((user as any).zids?.mentor ?? (user as any).mentorId ?? "") as string;
+			return [user.name ?? "", user.username ?? "", user.email ?? "", zmId]
+				.join(" ")
+				.toLowerCase()
+				.includes(search);
+		});
+	}
+
 	const usersWithRelations = await Promise.all(
 		mentors.map((user) => getUserWithRelations(user)),
 	);

@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { Modal } from "@/components/dashboard-ui";
 import {
 	HiAcademicCap,
+	HiArrowPath,
 	HiChevronLeft,
 	HiChevronRight,
 	HiEye,
@@ -13,7 +14,7 @@ import {
 	HiUserPlus,
 } from "react-icons/hi2";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
-import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
+import { useAssignUserCounsellorMutation, useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSearchParams, Link } from "react-router-dom";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -76,8 +77,20 @@ export const MentorsPage = () => {
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllMentors ? "all" : "mine";
 
+	// URL params — must be declared before queries that depend on them
+	const [searchParams, setSearchParams] = useSearchParams();
+	const searchTerm = searchParams.get("search") ?? "";
+	const page = Number(searchParams.get("page") ?? "1");
+	const limit = Number(searchParams.get("limit") ?? "25");
+	const setQueryParam = (k: string, v?: string) => {
+		const next = new URLSearchParams(searchParams);
+		if (v) next.set(k, v);
+		else next.delete(k);
+		setSearchParams(next);
+	};
+
 	const usersQuery = useUsersQuery(token);
-	const mentorsQuery = useMentorsQuery(token, activeScope);
+	const mentorsQuery = useMentorsQuery(token, activeScope, true, searchTerm || undefined);
 	const studentsQuery = useStudentsQuery(token);
 	const batchesQuery = useBatchesQuery(token);
 	const { data: substitutions = [] } = useGetAllSubstitutions(token);
@@ -104,11 +117,16 @@ export const MentorsPage = () => {
 	const [createModalOpen, setCreateModalOpen] = useState(false);
 	const canCreateUser = useHasAnyPermission(["USER_CREATE", "MENTOR_CREATE"]);
 	const canEditUser = useHasAnyPermission(["USER_UPDATE", "USER_CREATE"]);
+	const canChangeCounsellor = useHasAnyPermission(["LEAD_ASSIGN", "USER_UPDATE", "MENTOR_UPDATE"]);
 	const createMentor = useCreateMentorMutation();
 	const updateUser = useUpdateUserMutation();
+	const assignCounsellor = useAssignUserCounsellorMutation();
 
 	const [zmModal, setZmModal] = useState<{ userId: string; name: string; currentZm: string } | null>(null);
 	const [zmInput, setZmInput] = useState("");
+	const [counsellorModal, setCounsellorModal] = useState<{ userId: string; name: string; currentCounsellorId?: string } | null>(null);
+	const [counsellorSearch, setCounsellorSearch] = useState("");
+	const [selectedCounsellorId, setSelectedCounsellorId] = useState("");
 
 	const handleZmSave = async () => {
 		if (!zmModal || !zmInput.trim()) return;
@@ -118,6 +136,19 @@ export const MentorsPage = () => {
 			setZmModal(null);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to update ZM number");
+		}
+	};
+
+	const handleCounsellorSave = async () => {
+		if (!counsellorModal || !selectedCounsellorId) return;
+		try {
+			await assignCounsellor.mutateAsync({ userId: counsellorModal.userId, counsellorId: selectedCounsellorId });
+			toast.success("Counsellor updated");
+			setCounsellorModal(null);
+			setCounsellorSearch("");
+			setSelectedCounsellorId("");
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update counsellor");
 		}
 	};
 
@@ -148,18 +179,6 @@ export const MentorsPage = () => {
 		}
 	};
 
-	// URL params
-	const [searchParams, setSearchParams] = useSearchParams();
-	const searchTerm = searchParams.get("search") ?? "";
-	const page = Number(searchParams.get("page") ?? "1");
-	const limit = Number(searchParams.get("limit") ?? "25");
-	const setQueryParam = (k: string, v?: string) => {
-		const next = new URLSearchParams(searchParams);
-		if (v) next.set(k, v);
-		else next.delete(k);
-		setSearchParams(next);
-	};
-
 	const rows = useMemo(() =>
 		mentors.map((m) => ({
 			id: m.mentor.id,
@@ -167,6 +186,7 @@ export const MentorsPage = () => {
 			zidsMentor: (m.mentor as any).zids?.mentor ?? (m.mentor as any).mentorId ?? "",
 			name: m.mentor.name ?? m.mentor.username ?? "-",
 			username: m.mentor.username,
+			counsellorId: (m.mentor as any).counsellorId ?? null,
 			counsellorName: m.counsellor ? formatUserName(m.counsellor.name, m.counsellor.username) : null,
 			individualStudents: m.individualStudents,
 			groupStudents: m.groupStudents,
@@ -184,9 +204,7 @@ export const MentorsPage = () => {
 	const sortBy = searchParams.get("sortBy") ?? "followUp";
 
 	const filteredRows = useMemo(() => {
-		const q = searchTerm.trim().toLowerCase();
 		let out = rows;
-		if (q) out = rows.filter((r) => [r.name ?? "", r.username ?? "", r.displayId ?? "", r.counsellorName ?? ""].join(" ").toLowerCase().includes(q));
 		out = out.slice().sort((a, b) => {
 			switch (sortBy) {
 				case "nameAsc":
@@ -211,7 +229,7 @@ export const MentorsPage = () => {
 		});
 		const start = (page - 1) * limit;
 		return out.slice(start, start + limit);
-	}, [rows, searchTerm, sortBy, page, limit]);
+	}, [rows, sortBy, page, limit]);
 
 	const totalCount = rows.length;
 
@@ -313,6 +331,21 @@ export const MentorsPage = () => {
 					>
 						<HiEye className="h-4 w-4" aria-hidden="true" />
 					</Link>
+					{canChangeCounsellor ? (
+						<button
+							type="button"
+							title="Change counsellor"
+							aria-label="Change counsellor"
+							onClick={() => {
+								setSelectedCounsellorId(row.original.counsellorId ?? "");
+								setCounsellorSearch("");
+								setCounsellorModal({ userId: row.original.id, name: row.original.name, currentCounsellorId: row.original.counsellorId ?? undefined });
+							}}
+							className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+						>
+							<HiArrowPath className="h-4 w-4" aria-hidden="true" />
+						</button>
+					) : null}
 					{canEditUser ? (
 						<button
 							type="button"
@@ -388,7 +421,7 @@ export const MentorsPage = () => {
 						<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 						<input
 							value={searchTerm}
-							onChange={(e) => setQueryParam("search", e.target.value)}
+							onChange={(e) => { setQueryParam("search", e.target.value); setQueryParam("page", undefined); }}
 							placeholder="Search mentors…"
 							className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 						/>
@@ -425,8 +458,73 @@ export const MentorsPage = () => {
 			</div>
 
 			{/* Table */}
-			<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-				<DataTable columns={columns} data={filteredRows} />
+			<div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+				{mentorsQuery.isLoading ? (
+					<div className="overflow-x-auto">
+						<table className="min-w-full border-collapse text-sm">
+							<thead>
+								<tr className="border-b border-gray-100 bg-gray-50/80">
+									{["Mentor", "Counsellor", "Students", "Batches", "Last Follow-up", "Next Follow-up", "Actions"].map((h) => (
+										<th key={h} className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">{h}</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{Array.from({ length: 7 }).map((_, i) => (
+									<tr key={i} className="border-b border-gray-100">
+										{/* Mentor */}
+										<td className="py-3.5 pl-4 pr-6">
+											<div className="flex items-center gap-3">
+												<div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-gray-200" />
+												<div className="space-y-1.5">
+													<div className="h-3 w-24 animate-pulse rounded-full bg-gray-200" />
+													<div className="h-2.5 w-16 animate-pulse rounded-full bg-gray-100" />
+												</div>
+											</div>
+										</td>
+										{/* Counsellor */}
+										<td className="px-4 py-3.5"><div className="h-3 w-20 animate-pulse rounded-full bg-gray-200" /></td>
+										{/* Students */}
+										<td className="px-4 py-3.5">
+											<div className="flex gap-1.5">
+												<div className="h-5 w-20 animate-pulse rounded-full bg-gray-200" />
+												<div className="h-5 w-16 animate-pulse rounded-full bg-gray-200" />
+											</div>
+										</td>
+										{/* Batches */}
+										<td className="px-4 py-3.5"><div className="h-5 w-8 animate-pulse rounded-full bg-gray-200" /></td>
+										{/* Last Follow-up */}
+										<td className="px-4 py-3.5"><div className="h-3 w-20 animate-pulse rounded-full bg-gray-200" /></td>
+										{/* Next Follow-up */}
+										<td className="px-4 py-3.5">
+											<div className="space-y-1.5">
+												<div className="h-3 w-20 animate-pulse rounded-full bg-gray-200" />
+												<div className="h-4 w-14 animate-pulse rounded-full bg-gray-100" />
+											</div>
+										</td>
+										{/* Actions */}
+										<td className="px-4 py-3.5">
+											<div className="flex justify-end gap-1.5">
+												<div className="h-8 w-8 animate-pulse rounded-lg bg-gray-200" />
+												<div className="h-8 w-8 animate-pulse rounded-lg bg-gray-200" />
+												<div className="h-8 w-8 animate-pulse rounded-lg bg-gray-200" />
+											</div>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				) : (
+					<>
+						{mentorsQuery.isFetching && (
+							<div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-gray-100">
+								<div className="h-full animate-pulse bg-emerald-400" />
+							</div>
+						)}
+						<DataTable columns={columns} data={filteredRows} />
+					</>
+				)}
 			</div>
 
 			{/* Pagination */}
@@ -552,6 +650,76 @@ export const MentorsPage = () => {
 					</div>
 				</div>
 			) : null}
+
+			{/* Change counsellor modal */}
+			{counsellorModal ? (() => {
+				const q = counsellorSearch.trim().toLowerCase();
+				const filteredCounsellors = q
+					? counsellors.filter((c: any) => `${c.name ?? ""} ${c.username ?? ""} ${c.zids?.counsellor ?? ""}`.toLowerCase().includes(q))
+					: counsellors;
+				return (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+						<div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+							<div className="border-b border-gray-100 px-5 py-4">
+								<div className="flex items-center gap-2">
+									<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100">
+										<HiArrowPath className="h-4 w-4 text-violet-600" />
+									</div>
+									<div>
+										<p className="text-sm font-bold text-gray-900">Change Counsellor</p>
+										<p className="text-xs text-gray-500">{counsellorModal.name}</p>
+									</div>
+								</div>
+							</div>
+							<div className="space-y-3 px-5 py-4">
+								<input
+									type="text"
+									value={counsellorSearch}
+									onChange={(e) => setCounsellorSearch(e.target.value)}
+									placeholder="Search counsellors…"
+									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+								/>
+								<div className="max-h-56 overflow-y-auto space-y-1.5 rounded-xl border border-gray-100 p-2">
+									{filteredCounsellors.length === 0 ? (
+										<p className="py-4 text-center text-sm text-gray-400">No counsellors found</p>
+									) : filteredCounsellors.map((c: any) => {
+										const name = c.name ?? c.username ?? "Unknown";
+										const isSelected = selectedCounsellorId === c.id;
+										return (
+											<button
+												key={c.id}
+												type="button"
+												onClick={() => setSelectedCounsellorId(c.id)}
+												className={`w-full rounded-lg border px-3 py-2 text-left transition ${isSelected ? "border-violet-500 bg-violet-50" : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"}`}
+											>
+												<p className="text-sm font-semibold text-gray-900">{name}</p>
+												{c.zids?.counsellor ? <p className="text-xs text-gray-500">{(c.zids.counsellor as string).toUpperCase()}</p> : null}
+											</button>
+										);
+									})}
+								</div>
+							</div>
+							<div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+								<button
+									type="button"
+									onClick={() => { setCounsellorModal(null); setCounsellorSearch(""); setSelectedCounsellorId(""); }}
+									className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+								>
+									Cancel
+								</button>
+								<button
+									type="button"
+									onClick={() => void handleCounsellorSave()}
+									disabled={!selectedCounsellorId || selectedCounsellorId === counsellorModal.currentCounsellorId || assignCounsellor.isPending}
+									className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+								>
+									{assignCounsellor.isPending ? "Saving…" : "Confirm"}
+								</button>
+							</div>
+						</div>
+					</div>
+				);
+			})() : null}
 			</>
 			);
 		};
