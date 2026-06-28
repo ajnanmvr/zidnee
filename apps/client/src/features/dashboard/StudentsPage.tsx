@@ -128,8 +128,8 @@ export const StudentsPage = () => {
 		}
 	};
 
-	const totalPages = (studentsQuery.data as any)?.pagination?.totalPages ?? 1;
-	const totalCount = (studentsQuery.data as any)?.pagination?.total ?? filteredStudents.length;
+	const totalPages = studentsQuery.data?.pagination?.totalPages ?? 1;
+	const totalCount = studentsQuery.data?.pagination?.total ?? filteredStudents.length;
 
 	return (
 		<div className="space-y-3">

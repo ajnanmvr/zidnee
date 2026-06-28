@@ -20,7 +20,7 @@ const trimProcessTaskLabel = (label: string) => {
 };
 
 const toStudentResponse = (
-	student: Awaited<ReturnType<typeof StudentService.listStudents>>[number],
+	student: Awaited<ReturnType<typeof StudentService.listStudents>>["students"][number],
 ) => {
 	return {
 		id: student.id,
@@ -44,6 +44,7 @@ const toStudentResponse = (
 		preferredDays: student.preferredDays,
 		timeslot: student.timeslot,
 		price: student.price,
+		admissionFee: student.admissionFee ?? undefined,
 		hearAboutUs: student.hearAboutUs,
 		mentorId: student.mentorId,
 		batchId: student.batchId,
@@ -159,21 +160,18 @@ export const listStudentsController = async (
 			? [canReadGroup ? "GROUP" : "INDIVIDUAL"]
 			: undefined;
 
-	const students = await StudentService.listStudents({
+	const page = typeof req.query.page === "string" ? parseInt(req.query.page, 10) : 1;
+	const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 25;
+
+	const result = await StudentService.listStudents({
 		status: typeof req.query.status === "string" ? req.query.status : undefined,
 		courseType: typeof req.query.courseType === "string" ? req.query.courseType : undefined,
 		allowedCourseTypes,
 		search: typeof req.query.search === "string" ? req.query.search : undefined,
 		sortBy: typeof req.query.sortBy === "string" ? req.query.sortBy : undefined,
 		sortOrder: req.query.sortOrder === "desc" ? "desc" : "asc",
-		page:
-			typeof req.query.page === "string"
-				? parseInt(req.query.page, 10)
-				: undefined,
-		limit:
-			typeof req.query.limit === "string"
-				? parseInt(req.query.limit, 10)
-				: undefined,
+		page,
+		limit,
 		scope: isConvertedLeadsView ? "all" : requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 		admittedBy: admittedByMe && typeof req.user?.userId === "string" ? req.user.userId : undefined,
@@ -181,7 +179,13 @@ export const listStudentsController = async (
 	res.json(
 		StudentsResponseSchema.parse({
 			ok: true,
-			students: students.map(toStudentResponse),
+			students: result.students.map(toStudentResponse),
+			pagination: {
+				total: result.total,
+				page,
+				limit,
+				totalPages: Math.max(1, Math.ceil(result.total / limit)),
+			},
 		}),
 	);
 };

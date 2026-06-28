@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { HiCheckCircle, HiMagnifyingGlass } from "react-icons/hi2";
 import { useSession } from "@/lib/session";
@@ -41,16 +41,19 @@ function avatarColor(id: string) {
 export const ConvertedLeadsPage = () => {
 	const { token } = useSession();
 	const [searchParams, setSearchParams] = useSearchParams();
+
+	// ── All UI state lives in the URL so Back restores the exact view ──────────
+	const scope = (searchParams.get("scope") as "mine" | "all") ?? "mine";
 	const searchTerm = searchParams.get("search") ?? "";
-	const page = Number(searchParams.get("page") ?? "1");
+	const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const sortBy = searchParams.get("sortBy") ?? "admittedAt";
-	const [salesPersonFilter, setSalesPersonFilter] = useState("");
+	const salesPersonFilter = searchParams.get("sp") ?? "";
 
 	const canReadAll = useHasPermission("LEAD_READ_ALL") || useHasPermission("LEADS_CONVERTED_READ");
-	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const activeScope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
+	const activeScope: "mine" | "all" = scope === "all" && canReadAll ? "all" : "mine";
 
+	// ── Single query — fires only for the active scope ─────────────────────────
 	const studentsQuery = useStudentsQuery(token, {
 		admittedBy: activeScope === "mine" ? "me" : "all",
 		search: searchTerm || undefined,
@@ -61,10 +64,17 @@ export const ConvertedLeadsPage = () => {
 	});
 	const usersQuery = useUsersQuery(token, Boolean(token));
 
-	const setQueryParam = (key: string, value?: string) => {
+	// ── Atomic URL updates — never two separate setSearchParams calls ──────────
+	const setParams = (updates: Record<string, string | undefined>) => {
 		const next = new URLSearchParams(searchParams);
-		if (value) next.set(key, value); else next.delete(key);
+		for (const [k, v] of Object.entries(updates)) {
+			if (v !== undefined && v !== "") next.set(k, v); else next.delete(k);
+		}
 		setSearchParams(next);
+	};
+
+	const switchScope = (newScope: "mine" | "all") => {
+		setParams({ scope: newScope === "mine" ? undefined : newScope, page: undefined, sp: undefined });
 	};
 
 	const userNameById = useMemo(() => {
@@ -77,29 +87,21 @@ export const ConvertedLeadsPage = () => {
 		[studentsQuery.data?.students],
 	);
 
-	// Client-side search + sales-person filter (server search is primary; this is a failsafe)
+	// Client-side salesPerson filter (within the current page only).
+	// For full cross-page filtering, the server endpoint would need a userId param.
 	const rows = useMemo(() => {
 		let out = allRows;
-		if (searchTerm.trim()) {
-			const q = searchTerm.trim().toLowerCase();
-			out = out.filter((r) =>
-				[r.name ?? "", r.phone ?? "", r.zid ?? "", r.email ?? ""].join(" ").toLowerCase().includes(q),
+		if (salesPersonFilter) out = out.filter((r) => r.admittedBy === salesPersonFilter);
+		if (sortBy === "salesPerson") {
+			out = out.slice().sort((a, b) =>
+				((userNameById.get(a.admittedBy) ?? "") as string)
+					.localeCompare((userNameById.get(b.admittedBy) ?? "") as string),
 			);
 		}
-		if (salesPersonFilter) {
-			out = out.filter((r) => r.admittedBy === salesPersonFilter);
-		}
-		if (sortBy === "salesPerson") {
-			out = out.slice().sort((a, b) => {
-				const nameA = (userNameById.get(a.admittedBy) ?? "") as string;
-				const nameB = (userNameById.get(b.admittedBy) ?? "") as string;
-				return nameA.localeCompare(nameB);
-			});
-		}
 		return out;
-	}, [allRows, searchTerm, salesPersonFilter, sortBy, userNameById]);
+	}, [allRows, salesPersonFilter, sortBy, userNameById]);
 
-	// Build list of unique sales people from loaded rows
+	// Build sales-person options from current page (for the filter dropdown)
 	const salesPersonOptions = useMemo(() => {
 		const seen = new Set<string>();
 		const opts: Array<{ id: string; name: string }> = [];
@@ -112,8 +114,9 @@ export const ConvertedLeadsPage = () => {
 		return opts.sort((a, b) => a.name.localeCompare(b.name));
 	}, [allRows, userNameById]);
 
-	const totalPages = (studentsQuery.data as any)?.pagination?.totalPages ?? 1;
-	const totalCount = (studentsQuery.data as any)?.pagination?.total ?? rows.length;
+	const pagination = studentsQuery.data?.pagination;
+	const totalPages = pagination?.totalPages ?? 1;
+	const totalCount = pagination?.total ?? rows.length;
 
 	return (
 		<div className="space-y-3">
@@ -126,27 +129,33 @@ export const ConvertedLeadsPage = () => {
 					<div>
 						<h1 className="text-lg font-bold text-gray-900">Converted Leads</h1>
 						<p className="mt-0.5 text-sm text-gray-500">
-							{totalCount > 0 ? `${totalCount} student${totalCount !== 1 ? "s" : ""}` : "No students"} · Leads successfully admitted
+							{studentsQuery.isLoading
+								? "Loading…"
+								: totalCount > 0
+									? `${totalCount} student${totalCount !== 1 ? "s" : ""}`
+									: "No students"}{" "}
+							· Leads successfully admitted
 						</p>
 					</div>
 				</div>
-				<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
-					<button
-						type="button"
-						onClick={() => setLoadAllRequested(false)}
-						className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-					>
-						Mine
-					</button>
-					<button
-						type="button"
-						onClick={() => setLoadAllRequested(true)}
-						disabled={!canReadAll}
-						className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition disabled:opacity-40 ${activeScope === "all" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-					>
-						All
-					</button>
-				</div>
+				{canReadAll ? (
+					<div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+						<button
+							type="button"
+							onClick={() => switchScope("mine")}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "mine" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							Mine
+						</button>
+						<button
+							type="button"
+							onClick={() => switchScope("all")}
+							className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${activeScope === "all" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+						>
+							All
+						</button>
+					</div>
+				) : null}
 			</div>
 
 			{/* Search + filter toolbar */}
@@ -155,12 +164,7 @@ export const ConvertedLeadsPage = () => {
 					<HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 					<input
 						value={searchTerm}
-						onChange={(e) => {
-							const next = new URLSearchParams(searchParams);
-							if (e.target.value) next.set("search", e.target.value); else next.delete("search");
-							next.delete("page");
-							setSearchParams(next);
-						}}
+						onChange={(e) => setParams({ search: e.target.value || undefined, page: undefined })}
 						placeholder="Search by name, phone, or ZID…"
 						className="w-60 rounded-lg border border-gray-200 py-1.5 pl-9 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					/>
@@ -168,7 +172,7 @@ export const ConvertedLeadsPage = () => {
 				{searchTerm ? (
 					<button
 						type="button"
-						onClick={() => setQueryParam("search", undefined)}
+						onClick={() => setParams({ search: undefined, page: undefined })}
 						className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
 					>
 						Clear
@@ -177,7 +181,7 @@ export const ConvertedLeadsPage = () => {
 				{salesPersonOptions.length > 1 ? (
 					<select
 						value={salesPersonFilter}
-						onChange={(e) => setSalesPersonFilter(e.target.value)}
+						onChange={(e) => setParams({ sp: e.target.value || undefined, page: undefined })}
 						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					>
 						<option value="">All sales people</option>
@@ -190,7 +194,7 @@ export const ConvertedLeadsPage = () => {
 					<label className="text-xs font-medium text-gray-500">Sort by</label>
 					<select
 						value={sortBy}
-						onChange={(e) => setQueryParam("sortBy", e.target.value === "admittedAt" ? undefined : e.target.value)}
+						onChange={(e) => setParams({ sortBy: e.target.value === "admittedAt" ? undefined : e.target.value, page: undefined })}
 						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					>
 						<option value="admittedAt">Converted date</option>
@@ -222,7 +226,9 @@ export const ConvertedLeadsPage = () => {
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Converted At</th>
 										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Converted By</th>
-										<th className="px-4 py-2.5 pr-5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Lead</th>
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Adm. Fee</th>
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Price / mo</th>
+										<th className="px-4 py-2.5 pr-5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Profiles</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -275,18 +281,46 @@ export const ConvertedLeadsPage = () => {
 													<span className="text-sm text-gray-700">{convertedByName}</span>
 												</td>
 
-												{/* Lead link */}
-												<td className="px-4 py-3.5 pr-5">
-													{s.leadId ? (
-														<Link
-															to={`/leads/${s.leadId}`}
-															className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-														>
-															View Lead
-														</Link>
+												{/* Admission Fee */}
+												<td className="px-4 py-3.5">
+													{s.admissionFee != null ? (
+														<span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
+															₹{s.admissionFee.toLocaleString("en-IN")}
+														</span>
 													) : (
 														<span className="text-xs text-gray-400">—</span>
 													)}
+												</td>
+
+												{/* Monthly Price */}
+												<td className="px-4 py-3.5">
+													{s.price != null ? (
+														<span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+															₹{s.price.toLocaleString("en-IN")}
+														</span>
+													) : (
+														<span className="text-xs text-gray-400">—</span>
+													)}
+												</td>
+
+												{/* Profile links */}
+												<td className="px-4 py-3.5 pr-5">
+													<div className="flex items-center gap-1.5">
+														<Link
+															to={`/students/${s.id}`}
+															className="inline-flex items-center rounded-xl border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
+														>
+															Student
+														</Link>
+														{s.leadId ? (
+															<Link
+																to={`/leads/${s.leadId}`}
+																className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+															>
+																Lead
+															</Link>
+														) : null}
+													</div>
 												</td>
 											</tr>
 										);
@@ -298,12 +332,14 @@ export const ConvertedLeadsPage = () => {
 						{/* Pagination */}
 						<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
 							<p className="text-xs text-gray-400">
-								{totalCount > 0 ? `${(page - 1) * limit + 1}–${Math.min(page * limit, totalCount)} of ${totalCount}` : "0 results"}
+								{totalCount > 0
+									? `${(page - 1) * limit + 1}–${Math.min(page * limit, totalCount)} of ${totalCount}`
+									: "0 results"}
 							</p>
 							<div className="flex items-center gap-2">
 								<select
 									value={String(limit)}
-									onChange={(e) => setQueryParam("limit", e.target.value)}
+									onChange={(e) => setParams({ limit: e.target.value, page: undefined })}
 									className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
 								>
 									<option value="10">10</option>
@@ -312,14 +348,17 @@ export const ConvertedLeadsPage = () => {
 									<option value="100">100</option>
 								</select>
 								<button
-									onClick={() => setQueryParam("page", String(Math.max(1, page - 1)))}
+									type="button"
+									onClick={() => setParams({ page: String(page - 1) })}
 									disabled={page <= 1}
 									className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium disabled:opacity-40 hover:bg-gray-50"
 								>
 									Prev
 								</button>
+								<span className="min-w-6 text-center text-xs font-semibold text-gray-700">{page}</span>
 								<button
-									onClick={() => setQueryParam("page", String(page + 1))}
+									type="button"
+									onClick={() => setParams({ page: String(page + 1) })}
 									disabled={page >= totalPages}
 									className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium disabled:opacity-40 hover:bg-gray-50"
 								>

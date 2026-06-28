@@ -56,6 +56,7 @@ export const StudentSchema = z.object({
 	preferredDays: z.array(z.string()).default([]),
 	timeslot: StudentTimeslotSnapshotSchema.optional(),
 	price: z.number().int().nonnegative().optional(),
+	admissionFee: z.number().int().nonnegative().optional(),
 	hearAboutUs: z.string().max(255).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional(),
@@ -133,6 +134,7 @@ export const UpdateStudentPayloadSchema = z.object({
 	preferredDays: z.array(z.string()).optional(),
 	timeslot: StudentTimeslotSnapshotSchema.optional().nullable(),
 	price: z.number().int().nonnegative().optional().nullable(),
+	admissionFee: z.number().int().nonnegative().optional().nullable(),
 	hearAboutUs: z.string().max(255).optional(),
 	inactiveFrom: z.coerce.date().optional().nullable(),
 	inactiveUntil: z.coerce.date().optional().nullable(),
@@ -176,6 +178,14 @@ export type StudentResponseEnvelope = z.infer<
 export const StudentsResponseSchema = z.object({
 	ok: z.boolean(),
 	students: z.array(StudentResponseSchema),
+	pagination: z
+		.object({
+			total: z.number().int(),
+			page: z.number().int(),
+			limit: z.number().int(),
+			totalPages: z.number().int(),
+		})
+		.optional(),
 });
 
 export type StudentsResponse = z.infer<typeof StudentsResponseSchema>;

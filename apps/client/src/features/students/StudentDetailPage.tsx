@@ -1186,6 +1186,12 @@ export const StudentDetailPage = () => {
 							/>
 							<InfoRow label="Schedule preference" value={student.preferredSchedule ?? "-"} />
 							<InfoRow label="Language" value={student.preferredLanguage ?? "-"} />
+							{student.admissionFee != null ? (
+								<InfoRow label="Admission fee" value={`₹${student.admissionFee.toLocaleString("en-IN")}`} />
+							) : null}
+							{student.price != null ? (
+								<InfoRow label="Monthly price" value={`₹${student.price.toLocaleString("en-IN")}`} />
+							) : null}
 						</dl>
 					</Panel>
 
