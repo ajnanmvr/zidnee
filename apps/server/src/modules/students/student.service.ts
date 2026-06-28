@@ -196,6 +196,7 @@ const toStudent = (doc: StudentDocument): Student => {
 		preferredDays: doc.preferredDays ?? [],
 		timeslot: doc.timeslot,
 		price: doc.price,
+		admissionFee: doc.admissionFee,
 		hearAboutUs: doc.hearAboutUs,
 		mentorId: doc.mentorId?.toString(),
 		batchId: doc.batchId?.toString(),
@@ -334,7 +335,7 @@ export const StudentService = {
 
 	listStudents: async (
 		filters: StudentListFilters = {},
-	): Promise<Student[]> => {
+	): Promise<{ students: Student[]; total: number }> => {
 		const query: Record<string, unknown> = {};
 		if (filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
 			const mentorIds = await UserModel.find({
@@ -391,14 +392,41 @@ export const StudentService = {
 			}
 		}
 
-		const students = await StudentModel.find(query)
-			.sort(getStudentSort(filters.sortBy, filters.sortOrder))
-			.skip(
-				filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0,
-			)
-			.limit(filters.limit && filters.limit > 0 ? filters.limit : 0)
-			.lean<StudentDocument[]>();
-		return students.map(toStudent);
+		const [students, total] = await Promise.all([
+			StudentModel.find(query)
+				.sort(getStudentSort(filters.sortBy, filters.sortOrder))
+				.skip(filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0)
+				.limit(filters.limit && filters.limit > 0 ? filters.limit : 0)
+				.lean<StudentDocument[]>(),
+			StudentModel.countDocuments(query),
+		]);
+
+		// Batch-enrich admissionFee from the linked lead for students that don't
+		// have it stored on their own document (i.e. admitted before this field existed).
+		const needFee = students.filter((s) => (s as any).admissionFee == null && s.leadId);
+		const leadFeeMap = new Map<string, number>();
+		if (needFee.length > 0) {
+			const leads = await LeadModel.find(
+				{ _id: { $in: needFee.map((s) => s.leadId) }, admissionFee: { $exists: true, $ne: null } },
+			).select("admissionFee").lean<Array<{ _id: Types.ObjectId; admissionFee?: number }>>();
+			for (const lead of leads) {
+				if (lead.admissionFee != null) {
+					leadFeeMap.set(lead._id.toString(), lead.admissionFee);
+				}
+			}
+		}
+
+		return {
+			total,
+			students: students.map((doc) => {
+				const s = toStudent(doc);
+				if (s.admissionFee == null && s.leadId) {
+					const feeFromLead = leadFeeMap.get(s.leadId);
+					if (feeFromLead != null) return { ...s, admissionFee: feeFromLead };
+				}
+				return s;
+			}),
+		};
 	},
 
 	listStudentProcesses: async (filters: { scope?: "mine" | "all"; userId?: string } = {}): Promise<StudentProcessListItem[]> => {
@@ -934,6 +962,7 @@ export const StudentService = {
 					}
 				: undefined,
 			price: existingLead.price,
+			admissionFee: existingLead.admissionFee,
 			mentorId: resolvedMentorId,
 
 			nextFollowUpAt,
@@ -1084,6 +1113,7 @@ export const StudentService = {
 					}
 				: undefined,
 			price: existingLead.price,
+			admissionFee: existingLead.admissionFee,
 			mentorId: resolvedMentorId,
 
 			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
