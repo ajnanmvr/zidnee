@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { Field, Panel } from "@/components/dashboard-ui";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission, useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type CreateUserFormData = {
@@ -59,7 +59,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 	submitLabel,
 }) => {
 	const { token } = useSession();
-	const canCreateUser = useHasAnyPermission(["USER_CREATE", "ADMIN_CREATE"]);
+	const canCreateFullUser = useHasAnyPermission(["USER_CREATE", "ADMIN_CREATE"]);
+	const hasSalesCreate = useHasPermission("SALES_CREATE");
+	const canCreateUser = canCreateFullUser || hasSalesCreate;
+	const salesOnlyMode = hasSalesCreate && !canCreateFullUser;
 	const canUpdateUser = useHasAnyPermission([
 		"USER_UPDATE",
 		"MENTOR_UPDATE",
@@ -67,7 +70,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		"ADMIN_UPDATE",
 		"SALES_UPDATE",
 	]);
-	const rolesQuery = useRolesQuery(token);
+	const rolesQuery = useRolesQuery(token, true, salesOnlyMode ? "sales" : undefined);
 	const usersQuery = useUsersQuery(token);
 	const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(
 		mode === "edit" && user ? user.roles.map((r) => r.id) : [],
@@ -96,7 +99,11 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		mode === "edit" && user?.zids ? { ...user.zids } : {},
 	);
 
-	const backTo = mode === "edit" && user ? resolveDirectoryPath(user.roles) : "/admins";
+	const backTo = mode === "edit" && user
+		? resolveDirectoryPath(user.roles)
+		: salesOnlyMode
+			? "/sales-users"
+			: "/admins";
 
 	const { control, handleSubmit, setError } = useForm<CreateUserFormData>({
 		defaultValues: {

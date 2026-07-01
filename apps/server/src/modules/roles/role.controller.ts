@@ -55,10 +55,14 @@ export const createRoleController = async (
 };
 
 export const listRolesController = async (
-	_req: Request,
+	req: Request,
 	res: Response,
 ): Promise<void> => {
-	const roles = await RoleService.findAll();
+	const typeFilter = typeof req.query.type === "string" ? req.query.type : undefined;
+	let roles = await RoleService.findAll();
+	if (typeFilter) {
+		roles = roles.filter((r) => r.type === typeFilter);
+	}
 	const rolesWithPermissions = await Promise.all(
 		roles.map((role) => getRoleWithPermissions(role)),
 	);

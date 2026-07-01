@@ -260,6 +260,9 @@ export const LeadDetailPageNew = () => {
 	const [stageChangeOpen, setStageChangeOpen] = useState(false);
 	const [selectedStage, setSelectedStage] = useState<LeadStatus>("FOLLOW_UP");
 	const [stageChangeConfirmed, setStageChangeConfirmed] = useState(false);
+	const [changeDemoOwnerOpen, setChangeDemoOwnerOpen] = useState(false);
+	const [demoOwnerCounsellorId, setDemoOwnerCounsellorId] = useState("");
+	const [demoOwnerSearch, setDemoOwnerSearch] = useState("");
 	const [priceEditOpen, setPriceEditOpen] = useState(false);
 	const [priceInput, setPriceInput] = useState<string>("");
 	const [admissionFeeEditOpen, setAdmissionFeeEditOpen] = useState(false);
@@ -440,6 +443,18 @@ export const LeadDetailPageNew = () => {
 		});
 	}, [counsellors, counsellorSearch]);
 
+	const demoOwnerSearchResults = useMemo(() => {
+		const q = demoOwnerSearch.trim().toLowerCase();
+		if (!q) return counsellors;
+		return counsellors.filter((c) => {
+			const haystack = [c.name, c.username, c.zids?.counsellor, c.email]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(q);
+		});
+	}, [counsellors, demoOwnerSearch]);
+
 	useEffect(() => {
 		if (editOpen && lead) {
 			resetEdit({
@@ -556,6 +571,26 @@ export const LeadDetailPageNew = () => {
 			setSelectedCounsellorId("");
 		} catch {
 			toast.error("Failed to request demo");
+		}
+	};
+
+	const onChangeDemoOwner = async () => {
+		if (!lead) return;
+		if (!demoOwnerCounsellorId) {
+			toast.error("Please select a counsellor");
+			return;
+		}
+		try {
+			await updateMutation.mutateAsync({
+				leadId: lead.id,
+				payload: { demoRequestAssignedTo: demoOwnerCounsellorId },
+			});
+			toast.success("Demo owner updated");
+			setChangeDemoOwnerOpen(false);
+			setDemoOwnerCounsellorId("");
+			setDemoOwnerSearch("");
+		} catch {
+			toast.error("Failed to update demo owner");
 		}
 	};
 
@@ -745,21 +780,23 @@ export const LeadDetailPageNew = () => {
 				onClick: () => setPostponeOpen(true),
 				className: "bg-amber-500 text-white hover:bg-amber-600",
 			},
-			...(!lead.formSent
-				? [{
-					key: "send-form",
-					label: "Send Form",
-					icon: HiPaperAirplane,
-					onClick: () => void onGenerateFormLink(),
-					className: "bg-emerald-600 text-white hover:bg-emerald-700",
-				}]
-				: [{
-					key: "form-link",
-					label: "Form Link",
-					icon: HiLink,
-					onClick: () => void onGenerateFormLink(),
-					className: "bg-blue-600 text-white hover:bg-blue-700",
-				}]),
+			...(lead.formCompleted
+				? []
+				: !lead.formSent
+					? [{
+						key: "send-form",
+						label: "Send Form",
+						icon: HiPaperAirplane,
+						onClick: () => void onGenerateFormLink(),
+						className: "bg-emerald-600 text-white hover:bg-emerald-700",
+					}]
+					: [{
+						key: "form-link",
+						label: "Form Link",
+						icon: HiLink,
+						onClick: () => void onGenerateFormLink(),
+						className: "bg-blue-600 text-white hover:bg-blue-700",
+					}]),
 			...(lead.formCompleted && !latestDemo
 				? [{
 					key: "request-demo",
@@ -1107,13 +1144,30 @@ export const LeadDetailPageNew = () => {
 								{[
 									{ label: "Created By", user: findUserById(lead.createdBy), role: undefined as "mentor" | "counsellor" | "sales" | "admin" | undefined, fallback: "-" },
 									{ label: "Sales Owner", user: assignedToUser, role: "sales" as const, fallback: "Unassigned" },
-									{ label: "Demo Owner", user: demoRequestAssignedToUser, role: "counsellor" as const, fallback: "Not assigned" },
 								].map((row) => (
 									<div key={row.label} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
 										<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{row.label}</span>
 										<UserIdentity user={row.user} role={row.role} fallback={row.fallback} />
 									</div>
 								))}
+								<div className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-gray-50">
+									<span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Demo Owner</span>
+									<div className="flex items-center gap-2">
+										<UserIdentity user={demoRequestAssignedToUser} role="counsellor" fallback="Not assigned" />
+										<button
+											type="button"
+											onClick={() => {
+												setDemoOwnerCounsellorId(lead.demoRequestAssignedTo ?? "");
+												setDemoOwnerSearch("");
+												setChangeDemoOwnerOpen(true);
+											}}
+											className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-gray-100"
+										>
+											<HiPencilSquare className="h-3 w-3" />
+											Change
+										</button>
+									</div>
+								</div>
 							</div>
 						</SectionCard>
 
@@ -1815,6 +1869,72 @@ ${formLinkData.formLink}`;
 						</button>
 					</div>
 				) : null}
+			</Modal>
+
+			<Modal
+				open={changeDemoOwnerOpen}
+				onClose={() => { setChangeDemoOwnerOpen(false); setDemoOwnerCounsellorId(""); setDemoOwnerSearch(""); }}
+				title="Change Demo Owner"
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => { setChangeDemoOwnerOpen(false); setDemoOwnerCounsellorId(""); setDemoOwnerSearch(""); }}
+							className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void onChangeDemoOwner()}
+							disabled={updateMutation.isPending || !demoOwnerCounsellorId}
+							className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{updateMutation.isPending ? "Saving..." : "Save"}
+						</button>
+					</>
+				}
+			>
+				<div className="space-y-4">
+					<p className="text-sm text-slate-600">
+						Select the counsellor who will own and coordinate this demo.
+					</p>
+					{counsellors.length === 0 ? (
+						<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+							No counsellors available
+						</div>
+					) : (
+						<>
+							<div className="relative">
+								<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								<input
+									type="text"
+									value={demoOwnerSearch}
+									onChange={(e) => setDemoOwnerSearch(e.target.value)}
+									placeholder="Search by name, ZID, or email…"
+									autoFocus
+									className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+								/>
+							</div>
+							<div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+								{demoOwnerSearchResults.length === 0 ? (
+									<div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-sm text-slate-500">
+										No counsellors match "{demoOwnerSearch}"
+									</div>
+								) : (
+									demoOwnerSearchResults.map((c) => (
+										<CounsellorOption
+											key={c.id}
+											counsellor={c}
+											selected={demoOwnerCounsellorId === c.id}
+											onSelect={() => setDemoOwnerCounsellorId(c.id)}
+										/>
+									))
+								)}
+							</div>
+						</>
+					)}
+				</div>
 			</Modal>
 
 			<Modal

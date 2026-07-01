@@ -119,7 +119,7 @@ const TIME_PRESETS: { id: TimeScope; label: string; hint: string }[] = [
 	{ id: "last3months", label: "Last 3 Months", hint: "Rolling 3-month window" },
 	{ id: "last6months", label: "Last 6 Months", hint: "Rolling 6-month window" },
 	{ id: "currentYear", label: "This Year", hint: "Current calendar year" },
-	{ id: "custom", label: "Custom", hint: "Pick a specific month & year" },
+	{ id: "custom", label: "Custom", hint: "Pick a date & time range" },
 	{ id: "all", label: "All Time", hint: "Every lead on record" },
 ];
 
@@ -148,8 +148,21 @@ export const LeadOverviewPage = () => {
 	const [trendGranularity, setTrendGranularity] = useState<"weekly" | "monthly">("monthly");
 	const [selectedSalesUserId, setSelectedSalesUserId] = useState<string>("");
 	const now = useMemo(() => new Date(), []);
-	const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-	const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+	const toDatetimeLocal = (d: Date) => {
+		const p = (n: number) => String(n).padStart(2, "0");
+		return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+	};
+
+	const [customFrom, setCustomFrom] = useState(() =>
+		toDatetimeLocal(new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)),
+	);
+	const [customTo, setCustomTo] = useState(() => toDatetimeLocal(now));
+	// Draft values bound to the inputs — only flow into customFrom/customTo (and
+	// thus the actual filter) once the user clicks Apply.
+	const [customFromDraft, setCustomFromDraft] = useState(customFrom);
+	const [customToDraft, setCustomToDraft] = useState(customTo);
+	const customRangeDirty = customFromDraft !== customFrom || customToDraft !== customTo;
 
 	const salesUsersQuery = useSalesUsersQuery(token, canReadAll && canSeeSalesUsers);
 	const salesUsers = salesUsersQuery.data?.users ?? [];
@@ -171,15 +184,6 @@ export const LeadOverviewPage = () => {
 		[allLeads, selectedSalesUserId],
 	);
 
-	const availableYears = useMemo(() => {
-		const years = new Set<number>([now.getFullYear()]);
-		for (const l of leads) {
-			const d = toDate(l.createdAt);
-			if (d) years.add(d.getFullYear());
-		}
-		return Array.from(years).sort((a, b) => b - a);
-	}, [leads, now]);
-
 	const selectedRange = useMemo<PeriodRange | null>(() => {
 		if (timeScope === "all") return null;
 		if (timeScope === "today") {
@@ -198,8 +202,11 @@ export const LeadOverviewPage = () => {
 		if (timeScope === "last3months") return nthMonthsAgo(3);
 		if (timeScope === "last6months") return nthMonthsAgo(6);
 		if (timeScope === "currentYear") return { start: new Date(now.getFullYear(), 0, 1), end: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999), label: String(now.getFullYear()) };
-		return monthRange(selectedYear, selectedMonth);
-	}, [now, timeScope, selectedMonth, selectedYear]);
+		// custom: use the datetime-local inputs
+		const start = customFrom ? new Date(customFrom) : new Date(now.getFullYear(), now.getMonth(), 1);
+		const end = customTo ? new Date(customTo) : now;
+		return { start, end, label: "Custom range" };
+	}, [now, timeScope, customFrom, customTo]);
 
 	const compRange = useMemo(() => selectedRange ? prevMonth(selectedRange) : null, [selectedRange]);
 
@@ -369,14 +376,35 @@ export const LeadOverviewPage = () => {
 					</div>
 					{timeScope === "custom" ? (
 						<div className="mt-3 flex flex-wrap items-center gap-2">
-							<select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} className={selectCls}>
-								{Array.from({ length: 12 }, (_, i) => (
-									<option key={i} value={i}>{getMonthFull(i)}</option>
-								))}
-							</select>
-							<select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className={selectCls}>
-								{availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
-							</select>
+							<div className="flex items-center gap-1.5">
+								<span className="text-xs font-medium text-indigo-300">From</span>
+								<input
+									type="datetime-local"
+									value={customFromDraft}
+									onChange={(e) => setCustomFromDraft(e.target.value)}
+									className="rounded-lg border border-white/20 bg-white/10 px-2.5 py-1.5 text-sm text-white outline-none focus:border-white/40 scheme-dark"
+								/>
+							</div>
+							<div className="flex items-center gap-1.5">
+								<span className="text-xs font-medium text-indigo-300">To</span>
+								<input
+									type="datetime-local"
+									value={customToDraft}
+									onChange={(e) => setCustomToDraft(e.target.value)}
+									className="rounded-lg border border-white/20 bg-white/10 px-2.5 py-1.5 text-sm text-white outline-none focus:border-white/40 scheme-dark"
+								/>
+							</div>
+							<button
+								type="button"
+								onClick={() => {
+									setCustomFrom(customFromDraft);
+									setCustomTo(customToDraft);
+								}}
+								disabled={!customRangeDirty}
+								className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-indigo-300"
+							>
+								{customRangeDirty ? "Apply" : "Applied"}
+							</button>
 						</div>
 					) : null}
 				</div>

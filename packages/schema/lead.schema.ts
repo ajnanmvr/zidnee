@@ -202,6 +202,7 @@ export const CreateLeadPayloadSchema = z.object({
 	email: z.string().email().max(255).optional(),
 	isOrganic: z.boolean().default(false),
 	customNextFollowUpAt: z.coerce.date().optional(),
+	createdAt: z.coerce.date().optional(),
 });
 
 export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;

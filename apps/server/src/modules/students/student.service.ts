@@ -212,6 +212,7 @@ const toStudent = (doc: StudentDocument): Student => {
 		customNextFollowUpAt: doc.customNextFollowUpAt,
 		status: doc.status,
 		classStartConfirmedAt: doc.classStartConfirmedAt ?? undefined,
+		classStarted: doc.classStarted ?? false,
 		admittedAt: doc.admittedAt,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,
@@ -1212,6 +1213,8 @@ export const StudentService = {
 			inactiveUntil?: Date | null;
 			dropReason?: string;
 			dropTemporary?: boolean;
+			classStartConfirmedAt?: Date | null;
+			classStarted?: boolean;
 		}>,
 		performedBy?: string,
 	): Promise<Student | null> => {
@@ -1385,6 +1388,19 @@ export const StudentService = {
 			} else {
 				$set.profilePic = payload.profilePic;
 			}
+		}
+
+		if (payload.classStartConfirmedAt !== undefined) {
+			if (payload.classStartConfirmedAt === null) {
+				$unset.classStartConfirmedAt = 1;
+			} else {
+				$set.classStartConfirmedAt = payload.classStartConfirmedAt;
+				$set.classStarted = false;
+			}
+		}
+
+		if (payload.classStarted !== undefined) {
+			$set.classStarted = payload.classStarted;
 		}
 
 		const updatedStudent = await StudentModel.findByIdAndUpdate(

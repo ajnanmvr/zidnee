@@ -62,6 +62,7 @@ const toStudentResponse = (
 		status: student.status,
 		admittedAt: student.admittedAt.toISOString(),
 		classStartConfirmedAt: student.classStartConfirmedAt?.toISOString() ?? null,
+		classStarted: student.classStarted ?? false,
 		createdAt: student.createdAt?.toISOString() ?? null,
 		updatedAt: student.updatedAt?.toISOString() ?? null,
 	};

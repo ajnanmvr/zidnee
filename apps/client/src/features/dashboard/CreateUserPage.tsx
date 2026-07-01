@@ -3,10 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { UserFormPanel } from "@/features/users/UserFormPanel";
 import { useCreateUserMutation } from "@/features/users/use-create-user-mutation";
+import { useHasAnyPermission, useHasPermission } from "@/lib/hooks/use-has-permission";
 
 export const CreateUserPage = () => {
 	const navigate = useNavigate();
 	const createUserMutation = useCreateUserMutation();
+	const canCreateFullUser = useHasAnyPermission(["USER_CREATE", "ADMIN_CREATE"]);
+	const hasSalesCreate = useHasPermission("SALES_CREATE");
+	const salesOnlyMode = hasSalesCreate && !canCreateFullUser;
 
 	const handleSubmit = async (form: {
 		name: string;
@@ -26,7 +30,7 @@ export const CreateUserPage = () => {
 				roleIds: form.roleIds,
 			});
 			toast.success("User created successfully!");
-			navigate("/admins", { replace: true });
+			navigate(salesOnlyMode ? "/sales-users" : "/admins", { replace: true });
 		} catch (error) {
 			if (error instanceof ApiError) {
 				const serverErrors = error.payload.errors ?? {};

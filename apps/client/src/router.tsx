@@ -416,7 +416,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "users/create",
-						element: withPermissions(["USER_CREATE", "ADMIN_CREATE"], <CreateUserPage />),
+						element: withPermissions(["USER_CREATE", "ADMIN_CREATE", "SALES_CREATE"], <CreateUserPage />),
 					},
 					{
 						path: "users/:userId/edit",

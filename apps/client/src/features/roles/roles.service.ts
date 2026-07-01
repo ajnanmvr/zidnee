@@ -6,14 +6,9 @@ import {
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
 
-export const fetchRoles = async (token: string) => {
-	return requestWithSchema(
-		"/roles",
-		RolesResponseSchema,
-		"GET",
-		undefined,
-		token,
-	);
+export const fetchRoles = async (token: string, type?: string) => {
+	const url = type ? `/roles?type=${encodeURIComponent(type)}` : "/roles";
+	return requestWithSchema(url, RolesResponseSchema, "GET", undefined, token);
 };
 
 export const createRole = async (

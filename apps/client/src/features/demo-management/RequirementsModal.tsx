@@ -91,50 +91,87 @@ export const RequirementsModal = ({
 
 
 
+	const langAbbrev: Record<string, string> = {
+		"Malayalam Only": "Malayalam Only",
+		"English Only": "English Only",
+		"Malayalam - English Mixed": "Eng-Mlm Mixed",
+	};
+
 	const formatDataForWhatsApp = (): string => {
 		if (!lead) return "";
 
-		const preferredDays = lead.preferredDays?.length
-			? lead.preferredDays.join(", ")
-			: null;
-		const timing = lead.preferredTimeslots?.length ? formatTimingLabel() : null;
+		const isGroup = lead.courseType === "GROUP";
 
-		const planForCopy = lead.preferredPlan
-			? `${lead.preferredPlan.durationMinutes} mins for ${lead.preferredPlan.timesPerWeek} days in a week`
-			: lead.preferredSchedule || null;
+		const slNo = lead.slNo ? String(lead.slNo).padStart(2, "0") : null;
+		const header = slNo ? `Student Requirements- ${slNo}` : `Student Requirements`;
+
+		const age = lead.dateOfBirth
+			? Math.floor((Date.now() - new Date(lead.dateOfBirth as unknown as string).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+			: null;
+
+		const lang = lead.preferredLanguage ? (langAbbrev[lead.preferredLanguage] ?? lead.preferredLanguage) : null;
+
+		const timing = lead.preferredTimeslots?.length
+			? formatTimingLabel() + " IST"
+			: null;
+
+		const planLine = lead.preferredPlan?.durationMinutes && lead.preferredPlan?.timesPerWeek
+			? `${lead.preferredPlan.durationMinutes} minutes class, ${lead.preferredPlan.timesPerWeek} times a week • ${lead.preferredPlan.timesPerWeek * 4} Classes/Month`
+			: (lead.preferredSchedule || null);
 
 		const rawDemoTime = latestDemo?.demoScheduledFor ?? lead.demoAvailability ?? null;
-		const demoTimeForCopy = rawDemoTime
+		const demoTime = rawDemoTime
 			? (() => {
-				try {
-					const d = new Date(rawDemoTime);
-					return format(d, "dd MMM yyyy, hh:mm a");
-				} catch {
-					return String(rawDemoTime);
-				}
+				try { return format(new Date(rawDemoTime), "MMM d, h:mm a"); }
+				catch { return String(rawDemoTime); }
 			})()
 			: null;
 
 		const contact = lead.primaryWhatsappNumber || lead.phone || null;
+		const mentorGender = lead.preferredMentorGender ? formatReadableGender(lead.preferredMentorGender) : null;
+		const note = latestDemo?.note ?? null;
+		const preferredDays = lead.preferredDays?.length ? lead.preferredDays.join(", ") : null;
 
-		const lines = [
-			`📋 *Student Requirements*`,
+		if (isGroup) {
+			return [
+				`📋 ${header} 📋`,
+				` `,
+				lead.name ? `👉 Name: ${lead.name}` : null,
+				lead.level ? `👉 Level : ${lead.level}` : null,
+				age != null ? `👉 Age.  : ${age}` : null,
+				`👉 Primary No. : ${contact ?? ""}`,
+				` `,
+				lang ? `📌 Instruction Medium: ${lang}` : null,
+				timing ? `🔖 Time: ${timing}` : null,
+				note ? `🔖 Note: ${note}` : null,
+				` `,
+				demoTime ? `🗓️ Demo Time: ${demoTime}` : null,
+				` `,
+				`_________`,
+			].filter(Boolean).join("\n");
+		}
+
+		return [
+			`📋 *${header}* 📋`,
 			` `,
-			lead.name ? `*Name:* ${lead.name}` : null,
-			contact ? `*Contact Number:* ${contact}` : null,
-			lead.level ? `*Level:* ${lead.level}` : null,
-			lead.preferredLanguage ? `*Language:* ${lead.preferredLanguage}` : null,
-			lead.preferredMentorGender ? `*Tutor Preference:* ${formatReadableGender(lead.preferredMentorGender)}` : null,
-			preferredDays ? `*Preferred Days:* ${preferredDays}` : null,
-			planForCopy ? `*Plan:* ${planForCopy}` : null,
-			timing ? `*Timing:* ${timing}` : null,
-			demoTimeForCopy ? `*Demo Time:* ${demoTimeForCopy}` : null,
-			latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
-		]
-			.filter(Boolean)
-			.join("\n");
-
-		return lines;
+			lead.name ? `👉 *Name:* ${lead.name}` : null,
+			lead.level ? `👉 *Level :* ${lead.level}` : null,
+			age != null ? `👉 *Age.  :* ${age}` : null,
+			`👉 *Primary No.* : ${contact ?? ""}`,
+			` `,
+			` `,
+			mentorGender ? `📌 *Tutor Preference.   :* ${mentorGender}` : null,
+			lang ? `📌 *Instruction Medium:* ${lang}` : null,
+			planLine ? `📌 *Plan :* ${planLine}` : null,
+			` `,
+			preferredDays ? `🔖 *Preferred Days:* ${preferredDays}` : null,
+			timing ? `🔖 *Time:* ${timing}` : null,
+			note ? `🔖 *Note:* ${note}` : null,
+			` `,
+			demoTime ? `🗓️ *Demo Time:* ${demoTime}` : null,
+			` `,
+			`___________________________`,
+		].filter(Boolean).join("\n");
 	};
 
 	const handleCopyToClipboard = async () => {
