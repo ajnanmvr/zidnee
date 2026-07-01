@@ -63,6 +63,7 @@ export const StudentSchema = z.object({
 	status: StudentStatusSchema,
 	admittedAt: z.date(),
 	classStartConfirmedAt: z.date().optional(),
+	classStarted: z.boolean().optional(),
 	createdAt: z.date().optional(),
 	updatedAt: z.date().optional(),
 });
@@ -141,6 +142,8 @@ export const UpdateStudentPayloadSchema = z.object({
 	dropReason: z.string().max(255).optional(),
 	dropTemporary: z.boolean().optional(),
 	status: StudentStatusSchema.optional(),
+	classStartConfirmedAt: z.coerce.date().optional().nullable(),
+	classStarted: z.boolean().optional(),
 });
 
 export type UpdateStudentPayload = z.infer<typeof UpdateStudentPayloadSchema>;

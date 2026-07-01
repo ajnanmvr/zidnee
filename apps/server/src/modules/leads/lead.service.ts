@@ -450,6 +450,7 @@ export const LeadService = {
 		assignedTo?: string;
 		isOrganic?: boolean;
 		customNextFollowUpAt?: Date;
+		createdAt?: Date;
 		createdBy: string;
 		createdByName?: string;
 	}): Promise<Lead> => {
@@ -470,6 +471,7 @@ export const LeadService = {
 			demos: [],
 			formSent: false,
 			formCompleted: false,
+			...(lead.createdAt ? { createdAt: lead.createdAt } : {}),
 		});
 
 		const leadObj = mapLead(created.toObject() as LeadDocument);

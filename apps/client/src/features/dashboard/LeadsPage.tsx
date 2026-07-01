@@ -134,53 +134,86 @@ const _fmtTime12h = (t: string) => {
 	return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${mer}`;
 };
 
-/** Builds the student requirements text — identical format to the RequirementsModal "Copy for WhatsApp". */
+const _langAbbrev: Record<string, string> = {
+	"Malayalam Only": "Malayalam Only",
+	"English Only": "English Only",
+	"Malayalam - English Mixed": "Eng-Mlm Mixed",
+};
+
 const buildStudentRequirementsCopy = (lead: LeadResponse): string => {
-	const timeslots = lead.preferredTimeslots as
-		| Array<{ startTime: string; endTime: string }>
-		| undefined;
-	const plan = lead.preferredPlan as
-		| { timesPerWeek?: number; durationMinutes?: number }
-		| undefined;
+	const isGroup = lead.courseType === "GROUP";
 
-	const preferredDays = lead.preferredDays?.length ? lead.preferredDays.join(", ") : null;
+	const slNo = lead.slNo ? String(lead.slNo).padStart(2, "0") : null;
+	const header = slNo ? `Student Requirements- ${slNo}` : `Student Requirements`;
 
-	const timing = timeslots?.length
-		? timeslots.map((s) => `${_fmtTime12h(s.startTime)} - ${_fmtTime12h(s.endTime)}`).join(", ")
+	const age = lead.dateOfBirth
+		? Math.floor((Date.now() - new Date(lead.dateOfBirth as unknown as string).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
 		: null;
 
-	const planForCopy = plan
-		? `${plan.durationMinutes} mins for ${plan.timesPerWeek} days in a week`
+	const lang = lead.preferredLanguage ? (_langAbbrev[lead.preferredLanguage] ?? lead.preferredLanguage) : null;
+
+	const timeslots = lead.preferredTimeslots as Array<{ startTime: string; endTime: string }> | undefined;
+	const timing = timeslots?.length
+		? timeslots.map((s) => `${_fmtTime12h(s.startTime)} - ${_fmtTime12h(s.endTime)}`).join(", ") + " IST"
+		: null;
+
+	const plan = lead.preferredPlan as { timesPerWeek?: number; durationMinutes?: number } | undefined;
+	const planLine = plan?.durationMinutes && plan?.timesPerWeek
+		? `${plan.durationMinutes} minutes class, ${plan.timesPerWeek} times a week • ${plan.timesPerWeek * 4} Classes/Month`
 		: (lead.preferredSchedule || null);
 
-	const latestDemo = lead.demos && lead.demos.length > 0
-		? lead.demos[lead.demos.length - 1]
-		: null;
-
+	const latestDemo = lead.demos && lead.demos.length > 0 ? lead.demos[lead.demos.length - 1] : null;
 	const rawDemoTime = latestDemo?.demoScheduledFor ?? lead.demoAvailability ?? null;
-	const demoTimeForCopy = rawDemoTime
-		? (() => { try { return format(new Date(rawDemoTime), "dd MMM yyyy, hh:mm a"); } catch { return String(rawDemoTime); } })()
+	const demoTime = rawDemoTime
+		? (() => { try { return format(new Date(rawDemoTime), "MMM d, h:mm a"); } catch { return String(rawDemoTime); } })()
 		: null;
 
 	const contact = lead.primaryWhatsappNumber || lead.phone || null;
-
 	const mentorGender = lead.preferredMentorGender
 		? lead.preferredMentorGender.charAt(0).toUpperCase() + lead.preferredMentorGender.slice(1)
 		: null;
+	const note = latestDemo?.note ?? null;
+	const preferredDays = lead.preferredDays?.length ? lead.preferredDays.join(", ") : null;
+
+	if (isGroup) {
+		return [
+			`📋 ${header} 📋`,
+			` `,
+			lead.name ? `👉 Name: ${lead.name}` : null,
+			lead.level ? `👉 Level : ${lead.level}` : null,
+			age != null ? `👉 Age.  : ${age}` : null,
+			`👉 Primary No. : ${contact ?? ""}`,
+			` `,
+			lang ? `📌 Instruction Medium: ${lang}` : null,
+			timing ? `🔖 Time: ${timing}` : null,
+			note ? `🔖 Note: ${note}` : null,
+			` `,
+			demoTime ? `🗓️ Demo Time: ${demoTime}` : null,
+			` `,
+			`_________`,
+		].filter(Boolean).join("\n");
+	}
 
 	return [
-		`📋 *Student Requirements*`,
+		`📋 *${header}* 📋`,
 		` `,
-		lead.name ? `*Name:* ${lead.name}` : null,
-		contact ? `*Contact Number:* ${contact}` : null,
-		lead.level ? `*Level:* ${lead.level}` : null,
-		lead.preferredLanguage ? `*Language:* ${lead.preferredLanguage}` : null,
-		mentorGender ? `*Tutor Preference:* ${mentorGender}` : null,
-		preferredDays ? `*Preferred Days:* ${preferredDays}` : null,
-		planForCopy ? `*Plan:* ${planForCopy}` : null,
-		timing ? `*Timing:* ${timing}` : null,
-		demoTimeForCopy ? `*Demo Time:* ${demoTimeForCopy}` : null,
-		latestDemo?.note ? `💬 *Note:* ${latestDemo.note}` : null,
+		lead.name ? `👉 *Name:* ${lead.name}` : null,
+		lead.level ? `👉 *Level :* ${lead.level}` : null,
+		age != null ? `👉 *Age.  :* ${age}` : null,
+		`👉 *Primary No.* : ${contact ?? ""}`,
+		` `,
+		` `,
+		mentorGender ? `📌 *Tutor Preference.   :* ${mentorGender}` : null,
+		lang ? `📌 *Instruction Medium:* ${lang}` : null,
+		planLine ? `📌 *Plan :* ${planLine}` : null,
+		` `,
+		preferredDays ? `🔖 *Preferred Days:* ${preferredDays}` : null,
+		timing ? `🔖 *Time:* ${timing}` : null,
+		note ? `🔖 *Note:* ${note}` : null,
+		` `,
+		demoTime ? `🗓️ *Demo Time:* ${demoTime}` : null,
+		` `,
+		`___________________________`,
 	].filter(Boolean).join("\n");
 };
 
@@ -1491,6 +1524,29 @@ export const LeadsPage = () => {
 						render={({ field, fieldState }) => (
 							<Field
 								label="Postpone follow-up (optional)"
+								type="datetime-local"
+								value={
+									field.value
+										? toInputDateTimeLocal(field.value.toISOString())
+										: ""
+								}
+								onChange={(value) => {
+									if (!value) {
+										field.onChange(undefined);
+										return;
+									}
+									field.onChange(new Date(value));
+								}}
+								error={fieldState.error?.message}
+							/>
+						)}
+					/>
+					<Controller
+						name="createdAt"
+						control={createControl}
+						render={({ field, fieldState }) => (
+							<Field
+								label="Lead date (optional — for past entries)"
 								type="datetime-local"
 								value={
 									field.value

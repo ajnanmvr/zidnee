@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { HiCalendarDays, HiMagnifyingGlass, HiRocketLaunch } from "react-icons/hi2";
+import toast from "react-hot-toast";
+import { HiCalendarDays, HiCheck, HiMagnifyingGlass, HiPencilSquare, HiRocketLaunch } from "react-icons/hi2";
 import { useStudentsQuery } from "@/features/students/students.queries";
+import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
@@ -44,6 +46,11 @@ function fmtDate(val?: string | null): string {
 	return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function toDatetimeLocal(d: Date): string {
+	const p = (n: number) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export const StartingDatePage = () => {
 	const { token } = useSession();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -60,6 +67,10 @@ export const StartingDatePage = () => {
 		limit: 500,
 	});
 	const usersQuery = useUsersQuery(token);
+	const updateStudentMutation = useUpdateStudentMutation();
+
+	const [editingId, setEditingId] = useState<string | null>(null);
+	const [editDraft, setEditDraft] = useState("");
 
 	const mentorNameById = useMemo(() => {
 		const map: Record<string, string> = {};
@@ -71,10 +82,11 @@ export const StartingDatePage = () => {
 		const q = searchTerm.trim().toLowerCase();
 		const students = (studentsQuery.data?.students ?? []) as Array<{
 			id: string; zid: string; name?: string | null; phone: string; mentorId?: string | null;
-			classStartConfirmedAt?: string | null;
+			classStartConfirmedAt?: string | null; classStarted?: boolean;
 		}>;
 		return students
 			.filter((s) => {
+				if (s.classStarted) return false;
 				if (q && !`${s.name ?? ""} ${s.zid} ${s.phone}`.toLowerCase().includes(q)) return false;
 				return true;
 			})
@@ -92,6 +104,39 @@ export const StartingDatePage = () => {
 
 	const overdueCount = rows.filter((s) => s.urgency === "overdue").length;
 	const todayCount = rows.filter((s) => s.urgency === "today").length;
+
+	const markDone = async (studentId: string) => {
+		try {
+			await updateStudentMutation.mutateAsync({ studentId, payload: { classStarted: true } });
+			toast.success("Marked as started");
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to mark as started");
+		}
+	};
+
+	const startEditing = (studentId: string, currentDate?: string | null) => {
+		setEditingId(studentId);
+		setEditDraft(currentDate ? toDatetimeLocal(new Date(currentDate)) : toDatetimeLocal(new Date()));
+	};
+
+	const cancelEditing = () => {
+		setEditingId(null);
+		setEditDraft("");
+	};
+
+	const saveStartDate = async (studentId: string) => {
+		if (!editDraft) return;
+		try {
+			await updateStudentMutation.mutateAsync({
+				studentId,
+				payload: { classStartConfirmedAt: new Date(editDraft) },
+			});
+			toast.success("Starting date updated");
+			cancelEditing();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update starting date");
+		}
+	};
 
 	const setQueryParam = (key: string, value?: string) => {
 		const next = new URLSearchParams(searchParams);
@@ -173,6 +218,7 @@ export const StartingDatePage = () => {
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Mentor</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Starting Date</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
+									<th className="px-4 py-2.5 pr-5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Actions</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -201,14 +247,62 @@ export const StartingDatePage = () => {
 													: <span className="text-xs text-gray-400">—</span>}
 											</td>
 											<td className="px-4 py-3.5">
-												<span className={`text-sm font-medium ${meta.textClass}`}>
-													{fmtDate(s.classStartConfirmedAt)}
-												</span>
+												{editingId === s.id ? (
+													<input
+														type="datetime-local"
+														value={editDraft}
+														onChange={(e) => setEditDraft(e.target.value)}
+														className="rounded-lg border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+													/>
+												) : (
+													<span className={`text-sm font-medium ${meta.textClass}`}>
+														{fmtDate(s.classStartConfirmedAt)}
+													</span>
+												)}
 											</td>
 											<td className="px-4 py-3.5">
 												<span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.badgeClass}`}>
 													{meta.label}
 												</span>
+											</td>
+											<td className="px-4 py-3.5 pr-5">
+												{editingId === s.id ? (
+													<div className="flex items-center gap-1.5">
+														<button
+															type="button"
+															onClick={() => void saveStartDate(s.id)}
+															disabled={updateStudentMutation.isPending}
+															className="inline-flex items-center rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+														>
+															Save
+														</button>
+														<button
+															type="button"
+															onClick={cancelEditing}
+															className="inline-flex items-center rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+														>
+															Cancel
+														</button>
+													</div>
+												) : (
+													<div className="flex items-center gap-1.5">
+														<button
+															type="button"
+															onClick={() => void markDone(s.id)}
+															disabled={updateStudentMutation.isPending}
+															className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+														>
+															<HiCheck className="h-3.5 w-3.5" /> Done
+														</button>
+														<button
+															type="button"
+															onClick={() => startEditing(s.id, s.classStartConfirmedAt)}
+															className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+														>
+															<HiPencilSquare className="h-3.5 w-3.5" /> Change
+														</button>
+													</div>
+												)}
 											</td>
 										</tr>
 									);

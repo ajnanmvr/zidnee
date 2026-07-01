@@ -165,6 +165,7 @@ export const createLeadController = async (
 		assignedTo: result.data.assignedTo,
 		isOrganic: result.data.isOrganic,
 		customNextFollowUpAt: result.data.customNextFollowUpAt,
+		createdAt: result.data.createdAt,
 		createdBy: req.user.userId,
 		createdByName: userName,
 	});

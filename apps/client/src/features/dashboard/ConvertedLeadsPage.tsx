@@ -129,12 +129,7 @@ export const ConvertedLeadsPage = () => {
 					<div>
 						<h1 className="text-lg font-bold text-gray-900">Converted Leads</h1>
 						<p className="mt-0.5 text-sm text-gray-500">
-							{studentsQuery.isLoading
-								? "Loading…"
-								: totalCount > 0
-									? `${totalCount} student${totalCount !== 1 ? "s" : ""}`
-									: "No students"}{" "}
-							· Leads successfully admitted
+							Leads successfully admitted
 						</p>
 					</div>
 				</div>

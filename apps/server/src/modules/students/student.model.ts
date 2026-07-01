@@ -246,6 +246,11 @@ const studentSchema = new Schema<StudentDocument>(
 			type: Date,
 			required: false,
 		},
+		classStarted: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
 	},
 	{
 		timestamps: true,

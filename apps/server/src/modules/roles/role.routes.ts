@@ -61,7 +61,7 @@ router.post(
 );
 router.get(
 	"/",
-	requirePermissionKey("ROLE_READ" satisfies PermissionKey),
+	requirePermissionKey(["ROLE_READ", "SALES_CREATE"] satisfies PermissionKey[]),
 	asyncHandler(listRolesController),
 );
 

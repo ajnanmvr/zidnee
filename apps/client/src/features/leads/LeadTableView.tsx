@@ -94,8 +94,10 @@ export function LeadTableView({ leads, activeStage, userNameById, getActions }: 
 
 						// Handler
 						let handlerName: string | null = null;
+						let leadAssigneeName: string | null = null;
 						if (activeStage === "demoRequest") {
 							handlerName = lead.demoRequestAssignedTo ? (userNameById?.get(lead.demoRequestAssignedTo) ?? null) : null;
+							leadAssigneeName = lead.assignedTo ? (userNameById?.get(lead.assignedTo) ?? null) : null;
 						} else if (activeStage === "demoAssigned" || activeStage === "demoCompleted") {
 							handlerName = latestDemo?.mentorId ? (userNameById?.get(latestDemo.mentorId) ?? null) : null;
 						}
@@ -131,6 +133,9 @@ export function LeadTableView({ leads, activeStage, userNameById, getActions }: 
 													<HiStar className="h-2.5 w-2.5" /> Organic
 												</span>
 											) : null}
+											{lead.createdAt ? (
+												<p className="text-[10px] text-gray-400 leading-snug">{fmtDate(lead.createdAt as unknown as string)}</p>
+											) : null}
 											{(lead.price || lead.admissionFee) ? (
 												<div className="mt-1 flex flex-wrap gap-1">
 													{lead.price ? (
@@ -162,9 +167,14 @@ export function LeadTableView({ leads, activeStage, userNameById, getActions }: 
 								{/* Handler */}
 								{showHandler ? (
 									<td className="px-4 py-3.5">
-										{handlerName
-											? <span className="text-sm text-gray-700">{handlerName}</span>
-											: <span className="text-xs text-gray-400">—</span>}
+										<div className="flex flex-col gap-0.5">
+											{handlerName
+												? <span className="text-sm text-gray-700">{handlerName}</span>
+												: <span className="text-xs text-gray-400">—</span>}
+											{leadAssigneeName && leadAssigneeName !== handlerName ? (
+												<span className="text-[11px] text-gray-400">Lead: {leadAssigneeName}</span>
+											) : null}
+										</div>
 									</td>
 								) : null}
 

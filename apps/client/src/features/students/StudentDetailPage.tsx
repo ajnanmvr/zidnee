@@ -200,6 +200,7 @@ export const StudentDetailPage = () => {
 	const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 	const [transferModalOpen, setTransferModalOpen] = useState(false);
 	const [transferMentorId, setTransferMentorId] = useState("");
+	const [transferSearch, setTransferSearch] = useState("");
 	const [breakModalOpen, setBreakModalOpen] = useState(false);
 	const [breakModalMode, setBreakModalMode] = useState<"break" | "extend">("break");
 	const [breakFromDate, setBreakFromDate] = useState("");
@@ -255,6 +256,7 @@ export const StudentDetailPage = () => {
 			toast.success("Student transferred to new mentor");
 			setTransferModalOpen(false);
 			setTransferMentorId("");
+			setTransferSearch("");
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.payload.message ?? "Failed to transfer student");
@@ -1605,22 +1607,41 @@ export const StudentDetailPage = () => {
 						</div>
 						<div className="space-y-3 px-5 py-4">
 							<p className="text-xs text-gray-500">Select a new mentor. The transfer will be recorded in the activity log.</p>
-							<select
-								value={transferMentorId}
-								onChange={(e) => setTransferMentorId(e.target.value)}
-								className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
-							>
-								<option value="">— Select mentor —</option>
-								{mentorUsers.map((u) => (
-									<option key={u.id} value={u.id} disabled={u.id === student?.mentorId}>
-										{u.name ?? u.username}
-										{u.id === student?.mentorId ? " (current)" : ""}
-									</option>
-								))}
-							</select>
+							<input
+								type="text"
+								value={transferSearch}
+								onChange={(e) => setTransferSearch(e.target.value)}
+								placeholder="Search mentors…"
+								className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+								autoFocus
+							/>
+							<div className="max-h-52 overflow-y-auto space-y-1 rounded-xl border border-gray-100 p-2">
+								{mentorUsers
+									.filter((u) => {
+										const q = transferSearch.trim().toLowerCase();
+										return !q || `${u.name ?? ""} ${u.username ?? ""}`.toLowerCase().includes(q);
+									})
+									.map((u) => {
+										const name = u.name ?? u.username ?? "Unknown";
+										const isCurrent = u.id === student?.mentorId;
+										const isSelected = transferMentorId === u.id;
+										return (
+											<button
+												key={u.id}
+												type="button"
+												disabled={isCurrent}
+												onClick={() => setTransferMentorId(u.id)}
+												className={`w-full rounded-lg border px-3 py-2 text-left transition disabled:opacity-40 ${isSelected ? "border-teal-500 bg-teal-50" : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"}`}
+											>
+												<p className="text-sm font-semibold text-gray-900">{name}</p>
+												{isCurrent ? <p className="text-[11px] text-gray-400">Current mentor</p> : null}
+											</button>
+										);
+									})}
+							</div>
 						</div>
 						<div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
-							<button type="button" onClick={() => setTransferModalOpen(false)} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+							<button type="button" onClick={() => { setTransferModalOpen(false); setTransferSearch(""); }} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
 								Cancel
 							</button>
 							<button
