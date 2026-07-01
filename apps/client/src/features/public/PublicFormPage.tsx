@@ -722,7 +722,7 @@ const PublicFormPage = () => {
 					: "";
 			const payload = {
 				name: data.name,
-				email: data.email,
+				email: data.email?.trim(),
 				dateOfBirth: data.dateOfBirth,
 				residingCountry: data.residingCountry === "Other" ? data.residingCountryOther : data.residingCountry,
 				level: data.level,
@@ -1103,10 +1103,10 @@ const PublicFormPage = () => {
 									<input
 										{...register("email", {
 											required: "Email is required",
-											pattern: {
-												value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-												message: "Enter a valid email address",
-											},
+											validate: (value) =>
+												/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value?.trim() ?? "") ||
+												"Enter a valid email address",
+											setValueAs: (v: string) => v?.trim() ?? "",
 										})}
 										placeholder="parent@example.com"
 										className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/10"

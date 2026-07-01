@@ -68,7 +68,11 @@ const findRoleIdsByType = async (
 
 const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
 	const users = await UserService.findAll();
-	const existingIds = users.map((user) => (user as any).zids?.[kind]);
+	// Include both zids.[kind] and username so legacy users (whose ZID is only in username) are counted
+	const existingIds = users.flatMap((user) => [
+		(user as any).zids?.[kind],
+		user.username,
+	]);
 
 	return buildSequentialIdentity(USER_IDENTITY_PREFIXES[kind], existingIds);
 };
