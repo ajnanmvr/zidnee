@@ -20,6 +20,7 @@ export const ZID_CONSTANTS = {
 		student: "ZID",
 		groupStudent: "ZIG",
 		mentor: "ZM0",
+		groupMentor: "ZMG",
 		counsellor: "ZIC",
 		sales: "ZIS",
 		admin: "ZIA",

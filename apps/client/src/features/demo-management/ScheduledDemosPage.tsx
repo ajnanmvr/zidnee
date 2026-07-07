@@ -123,9 +123,15 @@ export const ScheduledDemosPage = () => {
 		await markDemoCompletedMutation.mutateAsync({ leadId: outcomeDemoForAction.id, note: "" });
 	};
 
-	const mentors = usersQuery.data?.users.filter((u) =>
+	const allMentors = usersQuery.data?.users.filter((u) =>
 		u.roles?.some((r) => (r.type ?? "admin") === "mentor"),
 	) ?? [];
+	const selectedCourseType = selectedDemo?.courseType ?? null;
+	const mentors = selectedCourseType === "GROUP"
+		? allMentors.filter((m) => (m as any).mentorType === "group")
+		: selectedCourseType === "INDIVIDUAL"
+			? allMentors.filter((m) => !((m as any).mentorType === "group"))
+			: allMentors;
 
 	const userNameById = useMemo(() => new Map(
 		(usersQuery.data?.users ?? []).map((u) => [u.id, u.name || u.username]),

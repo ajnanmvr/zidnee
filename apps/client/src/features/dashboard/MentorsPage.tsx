@@ -82,6 +82,7 @@ export const MentorsPage = () => {
 	const searchTerm = searchParams.get("search") ?? "";
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
+	const mentorTypeFilter = (searchParams.get("type") ?? "all") as "all" | "individual" | "group";
 	const setQueryParam = (k: string, v?: string) => {
 		const next = new URLSearchParams(searchParams);
 		if (v) next.set(k, v);
@@ -164,13 +165,13 @@ export const MentorsPage = () => {
 		return fromUsers;
 	}, [usersQuery.data, isCurrentUserCounsellor, meQuery.data, currentUserId]);
 
-	type FormValues = { name: string; gender: "male" | "female"; counsellorId?: string };
-	const getDefaultFormValues = (): FormValues => ({ gender: "male", name: "", counsellorId: defaultCounsellorId });
+	type FormValues = { name: string; gender: "male" | "female"; counsellorId?: string; mentorType: "individual" | "group" };
+	const getDefaultFormValues = (): FormValues => ({ gender: "male", name: "", counsellorId: defaultCounsellorId, mentorType: "individual" });
 	const { register, handleSubmit, reset } = useForm<FormValues>({ defaultValues: getDefaultFormValues() });
 
 	const onCreateSubmit = async (data: FormValues) => {
 		try {
-			await createMentor.mutateAsync({ name: data.name, gender: data.gender, counsellorId: data.counsellorId });
+			await createMentor.mutateAsync({ name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType });
 			toast.success("Mentor created");
 			setCreateModalOpen(false);
 			reset(getDefaultFormValues());
@@ -184,6 +185,7 @@ export const MentorsPage = () => {
 			id: m.mentor.id,
 			displayId: getMentorDisplayId(m.mentor),
 			zidsMentor: (m.mentor as any).zids?.mentor ?? (m.mentor as any).mentorId ?? "",
+			mentorType: (m.mentor as any).mentorType ?? "individual",
 			name: m.mentor.name ?? m.mentor.username ?? "-",
 			username: m.mentor.username,
 			counsellorId: (m.mentor as any).counsellorId ?? null,
@@ -205,6 +207,8 @@ export const MentorsPage = () => {
 
 	const filteredRows = useMemo(() => {
 		let out = rows;
+		if (mentorTypeFilter === "individual") out = out.filter((r) => r.mentorType !== "group");
+		else if (mentorTypeFilter === "group") out = out.filter((r) => r.mentorType === "group");
 		out = out.slice().sort((a, b) => {
 			switch (sortBy) {
 				case "nameAsc":
@@ -229,9 +233,11 @@ export const MentorsPage = () => {
 		});
 		const start = (page - 1) * limit;
 		return out.slice(start, start + limit);
-	}, [rows, sortBy, page, limit]);
+	}, [rows, mentorTypeFilter, sortBy, page, limit]);
 
-	const totalCount = rows.length;
+	const totalCount = mentorTypeFilter === "all" ? rows.length
+		: mentorTypeFilter === "group" ? rows.filter((r) => r.mentorType === "group").length
+		: rows.filter((r) => r.mentorType !== "group").length;
 
 	const columns = useMemo(() => [
 		{
@@ -244,8 +250,15 @@ export const MentorsPage = () => {
 					</span>
 					<span className="min-w-0">
 						<span className="block truncate text-sm font-semibold text-gray-900">{row.original.name}</span>
-						<span className="mt-0.5 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
-							{row.original.displayId.toUpperCase()}
+						<span className="mt-0.5 flex flex-wrap items-center gap-1">
+							<span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+								{row.original.displayId.toUpperCase()}
+							</span>
+							{row.original.mentorType === "group" ? (
+								<span className="inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Group</span>
+							) : (
+								<span className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-600">Individual</span>
+							)}
 						</span>
 					</span>
 				</Link>
@@ -417,6 +430,25 @@ export const MentorsPage = () => {
 							</button>
 						</div>
 					) : null}
+					{/* Mentor type filter tabs */}
+					<div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+						{(["all", "individual", "group"] as const).map((t) => (
+							<button
+								key={t}
+								type="button"
+								onClick={() => {
+									const next = new URLSearchParams(searchParams);
+									if (t === "all") next.delete("type"); else next.set("type", t);
+									next.delete("page");
+									setSearchParams(next);
+								}}
+								className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition ${mentorTypeFilter === t ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+							>
+								{t === "all" ? "All" : t === "individual" ? "Individual" : "Group"}
+							</button>
+						))}
+					</div>
+
 					<div className="relative min-w-50 max-w-sm">
 						<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 						<input
@@ -564,7 +596,15 @@ export const MentorsPage = () => {
 				footer={
 					<>
 						<button type="button" onClick={() => { setCreateModalOpen(false); reset(getDefaultFormValues()); }} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">Cancel</button>
-						<button type="button" onClick={handleSubmit(onCreateSubmit)} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Create mentor</button>
+						<button type="button" onClick={handleSubmit(onCreateSubmit)} disabled={createMentor.isPending} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70">
+							{createMentor.isPending && (
+								<svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+									<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+								</svg>
+							)}
+							{createMentor.isPending ? "Creating…" : "Create mentor"}
+						</button>
 					</>
 				}
 			>
@@ -587,6 +627,22 @@ export const MentorsPage = () => {
 								<label className="inline-flex items-center gap-2">
 									<input type="radio" value="female" {...register("gender") } />
 									<span>Female</span>
+								</label>
+							</div>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Mentor type</label>
+							<div className="mt-2 flex gap-4">
+								<label className="inline-flex items-center gap-2 cursor-pointer">
+									<input type="radio" value="individual" {...register("mentorType")} defaultChecked />
+									<span className="text-sm">Individual</span>
+									<span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">ZM0xxx</span>
+								</label>
+								<label className="inline-flex items-center gap-2 cursor-pointer">
+									<input type="radio" value="group" {...register("mentorType")} />
+									<span className="text-sm">Group</span>
+									<span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">ZMGxxx</span>
 								</label>
 							</div>
 						</div>
