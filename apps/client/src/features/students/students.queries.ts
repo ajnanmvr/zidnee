@@ -23,6 +23,8 @@ export const studentsQueryKeys = {
 			sortOrder?: "asc" | "desc";
 			page?: number;
 			limit?: number;
+			admittedFrom?: string;
+			admittedTo?: string;
 		},
 	) => ["students", token, options ?? {}] as const,
 	activities: (token: string, studentId: string) =>
@@ -46,6 +48,8 @@ export const useStudentsQuery = (
 				scope?: "mine" | "all";
 				/** Powers the "Converted Leads" mine/all scope; bypasses the mentor/batch-counsellor based `scope` filter. */
 				admittedBy?: "me" | "all";
+				admittedFrom?: string;
+				admittedTo?: string;
 		  }
 		| boolean,
 	enabled = true,

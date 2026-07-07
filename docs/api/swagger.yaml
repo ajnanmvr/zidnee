@@ -613,6 +613,26 @@ paths:
               - ACTIVE
               - COMPLETED
               - DROPPED
+        - in: query
+          name: admittedBy
+          schema:
+            type: string
+            enum:
+              - me
+              - all
+          description: Filter converted leads by the admitting user
+        - in: query
+          name: admittedFrom
+          schema:
+            type: string
+            format: date
+          description: Include converted leads admitted on or after this date
+        - in: query
+          name: admittedTo
+          schema:
+            type: string
+            format: date
+          description: Include converted leads admitted on or before this date
       responses:
         '200':
           description: List of students with ZID, name, level, and status
