@@ -56,6 +56,7 @@ export const UserSchema = z.object({
 			admin: z.string().min(1).max(100).optional(),
 		})
 		.optional(),
+	mentorType: z.enum(["individual", "group"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema),
 	isActive: z.boolean().default(true),
 	// Mentor followup fields (for mentor lifecycle)
@@ -98,6 +99,7 @@ export const CreateMentorPayloadSchema = z.object({
 	gender: z.enum(["male", "female"]),
 	mentorCode: z.string().min(1).max(50).optional(),
 	counsellorId: ObjectIdStringSchema.optional(),
+	mentorType: z.enum(["individual", "group"]).optional(),
 });
 
 export type CreateMentorPayload = z.infer<typeof CreateMentorPayloadSchema>;

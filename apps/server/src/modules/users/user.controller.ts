@@ -8,7 +8,7 @@ import {
 	SetUserStatusPayloadSchema,
 	UpdateUserPayloadSchema,
 } from "@repo/schema";
-import { AUTH_CONSTANTS } from "@repo/schema";
+import { AUTH_CONSTANTS, ZID_CONSTANTS } from "@repo/schema";
 import type { Request, Response } from "express";
 import {
 	AuthenticationError,
@@ -189,7 +189,19 @@ export const createMentorController = async (
 		}
 	}
 
-	const mentorId = await nextIdentity("mentor");
+	const mentorType = result.data.mentorType ?? "individual";
+	const isGroupMentor = mentorType === "group";
+
+	// Group mentors get ZMG prefix; individual mentors get ZM0 prefix
+	let mentorId: string;
+	if (isGroupMentor) {
+		const users = await UserService.findAll();
+		const existingIds = users.flatMap((u) => [(u as any).zids?.mentor, u.username]);
+		mentorId = buildSequentialIdentity(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
+	} else {
+		mentorId = await nextIdentity("mentor");
+	}
+
 	const username = result.data.username || mentorId;
 	const email = `${username}@${AUTH_CONSTANTS.emailDomain}`;
 	// For quick mentor creation, use a predictable initial password: mentorId repeated twice
@@ -206,6 +218,7 @@ export const createMentorController = async (
 		gender: result.data.gender,
 		roleIds: [mentorRole.id],
 		zids,
+		mentorType,
 		// legacy field for compatibility
 		mentorId,
 		counsellorId: result.data.counsellorId,

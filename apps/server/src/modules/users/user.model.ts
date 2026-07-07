@@ -47,6 +47,12 @@ const userSchema = new Schema<UserDocument>(
 			sparse: true,
 			index: true,
 		},
+		mentorType: {
+			type: String,
+			enum: ["individual", "group"],
+			required: false,
+			default: "individual",
+		},
 		counsellorId: {
 			type: String,
 			required: false,

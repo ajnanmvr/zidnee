@@ -2,6 +2,7 @@ import { ZID_CONSTANTS } from "@repo/schema";
 
 export const USER_IDENTITY_PREFIXES = {
 	mentor: ZID_CONSTANTS.prefixes.mentor,
+	groupMentor: ZID_CONSTANTS.prefixes.groupMentor,
 	counsellor: ZID_CONSTANTS.prefixes.counsellor,
 	sales: ZID_CONSTANTS.prefixes.sales,
 	admin: ZID_CONSTANTS.prefixes.admin,

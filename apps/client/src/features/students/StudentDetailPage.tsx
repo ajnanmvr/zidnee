@@ -241,10 +241,17 @@ export const StudentDetailPage = () => {
 		return user?.name ?? user?.username ?? "Unknown";
 	}, [student?.admittedBy, usersQuery.data?.users]);
 
-	const mentorUsers = useMemo(
+	const allMentorUsers = useMemo(
 		() => (usersQuery.data?.users ?? []).filter((u) => (u as any).roles?.some((r: any) => r.type === "mentor")),
 		[usersQuery.data?.users],
 	);
+	// Individual students → individual mentors; group students (have batchId) → group mentors
+	const mentorUsers = useMemo(() => {
+		const isGroup = Boolean(student?.batchId);
+		return isGroup
+			? allMentorUsers.filter((u) => (u as any).mentorType === "group")
+			: allMentorUsers.filter((u) => (u as any).mentorType !== "group");
+	}, [allMentorUsers, student?.batchId]);
 
 	const handleTransfer = async () => {
 		if (!studentId || !transferMentorId) return;

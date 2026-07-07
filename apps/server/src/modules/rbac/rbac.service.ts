@@ -111,6 +111,7 @@ const toUser = (doc: UserDocument): User => {
 		counsellorId: doc.counsellorId,
 		// Structured zids object with generated identities per role
 		zids: (doc as any).zids ?? undefined,
+		mentorType: (doc as any).mentorType ?? "individual",
 		roleIds: doc.roleIds,
 		isActive: doc.isActive,
 		createdAt: doc.createdAt,
@@ -401,6 +402,7 @@ export const UserService = {
 			mentorId: (user as any).mentorId,
 			counsellorId: (user as any).counsellorId,
 			zids: (user as any).zids,
+			mentorType: user.mentorType,
 			roleIds: user.roleIds,
 			isActive: user.isActive,
 		});

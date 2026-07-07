@@ -132,9 +132,16 @@ export const UnassignedDemosPage = () => {
 		setAssignOpen(true);
 	};
 
-	const mentors = usersQuery.data?.users.filter((u) =>
+	// For individual course demos only show individual mentors; for group show group mentors
+	const allMentors = usersQuery.data?.users.filter((u) =>
 		u.roles?.some((r) => (r.type ?? "admin") === "mentor"),
 	) ?? [];
+	const selectedCourseType = selectedDemo?.courseType ?? null;
+	const mentors = selectedCourseType === "GROUP"
+		? allMentors.filter((m) => (m as any).mentorType === "group")
+		: selectedCourseType === "INDIVIDUAL"
+			? allMentors.filter((m) => !((m as any).mentorType === "group"))
+			: allMentors;
 
 	/** Mentor previously assigned to this lead's demos — surfaced first as a quick pick. */
 	const suggestedMentors = useMemo(() => {
