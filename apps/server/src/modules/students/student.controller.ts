@@ -176,6 +176,8 @@ export const listStudentsController = async (
 		scope: isConvertedLeadsView ? "all" : requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
 		admittedBy: admittedByMe && typeof req.user?.userId === "string" ? req.user.userId : undefined,
+		admittedFrom: typeof req.query.admittedFrom === "string" ? req.query.admittedFrom : undefined,
+		admittedTo: typeof req.query.admittedTo === "string" ? req.query.admittedTo : undefined,
 	});
 	res.json(
 		StudentsResponseSchema.parse({

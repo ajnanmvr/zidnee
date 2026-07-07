@@ -82,6 +82,16 @@ type StudentListFilters = {
 	 * of the mentor/batch-counsellor based `scope` filter.
 	 */
 	admittedBy?: string;
+	admittedFrom?: string;
+	admittedTo?: string;
+};
+
+const toDateBounds = (dateValue: string, endOfDay = false): Date | null => {
+	const parsed = new Date(dateValue);
+	if (Number.isNaN(parsed.getTime())) return null;
+	return endOfDay
+		? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999)
+		: new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0);
 };
 
 export type StudentProcessListItem = {
@@ -363,6 +373,21 @@ export const StudentService = {
 
 		if (filters.admittedBy && Types.ObjectId.isValid(filters.admittedBy)) {
 			query.admittedBy = new Types.ObjectId(filters.admittedBy);
+		}
+
+		if (filters.admittedFrom || filters.admittedTo) {
+			const admittedAt: Record<string, Date> = {};
+			if (filters.admittedFrom) {
+				const from = toDateBounds(filters.admittedFrom, false);
+				if (from) admittedAt.$gte = from;
+			}
+			if (filters.admittedTo) {
+				const to = toDateBounds(filters.admittedTo, true);
+				if (to) admittedAt.$lte = to;
+			}
+			if (Object.keys(admittedAt).length > 0) {
+				query.admittedAt = admittedAt;
+			}
 		}
 
 		if (filters.allowedCourseTypes && filters.allowedCourseTypes.length > 0) {

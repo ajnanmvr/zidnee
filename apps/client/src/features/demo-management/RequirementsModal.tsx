@@ -91,6 +91,47 @@ export const RequirementsModal = ({
 
 
 
+	const getLeadAge = () => {
+		if (!lead) return null;
+
+		if (lead.dateOfBirth) {
+			const dob = new Date(lead.dateOfBirth as unknown as string);
+			if (!Number.isNaN(dob.getTime())) {
+				return Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+			}
+		}
+
+		const legacyAge = (lead as { age?: unknown }).age;
+		if (typeof legacyAge === "number" && Number.isFinite(legacyAge)) {
+			return Math.floor(legacyAge);
+		}
+		if (typeof legacyAge === "string" && legacyAge.trim()) {
+			const parsed = Number.parseInt(legacyAge, 10);
+			if (!Number.isNaN(parsed)) {
+				return parsed;
+			}
+		}
+
+		const agePatterns = [
+			/\bage\s*[:\-]?\s*(\d{1,3})\b/i,
+			/\b(\d{1,3})\s*(?:y|yrs|year|years)\b/i,
+		];
+		for (const source of [lead.studentInfo, lead.preferredSchedule]) {
+			if (!source) continue;
+			for (const pattern of agePatterns) {
+				const match = source.match(pattern);
+				if (match?.[1]) {
+					const parsed = Number.parseInt(match[1], 10);
+					if (!Number.isNaN(parsed)) {
+						return parsed;
+					}
+				}
+			}
+		}
+
+		return null;
+	};
+
 	const langAbbrev: Record<string, string> = {
 		"Malayalam Only": "Malayalam Only",
 		"English Only": "English Only",
@@ -105,9 +146,7 @@ export const RequirementsModal = ({
 		const slNo = lead.slNo ? String(lead.slNo).padStart(2, "0") : null;
 		const header = slNo ? `Student Requirements- ${slNo}` : `Student Requirements`;
 
-		const age = lead.dateOfBirth
-			? Math.floor((Date.now() - new Date(lead.dateOfBirth as unknown as string).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-			: null;
+		const age = getLeadAge();
 
 		const lang = lead.preferredLanguage ? (langAbbrev[lead.preferredLanguage] ?? lead.preferredLanguage) : null;
 

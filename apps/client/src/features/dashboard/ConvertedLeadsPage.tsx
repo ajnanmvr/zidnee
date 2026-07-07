@@ -49,6 +49,8 @@ export const ConvertedLeadsPage = () => {
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const sortBy = searchParams.get("sortBy") ?? "admittedAt";
 	const salesPersonFilter = searchParams.get("sp") ?? "";
+	const admittedFrom = searchParams.get("admittedFrom") ?? "";
+	const admittedTo = searchParams.get("admittedTo") ?? "";
 
 	const canReadAll = useHasPermission("LEAD_READ_ALL") || useHasPermission("LEADS_CONVERTED_READ");
 	const activeScope: "mine" | "all" = scope === "all" && canReadAll ? "all" : "mine";
@@ -61,6 +63,8 @@ export const ConvertedLeadsPage = () => {
 		sortOrder: "desc",
 		page,
 		limit,
+		admittedFrom: admittedFrom || undefined,
+		admittedTo: admittedTo || undefined,
 	});
 	const usersQuery = useUsersQuery(token, Boolean(token));
 
@@ -185,6 +189,35 @@ export const ConvertedLeadsPage = () => {
 						))}
 					</select>
 				) : null}
+				<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5">
+						<label className="text-xs font-medium text-gray-500">From</label>
+						<input
+							type="date"
+							value={admittedFrom}
+							onChange={(e) => setParams({ admittedFrom: e.target.value || undefined, page: undefined })}
+							className="bg-transparent text-sm text-gray-700 outline-none"
+						/>
+					</div>
+					<div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5">
+						<label className="text-xs font-medium text-gray-500">To</label>
+						<input
+							type="date"
+							value={admittedTo}
+							onChange={(e) => setParams({ admittedTo: e.target.value || undefined, page: undefined })}
+							className="bg-transparent text-sm text-gray-700 outline-none"
+						/>
+					</div>
+					{admittedFrom || admittedTo ? (
+						<button
+							type="button"
+							onClick={() => setParams({ admittedFrom: undefined, admittedTo: undefined, page: undefined })}
+							className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+						>
+							Clear dates
+						</button>
+					) : null}
+				</div>
 				<div className="ml-auto flex items-center gap-2">
 					<label className="text-xs font-medium text-gray-500">Sort by</label>
 					<select

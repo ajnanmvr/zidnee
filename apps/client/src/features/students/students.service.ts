@@ -24,6 +24,8 @@ export const fetchStudents = async (
 		scope?: "mine" | "all";
 		/** Powers the "Converted Leads" mine/all scope: "me" restricts to leads converted by the current user, "all" lists every converted lead (gated by lead-read permissions, bypassing STUDENT_READ_ALL). */
 		admittedBy?: "me" | "all";
+		admittedFrom?: string;
+		admittedTo?: string;
 	},
 ) => {
 	const query = new URLSearchParams();
@@ -37,6 +39,8 @@ export const fetchStudents = async (
 	if (options?.limit) query.set("limit", String(options.limit));
 	if (options?.scope) query.set("scope", options.scope);
 	if (options?.admittedBy) query.set("admittedBy", options.admittedBy);
+	if (options?.admittedFrom) query.set("admittedFrom", options.admittedFrom);
+	if (options?.admittedTo) query.set("admittedTo", options.admittedTo);
 
 	return requestWithSchema(
 		`/students${query.toString() ? `?${query.toString()}` : ""}`,
