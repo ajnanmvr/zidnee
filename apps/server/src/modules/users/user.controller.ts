@@ -441,6 +441,8 @@ export const updateUserController = async (
 		await ensureRoleIdsExist(result.data.roleIds);
 	}
 
+	const existingMentorType = existingUser.mentorType ?? "individual";
+
 	if (result.data.counsellorId) {
 		const counsellor = await UserService.findById(result.data.counsellorId);
 		if (!counsellor) {
@@ -479,6 +481,15 @@ export const updateUserController = async (
 			}
 		}
 	}
+	if (result.data.mentorType && result.data.mentorType !== existingMentorType) {
+		if (result.data.mentorType === "group") {
+			const users = await UserService.findAll();
+			const existingIds = users.flatMap((user) => [(user as any).zids?.mentor, user.username]);
+			zidsToSet.mentor = buildSequentialIdentity(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
+		} else {
+			zidsToSet.mentor = await nextIdentity("mentor");
+		}
+	}
 	// Allow explicitly provided ZIDs to override auto-generated values (e.g. manual ZM number correction)
 	if (result.data.zids) {
 		Object.assign(zidsToSet, result.data.zids);
@@ -488,6 +499,7 @@ export const updateUserController = async (
 		username: result.data.username,
 		email: normalizedEmail,
 		name: result.data.name,
+		mentorType: result.data.mentorType,
 		roleIds: result.data.roleIds,
 		counsellorId: result.data.counsellorId,
 		zids: zidsToSet,

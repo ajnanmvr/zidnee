@@ -8,6 +8,17 @@ import { useUpdateUserMutation } from "@/features/users/use-user-management-muta
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 
+type EditableUser = {
+	id: string;
+	name: string;
+	username: string;
+	email?: string;
+	roles: Array<{ id: string; name: string; type: string }>;
+	mentorType?: "individual" | "group";
+	counsellorId?: string;
+	zids?: Record<string, string>;
+};
+
 /** Picks the dedicated directory page to return to, based on the user's primary role. */
 const resolveDirectoryPath = (roles?: Array<{ type?: string | null }>) => {
 	const types = new Set((roles ?? []).map((role) => role.type));
@@ -25,7 +36,10 @@ export const EditUserPage = () => {
 	const updateUserMutation = useUpdateUserMutation();
 
 	const user = useMemo(
-		() => usersQuery.data?.users.find((row) => row.id === userId) ?? null,
+		() =>
+			usersQuery.data?.users.find(
+				(row) => row.id === userId,
+			) as EditableUser | null,
 		[userId, usersQuery.data?.users],
 	);
 
@@ -34,6 +48,7 @@ export const EditUserPage = () => {
 		username: string;
 		email?: string;
 		gender?: "male" | "female";
+		mentorType?: "individual" | "group";
 		roleIds: string[];
 		counsellorId?: string;
 		zids?: Record<string, string>;
@@ -50,6 +65,7 @@ export const EditUserPage = () => {
 					username: form.username,
 					email: form.email,
 					gender: form.gender,
+					mentorType: form.mentorType,
 					roleIds: form.roleIds,
 					counsellorId: form.counsellorId,
 					zids: form.zids,
@@ -101,10 +117,7 @@ export const EditUserPage = () => {
 	return (
 		<UserFormPanel
 			mode="edit"
-			user={{
-				...user,
-				zids: (user as any).zids ?? undefined,
-			}}
+			user={user}
 			onSubmit={handleSubmit}
 			isLoading={updateUserMutation.isPending}
 		/>

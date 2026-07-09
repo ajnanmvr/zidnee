@@ -452,6 +452,7 @@ export const UserService = {
 					email: normalizeEmail(data.email),
 					password: data.password,
 					name: data.name,
+					mentorType: data.mentorType,
 					mentorId: (data as any).mentorId,
 					counsellorId: (data as any).counsellorId,
 					zids: (data as any).zids,

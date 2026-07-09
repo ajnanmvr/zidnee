@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Modal } from "@/components/dashboard-ui";
+import { ConfirmDialog, Modal } from "@/components/dashboard-ui";
 import {
 	HiAcademicCap,
 	HiArrowPath,
@@ -125,6 +125,13 @@ export const MentorsPage = () => {
 
 	const [zmModal, setZmModal] = useState<{ userId: string; name: string; currentZm: string } | null>(null);
 	const [zmInput, setZmInput] = useState("");
+	const [mentorTypeModal, setMentorTypeModal] = useState<{
+		userId: string;
+		name: string;
+		currentType: "individual" | "group";
+		nextType: "individual" | "group";
+		currentDisplayId: string;
+	} | null>(null);
 	const [counsellorModal, setCounsellorModal] = useState<{ userId: string; name: string; currentCounsellorId?: string } | null>(null);
 	const [counsellorSearch, setCounsellorSearch] = useState("");
 	const [selectedCounsellorId, setSelectedCounsellorId] = useState("");
@@ -137,6 +144,20 @@ export const MentorsPage = () => {
 			setZmModal(null);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to update ZM number");
+		}
+	};
+
+	const handleMentorTypeChange = async () => {
+		if (!mentorTypeModal) return;
+		try {
+			await updateUser.mutateAsync({
+				userId: mentorTypeModal.userId,
+				payload: { mentorType: mentorTypeModal.nextType },
+			});
+			toast.success(`Changed mentor to ${mentorTypeModal.nextType}`);
+			setMentorTypeModal(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update mentor type");
 		}
 	};
 
@@ -368,6 +389,27 @@ export const MentorsPage = () => {
 							className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
 						>
 							<HiHashtag className="h-4 w-4" aria-hidden="true" />
+						</button>
+					) : null}
+					{canEditUser ? (
+						<button
+							type="button"
+							title="Change mentor type"
+							aria-label="Change mentor type"
+							onClick={() => {
+								const currentType = row.original.mentorType === "group" ? "group" : "individual";
+								const nextType = currentType === "group" ? "individual" : "group";
+								setMentorTypeModal({
+									userId: row.original.id,
+									name: row.original.name,
+									currentType,
+									nextType,
+									currentDisplayId: row.original.displayId,
+								});
+							}}
+							className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 ${row.original.mentorType === "group" ? "" : ""}`}
+						>
+							<HiArrowPath className="h-4 w-4" aria-hidden="true" />
 						</button>
 					) : null}
 					<Link
@@ -661,6 +703,17 @@ export const MentorsPage = () => {
 					</form>
 				)}
 			</Modal>
+
+			<ConfirmDialog
+				open={Boolean(mentorTypeModal)}
+				title="Change mentor type"
+				description={mentorTypeModal ? `${mentorTypeModal.name} will change from ${mentorTypeModal.currentType} to ${mentorTypeModal.nextType}. The mentor ID will be regenerated to match the new type.` : ""}
+				confirmLabel="Change type"
+				busy={updateUser.isPending}
+				tone="brand"
+				onConfirm={() => void handleMentorTypeChange()}
+				onCancel={() => setMentorTypeModal(null)}
+			/>
 
 			{/* ZM Number edit modal */}
 			{zmModal ? (
