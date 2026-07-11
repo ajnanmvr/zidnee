@@ -222,7 +222,20 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		const validation = schema.safeParse(payload);
 
 		if (!validation.success) {
-			const errors = validation.error.flatten().fieldErrors;
+			const errors = validation.error.flatten().fieldErrors as Partial<
+				Record<
+					| "name"
+					| "username"
+					| "email"
+					| "password"
+					| "gender"
+					| "mentorType"
+					| "roleIds"
+					| "counsellorId"
+					| "zids",
+					string[]
+				>
+			>;
 			if (errors.name?.[0])
 				setError("name", { type: "manual", message: errors.name[0] });
 			if (errors.username?.[0])
