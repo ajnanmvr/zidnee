@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Modal } from "@/components/dashboard-ui";
+import { ConfirmDialog, Modal } from "@/components/dashboard-ui";
 import {
 	HiAcademicCap,
 	HiArrowPath,
@@ -89,6 +89,16 @@ export const MentorsPage = () => {
 		else next.delete(k);
 		setSearchParams(next);
 	};
+	// Applies several param changes atomically in one setSearchParams call,
+	// so a search/filter change and a page reset can't clobber each other.
+	const setQueryParams = (updates: Record<string, string | undefined>) => {
+		const next = new URLSearchParams(searchParams);
+		for (const [k, v] of Object.entries(updates)) {
+			if (v) next.set(k, v);
+			else next.delete(k);
+		}
+		setSearchParams(next);
+	};
 
 	const usersQuery = useUsersQuery(token);
 	const mentorsQuery = useMentorsQuery(token, activeScope, true, searchTerm || undefined);
@@ -125,6 +135,13 @@ export const MentorsPage = () => {
 
 	const [zmModal, setZmModal] = useState<{ userId: string; name: string; currentZm: string } | null>(null);
 	const [zmInput, setZmInput] = useState("");
+	const [mentorTypeModal, setMentorTypeModal] = useState<{
+		userId: string;
+		name: string;
+		currentType: "individual" | "group";
+		nextType: "individual" | "group";
+		currentDisplayId: string;
+	} | null>(null);
 	const [counsellorModal, setCounsellorModal] = useState<{ userId: string; name: string; currentCounsellorId?: string } | null>(null);
 	const [counsellorSearch, setCounsellorSearch] = useState("");
 	const [selectedCounsellorId, setSelectedCounsellorId] = useState("");
@@ -137,6 +154,20 @@ export const MentorsPage = () => {
 			setZmModal(null);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to update ZM number");
+		}
+	};
+
+	const handleMentorTypeChange = async () => {
+		if (!mentorTypeModal) return;
+		try {
+			await updateUser.mutateAsync({
+				userId: mentorTypeModal.userId,
+				payload: { mentorType: mentorTypeModal.nextType },
+			});
+			toast.success(`Changed mentor to ${mentorTypeModal.nextType}`);
+			setMentorTypeModal(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update mentor type");
 		}
 	};
 
@@ -169,7 +200,10 @@ export const MentorsPage = () => {
 	const getDefaultFormValues = (): FormValues => ({ gender: "male", name: "", counsellorId: defaultCounsellorId, mentorType: "individual" });
 	const { register, handleSubmit, reset } = useForm<FormValues>({ defaultValues: getDefaultFormValues() });
 
+	const isCreatingMentorRef = useRef(false);
 	const onCreateSubmit = async (data: FormValues) => {
+		if (isCreatingMentorRef.current) return;
+		isCreatingMentorRef.current = true;
 		try {
 			await createMentor.mutateAsync({ name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType });
 			toast.success("Mentor created");
@@ -177,6 +211,32 @@ export const MentorsPage = () => {
 			reset(getDefaultFormValues());
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to create mentor");
+		} finally {
+			isCreatingMentorRef.current = false;
+		}
+	};
+
+	// edit mentor modal state
+	const [editModalOpen, setEditModalOpen] = useState(false);
+	const [editingMentorId, setEditingMentorId] = useState<string | null>(null);
+	const { register: registerEdit, handleSubmit: handleEditSubmit, reset: resetEdit } = useForm<FormValues>({ defaultValues: getDefaultFormValues() });
+
+	const isEditingMentorRef = useRef(false);
+	const onEditSubmit = async (data: FormValues) => {
+		if (!editingMentorId || isEditingMentorRef.current) return;
+		isEditingMentorRef.current = true;
+		try {
+			await updateUser.mutateAsync({
+				userId: editingMentorId,
+				payload: { name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType },
+			});
+			toast.success("Mentor updated");
+			setEditModalOpen(false);
+			setEditingMentorId(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update mentor");
+		} finally {
+			isEditingMentorRef.current = false;
 		}
 	};
 
@@ -186,6 +246,7 @@ export const MentorsPage = () => {
 			displayId: getMentorDisplayId(m.mentor),
 			zidsMentor: (m.mentor as any).zids?.mentor ?? (m.mentor as any).mentorId ?? "",
 			mentorType: (m.mentor as any).mentorType ?? "individual",
+			gender: (m.mentor as any).gender === "female" ? "female" : "male",
 			name: m.mentor.name ?? m.mentor.username ?? "-",
 			username: m.mentor.username,
 			counsellorId: (m.mentor as any).counsellorId ?? null,
@@ -370,14 +431,47 @@ export const MentorsPage = () => {
 							<HiHashtag className="h-4 w-4" aria-hidden="true" />
 						</button>
 					) : null}
-					<Link
-						to={`/users/${row.original.id}/edit`}
-						title="Edit"
-						aria-label="Edit mentor"
-						className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
-					>
-						<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
-					</Link>
+					{canEditUser ? (
+						<button
+							type="button"
+							title="Change mentor type"
+							aria-label="Change mentor type"
+							onClick={() => {
+								const currentType = row.original.mentorType === "group" ? "group" : "individual";
+								const nextType = currentType === "group" ? "individual" : "group";
+								setMentorTypeModal({
+									userId: row.original.id,
+									name: row.original.name,
+									currentType,
+									nextType,
+									currentDisplayId: row.original.displayId,
+								});
+							}}
+							className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 ${row.original.mentorType === "group" ? "" : ""}`}
+						>
+							<HiArrowPath className="h-4 w-4" aria-hidden="true" />
+						</button>
+					) : null}
+					{canEditUser ? (
+						<button
+							type="button"
+							title="Edit"
+							aria-label="Edit mentor"
+							onClick={() => {
+								setEditingMentorId(row.original.id);
+								resetEdit({
+									name: row.original.name,
+									gender: row.original.gender,
+									counsellorId: row.original.counsellorId ?? undefined,
+									mentorType: row.original.mentorType === "group" ? "group" : "individual",
+								});
+								setEditModalOpen(true);
+							}}
+							className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
+						>
+							<HiPencilSquare className="h-4 w-4" aria-hidden="true" />
+						</button>
+					) : null}
 				</div>
 			),
 		},
@@ -453,7 +547,7 @@ export const MentorsPage = () => {
 						<HiMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 						<input
 							value={searchTerm}
-							onChange={(e) => { setQueryParam("search", e.target.value); setQueryParam("page", undefined); }}
+							onChange={(e) => setQueryParams({ search: e.target.value, page: undefined })}
 							placeholder="Search mentors…"
 							className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 						/>
@@ -463,7 +557,7 @@ export const MentorsPage = () => {
 					<label className="text-xs font-medium text-gray-500">Sort by</label>
 					<select
 						value={sortBy}
-						onChange={(e) => setQueryParam("sortBy", e.target.value === "followUp" ? undefined : e.target.value)}
+						onChange={(e) => setQueryParams({ sortBy: e.target.value === "followUp" ? undefined : e.target.value, page: undefined })}
 						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					>
 						<option value="followUp">Next follow-up</option>
@@ -479,7 +573,7 @@ export const MentorsPage = () => {
 					<label className="text-xs font-medium text-gray-500">Rows per page</label>
 					<select
 						value={String(limit)}
-						onChange={(e) => setQueryParam("limit", e.target.value)}
+						onChange={(e) => setQueryParams({ limit: e.target.value, page: undefined })}
 						className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					>
 						<option value="10">10</option>
@@ -661,6 +755,92 @@ export const MentorsPage = () => {
 					</form>
 				)}
 			</Modal>
+
+			{/* Edit mentor modal */}
+			<Modal
+				open={editModalOpen}
+				title="Edit mentor"
+				description="Update mentor details"
+				onClose={() => { setEditModalOpen(false); setEditingMentorId(null); }}
+				footer={
+					<>
+						<button type="button" onClick={() => { setEditModalOpen(false); setEditingMentorId(null); }} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900">Cancel</button>
+						<button type="button" onClick={handleEditSubmit(onEditSubmit)} disabled={updateUser.isPending} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70">
+							{updateUser.isPending && (
+								<svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+									<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+								</svg>
+							)}
+							{updateUser.isPending ? "Saving…" : "Save changes"}
+						</button>
+					</>
+				}
+			>
+				{!canEditUser ? (
+					<div className="text-sm text-gray-600">You do not have permission to edit mentors.</div>
+				) : (
+					<form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Full name</label>
+							<input {...registerEdit("name", { required: true })} className="mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2" />
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Gender</label>
+							<div className="mt-2 flex gap-4">
+								<label className="inline-flex items-center gap-2">
+									<input type="radio" value="male" {...registerEdit("gender")} />
+									<span>Male</span>
+								</label>
+								<label className="inline-flex items-center gap-2">
+									<input type="radio" value="female" {...registerEdit("gender")} />
+									<span>Female</span>
+								</label>
+							</div>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Mentor type</label>
+							<div className="mt-2 flex gap-4">
+								<label className="inline-flex items-center gap-2 cursor-pointer">
+									<input type="radio" value="individual" {...registerEdit("mentorType")} />
+									<span className="text-sm">Individual</span>
+									<span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">ZM0xxx</span>
+								</label>
+								<label className="inline-flex items-center gap-2 cursor-pointer">
+									<input type="radio" value="group" {...registerEdit("mentorType")} />
+									<span className="text-sm">Group</span>
+									<span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">ZMGxxx</span>
+								</label>
+							</div>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Assign counsellor</label>
+							<select {...registerEdit("counsellorId")} className="mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2">
+								<option value="">— none —</option>
+								{counsellors.map((c: any) => (
+									<option key={c.id} value={c.id}>
+										{c.name ?? c.username} {c.zids?.counsellor ? `· ${c.zids.counsellor}` : ""}
+									</option>
+								))}
+							</select>
+						</div>
+					</form>
+				)}
+			</Modal>
+
+			<ConfirmDialog
+				open={Boolean(mentorTypeModal)}
+				title="Change mentor type"
+				description={mentorTypeModal ? `${mentorTypeModal.name} will change from ${mentorTypeModal.currentType} to ${mentorTypeModal.nextType}. The mentor ID will be regenerated to match the new type.` : ""}
+				confirmLabel="Change type"
+				busy={updateUser.isPending}
+				tone="brand"
+				onConfirm={() => void handleMentorTypeChange()}
+				onCancel={() => setMentorTypeModal(null)}
+			/>
 
 			{/* ZM Number edit modal */}
 			{zmModal ? (

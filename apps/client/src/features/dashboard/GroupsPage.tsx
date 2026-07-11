@@ -296,6 +296,23 @@ export const GroupsPage = () => {
 			{canUpdateBatch ? (
 				<Modal open={editOpen} title="Edit group" onClose={closeEdit}>
 					<form className="grid gap-4" onSubmit={handleSubmit(onEditSubmit)}>
+						<Controller
+							name="type"
+							control={control}
+							render={({ field }) => (
+								<label className="grid gap-1.5 text-sm font-medium text-gray-600">
+									<span>Group Type</span>
+									<select
+										value={field.value}
+										onChange={field.onChange}
+										className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white"
+									>
+										<option value="GROUP">Group</option>
+										<option value="INDIVIDUAL">Individual</option>
+									</select>
+								</label>
+							)}
+						/>
 						<Controller name="mentorId" control={control} render={({ field }) => {
 							const selected = mentors.find((m) => m.id === field.value);
 							const filtered = mentors.filter((m) => {

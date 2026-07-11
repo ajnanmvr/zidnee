@@ -7,7 +7,10 @@ import { Link } from "react-router-dom";
 import { Field, Panel } from "@/components/dashboard-ui";
 import { useRolesQuery } from "@/features/roles/roles.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useHasAnyPermission, useHasPermission } from "@/lib/hooks/use-has-permission";
+import {
+	useHasAnyPermission,
+	useHasPermission,
+} from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type CreateUserFormData = {
@@ -17,6 +20,7 @@ type CreateUserFormData = {
 	password?: string;
 	confirmPassword?: string;
 	gender: "male" | "female" | undefined;
+	mentorType?: "individual" | "group";
 	roleIds: string[];
 	counsellorId?: string;
 	zids?: Record<string, string>;
@@ -39,6 +43,7 @@ export type UserFormPanelProps = {
 		username: string;
 		email?: string;
 		roles: Array<{ id: string; name: string; type: string }>;
+		mentorType?: "individual" | "group";
 		counsellorId?: string;
 		zids?: Record<string, string>;
 	};
@@ -59,7 +64,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 	submitLabel,
 }) => {
 	const { token } = useSession();
-	const canCreateFullUser = useHasAnyPermission(["USER_CREATE", "ADMIN_CREATE"]);
+	const canCreateFullUser = useHasAnyPermission([
+		"USER_CREATE",
+		"ADMIN_CREATE",
+	]);
 	const hasSalesCreate = useHasPermission("SALES_CREATE");
 	const canCreateUser = canCreateFullUser || hasSalesCreate;
 	const salesOnlyMode = hasSalesCreate && !canCreateFullUser;
@@ -70,7 +78,11 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		"ADMIN_UPDATE",
 		"SALES_UPDATE",
 	]);
-	const rolesQuery = useRolesQuery(token, true, salesOnlyMode ? "sales" : undefined);
+	const rolesQuery = useRolesQuery(
+		token,
+		true,
+		salesOnlyMode ? "sales" : undefined,
+	);
 	const usersQuery = useUsersQuery(token);
 	const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(
 		mode === "edit" && user ? user.roles.map((r) => r.id) : [],
@@ -89,6 +101,9 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 			rolesQuery.data?.roles.find((role) => role.type === "mentor")?.id ?? null,
 		[rolesQuery.data?.roles],
 	);
+	const showMentorTypeSelector = mentorRoleId
+		? selectedRoleIds.includes(mentorRoleId)
+		: false;
 
 	const showCounsellorSelector =
 		mode === "edit" && mentorRoleId
@@ -99,11 +114,12 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		mode === "edit" && user?.zids ? { ...user.zids } : {},
 	);
 
-	const backTo = mode === "edit" && user
-		? resolveDirectoryPath(user.roles)
-		: salesOnlyMode
-			? "/sales-users"
-			: "/admins";
+	const backTo =
+		mode === "edit" && user
+			? resolveDirectoryPath(user.roles)
+			: salesOnlyMode
+				? "/sales-users"
+				: "/admins";
 
 	const { control, handleSubmit, setError } = useForm<CreateUserFormData>({
 		defaultValues: {
@@ -113,6 +129,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 			password: "",
 			confirmPassword: "",
 			gender: undefined,
+			mentorType: user?.mentorType ?? "individual",
 			roleIds: mode === "edit" && user ? user.roles.map((r) => r.id) : [],
 			counsellorId: user?.counsellorId ?? undefined,
 		},
@@ -123,7 +140,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 		[rolesQuery.data?.roles],
 	);
 
-	if ((mode === "create" && !canCreateUser) || (mode === "edit" && !canUpdateUser)) {
+	if (
+		(mode === "create" && !canCreateUser) ||
+		(mode === "edit" && !canUpdateUser)
+	) {
 		return (
 			<Panel
 				title={title ?? (mode === "create" ? "Create User" : "Edit user")}
@@ -133,7 +153,8 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 				}
 			>
 				<p className="text-sm text-gray-600">
-					You do not have permission to {mode === "create" ? "create" : "edit"} users.
+					You do not have permission to {mode === "create" ? "create" : "edit"}{" "}
+					users.
 				</p>
 			</Panel>
 		);
@@ -184,6 +205,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 						email: form.email || undefined,
 						password: form.password,
 						gender: form.gender,
+						mentorType: form.mentorType,
 						roleIds: selectedRoleIds,
 					}
 				: {
@@ -191,6 +213,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 						username: form.username,
 						email: form.email || undefined,
 						gender: form.gender,
+						mentorType: form.mentorType,
 						roleIds: selectedRoleIds,
 						counsellorId: form.counsellorId,
 						zids: Object.keys(zidValues).length > 0 ? zidValues : undefined,
@@ -206,10 +229,10 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 				setError("username", { type: "manual", message: errors.username[0] });
 			if (errors.email?.[0])
 				setError("email", { type: "manual", message: errors.email[0] });
-			if (mode === "create" && (errors as any).password?.[0])
+			if (mode === "create" && errors.password?.[0])
 				setError("password", {
 					type: "manual",
-					message: (errors as any).password[0],
+					message: errors.password[0],
 				});
 			if (errors.roleIds?.[0])
 				setError("roleIds", { type: "manual", message: errors.roleIds[0] });
@@ -218,7 +241,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 
 		try {
 			await onSubmit(payload as CreateUserFormData);
-		} catch (error) {
+		} catch (_error) {
 			// Error is already handled in parent component
 		}
 	};
@@ -301,6 +324,48 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 											className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 										>
 											<option value="">Select gender</option>
+
+											{showMentorTypeSelector && (
+												<div className="grid gap-2">
+													<span className="text-sm font-medium text-gray-900">
+														Mentor type
+													</span>
+													<Controller
+														name="mentorType"
+														control={control}
+														render={({ field }) => (
+															<div className="mt-1 flex gap-4">
+																<label className="inline-flex items-center gap-2 cursor-pointer">
+																	<input
+																		type="radio"
+																		value="individual"
+																		checked={field.value !== "group"}
+																		onChange={() =>
+																			field.onChange("individual")
+																		}
+																	/>
+																	<span className="text-sm">Individual</span>
+																	<span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+																		ZM0xxx
+																	</span>
+																</label>
+																<label className="inline-flex items-center gap-2 cursor-pointer">
+																	<input
+																		type="radio"
+																		value="group"
+																		checked={field.value === "group"}
+																		onChange={() => field.onChange("group")}
+																	/>
+																	<span className="text-sm">Group</span>
+																	<span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+																		ZMGxxx
+																	</span>
+																</label>
+															</div>
+														)}
+													/>
+												</div>
+											)}
 											<option value="male">Male</option>
 											<option value="female">Female</option>
 										</select>
@@ -474,7 +539,7 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 												<option key={counsellor.id} value={counsellor.id}>
 													{counsellor.zids?.counsellor
 														? `${counsellor.zids.counsellor} - ${counsellor.name ?? counsellor.username}`
-														: counsellor.name ?? counsellor.username}
+														: (counsellor.name ?? counsellor.username)}
 												</option>
 											))}
 										</select>
@@ -501,36 +566,41 @@ export const UserFormPanel: React.FC<UserFormPanelProps> = ({
 								</h3>
 							</div>
 							<p className="text-xs text-gray-500">
-								These IDs are assigned per role. Editing will override the auto-generated value.
+								These IDs are assigned per role. Editing will override the
+								auto-generated value.
 							</p>
 							<div className="grid gap-3 md:grid-cols-2">
-								{(["mentor", "counsellor", "sales", "admin"] as const).map((roleType) => {
-									const label: Record<string, string> = {
-										mentor: "ZM (Mentor ID)",
-										counsellor: "ZIC (Counsellor ID)",
-										sales: "ZIS (Sales ID)",
-										admin: "ZIA (Admin ID)",
-									};
-									const hasRole = user.roles.some((r) => r.type === roleType);
-									if (!hasRole) return null;
-									return (
-										<label key={roleType} className="grid gap-1.5">
-											<span className="text-sm font-medium text-gray-700">{label[roleType]}</span>
-											<input
-												type="text"
-												value={zidValues[roleType] ?? ""}
-												onChange={(e) =>
-													setZidValues((prev) => ({
-														...prev,
-														[roleType]: e.target.value.toUpperCase(),
-													}))
-												}
-												placeholder={`e.g. ZM001`}
-												className="rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-											/>
-										</label>
-									);
-								})}
+								{(["mentor", "counsellor", "sales", "admin"] as const).map(
+									(roleType) => {
+										const label: Record<string, string> = {
+											mentor: "ZM (Mentor ID)",
+											counsellor: "ZIC (Counsellor ID)",
+											sales: "ZIS (Sales ID)",
+											admin: "ZIA (Admin ID)",
+										};
+										const hasRole = user.roles.some((r) => r.type === roleType);
+										if (!hasRole) return null;
+										return (
+											<label key={roleType} className="grid gap-1.5">
+												<span className="text-sm font-medium text-gray-700">
+													{label[roleType]}
+												</span>
+												<input
+													type="text"
+													value={zidValues[roleType] ?? ""}
+													onChange={(e) =>
+														setZidValues((prev) => ({
+															...prev,
+															[roleType]: e.target.value.toUpperCase(),
+														}))
+													}
+													placeholder={`e.g. ZM001`}
+													className="rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+												/>
+											</label>
+										);
+									},
+								)}
 							</div>
 						</div>
 					)}
