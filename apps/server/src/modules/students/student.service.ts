@@ -1531,7 +1531,18 @@ export const StudentService = {
 			},
 		});
 
-		const synced = await syncStudentProcess(updatedStudent._id.toString());
-		return toStudent((synced ?? updatedStudent) as StudentDocument);
+		// Only touch the admission process on a genuine status change, or to keep
+		// an already-existing process in sync. Plain field edits (e.g. assigning
+		// an already-admitted student to a batch/mentor) must not spawn a brand
+		// new onboarding process for students that never had one.
+		const hasExistingProcess = await StudentProcessModel.exists({
+			studentId: updatedStudent._id,
+		});
+		if (payload.status !== undefined || hasExistingProcess) {
+			const synced = await syncStudentProcess(updatedStudent._id.toString());
+			return toStudent((synced ?? updatedStudent) as StudentDocument);
+		}
+
+		return toStudent(updatedStudent as StudentDocument);
 	},
 };
