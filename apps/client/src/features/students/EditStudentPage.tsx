@@ -16,7 +16,7 @@ import {
   HiUserCircle,
   HiUserGroup,
 } from "react-icons/hi2";
-import { useStudentsQuery } from "./students.queries";
+import { useStudentByIdQuery } from "./students.queries";
 import { useUpdateStudentMutation } from "./use-update-student-mutation";
 import { useSession } from "@/lib/session";
 import { useUsersQuery } from "@/features/users/users.queries";
@@ -78,10 +78,10 @@ export const EditStudentPage = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const { token } = useSession();
-  const studentsQuery = useStudentsQuery(token);
+  const studentByIdQuery = useStudentByIdQuery(token, studentId);
   const updateStudentMutation = useUpdateStudentMutation();
 
-  const student = studentsQuery.data?.students.find((s) => s.id === studentId);
+  const student = studentByIdQuery.data ?? undefined;
   const usersQuery = useUsersQuery(token);
   const batchesQuery = useBatchesQuery(token);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -155,6 +155,10 @@ export const EditStudentPage = () => {
 
   if (!studentId) {
     return <div className="p-6">Student id missing</div>;
+  }
+
+  if (studentByIdQuery.isLoading) {
+    return <div className="p-6">Loading…</div>;
   }
 
   if (!student) {
