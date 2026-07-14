@@ -30,7 +30,7 @@ export const GroupsPage = () => {
 	const canReadAllGroups = useHasPermission("BATCH_READ_ALL") && useHasPermission("STUDENT_READ_ALL");
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllGroups ? "all" : "mine";
 	const batchesQuery = useBatchesQuery(token, { scope: activeScope });
-	const studentsQuery = useStudentsQuery(token, { scope: activeScope });
+	const studentsQuery = useStudentsQuery(token, { scope: activeScope, limit: 2000 });
 	const usersQuery = useUsersQuery(token);
 	const canCreateBatch = useHasPermission("BATCH_CREATE");
 	const canUpdateBatch = useHasPermission("BATCH_UPDATE");

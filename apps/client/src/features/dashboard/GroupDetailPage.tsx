@@ -16,7 +16,7 @@ export const GroupDetailPage = () => {
 	const { groupId } = useParams<{ groupId: string }>();
 	const { token } = useSession();
 	const batchesQuery = useBatchesQuery(token);
-	const studentsQuery = useStudentsQuery(token);
+	const studentsQuery = useStudentsQuery(token, { limit: 2000 });
 	const usersQuery = useUsersQuery(token);
 	const updateStudentMutation = useUpdateStudentMutation();
 	const updateBatchMutation = useUpdateBatchMutation();
