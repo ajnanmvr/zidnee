@@ -102,7 +102,7 @@ export const MentorsPage = () => {
 
 	const usersQuery = useUsersQuery(token);
 	const mentorsQuery = useMentorsQuery(token, activeScope, true, searchTerm || undefined);
-	const studentsQuery = useStudentsQuery(token);
+	const studentsQuery = useStudentsQuery(token, { limit: 2000 });
 	const batchesQuery = useBatchesQuery(token);
 	const { data: substitutions = [] } = useGetAllSubstitutions(token);
 

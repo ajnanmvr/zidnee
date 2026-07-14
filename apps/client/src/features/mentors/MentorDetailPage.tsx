@@ -59,7 +59,7 @@ export const MentorDetailPage = () => {
 	const { token } = useSession();
 	const navigate = useNavigate();
 	const usersQuery = useMentorsQuery(token);
-	const studentsQuery = useStudentsQuery(token);
+	const studentsQuery = useStudentsQuery(token, { limit: 2000 });
 	const batchesQuery = useBatchesByMentorQuery(token, mentorId ?? "");
 	const mentorFollowUpQuery = useMentorFollowUpQuery(
 		token,

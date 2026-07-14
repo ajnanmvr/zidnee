@@ -20,7 +20,7 @@ export const CounsellorMentorsPage = () => {
 	const { token } = useSession();
 	const meQuery = useMeQuery(token);
 	const usersQuery = useUsersQuery(token);
-	const studentsQuery = useStudentsQuery(token);
+	const studentsQuery = useStudentsQuery(token, { limit: 2000 });
 
 	const currentUserId = meQuery.data?.id ?? "";
 	const allUsers = usersQuery.data?.users ?? [];
