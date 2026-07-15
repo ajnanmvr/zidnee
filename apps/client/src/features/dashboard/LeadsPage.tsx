@@ -1191,24 +1191,24 @@ export const LeadsPage = () => {
 				];
 			case "demoCompleted":
 				return [
-					// {
-					// 	key: "toAdmission",
-					// 	label: "To Admission",
-					// 	onClick: (item: LeadResponse) => {
-					// 		const latestDemo = getLatestLeadDemo(item);
-					// 		setAdmissionLeadId(item.id);
-					// 		setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
-					// 		setIsChangingAdmissionMentor(!latestDemo?.mentorId);
-					// 		setMentorCounsellorOverrideId(null);
-					// 		setAssigningCounsellorToMentor(false);
-					// 		setSelectedCounsellorForMentor(null);
-					// 		resetAdmission({ counsellorId: undefined, note: "" });
-					// 		setAdmissionPriceInput(item.price ? String(item.price) : "");
-					// 		setAdmissionFeeInput(item.admissionFee ? String(item.admissionFee) : "");
-					// 	},
-					// 	className:
-					// 		"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
-					// },
+					{
+						key: "toAdmission",
+						label: "To Admission",
+						onClick: (item: LeadResponse) => {
+							const latestDemo = getLatestLeadDemo(item);
+							setAdmissionLeadId(item.id);
+							setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
+							setIsChangingAdmissionMentor(!latestDemo?.mentorId);
+							setMentorCounsellorOverrideId(null);
+							setAssigningCounsellorToMentor(false);
+							setSelectedCounsellorForMentor(null);
+							resetAdmission({ counsellorId: undefined, note: "" });
+							setAdmissionPriceInput(item.price ? String(item.price) : "");
+							setAdmissionFeeInput(item.admissionFee ? String(item.admissionFee) : "");
+						},
+						className:
+							"inline-flex items-center rounded-2xl border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50",
+					},
 					{
 						key: "redemo",
 						label: "Redemo",
