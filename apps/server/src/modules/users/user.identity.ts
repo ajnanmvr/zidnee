@@ -8,14 +8,12 @@ export const USER_IDENTITY_PREFIXES = {
 	admin: ZID_CONSTANTS.prefixes.admin,
 } as const;
 
-export const USER_IDENTITY_PAD_LENGTH = 3;
-
-export const buildSequentialIdentity = (
+export const highestUserSuffix = (
 	prefix: string,
 	existingIds: Array<string | undefined>,
-): string => {
+): number => {
 	const normalizedPrefix = prefix.toUpperCase();
-	const highest = existingIds.reduce((max, currentId) => {
+	return existingIds.reduce((max, currentId) => {
 		if (!currentId || !currentId.toUpperCase().startsWith(normalizedPrefix)) {
 			return max;
 		}
@@ -27,6 +25,4 @@ export const buildSequentialIdentity = (
 
 		return Math.max(max, numericPart);
 	}, 0);
-
-	return `${normalizedPrefix}${String(highest + 1).padStart(USER_IDENTITY_PAD_LENGTH, "0")}`;
 };

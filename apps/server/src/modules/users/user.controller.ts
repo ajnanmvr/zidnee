@@ -25,10 +25,8 @@ import {
 	RoleService,
 	UserService,
 } from "../rbac/rbac.service.js";
-import {
-	buildSequentialIdentity,
-	USER_IDENTITY_PREFIXES,
-} from "./user.identity.js";
+import { highestUserSuffix, USER_IDENTITY_PREFIXES } from "./user.identity.js";
+import { ZidService } from "../zid/zid.service.js";
 
 const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 	for (const roleId of roleIds) {
@@ -67,14 +65,17 @@ const findRoleIdsByType = async (
 };
 
 const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
-	const users = await UserService.findAll();
-	// Include both zids.[kind] and username so legacy users (whose ZID is only in username) are counted
-	const existingIds = users.flatMap((user) => [
-		(user as any).zids?.[kind],
-		user.username,
-	]);
+	const prefix = USER_IDENTITY_PREFIXES[kind];
+	return ZidService.generateZid(prefix, async () => {
+		const users = await UserService.findAll();
+		// Include both zids.[kind] and username so legacy users (whose ZID is only in username) are counted
+		const existingIds = users.flatMap((user) => [
+			(user as any).zids?.[kind],
+			user.username,
+		]);
 
-	return buildSequentialIdentity(USER_IDENTITY_PREFIXES[kind], existingIds);
+		return highestUserSuffix(prefix, existingIds);
+	});
 };
 
 export const createUserController = async (
@@ -195,9 +196,17 @@ export const createMentorController = async (
 	// Group mentors get ZMG prefix; individual mentors get ZM0 prefix
 	let mentorId: string;
 	if (isGroupMentor) {
-		const users = await UserService.findAll();
-		const existingIds = users.flatMap((u) => [(u as any).zids?.mentor, u.username]);
-		mentorId = buildSequentialIdentity(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
+		mentorId = await ZidService.generateZid(
+			ZID_CONSTANTS.prefixes.groupMentor,
+			async () => {
+				const users = await UserService.findAll();
+				const existingIds = users.flatMap((u) => [
+					(u as any).zids?.mentor,
+					u.username,
+				]);
+				return highestUserSuffix(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
+			},
+		);
 	} else {
 		mentorId = await nextIdentity("mentor");
 	}
@@ -483,9 +492,17 @@ export const updateUserController = async (
 	}
 	if (result.data.mentorType && result.data.mentorType !== existingMentorType) {
 		if (result.data.mentorType === "group") {
-			const users = await UserService.findAll();
-			const existingIds = users.flatMap((user) => [(user as any).zids?.mentor, user.username]);
-			zidsToSet.mentor = buildSequentialIdentity(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
+			zidsToSet.mentor = await ZidService.generateZid(
+				ZID_CONSTANTS.prefixes.groupMentor,
+				async () => {
+					const users = await UserService.findAll();
+					const existingIds = users.flatMap((user) => [
+						(user as any).zids?.mentor,
+						user.username,
+					]);
+					return highestUserSuffix(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
+				},
+			);
 		} else {
 			zidsToSet.mentor = await nextIdentity("mentor");
 		}
