@@ -1,8 +1,7 @@
-import mongoose, { type Model, Schema, type Types } from "mongoose";
-import { ZID_CONSTANTS } from "@repo/schema";
+import mongoose, { type Model, Schema } from "mongoose";
 
 interface ZidSequenceDocument {
-	_id: string; // prefix like 'ZID', 'ZIG'
+	_id: string; // prefix, e.g. 'ZID', 'ZIG', 'ZM0'
 	nextNumber: number;
 }
 
@@ -15,7 +14,6 @@ const zidSequenceSchema = new Schema<ZidSequenceDocument>(
 		nextNumber: {
 			type: Number,
 			required: true,
-			default: 11,
 		},
 	},
 	{
@@ -28,29 +26,47 @@ const ZidSequenceModel =
 	(mongoose.models.ZidSequence as Model<ZidSequenceDocument> | undefined) ??
 	mongoose.model<ZidSequenceDocument>("ZidSequence", zidSequenceSchema);
 
+const PAD_LENGTH = 3;
+
 export const ZidService = {
+	/**
+	 * Atomically returns the next sequential code for `prefix` (e.g. "ZID011").
+	 * `seedHighest` runs only the first time this prefix is generated, to seed
+	 * the counter from whatever numeric suffix already exists in the data —
+	 * so the sequence continues from the last created record instead of
+	 * restarting at 1. Every call after that is a single atomic $inc, so
+	 * concurrent creations can never be handed the same code.
+	 */
 	generateZid: async (
-		prefix: string = ZID_CONSTANTS.prefixes.student,
+		prefix: string,
+		seedHighest: () => Promise<number>,
 	): Promise<string> => {
-		const sequence = await ZidSequenceModel.findByIdAndUpdate(
-			prefix,
+		let sequence = await ZidSequenceModel.findOneAndUpdate(
+			{ _id: prefix },
 			{ $inc: { nextNumber: 1 } },
-			{ new: true, upsert: true },
+			{ new: true },
 		);
+
+		if (!sequence) {
+			const highest = await seedHighest();
+			try {
+				await ZidSequenceModel.create({ _id: prefix, nextNumber: highest });
+			} catch {
+				// Another concurrent call already seeded this prefix; ignore and
+				// fall through to the atomic increment below.
+			}
+
+			sequence = await ZidSequenceModel.findOneAndUpdate(
+				{ _id: prefix },
+				{ $inc: { nextNumber: 1 } },
+				{ new: true, upsert: true },
+			);
+		}
 
 		if (!sequence) {
 			throw new Error(`Failed to generate ZID for prefix ${prefix}`);
 		}
 
-		// Ensure minimum total length for generated ZID (prefix + number)
-		// e.g. prefix 'ZID' (3) -> want minimum 5 chars total -> number should be at least 2 digits
-		const minTotalLength = 5;
-		let numStr = String(sequence.nextNumber);
-		const padNeeded = Math.max(0, minTotalLength - prefix.length - numStr.length);
-		if (padNeeded > 0) {
-			numStr = numStr.padStart(numStr.length + padNeeded, "0");
-		}
-
-		return `${prefix}${numStr}`;
+		return `${prefix}${String(sequence.nextNumber).padStart(PAD_LENGTH, "0")}`;
 	},
 };

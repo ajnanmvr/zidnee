@@ -7,7 +7,8 @@ import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { BatchModel } from "./batch.model.js";
 import { UserModel } from "../users/user.model.js";
-import { buildStudentIdentity } from "./student.identity.js";
+import { highestStudentSuffix } from "./student.identity.js";
+import { ZidService } from "../zid/zid.service.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
 import { deleteObjectFromUrl } from "../../lib/s3.js";
 import {
@@ -230,12 +231,14 @@ const toStudent = (doc: StudentDocument): Student => {
 };
 
 const nextStudentZid = async (prefix: string): Promise<string> => {
-	const students =
-		await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
-	return buildStudentIdentity(
-		students.map((student) => student.zid),
-		prefix,
-	);
+	return ZidService.generateZid(prefix, async () => {
+		const students =
+			await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
+		return highestStudentSuffix(
+			students.map((student) => student.zid),
+			prefix,
+		);
+	});
 };
 
 const logStudentActivity = async (params: {
