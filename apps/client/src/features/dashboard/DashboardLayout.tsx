@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ApiError } from "@/api/request";
+import { ApiError, isTimeoutError } from "@/api/request";
 import { DashboardHeader, Modal, Sidebar } from "@/components/dashboard-ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { RequestErrorPage } from "@/components/RequestErrorPage";
 import { HiArrowRightOnRectangle } from "react-icons/hi2";
 import { useSession } from "@/lib/session";
 import { useNavigationItems } from "./useNavigationItems";
@@ -101,6 +102,15 @@ export const DashboardLayout = () => {
 		return <LoadingScreen />;
 	}
 
+	if (error && !(error instanceof ApiError && error.status === 401)) {
+		return (
+			<RequestErrorPage
+				variant={isTimeoutError(error) ? "timeout" : "error"}
+				onRetry={() => window.location.reload()}
+			/>
+		);
+	}
+
 	const title = resolveTitle(location.pathname, location.search);
 	const currentLocation = `${location.pathname}${location.search}`;
 
@@ -127,13 +137,6 @@ export const DashboardLayout = () => {
 						/>
 
 						<div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-							{error ? (
-								<div className="mb-5 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-									{error instanceof Error
-										? error.message
-										: "Unable to load session"}
-								</div>
-							) : null}
 							<Outlet />
 						</div>
 					</section>

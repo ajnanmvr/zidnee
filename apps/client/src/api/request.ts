@@ -14,18 +14,28 @@ type Validator<T> = {
 export class ApiError extends Error {
 	public readonly status: number;
 	public readonly payload: ApiErrorResponse;
+	public readonly code?: string;
 
 	public constructor(
 		status: number,
 		payload: ApiErrorResponse,
 		message?: string,
+		code?: string,
 	) {
 		super(message ?? payload.message ?? "Request failed");
 		this.name = "ApiError";
 		this.status = status;
 		this.payload = payload;
+		this.code = code;
 	}
 }
+
+export const isTimeoutError = (error: unknown): boolean => {
+	if (error instanceof ApiError) {
+		return error.code === "ECONNABORTED" || /timeout/i.test(error.message);
+	}
+	return false;
+};
 
 const authHeaders = (token: string) => ({
 	Authorization: `Bearer ${token}`,
@@ -111,6 +121,7 @@ export const requestWithSchema = async <T>(
 				status,
 				payload,
 				apiError.success ? apiError.data.message : error.message,
+				error.code,
 			);
 		}
 

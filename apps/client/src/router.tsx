@@ -2,6 +2,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ApiError } from "@/api/request";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { EditUserPage } from "@/features/dashboard/EditUserPage";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -248,6 +249,7 @@ export const router = createBrowserRouter([
 				<LoginPage />
 			</Suspense>
 		),
+		errorElement: <RouteErrorBoundary />,
 	},
 	{
 		path: "/form/:leadId",
@@ -256,6 +258,7 @@ export const router = createBrowserRouter([
 				<PublicFormPage />
 			</Suspense>
 		),
+		errorElement: <RouteErrorBoundary />,
 	},
 	{
 		path: "/form/student/:studentId",
@@ -264,9 +267,11 @@ export const router = createBrowserRouter([
 				<PublicStudentFormPage />
 			</Suspense>
 		),
+		errorElement: <RouteErrorBoundary />,
 	},
 	{
 		element: <RequireAuth />,
+		errorElement: <RouteErrorBoundary />,
 		children: [
 			{
 				element: (
