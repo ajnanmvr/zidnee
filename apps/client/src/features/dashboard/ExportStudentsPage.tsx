@@ -3,7 +3,7 @@ import { HiArrowDownTray, HiDocumentArrowDown, HiTableCells } from "react-icons/
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { exportToCSV, exportToExcel } from "@/lib/utils/export";
 
@@ -80,8 +80,12 @@ const PREVIEW_KEYS = ["zid", "name", "status", "courseType", "level", "mentor", 
 
 export const ExportStudentsPage = () => {
 	const { token } = useSession();
-	const canReadAllStudents = useHasPermission("STUDENT_READ_ALL");
-	const [loadAllRequested, setLoadAllRequested] = useState(false);
+	// STUDENT_EXPORT holders can export the full dataset even without general
+	// STUDENT_READ_ALL access - the server grants "all" scope for either.
+	const canReadAllStudents = useHasAnyPermission(["STUDENT_READ_ALL", "STUDENT_EXPORT"]);
+	// Default to the full dataset when permitted - someone opening a
+	// dedicated export page almost always wants everything, not just "mine".
+	const [loadAllRequested, setLoadAllRequested] = useState(true);
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllStudents ? "all" : "mine";
 
 	const studentsQuery = useStudentsQuery(token, { scope: activeScope, limit: 2000 });

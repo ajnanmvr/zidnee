@@ -126,7 +126,10 @@ export const listStudentsController = async (
 	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
 	const hasPermission = (key: string) => effectivePermissions.some((p) => p.key === key);
 	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
-	const canReadAll = hasPermission("STUDENT_READ_ALL") || hasPermission("STUDENT_POSTER_DOWNLOAD");
+	const canReadAll =
+		hasPermission("STUDENT_READ_ALL") ||
+		hasPermission("STUDENT_POSTER_DOWNLOAD") ||
+		hasPermission("STUDENT_EXPORT");
 
 	// "admittedBy=me" powers the "Converted Leads" view: it lists students
 	// converted by the current user, gated by lead-read permissions rather

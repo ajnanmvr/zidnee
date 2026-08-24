@@ -343,7 +343,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "students/export",
-						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <ExportStudentsPage />),
+						element: withPermissions(["STUDENT_EXPORT"], <ExportStudentsPage />),
 					},
 					{
 						path: "processes",
