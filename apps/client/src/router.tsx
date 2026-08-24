@@ -49,6 +49,9 @@ const StartingDatePage = lazy(() =>
 const WelcomePosterPage = lazy(() =>
 	import("@/features/dashboard/WelcomePosterPage").then((m) => ({ default: m.WelcomePosterPage })),
 );
+const ExportStudentsPage = lazy(() =>
+	import("@/features/dashboard/ExportStudentsPage").then((m) => ({ default: m.ExportStudentsPage })),
+);
 const StudentProcessesPage = lazy(() =>
 	import("@/features/dashboard/StudentProcessesPage").then((module) => ({
 		default: module.StudentProcessesPage,
@@ -337,6 +340,10 @@ export const router = createBrowserRouter([
 					{
 						path: "students/posters",
 						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL", "STUDENT_POSTER_DOWNLOAD"], <WelcomePosterPage />),
+					},
+					{
+						path: "students/export",
+						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <ExportStudentsPage />),
 					},
 					{
 						path: "processes",
