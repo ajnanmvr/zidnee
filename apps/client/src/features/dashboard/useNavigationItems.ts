@@ -12,6 +12,7 @@ import {
 	HiCheckCircle,
 	HiClipboardDocumentList,
 	HiClock,
+	HiDocumentArrowDown,
 	HiKey,
 	HiLockClosed,
 	HiOutlineBellAlert,
@@ -607,6 +608,21 @@ export const useNavigationItems = () => {
 						label: "Welcome Posters",
 						description: "Download student posters",
 						icon: createElement(HiArrowDownTray, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "teal" as const,
+						section: "Learners",
+					},
+				]
+			: []),
+		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+			? [
+					{
+						to: "/students/export",
+						label: "Export Students",
+						description: "Download student data",
+						icon: createElement(HiDocumentArrowDown, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
 						}),
