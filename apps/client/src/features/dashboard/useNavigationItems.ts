@@ -616,7 +616,7 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+		...(hasPermission("STUDENT_EXPORT")
 			? [
 					{
 						to: "/students/export",
