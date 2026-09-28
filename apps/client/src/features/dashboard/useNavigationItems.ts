@@ -7,6 +7,7 @@ import {
 	HiBanknotes,
 	HiBookmarkSquare,
 	HiCalendarDays,
+	HiChartBar,
 	HiChatBubbleLeftRight,
 	HiCheckBadge,
 	HiCheckCircle,
@@ -476,6 +477,22 @@ export const useNavigationItems = () => {
 						}),
 						accent: "cyan" as const,
 						section: "Demo Management",
+					},
+				]
+			: []),
+		...(hasPermission("DEMO_REPORT_READ_MY") ||
+		hasPermission("DEMO_REPORT_READ_ALL")
+			? [
+					{
+						to: "/demo-management/report",
+						label: "Demo Report",
+						description: "Demo analytics",
+						icon: createElement(HiChartBar, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "violet" as const,
+						section: "Reports",
 					},
 				]
 			: []),

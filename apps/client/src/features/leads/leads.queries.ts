@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	fetchAdmissionLeads,
+	fetchDemoReport,
 	fetchDemoRequests,
 	fetchDueLeadFollowUps,
 	fetchLeadActivities,
@@ -141,6 +142,13 @@ export const useLeadReportQuery = (
 		enabled: Boolean(token),
 	});
 };
+
+export const useDemoReportQuery = (token: string, scope: "all" | "mine") =>
+	useQuery({
+		queryKey: ["leads", "demo-report", token, scope] as const,
+		queryFn: () => fetchDemoReport(token, scope),
+		enabled: Boolean(token),
+	});
 
 export const useLeadActivitiesQuery = (token: string, leadId: string) => {
 	return useQuery({

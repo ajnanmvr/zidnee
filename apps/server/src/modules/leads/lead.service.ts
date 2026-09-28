@@ -1,4 +1,5 @@
 import type {
+	DemoReportRow,
 	Lead,
 	LeadFormData,
 	LeadReportRow,
@@ -14,6 +15,7 @@ import {
 	type StudentDocument,
 	StudentModel,
 } from "../students/student.model.js";
+import { UserModel } from "../users/user.model.js";
 import { ZidService } from "../zid/zid.service.js";
 import { ActivityService } from "./activity.service.js";
 import type { LeadDocumentExt } from "./lead.model.js";
@@ -691,6 +693,89 @@ export const LeadService = {
 				assignedTo: toObjectIdString(lead.assignedTo) ?? null,
 				createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString() : null,
 			}));
+	},
+
+	listDemoReport: async (filters: {
+		userId: string;
+		scope: "all" | "mine";
+	}): Promise<DemoReportRow[]> => {
+		const leads = await LeadModel.find({ "demos.0": { $exists: true } })
+			.select({
+				name: 1,
+				slNo: 1,
+				status: 1,
+				courseType: 1,
+				level: 1,
+				studentId: 1,
+				assignedTo: 1,
+				demoRequestAssignedTo: 1,
+				demos: 1,
+			})
+			.lean<LeadDocument[]>();
+
+		const userIds = new Set<string>();
+		for (const lead of leads) {
+			const coordinator = toObjectIdString(lead.demoRequestAssignedTo);
+			const sales = toObjectIdString(lead.assignedTo);
+			if (coordinator) userIds.add(coordinator);
+			if (sales) userIds.add(sales);
+			for (const demo of lead.demos ?? []) {
+				const mentor = toObjectIdString(demo.mentorId);
+				if (mentor) userIds.add(mentor);
+			}
+		}
+
+		const users = await UserModel.find({ _id: { $in: [...userIds] } })
+			.select({ name: 1, username: 1 })
+			.lean<{ _id: Types.ObjectId; name?: string; username?: string }[]>();
+		const nameById = new Map(
+			users.map((u) => [u._id.toString(), u.name || u.username || "Unknown"]),
+		);
+		const toPerson = (id?: string) =>
+			id ? { id, name: nameById.get(id) ?? "Unknown" } : null;
+		const toIso = (value?: Date | string | null) =>
+			value ? new Date(value).toISOString() : null;
+
+		const rows: DemoReportRow[] = [];
+		for (const lead of leads) {
+			const demos = lead.demos ?? [];
+			const coordinatorId = toObjectIdString(lead.demoRequestAssignedTo);
+			const converted = Boolean((lead as { studentId?: unknown }).studentId);
+
+			demos.forEach((demo, index) => {
+				const mentorId = toObjectIdString(demo.mentorId);
+				// "Mine" = demos I coordinate (demo request assigned to me) or mentor.
+				if (
+					filters.scope === "mine" &&
+					coordinatorId !== filters.userId &&
+					mentorId !== filters.userId
+				) {
+					return;
+				}
+
+				rows.push({
+					leadId: lead._id.toString(),
+					leadName: lead.name ?? null,
+					slNo: lead.slNo ?? null,
+					leadStatus: converted ? "CONVERTED" : (lead.status ?? "FOLLOW_UP"),
+					courseType:
+						(lead as { courseType?: "GROUP" | "INDIVIDUAL" }).courseType ?? null,
+					level: lead.level ?? null,
+					converted,
+					attempt: index + 1,
+					isLatest: index === demos.length - 1,
+					coordinator: toPerson(coordinatorId),
+					mentor: toPerson(mentorId),
+					sales: toPerson(toObjectIdString(lead.assignedTo)),
+					requestedAt: toIso(demo.requestedAt),
+					assignedAt: toIso(demo.assignedAt),
+					scheduledFor: toIso(demo.demoScheduledFor),
+					completedAt: toIso(demo.completedAt),
+				});
+			});
+		}
+
+		return rows;
 	},
 
 	listPendingDemoRequests: async (): Promise<Lead[]> => {

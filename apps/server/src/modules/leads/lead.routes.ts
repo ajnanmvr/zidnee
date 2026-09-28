@@ -19,6 +19,7 @@ import {
 	listAdmissionLeadsController,
     listSimilarLeadsController,
 	listCompletedDemosController,
+	listDemoReportController,
 	listDemoRequestsController,
 	listLeadReportController,
 	listLeadsController,
@@ -132,6 +133,35 @@ router.get(
 		"LEAD_READ_MY" satisfies PermissionKey,
 	]),
 	asyncHandler(listLeadReportController),
+);
+
+/**
+ * @swagger
+ * /api/leads/demo-report:
+ *   get:
+ *     tags:
+ *       - Leads
+ *     summary: Demo management report rows
+ *     description: One row per demo attempt, for the demo report page (requires DEMO_REPORT_READ_MY or DEMO_REPORT_READ_ALL)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema:
+ *           type: string
+ *           enum: [mine, all]
+ *     responses:
+ *       200:
+ *         description: Demo report rows
+ */
+router.get(
+	"/demo-report",
+	requireAnyPermissionKey([
+		"DEMO_REPORT_READ_MY" satisfies PermissionKey,
+		"DEMO_REPORT_READ_ALL" satisfies PermissionKey,
+	]),
+	asyncHandler(listDemoReportController),
 );
 
 router.get(

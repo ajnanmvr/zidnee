@@ -69,3 +69,36 @@ export const LeadReportResponseSchema = z.object({
 });
 
 export type LeadReportResponse = z.infer<typeof LeadReportResponseSchema>;
+
+const PersonRefSchema = z
+	.object({ id: z.string(), name: z.string() })
+	.nullable();
+
+// One row per demo attempt (a lead with a re-demo has several rows).
+export const DemoReportRowSchema = z.object({
+	leadId: z.string(),
+	leadName: z.string().nullable(),
+	slNo: z.number().nullable(),
+	leadStatus: LeadStatusSchema,
+	courseType: z.enum(["GROUP", "INDIVIDUAL"]).nullable(),
+	level: z.string().nullable(),
+	converted: z.boolean(),
+	attempt: z.number().int().positive(),
+	isLatest: z.boolean(),
+	coordinator: PersonRefSchema,
+	mentor: PersonRefSchema,
+	sales: PersonRefSchema,
+	requestedAt: z.string().datetime().nullable(),
+	assignedAt: z.string().datetime().nullable(),
+	scheduledFor: z.string().datetime().nullable(),
+	completedAt: z.string().datetime().nullable(),
+});
+
+export type DemoReportRow = z.infer<typeof DemoReportRowSchema>;
+
+export const DemoReportResponseSchema = z.object({
+	ok: z.boolean(),
+	demos: z.array(DemoReportRowSchema),
+});
+
+export type DemoReportResponse = z.infer<typeof DemoReportResponseSchema>;

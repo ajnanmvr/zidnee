@@ -308,6 +308,46 @@ export const listLeadReportController = async (
 	res.json({ ok: true, leads });
 };
 
+export const listDemoReportController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new AuthenticationError("User not authenticated");
+	}
+
+	const effectivePermissions = await getEffectivePermissions(req.user.roleIds);
+	const hasReadAll = effectivePermissions.some(
+		(p) => p.key === "DEMO_REPORT_READ_ALL",
+	);
+	const hasReadMy = effectivePermissions.some(
+		(p) => p.key === "DEMO_REPORT_READ_MY",
+	);
+
+	// Default to the widest scope the user is allowed to see.
+	const requested = req.query.scope;
+	const scope =
+		requested === "all" || requested === "mine"
+			? requested
+			: hasReadAll
+				? "all"
+				: "mine";
+
+	if (scope === "all" && !hasReadAll) {
+		throw new AuthorizationError("Insufficient permissions to view all demos");
+	}
+	if (scope === "mine" && !hasReadMy && !hasReadAll) {
+		throw new AuthorizationError("Insufficient permissions to view your demos");
+	}
+
+	const demos = await LeadService.listDemoReport({
+		userId: req.user.userId,
+		scope,
+	});
+
+	res.json({ ok: true, demos });
+};
+
 export const listSimilarLeadsController = async (
 	req: Request,
 	res: Response,

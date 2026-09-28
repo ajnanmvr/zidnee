@@ -2,6 +2,7 @@ import {
 	AssignDemoPayloadSchema,
 	ConfirmAdmissionPayloadSchema,
 	CreateLeadPayloadSchema,
+	DemoReportResponseSchema,
 	GenerateFormLinkResponseSchema,
 	LeadActivitiesResponseSchema,
 	LeadReportResponseSchema,
@@ -32,6 +33,15 @@ export const fetchLeadReport = async (
 		token,
 	);
 };
+
+export const fetchDemoReport = async (token: string, scope: "all" | "mine") =>
+	requestWithSchema(
+		`/leads/demo-report?scope=${scope}`,
+		DemoReportResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
 
 export const fetchDueLeadFollowUps = async (
 	token: string,
