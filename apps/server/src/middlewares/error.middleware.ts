@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { AppError } from "../utils/errors.util.js";
+import { AppError, ZidConflictError } from "../utils/errors.util.js";
 
 export const errorMiddleware = (
 	err: unknown,
@@ -14,6 +14,14 @@ export const errorMiddleware = (
 			ok: false,
 			message: err.message,
 			...(err.errors && { errors: err.errors }),
+			...(err instanceof ZidConflictError && {
+				zidConflict: {
+					zid: err.zid,
+					suggestedZid: err.suggestedZid,
+					prefix: err.prefix,
+					field: err.field,
+				},
+			}),
 		});
 		return;
 	}

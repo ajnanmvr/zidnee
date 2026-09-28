@@ -23,6 +23,7 @@ import { useGetAllSubstitutions } from "@/features/mentors/mentor-substitution.q
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useMentorsQuery, useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 import { DataTable } from "@/components/DataTable";
 import { getStudentFollowUpState } from "@/features/students/student-table";
 
@@ -131,6 +132,7 @@ export const MentorsPage = () => {
 	const canChangeCounsellor = useHasAnyPermission(["LEAD_ASSIGN", "USER_UPDATE", "MENTOR_UPDATE"]);
 	const createMentor = useCreateMentorMutation();
 	const updateUser = useUpdateUserMutation();
+	const withZidRecovery = useZidRecovery();
 	const assignCounsellor = useAssignUserCounsellorMutation();
 
 	const [zmModal, setZmModal] = useState<{ userId: string; name: string; currentZm: string } | null>(null);
@@ -149,7 +151,12 @@ export const MentorsPage = () => {
 	const handleZmSave = async () => {
 		if (!zmModal || !zmInput.trim()) return;
 		try {
-			await updateUser.mutateAsync({ userId: zmModal.userId, payload: { zids: { mentor: zmInput.trim() } } });
+			await withZidRecovery((overrides) =>
+				updateUser.mutateAsync({
+					userId: zmModal.userId,
+					payload: mergeZidOverrides({ zids: { mentor: zmInput.trim() } }, overrides),
+				}),
+			);
 			toast.success("ZM number updated");
 			setZmModal(null);
 		} catch (err) {
@@ -160,10 +167,12 @@ export const MentorsPage = () => {
 	const handleMentorTypeChange = async () => {
 		if (!mentorTypeModal) return;
 		try {
-			await updateUser.mutateAsync({
-				userId: mentorTypeModal.userId,
-				payload: { mentorType: mentorTypeModal.nextType },
-			});
+			await withZidRecovery((overrides) =>
+				updateUser.mutateAsync({
+					userId: mentorTypeModal.userId,
+					payload: mergeZidOverrides({ mentorType: mentorTypeModal.nextType }, overrides),
+				}),
+			);
 			toast.success(`Changed mentor to ${mentorTypeModal.nextType}`);
 			setMentorTypeModal(null);
 		} catch (err) {
@@ -205,7 +214,14 @@ export const MentorsPage = () => {
 		if (isCreatingMentorRef.current) return;
 		isCreatingMentorRef.current = true;
 		try {
-			await createMentor.mutateAsync({ name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType });
+			await withZidRecovery((overrides) =>
+				createMentor.mutateAsync(
+					mergeZidOverrides(
+						{ name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType },
+						overrides,
+					),
+				),
+			);
 			toast.success("Mentor created");
 			setCreateModalOpen(false);
 			reset(getDefaultFormValues());
@@ -226,10 +242,15 @@ export const MentorsPage = () => {
 		if (!editingMentorId || isEditingMentorRef.current) return;
 		isEditingMentorRef.current = true;
 		try {
-			await updateUser.mutateAsync({
-				userId: editingMentorId,
-				payload: { name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType },
-			});
+			await withZidRecovery((overrides) =>
+				updateUser.mutateAsync({
+					userId: editingMentorId,
+					payload: mergeZidOverrides(
+						{ name: data.name, gender: data.gender, counsellorId: data.counsellorId, mentorType: data.mentorType },
+						overrides,
+					),
+				}),
+			);
 			toast.success("Mentor updated");
 			setEditModalOpen(false);
 			setEditingMentorId(null);

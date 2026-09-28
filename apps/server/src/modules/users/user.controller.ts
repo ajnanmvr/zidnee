@@ -8,7 +8,7 @@ import {
 	SetUserStatusPayloadSchema,
 	UpdateUserPayloadSchema,
 } from "@repo/schema";
-import { AUTH_CONSTANTS, ZID_CONSTANTS } from "@repo/schema";
+import { AUTH_CONSTANTS } from "@repo/schema";
 import type { Request, Response } from "express";
 import {
 	AuthenticationError,
@@ -25,8 +25,11 @@ import {
 	RoleService,
 	UserService,
 } from "../rbac/rbac.service.js";
-import { highestUserSuffix, USER_IDENTITY_PREFIXES } from "./user.identity.js";
-import { ZidService } from "../zid/zid.service.js";
+import {
+	resolveUserZid,
+	USER_IDENTITY_PREFIXES,
+	withUserZidGuard,
+} from "./user.identity.js";
 
 const ensureRoleIdsExist = async (roleIds: string[]): Promise<void> => {
 	for (const roleId of roleIds) {
@@ -64,18 +67,25 @@ const findRoleIdsByType = async (
 		.map((role) => role.id);
 };
 
-const nextIdentity = async (kind: keyof typeof USER_IDENTITY_PREFIXES) => {
-	const prefix = USER_IDENTITY_PREFIXES[kind];
-	return ZidService.generateZid(prefix, async () => {
-		const users = await UserService.findAll();
-		// Include both zids.[kind] and username so legacy users (whose ZID is only in username) are counted
-		const existingIds = users.flatMap((user) => [
-			(user as any).zids?.[kind],
-			user.username,
-		]);
+type UserZidKind = "mentor" | "counsellor" | "sales" | "admin";
 
-		return highestUserSuffix(prefix, existingIds);
-	});
+const isUserZidKind = (value: unknown): value is UserZidKind =>
+	value === "mentor" ||
+	value === "counsellor" ||
+	value === "sales" ||
+	value === "admin";
+
+// Group mentors use ZMG; every other kind has a fixed prefix.
+const zidPrefixForKind = (
+	kind: string,
+	mentorType: "individual" | "group" = "individual",
+): string => {
+	if (kind === "mentor") {
+		return mentorType === "group"
+			? USER_IDENTITY_PREFIXES.groupMentor
+			: USER_IDENTITY_PREFIXES.mentor;
+	}
+	return isUserZidKind(kind) ? USER_IDENTITY_PREFIXES[kind] : kind.toUpperCase();
 };
 
 export const createUserController = async (
@@ -120,28 +130,39 @@ export const createUserController = async (
 	}
 
 	const password = await hashPassword(result.data.password);
-	// Generate ZIDs for any role types present
+	// Generate (or take the manually typed) ZID for each role type present
 	const zids: Record<string, string> = {};
+	const zidEntries: Array<{ kind: string; prefix: string; field: string; zid: string }> = [];
 	const allRoles = await RoleService.findByIds(roleIds);
 	for (const role of allRoles) {
-		const type = role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined;
-		if (type && USER_IDENTITY_PREFIXES[type]) {
-			zids[type] = await nextIdentity(type as any);
-		}
+		if (!isUserZidKind(role.type) || zids[role.type]) continue;
+		const prefix = zidPrefixForKind(role.type);
+		const field = `zids.${role.type}`;
+		const zid = await resolveUserZid({
+			prefix,
+			field,
+			manual: result.data.zids?.[role.type],
+		});
+		zids[role.type] = zid;
+		zidEntries.push({ kind: role.type, prefix, field, zid });
 	}
 
-	const createdUser = await UserService.create({
-		username: result.data.username,
-		email: normalizedEmail,
-		password,
-		name: result.data.name,
-		gender: result.data.gender,
-		roleIds,
-		zids,
-		// populate legacy mentorId for compatibility when generated
-		mentorId: (zids as any).mentor,
-		isActive: true,
-	});
+	const createdUser = await withUserZidGuard(
+		() =>
+			UserService.create({
+				username: result.data.username,
+				email: normalizedEmail,
+				password,
+				name: result.data.name,
+				gender: result.data.gender,
+				roleIds,
+				zids,
+				// populate legacy mentorId for compatibility when generated
+				mentorId: zids.mentor,
+				isActive: true,
+			}),
+		zidEntries,
+	);
 
 	res.status(201).json({
 		ok: true,
@@ -194,22 +215,12 @@ export const createMentorController = async (
 	const isGroupMentor = mentorType === "group";
 
 	// Group mentors get ZMG prefix; individual mentors get ZM0 prefix
-	let mentorId: string;
-	if (isGroupMentor) {
-		mentorId = await ZidService.generateZid(
-			ZID_CONSTANTS.prefixes.groupMentor,
-			async () => {
-				const users = await UserService.findAll();
-				const existingIds = users.flatMap((u) => [
-					(u as any).zids?.mentor,
-					u.username,
-				]);
-				return highestUserSuffix(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
-			},
-		);
-	} else {
-		mentorId = await nextIdentity("mentor");
-	}
+	const mentorPrefix = zidPrefixForKind("mentor", isGroupMentor ? "group" : "individual");
+	const mentorId = await resolveUserZid({
+		prefix: mentorPrefix,
+		field: "zid",
+		manual: result.data.zid,
+	});
 
 	const username = result.data.username || mentorId;
 	const email = `${username}@${AUTH_CONSTANTS.emailDomain}`;
@@ -219,20 +230,24 @@ export const createMentorController = async (
 	const hashedPassword = await hashPassword(password);
 	const zids: Record<string, string> = { mentor: mentorId };
 
-	const createdUser = await UserService.create({
-		username,
-		email,
-		password: hashedPassword,
-		name: result.data.name,
-		gender: result.data.gender,
-		roleIds: [mentorRole.id],
-		zids,
-		mentorType,
-		// legacy field for compatibility
-		mentorId,
-		counsellorId: result.data.counsellorId,
-		isActive: true,
-	});
+	const createdUser = await withUserZidGuard(
+		() =>
+			UserService.create({
+				username,
+				email,
+				password: hashedPassword,
+				name: result.data.name,
+				gender: result.data.gender,
+				roleIds: [mentorRole.id],
+				zids,
+				mentorType,
+				// legacy field for compatibility
+				mentorId,
+				counsellorId: result.data.counsellorId,
+				isActive: true,
+			}),
+		[{ kind: "mentor", prefix: mentorPrefix, field: "zid", zid: mentorId }],
+	);
 
 	res.status(201).json({
 		ok: true,
@@ -264,7 +279,12 @@ export const createCounsellorController = async (
 		throw new NotFoundError("Counsellor role");
 	}
 
-	const counsellorId = await nextIdentity("counsellor");
+	const counsellorPrefix = zidPrefixForKind("counsellor");
+	const counsellorId = await resolveUserZid({
+		prefix: counsellorPrefix,
+		field: "zid",
+		manual: result.data.zid,
+	});
 	const username = result.data.username || counsellorId;
 	const email = `${username}@${AUTH_CONSTANTS.emailDomain}`;
 	const password = randomUUID();
@@ -272,18 +292,22 @@ export const createCounsellorController = async (
 	const hashedPassword = await hashPassword(password);
 	const zids: Record<string, string> = { counsellor: counsellorId };
 
-	const createdUser = await UserService.create({
-		username,
-		email,
-		password: hashedPassword,
-		name: result.data.name,
-		gender: result.data.gender,
-		roleIds: [counsellorRole.id],
-		zids,
-		// legacy field for compatibility
-		counsellorId,
-		isActive: true,
-	});
+	const createdUser = await withUserZidGuard(
+		() =>
+			UserService.create({
+				username,
+				email,
+				password: hashedPassword,
+				name: result.data.name,
+				gender: result.data.gender,
+				roleIds: [counsellorRole.id],
+				zids,
+				// legacy field for compatibility
+				counsellorId,
+				isActive: true,
+			}),
+		[{ kind: "counsellor", prefix: counsellorPrefix, field: "zid", zid: counsellorId }],
+	);
 
 	res.status(201).json({
 		ok: true,
@@ -479,50 +503,64 @@ export const updateUserController = async (
 		}
 	}
 
-	// If roles were provided, ensure missing ZIDs are generated for newly added role types
-	const zidsToSet = (existingUser as any).zids ?? {};
+	const targetMentorType = result.data.mentorType ?? existingMentorType;
+	const zidsToSet: Record<string, string> = {
+		...((existingUser as { zids?: Record<string, string> }).zids ?? {}),
+	};
+	const zidEntries: Array<{ kind: string; prefix: string; field: string; zid: string }> = [];
+
+	// Explicitly provided ZIDs (manual correction, or the user's answer to a
+	// conflict) win over generation, but must not belong to another user.
+	const manualZids = result.data.zids ?? {};
+	for (const [kind, value] of Object.entries(manualZids)) {
+		const prefix = zidPrefixForKind(kind, targetMentorType);
+		const field = `zids.${kind}`;
+		zidsToSet[kind] = await resolveUserZid({
+			prefix,
+			field,
+			manual: value,
+			excludeUserId: userId,
+		});
+		zidEntries.push({ kind, prefix, field, zid: zidsToSet[kind] });
+	}
+
+	// Generate ZIDs for newly added role types, and a new mentor ZID when the
+	// mentor type changes (ZM0 ↔ ZMG).
+	const kindsToGenerate = new Set<string>();
 	if (result.data.roleIds) {
 		const incomingRoles = await RoleService.findByIds(result.data.roleIds);
 		for (const role of incomingRoles) {
-			const t = role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined;
-			if (t && !(zidsToSet as any)[t]) {
-				(zidsToSet as any)[t] = await nextIdentity(t as any);
+			if (isUserZidKind(role.type) && !zidsToSet[role.type]) {
+				kindsToGenerate.add(role.type);
 			}
 		}
 	}
 	if (result.data.mentorType && result.data.mentorType !== existingMentorType) {
-		if (result.data.mentorType === "group") {
-			zidsToSet.mentor = await ZidService.generateZid(
-				ZID_CONSTANTS.prefixes.groupMentor,
-				async () => {
-					const users = await UserService.findAll();
-					const existingIds = users.flatMap((user) => [
-						(user as any).zids?.mentor,
-						user.username,
-					]);
-					return highestUserSuffix(ZID_CONSTANTS.prefixes.groupMentor, existingIds);
-				},
-			);
-		} else {
-			zidsToSet.mentor = await nextIdentity("mentor");
-		}
+		kindsToGenerate.add("mentor");
 	}
-	// Allow explicitly provided ZIDs to override auto-generated values (e.g. manual ZM number correction)
-	if (result.data.zids) {
-		Object.assign(zidsToSet, result.data.zids);
+	for (const kind of kindsToGenerate) {
+		if (manualZids[kind]) continue;
+		const prefix = zidPrefixForKind(kind, targetMentorType);
+		const field = `zids.${kind}`;
+		zidsToSet[kind] = await resolveUserZid({ prefix, field, excludeUserId: userId });
+		zidEntries.push({ kind, prefix, field, zid: zidsToSet[kind] });
 	}
 
-	const updatedUser = await UserService.update(userId, {
-		username: result.data.username,
-		email: normalizedEmail,
-		name: result.data.name,
-		mentorType: result.data.mentorType,
-		roleIds: result.data.roleIds,
-		counsellorId: result.data.counsellorId,
-		zids: zidsToSet,
-		// Keep legacy mentorId in sync with zids.mentor so display logic stays consistent
-		...(zidsToSet.mentor ? { mentorId: zidsToSet.mentor } : {}),
-	} as any);
+	const updatedUser = await withUserZidGuard(
+		() =>
+			UserService.update(userId, {
+				username: result.data.username,
+				email: normalizedEmail,
+				name: result.data.name,
+				mentorType: result.data.mentorType,
+				roleIds: result.data.roleIds,
+				counsellorId: result.data.counsellorId,
+				zids: zidsToSet,
+				// Keep legacy mentorId in sync with zids.mentor so display logic stays consistent
+				...(zidsToSet.mentor ? { mentorId: zidsToSet.mentor } : {}),
+			} as any),
+		zidEntries,
+	);
 
 	if (!updatedUser) {
 		throw new Error("Failed to update user");
@@ -756,11 +794,16 @@ export const assignRoleController = async (
 	}
 
 	// If the role has an associated ZID type, ensure the user has one
-	const roleType = role.type as keyof typeof USER_IDENTITY_PREFIXES | undefined;
-	if (roleType && USER_IDENTITY_PREFIXES[roleType]) {
+	const roleType = role.type;
+	if (isUserZidKind(roleType)) {
 		const currentZids = (updatedUser as any).zids ?? {};
 		if (!currentZids[roleType]) {
-			currentZids[roleType] = await nextIdentity(roleType as any);
+			currentZids[roleType] = await resolveUserZid({
+				prefix: zidPrefixForKind(roleType, updatedUser.mentorType ?? "individual"),
+				field: "zid",
+				manual: typeof req.body.zid === "string" ? req.body.zid : undefined,
+				excludeUserId: userId,
+			});
 			// keep legacy top-level field for mentor
 			const legacy: any = {};
 			if (roleType === "mentor") legacy.mentorId = currentZids[roleType];

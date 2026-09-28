@@ -154,7 +154,7 @@ describe("app routes", () => {
 
 		expect(createResponse.status).toBe(201);
 		expect(createResponse.body.ok).toBe(true);
-		expect(createResponse.body.batch.groupId).toBe("zg001");
+		expect(createResponse.body.batch.groupId).toBe("ZG011");
 
 		const listResponse = await request(app)
 			.get("/api/batches")
@@ -164,7 +164,7 @@ describe("app routes", () => {
 		expect(listResponse.body.ok).toBe(true);
 		expect(
 			listResponse.body.batches.some(
-				(batch: { groupId?: string }) => batch.groupId === "zg001",
+				(batch: { groupId?: string }) => batch.groupId === "ZG011",
 			),
 		).toBe(true);
 	});

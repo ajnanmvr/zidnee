@@ -89,6 +89,8 @@ export type RegisterPayload = z.infer<typeof RegisterPayloadSchema>;
 export const CreateUserPayloadSchema = RegisterPayloadSchema.extend({
 	gender: z.enum(["male", "female"]).optional(),
 	roleIds: z.array(ObjectIdStringSchema).optional(),
+	// Manual per-role ZIDs, used when an auto-generated one conflicts.
+	zids: z.record(z.string(), z.string().trim().min(1).max(100)).optional(),
 });
 
 export type CreateUserPayload = z.infer<typeof CreateUserPayloadSchema>;
@@ -100,6 +102,8 @@ export const CreateMentorPayloadSchema = z.object({
 	mentorCode: z.string().min(1).max(50).optional(),
 	counsellorId: ObjectIdStringSchema.optional(),
 	mentorType: z.enum(["individual", "group"]).optional(),
+	// Manual ZM0/ZMG override, used when the auto-generated one conflicts.
+	zid: z.string().trim().min(1).max(100).optional(),
 });
 
 export type CreateMentorPayload = z.infer<typeof CreateMentorPayloadSchema>;
@@ -109,6 +113,8 @@ export const CreateCounsellorPayloadSchema = z.object({
 	username: z.string().min(1).max(100).optional(),
 	gender: z.enum(["male", "female"]),
 	counsellorCode: z.string().min(1).max(50).optional(),
+	// Manual ZIC override, used when the auto-generated one conflicts.
+	zid: z.string().trim().min(1).max(100).optional(),
 });
 
 export type CreateCounsellorPayload = z.infer<

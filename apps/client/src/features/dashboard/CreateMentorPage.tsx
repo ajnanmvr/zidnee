@@ -5,6 +5,7 @@ import { Panel } from "@/components/dashboard-ui";
 import { useCreateMentorMutation } from "@/features/users/use-create-mentor-mutation";
 import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useMemo, useEffect } from "react";
 import { useMeQuery } from "@/features/auth/auth.queries";
@@ -18,6 +19,7 @@ type FormValues = {
 export const CreateMentorPage = () => {
 	const navigate = useNavigate();
 	const createMentor = useCreateMentorMutation();
+	const withZidRecovery = useZidRecovery();
 	const { token } = useSession();
 	const canCreateUser = useHasAnyPermission(["USER_CREATE", "MENTOR_CREATE"]);
 	const usersQuery = useUsersQuery(token);
@@ -45,10 +47,11 @@ export const CreateMentorPage = () => {
 
 	const onSubmit = async (data: FormValues) => {
 		try {
-			await createMentor.mutateAsync({
-				name: data.name,
-				gender: data.gender,
-			});
+			await withZidRecovery((overrides) =>
+				createMentor.mutateAsync(
+					mergeZidOverrides({ name: data.name, gender: data.gender }, overrides),
+				),
+			);
 			toast.success("Mentor created");
 			navigate("/mentors");
 		} catch (error) {

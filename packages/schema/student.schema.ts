@@ -76,6 +76,8 @@ export const ConfirmAdmissionPayloadSchema = z.object({
 	mentorId: ObjectIdStringSchema.optional(), // For ONLINE_SCHOOL
 	batchId: ObjectIdStringSchema.optional(), // For ONLINE_SCHOOL GROUP
 	note: z.string().max(500).optional(),
+	// Manual ZID/ZIG override, used when the auto-generated one conflicts.
+	zid: z.string().trim().min(1).max(20).optional(),
 });
 
 export const StudentAssessmentTypeSchema = z.enum([

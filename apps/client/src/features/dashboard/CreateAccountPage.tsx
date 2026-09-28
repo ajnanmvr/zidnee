@@ -23,6 +23,7 @@ import type {
 } from "@/lib/dashboard-types";
 import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 
 export type CreateAccountRoleType = "admin" | "sales" | "mentor" | "counsellor";
 
@@ -120,6 +121,7 @@ export const CreateAccountPage = ({
 	const createUserMutation = useCreateUserMutation();
 	const createMentorMutation = useCreateMentorMutation();
 	const createCounsellorMutation = useCreateCounsellorMutation();
+	const withZidRecovery = useZidRecovery();
 	const [roleType, setRoleType] = useState<CreateAccountRoleType>(
 		defaultRoleType ?? parseRoleFromSearch(location.search) ?? "admin",
 	);
@@ -258,19 +260,29 @@ export const CreateAccountPage = ({
 		try {
 			const target = await submitTarget(form);
 
+			// Applies extra roleIds after a quick create; may need ZIDs for new role types.
+			const applyRoles = async (userId: string) => {
+				const roleIds = form.roleIds;
+				if (!token || !roleIds || roleIds.length === 0) return;
+				await withZidRecovery((overrides) =>
+					updateUser(token, userId, mergeZidOverrides({ roleIds }, overrides)),
+				);
+			};
+
 			if (target.kind === "mentor") {
-				const res = await createMentorMutation.mutateAsync(target.payload);
-				// apply selected roleIds if any
-				if (token && form.roleIds && form.roleIds.length > 0) {
-					await updateUser(token, res.id, { roleIds: form.roleIds });
-				}
+				const res = await withZidRecovery((overrides) =>
+					createMentorMutation.mutateAsync(mergeZidOverrides(target.payload, overrides)),
+				);
+				await applyRoles(res.id);
 			} else if (target.kind === "counsellor") {
-				const res = await createCounsellorMutation.mutateAsync(target.payload);
-				if (token && form.roleIds && form.roleIds.length > 0) {
-					await updateUser(token, res.id, { roleIds: form.roleIds });
-				}
+				const res = await withZidRecovery((overrides) =>
+					createCounsellorMutation.mutateAsync(mergeZidOverrides(target.payload, overrides)),
+				);
+				await applyRoles(res.id);
 			} else {
-				await createUserMutation.mutateAsync(target.payload);
+				await withZidRecovery((overrides) =>
+					createUserMutation.mutateAsync(mergeZidOverrides(target.payload, overrides)),
+				);
 			}
 
 			toast.success(`${roleTitle} created successfully.`);

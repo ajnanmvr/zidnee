@@ -3,13 +3,16 @@ import { Toaster } from "react-hot-toast";
 import { RouterProvider } from "react-router-dom";
 import { queryClient } from "@/lib/query-client";
 import { SessionProvider } from "@/lib/session";
+import { ZidRecoveryProvider } from "@/lib/zid-recovery";
 import { router } from "@/router";
 
 const App = () => {
 	return (
 		<SessionProvider>
 			<QueryClientProvider client={queryClient}>
-				<RouterProvider router={router} />
+				<ZidRecoveryProvider>
+					<RouterProvider router={router} />
+				</ZidRecoveryProvider>
 				<Toaster position="top-right" />
 			</QueryClientProvider>
 		</SessionProvider>

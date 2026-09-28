@@ -43,3 +43,20 @@ export class ConflictError extends AppError {
 		this.name = "ConflictError";
 	}
 }
+
+/**
+ * A generated or manually typed ZID is already taken. The client shows the
+ * user an input (prefilled with `suggestedZid`) and resends the request with
+ * the chosen value at the body path named by `field`.
+ */
+export class ZidConflictError extends ConflictError {
+	constructor(
+		public zid: string,
+		public suggestedZid: string,
+		public prefix: string,
+		public field: string,
+	) {
+		super(`${zid} is already in use`);
+		this.name = "ZidConflictError";
+	}
+}

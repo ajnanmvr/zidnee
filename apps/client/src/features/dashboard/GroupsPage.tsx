@@ -12,6 +12,7 @@ import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 
 const LEVEL_LABELS: Record<string, string> = {
 	"1": "Seed Level 1",
@@ -35,6 +36,7 @@ export const GroupsPage = () => {
 	const canCreateBatch = useHasPermission("BATCH_CREATE");
 	const canUpdateBatch = useHasPermission("BATCH_UPDATE");
 	const createBatch = useCreateBatchMutation();
+	const withZidRecovery = useZidRecovery();
 	const groups = useMemo(
 		() => (batchesQuery.data?.batches ?? []).filter((b) => b.type === "GROUP"),
 		[batchesQuery.data?.batches],
@@ -97,7 +99,9 @@ export const GroupsPage = () => {
 
 	const onSubmit = async (form: CreateBatchPayload) => {
 		try {
-			const response = await createBatch.mutateAsync(form);
+			const response = await withZidRecovery((overrides) =>
+				createBatch.mutateAsync(mergeZidOverrides(form, overrides)),
+			);
 			toast.success(response.batch.groupId ? `Group ${response.batch.groupId.toUpperCase()} created` : "Group created");
 			reset();
 			setOpen(false);

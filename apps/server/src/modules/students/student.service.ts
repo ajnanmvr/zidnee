@@ -7,7 +7,7 @@ import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
 import { BatchModel } from "./batch.model.js";
 import { UserModel } from "../users/user.model.js";
-import { highestStudentSuffix } from "./student.identity.js";
+import { resolveStudentZid, studentZidConflict } from "./student.identity.js";
 import { ZidService } from "../zid/zid.service.js";
 import { type StudentDocument, StudentModel } from "./student.model.js";
 import { deleteObjectFromUrl } from "../../lib/s3.js";
@@ -230,15 +230,22 @@ const toStudent = (doc: StudentDocument): Student => {
 	};
 };
 
-const nextStudentZid = async (prefix: string): Promise<string> => {
-	return ZidService.generateZid(prefix, async () => {
-		const students =
-			await StudentModel.find().lean<Array<Pick<StudentDocument, "zid">>>();
-		return highestStudentSuffix(
-			students.map((student) => student.zid),
-			prefix,
-		);
-	});
+// Creates the student, turning a duplicate-ZID race into a resolvable conflict.
+const createStudentWithZid = async (
+	prefix: string,
+	data: Record<string, unknown> & { zid: string },
+) => {
+	try {
+		return await StudentModel.create(data);
+	} catch (error) {
+		if (
+			ZidService.isDuplicateKeyError(error) &&
+			(error as { keyPattern?: Record<string, unknown> }).keyPattern?.zid
+		) {
+			throw await studentZidConflict(prefix, data.zid);
+		}
+		throw error;
+	}
 };
 
 const logStudentActivity = async (params: {
@@ -925,6 +932,7 @@ export const StudentService = {
 		batchId?: string,
 		performedBy?: string,
 		note?: string,
+		manualZid?: string,
 	): Promise<Student | null> => {
 		const existingLead = await LeadModel.findById(
 			leadId,
@@ -961,12 +969,13 @@ export const StudentService = {
 			throw new Error("admittedBy user is required");
 		}
 
-		const zid = await nextStudentZid(resolveStudentZidPrefix(existingLead.courseType));
+		const zidPrefix = resolveStudentZidPrefix(existingLead.courseType);
+		const zid = await resolveStudentZid(zidPrefix, manualZid);
 		const admittedAt = new Date();
 		const nextFollowUpAt = getDefaultStudentFollowUpAt(
 			existingLead.nextFollowUpAt,
 		);
-		const createdStudent = await StudentModel.create({
+		const createdStudent = await createStudentWithZid(zidPrefix, {
 			zid,
 			leadId: existingLead._id,
 			name: existingLead.name,
@@ -1049,6 +1058,7 @@ export const StudentService = {
 		batchId?: string,
 		performedBy?: string,
 		note?: string,
+		manualZid?: string,
 	): Promise<Student | null> => {
 		const existingLead = await LeadModel.findById(
 			leadId,
@@ -1115,9 +1125,10 @@ export const StudentService = {
 			throw new Error("admittedBy user is required");
 		}
 
-		const zid = await nextStudentZid(resolveStudentZidPrefix(existingLead.courseType));
+		const zidPrefix = resolveStudentZidPrefix(existingLead.courseType);
+		const zid = await resolveStudentZid(zidPrefix, manualZid);
 		const admittedAt = new Date();
-		const createdStudent = await StudentModel.create({
+		const createdStudent = await createStudentWithZid(zidPrefix, {
 			zid,
 			leadId: existingLead._id,
 			name: existingLead.name,
