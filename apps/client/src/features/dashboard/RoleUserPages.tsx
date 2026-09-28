@@ -24,7 +24,7 @@ import {
 	useDeleteUserMutation,
 	useSetUserStatusMutation,
 } from "@/features/users/use-user-management-mutations";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { useCounsellorStudentCountsQuery, useUsersQuery } from "@/features/users/users.queries";
 import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
@@ -111,6 +111,7 @@ export const RoleUsersPage = ({
 }: RoleUsersPageProps) => {
 	const { token } = useSession();
 	const usersQuery = useUsersQuery(token);
+	const studentCountsQuery = useCounsellorStudentCountsQuery(token, roleType === "counsellor");
 	const deleteUserMutation = useDeleteUserMutation();
 	const setUserStatusMutation = useSetUserStatusMutation();
 	const changeUserPasswordMutation = useChangeUserPasswordMutation();
@@ -145,6 +146,11 @@ export const RoleUsersPage = ({
 		}
 		return counts;
 	}, [allUsers]);
+
+	const studentCountsByCounsellorId = useMemo(
+		() => new Map((studentCountsQuery.data?.counts ?? []).map((c) => [c.counsellorId, c])),
+		[studentCountsQuery.data],
+	);
 
 	const users = useMemo(() => {
 		const filtered = allUsers.filter((user) =>
@@ -339,7 +345,12 @@ export const RoleUsersPage = ({
 										</th>
 									) : null}
 									{roleType === "counsellor" ? (
-										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Mentors</th>
+										<>
+											<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Mentors</th>
+											<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400" title="Active one-to-one students (ZID)">Individual</th>
+											<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400" title="Active group students (ZIG)">Group</th>
+										<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400" title="Active groups (ZG) — the group's counsellor, else its mentor's counsellor">Groups</th>
+										</>
 									) : null}
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Roles</th>
 									<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
@@ -393,6 +404,27 @@ export const RoleUsersPage = ({
 														{mentorCountByCounsellorId.get(user.id) ?? 0}
 													</span>
 												</td>
+											) : null}
+
+											{/* Active student counts by course type (counsellor rows only) */}
+											{roleType === "counsellor" ? (
+												<>
+													<td className="px-4 py-3">
+														<span className="inline-flex items-center justify-center rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-bold text-cyan-800">
+															{studentCountsQuery.isLoading ? "…" : (studentCountsByCounsellorId.get(user.id)?.individual ?? 0)}
+														</span>
+													</td>
+													<td className="px-4 py-3">
+														<span className="inline-flex items-center justify-center rounded-full bg-fuchsia-100 px-2.5 py-0.5 text-xs font-bold text-fuchsia-800">
+															{studentCountsQuery.isLoading ? "…" : (studentCountsByCounsellorId.get(user.id)?.group ?? 0)}
+														</span>
+													</td>
+													<td className="px-4 py-3">
+														<span className="inline-flex items-center justify-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-800">
+															{studentCountsQuery.isLoading ? "…" : (studentCountsByCounsellorId.get(user.id)?.groups ?? 0)}
+														</span>
+													</td>
+												</>
 											) : null}
 
 											{/* Roles */}

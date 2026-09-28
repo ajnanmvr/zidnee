@@ -6,6 +6,24 @@ export const StudentStatusSchema = z.enum(["STUDENT", "BREAK", "DROPPED"]);
 
 export type StudentStatus = z.infer<typeof StudentStatusSchema>;
 
+// Per counsellor: active (status STUDENT) students by the student's own saved
+// counsellor, and active groups (the group's counsellor, else its mentor's).
+export const CounsellorStudentCountsResponseSchema = z.object({
+	ok: z.boolean(),
+	counts: z.array(
+		z.object({
+			counsellorId: z.string(),
+			individual: z.number().int().nonnegative(),
+			group: z.number().int().nonnegative(),
+			groups: z.number().int().nonnegative(),
+		}),
+	),
+});
+
+export type CounsellorStudentCountsResponse = z.infer<
+	typeof CounsellorStudentCountsResponseSchema
+>;
+
 export const StudentTimeslotSchema = z.object({
 	startTime: z.string().min(1),
 	endTime: z.string().min(1),
@@ -59,6 +77,7 @@ export const StudentSchema = z.object({
 	admissionFee: z.number().int().nonnegative().optional(),
 	hearAboutUs: z.string().max(255).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional(),
 	status: StudentStatusSchema,
 	admittedAt: z.date(),
@@ -71,6 +90,7 @@ export const StudentSchema = z.object({
 export type Student = z.infer<typeof StudentSchema>;
 
 export const ConfirmAdmissionPayloadSchema = z.object({
+	// The new student's counsellor (defaults to the mentor's counsellor).
 	counsellorId: ObjectIdStringSchema.optional(),
 	batchType: z.enum(["1_TO_1", "GROUP"]).optional(),
 	mentorId: ObjectIdStringSchema.optional(), // For ONLINE_SCHOOL
@@ -116,6 +136,7 @@ export type StudentFollowUpPayload = z.infer<
 export const UpdateStudentPayloadSchema = z.object({
 	zid: z.string().min(1).max(20).optional(),
 	mentorId: ObjectIdStringSchema.optional(),
+	counsellorId: ObjectIdStringSchema.optional(),
 	batchId: ObjectIdStringSchema.optional().nullable(),
 	profilePic: z.string().max(5000000).nullable().optional(),
 	// Allow editing core student fields

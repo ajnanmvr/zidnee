@@ -47,6 +47,7 @@ const toStudentResponse = (
 		admissionFee: student.admissionFee ?? undefined,
 		hearAboutUs: student.hearAboutUs,
 		mentorId: student.mentorId,
+		counsellorId: student.counsellorId,
 		batchId: student.batchId,
 		processId: student.processId,
 		processLabel: student.processLabel,

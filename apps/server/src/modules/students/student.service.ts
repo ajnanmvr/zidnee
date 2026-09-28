@@ -1,7 +1,8 @@
 import type { Student } from "@repo/schema";
 import { FOLLOW_UP_PERIOD_MS, ZID_CONSTANTS } from "@repo/schema";
 import { Types } from "mongoose";
-import { AppError } from "../../utils/errors.util.js";
+import { AppError, ValidationError } from "../../utils/errors.util.js";
+import { RoleModel } from "../roles/role.model.js";
 import { ReminderService } from "../reminders/reminder.service.js";
 import { ActivityService } from "../leads/activity.service.js";
 import { type LeadDocument, LeadModel } from "../leads/lead.model.js";
@@ -153,27 +154,72 @@ const getLatestLeadDemo = (lead: LeadDocument) => {
 	return demos.length > 0 ? (demos[demos.length - 1] ?? null) : null;
 };
 
+// "Mine" processes = processes of students whose own saved counsellor is me.
 const buildMineStudentProcessMatch = async (userId: string) => {
 	if (!Types.ObjectId.isValid(userId)) {
-		return null;
+		// Match nothing rather than falling back to every process.
+		return { _id: { $exists: false } };
 	}
 
-	const mentorIds = await UserModel.find({
-		counsellorId: userId,
-	} as any).distinct("_id");
+	return { "student.counsellorId": new Types.ObjectId(userId) };
+};
 
-	const counsellorObjectId = new Types.ObjectId(userId);
-
-	if (mentorIds.length === 0) {
-		return { "batch.counsellorId": counsellorObjectId };
-	}
-
-	return {
-		$or: [
-			{ "student.mentorId": { $in: mentorIds } },
-			{ "batch.counsellorId": counsellorObjectId },
-		],
+/**
+ * Default counsellor for a student: the mentor's counsellor, else the
+ * group's counsellor, else the group mentor's counsellor.
+ */
+export const resolveDefaultStudentCounsellorId = async (
+	mentorId?: string | Types.ObjectId | null,
+	batchId?: string | Types.ObjectId | null,
+): Promise<Types.ObjectId | undefined> => {
+	const counsellorOfMentor = async (id?: string | Types.ObjectId | null) => {
+		if (!id || !Types.ObjectId.isValid(String(id))) return undefined;
+		const mentor = await UserModel.findById(id)
+			.select({ counsellorId: 1 })
+			.lean<{ counsellorId?: string } | null>();
+		return mentor?.counsellorId && Types.ObjectId.isValid(mentor.counsellorId)
+			? new Types.ObjectId(mentor.counsellorId)
+			: undefined;
 	};
+
+	const fromMentor = await counsellorOfMentor(mentorId);
+	if (fromMentor) return fromMentor;
+
+	if (batchId && Types.ObjectId.isValid(String(batchId))) {
+		const batch = await BatchModel.findById(batchId)
+			.select({ counsellorId: 1, mentorId: 1 })
+			.lean<{ counsellorId?: Types.ObjectId; mentorId?: Types.ObjectId } | null>();
+		if (batch?.counsellorId) return batch.counsellorId;
+		return counsellorOfMentor(batch?.mentorId);
+	}
+
+	return undefined;
+};
+
+/**
+ * Counsellor to save on a student: the chosen one (must be a counsellor),
+ * otherwise the default derived from the mentor/group.
+ */
+const resolveStudentCounsellorId = async (
+	chosen: string | undefined,
+	mentorId?: string | Types.ObjectId | null,
+	batchId?: string | Types.ObjectId | null,
+): Promise<Types.ObjectId | undefined> => {
+	if (!chosen) {
+		return resolveDefaultStudentCounsellorId(mentorId, batchId);
+	}
+	if (!Types.ObjectId.isValid(chosen)) {
+		throw new ValidationError({ counsellorId: ["Invalid counsellor"] });
+	}
+	const [user, counsellorRoleIds] = await Promise.all([
+		UserModel.findById(chosen).select({ roleIds: 1 }).lean<{ roleIds?: string[] } | null>(),
+		RoleModel.find({ type: "counsellor" }).distinct("_id"),
+	]);
+	const roleIds = new Set(counsellorRoleIds.map(String));
+	if (!user?.roleIds?.some((id) => roleIds.has(String(id)))) {
+		throw new ValidationError({ counsellorId: ["Selected user is not a counsellor"] });
+	}
+	return new Types.ObjectId(chosen);
 };
 
 const assessmentFieldByType = {
@@ -210,6 +256,7 @@ const toStudent = (doc: StudentDocument): Student => {
 		admissionFee: doc.admissionFee,
 		hearAboutUs: doc.hearAboutUs,
 		mentorId: doc.mentorId?.toString(),
+		counsellorId: doc.counsellorId?.toString(),
 		batchId: doc.batchId?.toString(),
 		processId: doc.processId?.toString(),
 		processLabel: doc.processLabel,
@@ -358,19 +405,9 @@ export const StudentService = {
 		filters: StudentListFilters = {},
 	): Promise<{ students: Student[]; total: number }> => {
 		const query: Record<string, unknown> = {};
+		// "Mine" = students whose own saved counsellor is me.
 		if (filters.scope === "mine" && filters.userId && Types.ObjectId.isValid(filters.userId)) {
-			const mentorIds = await UserModel.find({
-				counsellorId: filters.userId,
-			} as any).distinct("_id");
-
-			const batchIds = await BatchModel.find({
-				counsellorId: new Types.ObjectId(filters.userId),
-			} as any).distinct("_id");
-
-			query.$or = [
-				{ mentorId: { $in: mentorIds } },
-				{ batchId: { $in: batchIds } },
-			];
+			query.counsellorId = new Types.ObjectId(filters.userId);
 		}
 
 		if (filters.status) {
@@ -933,6 +970,7 @@ export const StudentService = {
 		performedBy?: string,
 		note?: string,
 		manualZid?: string,
+		counsellorId?: string,
 	): Promise<Student | null> => {
 		const existingLead = await LeadModel.findById(
 			leadId,
@@ -1002,6 +1040,11 @@ export const StudentService = {
 			price: existingLead.price,
 			admissionFee: existingLead.admissionFee,
 			mentorId: resolvedMentorId,
+			counsellorId: await resolveStudentCounsellorId(
+				counsellorId,
+				resolvedMentorId,
+				batchId,
+			),
 
 			nextFollowUpAt,
 			admittedAt,
@@ -1059,6 +1102,7 @@ export const StudentService = {
 		performedBy?: string,
 		note?: string,
 		manualZid?: string,
+		counsellorId?: string,
 	): Promise<Student | null> => {
 		const existingLead = await LeadModel.findById(
 			leadId,
@@ -1078,6 +1122,14 @@ export const StudentService = {
 						status: "STUDENT",
 						mentorId: mentorId ?? existingStudent.mentorId,
 						batchId: batchId ?? existingStudent.batchId,
+						counsellorId:
+							counsellorId || !existingStudent.counsellorId
+								? await resolveStudentCounsellorId(
+										counsellorId,
+										mentorId ?? existingStudent.mentorId,
+										batchId ?? existingStudent.batchId,
+									)
+								: existingStudent.counsellorId,
 					},
 				},
 				{ returnDocument: "after" },
@@ -1155,6 +1207,11 @@ export const StudentService = {
 			price: existingLead.price,
 			admissionFee: existingLead.admissionFee,
 			mentorId: resolvedMentorId,
+			counsellorId: await resolveStudentCounsellorId(
+				counsellorId,
+				resolvedMentorId,
+				batchId,
+			),
 
 			nextFollowUpAt: getDefaultStudentFollowUpAt(existingLead.nextFollowUpAt),
 			admittedAt,
@@ -1228,6 +1285,7 @@ export const StudentService = {
 		payload: Partial<{
 			zid?: string;
 			mentorId?: string;
+			counsellorId?: string;
 			batchId?: string | null;
 			profilePic?: string | null;
 			name?: string;
@@ -1266,6 +1324,11 @@ export const StudentService = {
 			mentorId: payload.mentorId ?? student.mentorId,
 		};
 		const $unset: Record<string, 1> = {};
+
+		// The counsellor is the student's own; changing the mentor doesn't move it.
+		if (payload.counsellorId !== undefined) {
+			$set.counsellorId = await resolveStudentCounsellorId(payload.counsellorId);
+		}
 
 		if (payload.zid !== undefined) {
 			const trimmed = payload.zid.trim().toUpperCase();

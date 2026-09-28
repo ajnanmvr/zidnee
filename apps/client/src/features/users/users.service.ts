@@ -1,6 +1,7 @@
 import {
 	type AdminChangePasswordPayload,
 	type ChangePasswordPayload,
+	CounsellorStudentCountsResponseSchema,
 	type CreateCounsellorPayload,
 	type CreateMentorPayload,
 	type CreateUserPayload,
@@ -56,6 +57,15 @@ export const fetchCounsellors = async (token: string) => {
 		token,
 	);
 };
+
+export const fetchCounsellorStudentCounts = async (token: string) =>
+	requestWithSchema(
+		"/users/counsellors/student-counts",
+		CounsellorStudentCountsResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
 
 export const createUser = async (token: string, payload: CreateUserPayload) => {
 	return requestWithSchema(

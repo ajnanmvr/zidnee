@@ -16,6 +16,7 @@ import {
 	assignUserCounsellorController,
 	deleteUserController,
 	getUserController,
+	counsellorStudentCountsController,
 	listCounsellorsController,
 	listMentorsController,
 	listUsersController,
@@ -113,6 +114,15 @@ router.get(
 		"LEAD_DEMO_ASSIGN" satisfies PermissionKey,
 	]),
 	asyncHandler(listCounsellorsController),
+);
+
+router.get(
+	"/counsellors/student-counts",
+	requireAnyPermissionKey([
+		"USER_READ" satisfies PermissionKey,
+		"COUNSELLOR_READ" satisfies PermissionKey,
+	]),
+	asyncHandler(counsellorStudentCountsController),
 );
 
 router.get(

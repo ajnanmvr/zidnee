@@ -225,15 +225,14 @@ export const StudentDetailPage = () => {
 		return user?.name ?? user?.username ?? "Unknown";
 	}, [student?.mentorId, usersQuery.data?.users]);
 
+	// The student's own saved counsellor (independent of the mentor).
 	const counsellorName = useMemo(() => {
-		if (!student?.mentorId) return "-";
-		const mentorUser = usersQuery.data?.users.find((u) => u.id === student.mentorId);
-		if (!mentorUser?.counsellorId) return "-";
+		if (!student?.counsellorId) return "-";
 		const counsellorUser = usersQuery.data?.users.find(
-			(u) => u.id === mentorUser.counsellorId,
+			(u) => u.id === student.counsellorId,
 		);
 		return counsellorUser?.name ?? counsellorUser?.username ?? "Unknown";
-	}, [student?.mentorId, usersQuery.data?.users]);
+	}, [student?.counsellorId, usersQuery.data?.users]);
 
 	const admittedByName = useMemo(() => {
 		if (!student?.admittedBy) return "-";
