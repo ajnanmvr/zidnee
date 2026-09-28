@@ -51,3 +51,21 @@ export const LeadsResponseSchema = z.object({
 });
 
 export type LeadsResponse = z.infer<typeof LeadsResponseSchema>;
+
+// Lightweight rows for the lead report. Unlike the paginated list, this
+// includes converted and deleted (CLOSED) leads so outcomes can be counted.
+export const LeadReportRowSchema = z.object({
+	id: z.string(),
+	status: LeadStatusSchema,
+	assignedTo: z.string().nullable(),
+	createdAt: z.string().datetime().nullable(),
+});
+
+export type LeadReportRow = z.infer<typeof LeadReportRowSchema>;
+
+export const LeadReportResponseSchema = z.object({
+	ok: z.boolean(),
+	leads: z.array(LeadReportRowSchema),
+});
+
+export type LeadReportResponse = z.infer<typeof LeadReportResponseSchema>;

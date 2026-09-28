@@ -5,6 +5,7 @@ import {
 	fetchDueLeadFollowUps,
 	fetchLeadActivities,
 	fetchLeadById,
+	fetchLeadReport,
 	fetchPendingDemoRequests,
 } from "@/features/leads/leads.service";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
@@ -123,6 +124,21 @@ export const useDueLeadFollowUpsQuery = (
 				assignedTo,
 			}),
 		enabled: Boolean(token) && enabled,
+	});
+};
+
+export const useLeadReportQuery = (
+	token: string,
+	options: { scope: "all" | "mine"; assignedTo?: string },
+) => {
+	const canReadAll = useHasPermission("LEAD_READ_ALL");
+	const scope = options.scope === "all" && canReadAll ? "all" : "mine";
+	const assignedTo = scope === "all" ? options.assignedTo || undefined : undefined;
+
+	return useQuery({
+		queryKey: ["leads", "report", token, scope, assignedTo] as const,
+		queryFn: () => fetchLeadReport(token, { scope, assignedTo }),
+		enabled: Boolean(token),
 	});
 };
 

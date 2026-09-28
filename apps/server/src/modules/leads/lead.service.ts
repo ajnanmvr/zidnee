@@ -1,6 +1,7 @@
 import type {
 	Lead,
 	LeadFormData,
+	LeadReportRow,
 	LeadStatus,
 	UpdateLeadPayload,
 } from "@repo/schema";
@@ -661,6 +662,35 @@ export const LeadService = {
 			page,
 			pageSize: limit,
 		};
+	},
+
+	listReportLeads: async (filters: {
+		userId: string;
+		scope: "all" | "mine";
+		assignedToFilter?: string;
+	}): Promise<LeadReportRow[]> => {
+		const leads = await LeadModel.find()
+			.select({ status: 1, assignedTo: 1, studentId: 1, createdAt: 1 })
+			.lean<LeadDocument[]>();
+
+		const ownerFilter =
+			filters.scope === "mine" ? filters.userId : filters.assignedToFilter;
+
+		return leads
+			.filter(
+				(lead) =>
+					!ownerFilter || toObjectIdString(lead.assignedTo) === ownerFilter,
+			)
+			.map((lead) => ({
+				id: lead._id.toString(),
+				// A lead linked to a student is converted even if its stored
+				// status was never updated.
+				status: (lead as { studentId?: unknown }).studentId
+					? "CONVERTED"
+					: (lead.status ?? "FOLLOW_UP"),
+				assignedTo: toObjectIdString(lead.assignedTo) ?? null,
+				createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString() : null,
+			}));
 	},
 
 	listPendingDemoRequests: async (): Promise<Lead[]> => {

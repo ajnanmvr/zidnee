@@ -276,6 +276,38 @@ export const listLeadsController = async (
 	});
 };
 
+export const listLeadReportController = async (
+	req: Request,
+	res: Response,
+): Promise<void> => {
+	if (!req.user) {
+		throw new AuthenticationError("User not authenticated");
+	}
+
+	const scope = req.query.scope === "all" ? "all" : "mine";
+	const effectivePermissions = await getEffectivePermissions(req.user.roleIds);
+	const hasReadAll = effectivePermissions.some(
+		(p) => p.key === "LEAD_READ_ALL",
+	);
+
+	if (scope === "all" && !hasReadAll) {
+		throw new AuthorizationError("Insufficient permissions to view all leads");
+	}
+
+	const assignedToFilter =
+		scope === "all" && typeof req.query.assignedTo === "string" && req.query.assignedTo
+			? req.query.assignedTo
+			: undefined;
+
+	const leads = await LeadService.listReportLeads({
+		userId: req.user.userId,
+		scope,
+		assignedToFilter,
+	});
+
+	res.json({ ok: true, leads });
+};
+
 export const listSimilarLeadsController = async (
 	req: Request,
 	res: Response,

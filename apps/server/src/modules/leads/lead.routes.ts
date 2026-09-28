@@ -20,6 +20,7 @@ import {
     listSimilarLeadsController,
 	listCompletedDemosController,
 	listDemoRequestsController,
+	listLeadReportController,
 	listLeadsController,
 	listPendingDemoRequestsController,
 	markDemoCompletedController,
@@ -97,6 +98,40 @@ router.get(
 	"/",
 	requirePermissionKey("LEAD_READ" satisfies PermissionKey),
 	asyncHandler(listLeadsController),
+);
+
+/**
+ * @swagger
+ * /api/leads/report:
+ *   get:
+ *     tags:
+ *       - Leads
+ *     summary: Lead report rows
+ *     description: Every lead (including converted and deleted) as lightweight rows for the lead report
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema:
+ *           type: string
+ *           enum: [mine, all]
+ *       - in: query
+ *         name: assignedTo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lead report rows
+ */
+router.get(
+	"/report",
+	requireAnyPermissionKey([
+		"LEADS_OVERVIEW_READ" satisfies PermissionKey,
+		"LEAD_READ_ALL" satisfies PermissionKey,
+		"LEAD_READ_MY" satisfies PermissionKey,
+	]),
+	asyncHandler(listLeadReportController),
 );
 
 router.get(
