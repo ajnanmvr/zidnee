@@ -7,6 +7,7 @@ import {
 	HiBanknotes,
 	HiBookmarkSquare,
 	HiCalendarDays,
+	HiChartBar,
 	HiChatBubbleLeftRight,
 	HiCheckBadge,
 	HiCheckCircle,
@@ -479,6 +480,22 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
+		...(hasPermission("DEMO_REPORT_READ_MY") ||
+		hasPermission("DEMO_REPORT_READ_ALL")
+			? [
+					{
+						to: "/demo-management/report",
+						label: "Demo Report",
+						description: "Demo analytics",
+						icon: createElement(HiChartBar, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "violet" as const,
+						section: "Reports",
+					},
+				]
+			: []),
 		...(hasPermission("STUDENT_PROCESS_READ_MY") ||
 		hasPermission("STUDENT_PROCESS_READ_ALL")
 			? [
@@ -496,18 +513,18 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(canReadReminders
+		...(hasPermission("STUDENT_STARTING_DATE_READ")
 			? [
 					{
-						to: "/reminders",
-						label: "Reminders",
-						description: "Open reminders",
-						icon: createElement(HiOutlineBellAlert, {
+						to: "/students/starting-dates",
+						label: "Starting Dates",
+						description: "Upcoming class starting",
+						icon: createElement(HiRocketLaunch, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
 						}),
-						count: reminderUrgentCount,
-						accent: "amber",
+						count: startingDateUrgentCount,
+						accent: "blue" as const,
 						section: "Learners",
 					},
 				]
@@ -540,17 +557,18 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(canReadBatches
+		...(canReadReminders
 			? [
 					{
-						to: "/groups",
-						label: "Groups",
-						description: "Mentor groups",
-						icon: createElement(HiRectangleGroup, {
+						to: "/reminders",
+						label: "Reminders",
+						description: "Open reminders",
+						icon: createElement(HiOutlineBellAlert, {
 							className: "h-5 w-5",
 							"aria-hidden": "true",
 						}),
-						accent: "emerald",
+						count: reminderUrgentCount,
+						accent: "amber",
 						section: "Learners",
 					},
 				]
@@ -583,22 +601,6 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_STARTING_DATE_READ")
-			? [
-					{
-						to: "/students/starting-dates",
-						label: "Starting Dates",
-						description: "Upcoming class starting",
-						icon: createElement(HiRocketLaunch, {
-							className: "h-5 w-5",
-							"aria-hidden": "true",
-						}),
-						count: startingDateUrgentCount,
-						accent: "blue" as const,
-						section: "Learners",
-					},
-				]
-			: []),
 		...(hasPermission("STUDENT_READ_MY") ||
 		hasPermission("STUDENT_READ_ALL") ||
 		hasPermission("STUDENT_POSTER_DOWNLOAD")
@@ -612,6 +614,21 @@ export const useNavigationItems = () => {
 							"aria-hidden": "true",
 						}),
 						accent: "teal" as const,
+						section: "Learners",
+					},
+				]
+			: []),
+		...(canReadBatches
+			? [
+					{
+						to: "/groups",
+						label: "Groups",
+						description: "Mentor groups",
+						icon: createElement(HiRectangleGroup, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "emerald",
 						section: "Learners",
 					},
 				]

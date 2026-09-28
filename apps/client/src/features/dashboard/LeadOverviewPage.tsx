@@ -13,7 +13,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import { useDueLeadFollowUpsQuery } from "@/features/leads/leads.queries";
+import { useLeadReportQuery } from "@/features/leads/leads.queries";
 import { useSalesUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
@@ -69,6 +69,28 @@ const prevMonth = (r: PeriodRange): PeriodRange => {
 	return monthRange(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
 };
 
+const shiftMonths = (d: Date, n: number) =>
+	new Date(d.getFullYear(), d.getMonth() + n, d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+
+// The window immediately before `r`, of the same length. Calendar-aligned
+// presets shift by whole months/years so month lengths line up.
+const previousRange = (r: PeriodRange, timeScope: TimeScope): PeriodRange => {
+	if (timeScope === "currentMonth" || timeScope === "previousMonth") return prevMonth(r);
+	const months =
+		timeScope === "last3months" ? 3 : timeScope === "last6months" ? 6 : timeScope === "currentYear" ? 12 : 0;
+	if (months) {
+		const start = shiftMonths(r.start, -months);
+		const end = new Date(r.start.getTime() - 1);
+		return { start, end, label: "Previous period" };
+	}
+	const length = r.end.getTime() - r.start.getTime() + 1;
+	return {
+		start: new Date(r.start.getTime() - length),
+		end: new Date(r.start.getTime() - 1),
+		label: "Previous period",
+	};
+};
+
 const pct = (v: number) => `${v.toFixed(1)}%`;
 
 const delta = (cur: number, prev: number): { label: string; positive: boolean; neutral: boolean } => {
@@ -91,6 +113,7 @@ const STAGE_COLORS: Record<string, string> = {
 	DEMO_REQUEST: "#f97316",
 	DEMO_ASSIGNED: "#10b981",
 	DEMO_COMPLETED: "#8b5cf6",
+	DEMO_CANCELLED: "#e11d48",
 	CONVERTED: "#22c55e",
 	CLOSED: "#94a3b8",
 };
@@ -102,12 +125,13 @@ const STAGE_LABELS: Record<string, string> = {
 	DEMO_REQUEST: "Demo Request",
 	DEMO_ASSIGNED: "Demo Assigned",
 	DEMO_COMPLETED: "Demo Completed",
+	DEMO_CANCELLED: "Demo Cancelled",
 	CONVERTED: "Converted",
 	CLOSED: "Deleted",
 };
 
 const PIPELINE_ORDER = [
-	"FOLLOW_UP","FORM_SENT","FORM_FILLED","DEMO_REQUEST","DEMO_ASSIGNED","DEMO_COMPLETED",
+	"FOLLOW_UP","FORM_SENT","FORM_FILLED","DEMO_REQUEST","DEMO_ASSIGNED","DEMO_COMPLETED","DEMO_CANCELLED",
 ];
 
 const TIME_PRESETS: { id: TimeScope; label: string; hint: string }[] = [
@@ -167,22 +191,12 @@ export const LeadOverviewPage = () => {
 	const salesUsersQuery = useSalesUsersQuery(token, canReadAll && canSeeSalesUsers);
 	const salesUsers = salesUsersQuery.data?.users ?? [];
 
-	const leadsQuery = useDueLeadFollowUpsQuery(token, {
+	const leadsQuery = useLeadReportQuery(token, {
 		scope,
-		timeFilter: "all",
-		limit: 2000,
-		sortBy: "createdAt",
-		sortOrder: "desc",
-		enabled: Boolean(token),
+		assignedTo: selectedSalesUserId,
 	});
 
-	const allLeads = leadsQuery.data?.leads ?? [];
-	const leads = useMemo(
-		() => selectedSalesUserId
-			? allLeads.filter((l) => (l as any).createdBy === selectedSalesUserId)
-			: allLeads,
-		[allLeads, selectedSalesUserId],
-	);
+	const leads = useMemo(() => leadsQuery.data?.leads ?? [], [leadsQuery.data]);
 
 	const selectedRange = useMemo<PeriodRange | null>(() => {
 		if (timeScope === "all") return null;
@@ -208,7 +222,10 @@ export const LeadOverviewPage = () => {
 		return { start, end, label: "Custom range" };
 	}, [now, timeScope, customFrom, customTo]);
 
-	const compRange = useMemo(() => selectedRange ? prevMonth(selectedRange) : null, [selectedRange]);
+	const compRange = useMemo(
+		() => (selectedRange ? previousRange(selectedRange, timeScope) : null),
+		[selectedRange, timeScope],
+	);
 
 	const inRange = (d: Date | null, r: PeriodRange | null) =>
 		d ? (!r || (d >= r.start && d <= r.end)) : false;

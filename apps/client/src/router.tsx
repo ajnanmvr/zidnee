@@ -26,6 +26,7 @@ const OverviewPage = lazy(() =>
 	})),
 );
 const LeadOverviewPage = lazy(() => import("@/features/dashboard/LeadOverviewPage").then((m) => ({ default: m.LeadOverviewPage })));
+const DemoReportPage = lazy(() => import("@/features/demo-management/DemoReportPage").then((m) => ({ default: m.DemoReportPage })));
 const LeadsPage = lazy(() =>
 	import("@/features/dashboard/LeadsPage").then((module) => ({
 		default: module.LeadsPage,
@@ -478,6 +479,13 @@ export const router = createBrowserRouter([
 							"DEMO_SCHEDULED_READ_MY",
 							"DEMO_SCHEDULED_READ_ALL",
 						], <ScheduledDemosPage />),
+					},
+					{
+						path: "demo-management/report",
+						element: withPermissions([
+							"DEMO_REPORT_READ_MY",
+							"DEMO_REPORT_READ_ALL",
+						], <DemoReportPage />),
 					},
 					{
 						path: "demo-management/completed",

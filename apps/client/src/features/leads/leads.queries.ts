@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	fetchAdmissionLeads,
+	fetchDemoReport,
 	fetchDemoRequests,
 	fetchDueLeadFollowUps,
 	fetchLeadActivities,
 	fetchLeadById,
+	fetchLeadReport,
 	fetchPendingDemoRequests,
 } from "@/features/leads/leads.service";
 import { useHasPermission } from "@/lib/hooks/use-has-permission";
@@ -125,6 +127,28 @@ export const useDueLeadFollowUpsQuery = (
 		enabled: Boolean(token) && enabled,
 	});
 };
+
+export const useLeadReportQuery = (
+	token: string,
+	options: { scope: "all" | "mine"; assignedTo?: string },
+) => {
+	const canReadAll = useHasPermission("LEAD_READ_ALL");
+	const scope = options.scope === "all" && canReadAll ? "all" : "mine";
+	const assignedTo = scope === "all" ? options.assignedTo || undefined : undefined;
+
+	return useQuery({
+		queryKey: ["leads", "report", token, scope, assignedTo] as const,
+		queryFn: () => fetchLeadReport(token, { scope, assignedTo }),
+		enabled: Boolean(token),
+	});
+};
+
+export const useDemoReportQuery = (token: string, scope: "all" | "mine") =>
+	useQuery({
+		queryKey: ["leads", "demo-report", token, scope] as const,
+		queryFn: () => fetchDemoReport(token, scope),
+		enabled: Boolean(token),
+	});
 
 export const useLeadActivitiesQuery = (token: string, leadId: string) => {
 	return useQuery({

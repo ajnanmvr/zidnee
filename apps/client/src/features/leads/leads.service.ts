@@ -2,8 +2,10 @@ import {
 	AssignDemoPayloadSchema,
 	ConfirmAdmissionPayloadSchema,
 	CreateLeadPayloadSchema,
+	DemoReportResponseSchema,
 	GenerateFormLinkResponseSchema,
 	LeadActivitiesResponseSchema,
+	LeadReportResponseSchema,
 	LeadResponseEnvelopeSchema,
 	LeadsResponseSchema,
 	MessageResponseSchema,
@@ -13,6 +15,33 @@ import {
 	UpdateLeadPayloadSchema,
 } from "@repo/schema";
 import { requestWithSchema } from "@/api/request";
+
+export const fetchLeadReport = async (
+	token: string,
+	options: { scope: "all" | "mine"; assignedTo?: string },
+) => {
+	let query = `?scope=${options.scope}`;
+	if (options.assignedTo) {
+		query += `&assignedTo=${encodeURIComponent(options.assignedTo)}`;
+	}
+
+	return requestWithSchema(
+		`/leads/report${query}`,
+		LeadReportResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchDemoReport = async (token: string, scope: "all" | "mine") =>
+	requestWithSchema(
+		`/leads/demo-report?scope=${scope}`,
+		DemoReportResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
 
 export const fetchDueLeadFollowUps = async (
 	token: string,

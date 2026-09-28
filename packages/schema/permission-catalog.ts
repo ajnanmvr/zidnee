@@ -221,6 +221,18 @@ export const PERMISSION_CATALOG = {
 		resource: "demo-management",
 		action: "completed:read:all",
 	},
+	DEMO_REPORT_READ_MY: {
+		name: "View My Demo Report",
+		description: "View demo report for demos I coordinate or mentor",
+		resource: "demo-management",
+		action: "report:read:own",
+	},
+	DEMO_REPORT_READ_ALL: {
+		name: "View All Demo Report",
+		description: "View demo report for all demos",
+		resource: "demo-management",
+		action: "report:read:all",
+	},
 	LEAD_DEMO_COMPLETE: {
 		name: "Complete Demo",
 		description: "Mark demo as completed",

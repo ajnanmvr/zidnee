@@ -31,6 +31,12 @@ type StudentProcessTaskDefinition = {
 
 type StudentProcessTaskKey =
 	| "send-welcome-message"
+	| "data-confirmed-and-shared-group-awareness-for-both"
+	| "level-link-shared-to-parent-and-mentor"
+	| "mentor-level-link-shared-and-trained"
+	| "mentor-group-profile-link-shared"
+	| "mentor-confirm-starting-date"
+	| "mentor-collect-admission-fee-before-starting"
 	| "check-admission-fee-collected"
 	| "data-confirmed-and-shared-class-group-awareness"
 	| "level-drive-link-shared-to-parent"
@@ -61,6 +67,24 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<string, StudentProcessTaskDefinition>
 		actionType: "WHATSAPP",
 		dynamic: true,
 	},
+	"data-confirmed-and-shared-group-awareness-for-both": {
+		label: "Data confirmed & shared Group awareness for both",
+	},
+	"level-link-shared-to-parent-and-mentor": {
+		label: "Level link shared to parent & mentor",
+	},
+	"mentor-level-link-shared-and-trained": {
+		label: "Level link shared & trained",
+	},
+	"mentor-group-profile-link-shared": {
+		label: "Group profile link shared",
+	},
+	"mentor-confirm-starting-date": {
+		label: "Confirm starting date",
+	},
+	"mentor-collect-admission-fee-before-starting": {
+		label: "Collect admission fee before starting",
+	},
 	"check-admission-fee-collected": {
 		label: "Check Admission Fee Collected",
 	},
@@ -80,7 +104,7 @@ const STUDENT_PROCESS_TASK_LIBRARY: Record<string, StudentProcessTaskDefinition>
 		label: "Confirmed data shared to new mentor",
 	},
 	"added-in-parents-group": {
-		label: "Added in parent's Group",
+		label: "Add in parent's group",
 	},
 	"cancelled-drive-access": { label: "Cancelled Drive Access" },
 	"informed-mentor": { label: "Informed Mentor" },
@@ -111,6 +135,19 @@ STUDENT_PROCESS_TASK_LIBRARY["student-data-shared"] =
 	getTaskDefinition("confirmed-data-shared-to-new-mentor");
 STUDENT_PROCESS_TASK_LIBRARY["group-created"] = getTaskDefinition("added-in-parents-group");
 
+const ADMISSION_TASK_KEYS: readonly StudentProcessTaskKey[] = [
+	// Student
+	"send-welcome-message",
+	"data-confirmed-and-shared-group-awareness-for-both",
+	"level-link-shared-to-parent-and-mentor",
+	// Mentor's awareness (voices)
+	"mentor-level-link-shared-and-trained",
+	"mentor-group-profile-link-shared",
+	"mentor-confirm-starting-date",
+	"mentor-collect-admission-fee-before-starting",
+	"added-in-parents-group",
+];
+
 type StudentProcessTemplateConfig = {
 	label: string;
 	// allow both canonical and legacy keys as strings
@@ -124,13 +161,7 @@ const STUDENT_PROCESS_TEMPLATE_CONFIG: Record<
 	STUDENT: {
 		// Simplified admission process (use canonical keys where possible)
 		label: "Student Admission Process",
-		taskKeys: [
-			"send-welcome-message",
-			"check-admission-fee-collected",
-			"data-confirmed-and-shared-class-group-awareness",
-			"data-shared-to-mentor-for-confirmation-and-created-group",
-			"added-in-parents-group",
-		],
+		taskKeys: [...ADMISSION_TASK_KEYS],
 	},
 	BREAK: {
 		label: "Break Process",
@@ -309,19 +340,8 @@ export const getAdmissionProcessTemplate = (
 	const label =
 		courseType === "GROUP" ? "group admission process" : "one to one class admission";
 
-	const taskKeys: StudentProcessTaskKey[] = [
-		"send-welcome-message",
-		"check-admission-fee-collected",
-		"data-confirmed-and-shared-class-group-awareness",
-		"level-drive-link-shared-to-parent",
-		"data-shared-to-mentor-for-confirmation-and-created-group",
-		"level-teaching-guide-shared-to-ongoing-mentor",
-		"confirmed-data-shared-to-new-mentor",
-		"added-in-parents-group",
-	];
-
 	return {
 		label,
-		tasks: taskKeys.map((key) => buildTask(key, studentId)),
+		tasks: ADMISSION_TASK_KEYS.map((key) => buildTask(key, studentId)),
 	};
 };
