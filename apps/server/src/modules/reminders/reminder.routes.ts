@@ -1,4 +1,4 @@
-import type { PermissionKey } from "@repo/schema";
+import { type PermissionKey, STUDENT_READ_KEYS } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
@@ -44,8 +44,7 @@ router.use(authMiddleware);
 router.post(
 	"/students/:studentId",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(createReminderController),
 );
@@ -53,8 +52,7 @@ router.post(
 router.post(
 	"/mentors/:mentorId",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(createReminderController),
 );

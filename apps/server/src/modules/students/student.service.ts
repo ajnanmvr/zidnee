@@ -78,6 +78,10 @@ type StudentListFilters = {
 	limit?: number;
 	scope?: "mine" | "all";
 	userId?: string;
+	/** A user id, or "none" for students without one. */
+	mentorId?: string;
+	/** A user id, or "none" for students without one. */
+	counsellorId?: string;
 	/**
 	 * When set, restricts results to students admitted (converted from a lead)
 	 * by this specific user. Used for "my converted leads" views, independent
@@ -410,6 +414,16 @@ export const StudentService = {
 			query.counsellorId = new Types.ObjectId(filters.userId);
 		}
 
+		// Explicit mentor / counsellor filters ("none" = not set).
+		for (const field of ["mentorId", "counsellorId"] as const) {
+			const value = filters[field];
+			if (value === "none") {
+				query[field] = null;
+			} else if (value && Types.ObjectId.isValid(value)) {
+				query[field] = new Types.ObjectId(value);
+			}
+		}
+
 		if (filters.status) {
 			query.status = filters.status;
 		}
@@ -443,7 +457,12 @@ export const StudentService = {
 					query.courseType = { $in: [] };
 				}
 			} else {
-				query.courseType = { $in: filters.allowedCourseTypes };
+				// Students without a course type are individual (ZID) by default.
+				query.courseType = {
+					$in: filters.allowedCourseTypes.includes("INDIVIDUAL")
+						? [...filters.allowedCourseTypes, null]
+						: filters.allowedCourseTypes,
+				};
 			}
 		}
 

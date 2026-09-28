@@ -107,12 +107,12 @@ export const useNavigationItems = () => {
 			(permission) =>
 				permission.key === "LEAD_READ_MY" || permission.key === "LEAD_READ_ALL",
 		) ?? false;
-	const canReadStudents =
-		me?.permissions?.some(
-			(permission) =>
-				permission.key === "STUDENT_READ_MY" ||
-				permission.key === "STUDENT_READ_ALL",
-		) ?? false;
+	const hasAnyKey = (keys: string[]) =>
+		me?.permissions?.some((permission) => keys.includes(permission.key)) ?? false;
+	// Student read access is per course type.
+	const canReadGroupStudents = hasAnyKey(["STUDENT_READ_MY_GROUP", "STUDENT_READ_ALL_GROUP"]);
+	const canReadIndividualStudents = hasAnyKey(["STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_INDIVIDUAL"]);
+	const canReadStudents = canReadGroupStudents || canReadIndividualStudents;
 	const canReadStudentProcesses =
 		me?.permissions?.some(
 			(permission) =>
@@ -534,7 +534,7 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+		...(canReadIndividualStudents
 			? [
 					{
 						to: "/students?type=individual",
@@ -548,6 +548,10 @@ export const useNavigationItems = () => {
 						accent: "cyan",
 						section: "Learners",
 					},
+				]
+			: []),
+		...(canReadGroupStudents
+			? [
 					{
 						to: "/students?type=group",
 						label: "Group Students",
@@ -578,7 +582,7 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_READ_MY") || hasPermission("STUDENT_READ_ALL")
+		...(canReadStudents
 			? [
 					{
 						to: "/students/break",
@@ -606,9 +610,7 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
-		...(hasPermission("STUDENT_READ_MY") ||
-		hasPermission("STUDENT_READ_ALL") ||
-		hasPermission("STUDENT_POSTER_DOWNLOAD")
+		...(canReadStudents || hasPermission("STUDENT_POSTER_DOWNLOAD")
 			? [
 					{
 						to: "/students/posters",

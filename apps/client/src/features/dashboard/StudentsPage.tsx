@@ -22,19 +22,33 @@ export const StudentsPage = () => {
 	const sortOrder = searchParams.get("sortOrder") === "desc" ? "desc" : "asc";
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
+	// Mentor / counsellor filters (user id, or "none"); only used in the "All" view.
+	const mentorFilter = searchParams.get("mentor") ?? "";
+	const counsellorFilter = searchParams.get("counsellor") ?? "";
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
 	const [showProcessStudents, setShowProcessStudents] = useState(false);
-	const canReadAllStudents = useHasPermission("STUDENT_READ_ALL");
+	const canReadAllGroup = useHasPermission("STUDENT_READ_ALL_GROUP");
+	const canReadAllIndividual = useHasPermission("STUDENT_READ_ALL_INDIVIDUAL");
 	const canUpdateStudent = useHasPermission("STUDENT_UPDATE");
-	const activeScope: "mine" | "all" = loadAllRequested && canReadAllStudents ? "all" : "mine";
 
 	const courseTypeFilter = courseTab === "group" ? "GROUP" : courseTab === "individual" ? "INDIVIDUAL" : undefined;
+	// "All" access is per course type.
+	const canReadAllStudents =
+		courseTypeFilter === "GROUP"
+			? canReadAllGroup
+			: courseTypeFilter === "INDIVIDUAL"
+				? canReadAllIndividual
+				: canReadAllGroup || canReadAllIndividual;
+	const activeScope: "mine" | "all" = loadAllRequested && canReadAllStudents ? "all" : "mine";
+	const isAllView = activeScope === "all";
 
 	const studentsQuery = useStudentsQuery(token, {
 		scope: activeScope,
 		status: "STUDENT",
 		courseType: courseTypeFilter,
 		search: searchTerm || undefined,
+		mentorId: isAllView ? mentorFilter || undefined : undefined,
+		counsellorId: isAllView ? counsellorFilter || undefined : undefined,
 		sortBy,
 		sortOrder,
 		page,
@@ -56,6 +70,15 @@ export const StudentsPage = () => {
 		const next = new URLSearchParams(searchParams);
 		if (value) next.set(key, value);
 		else next.delete(key);
+		setSearchParams(next);
+	};
+
+	// Changing a filter goes back to page 1.
+	const setFilterParam = (key: "mentor" | "counsellor", value: string) => {
+		const next = new URLSearchParams(searchParams);
+		if (value) next.set(key, value);
+		else next.delete(key);
+		next.delete("page");
 		setSearchParams(next);
 	};
 
@@ -93,6 +116,18 @@ export const StudentsPage = () => {
 		const map: Record<string, string> = {};
 		(usersQuery.data?.users ?? []).forEach((u) => { map[u.id] = u.name ?? u.username ?? "Unknown"; });
 		return map;
+	}, [usersQuery.data?.users]);
+
+	const userOptions = useMemo(() => {
+		const byRole = (type: string) =>
+			(usersQuery.data?.users ?? [])
+				.filter((u) => u.roles.some((r) => r.type === type))
+				.map((u) => ({
+					id: u.id,
+					label: `${u.name ?? u.username}${type === "mentor" && u.zids?.mentor ? ` (${u.zids.mentor.toUpperCase()})` : ""}`,
+				}))
+				.sort((a, b) => a.label.localeCompare(b.label));
+		return { mentors: byRole("mentor"), counsellors: byRole("counsellor") };
 	}, [usersQuery.data?.users]);
 
 	const groupLabelByBatchId = useMemo(() =>
@@ -175,6 +210,45 @@ export const StudentsPage = () => {
 					placeholder="Search by name, phone, ZID…"
 					className="w-52 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
 				/>
+				{isAllView ? (
+					<>
+						<select
+							value={mentorFilter}
+							onChange={(e) => setFilterParam("mentor", e.target.value)}
+							aria-label="Filter by mentor"
+							className={`max-w-52 rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:border-teal-500 ${mentorFilter ? "border-teal-400 bg-teal-50 text-teal-800" : "border-gray-200"}`}
+						>
+							<option value="">All mentors</option>
+							<option value="none">No mentor</option>
+							{userOptions.mentors.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+						</select>
+						<select
+							value={counsellorFilter}
+							onChange={(e) => setFilterParam("counsellor", e.target.value)}
+							aria-label="Filter by counsellor"
+							className={`max-w-52 rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:border-teal-500 ${counsellorFilter ? "border-teal-400 bg-teal-50 text-teal-800" : "border-gray-200"}`}
+						>
+							<option value="">All counsellors</option>
+							<option value="none">No counsellor</option>
+							{userOptions.counsellors.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+						</select>
+						{mentorFilter || counsellorFilter ? (
+							<button
+								type="button"
+								onClick={() => {
+									const next = new URLSearchParams(searchParams);
+									next.delete("mentor");
+									next.delete("counsellor");
+									next.delete("page");
+									setSearchParams(next);
+								}}
+								className="rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800"
+							>
+								Clear filters
+							</button>
+						) : null}
+					</>
+				) : null}
 				<button
 					type="button"
 					onClick={() => setShowProcessStudents((c) => !c)}
@@ -205,6 +279,7 @@ export const StudentsPage = () => {
 					<StudentTableView
 						students={filteredStudents}
 						mentorNameById={mentorNameById}
+						counsellorNameById={isAllView ? mentorNameById : undefined}
 						groupLabelByBatchId={groupLabelByBatchId}
 						canAddToGroup={canUpdateStudent}
 						onAddToGroup={(s) => { setSelectedStudent(s); setSelectedGroupId(""); setGroupSearch(""); setAddToGroupModalOpen(true); }}

@@ -22,7 +22,10 @@ export const fetchStudents = async (
 		page?: number;
 		limit?: number;
 		scope?: "mine" | "all";
-		/** Powers the "Converted Leads" mine/all scope: "me" restricts to leads converted by the current user, "all" lists every converted lead (gated by lead-read permissions, bypassing STUDENT_READ_ALL). */
+		/** Filter by mentor / counsellor user id, or "none" for students without one. */
+		mentorId?: string;
+		counsellorId?: string;
+		/** Powers the "Converted Leads" mine/all scope: "me" restricts to leads converted by the current user, "all" lists every converted lead (gated by lead-read permissions, bypassing student-read permissions). */
 		admittedBy?: "me" | "all";
 		admittedFrom?: string;
 		admittedTo?: string;
@@ -38,6 +41,8 @@ export const fetchStudents = async (
 	if (options?.page) query.set("page", String(options.page));
 	if (options?.limit) query.set("limit", String(options.limit));
 	if (options?.scope) query.set("scope", options.scope);
+	if (options?.mentorId) query.set("mentorId", options.mentorId);
+	if (options?.counsellorId) query.set("counsellorId", options.counsellorId);
 	if (options?.admittedBy) query.set("admittedBy", options.admittedBy);
 	if (options?.admittedFrom) query.set("admittedFrom", options.admittedFrom);
 	if (options?.admittedTo) query.set("admittedTo", options.admittedTo);

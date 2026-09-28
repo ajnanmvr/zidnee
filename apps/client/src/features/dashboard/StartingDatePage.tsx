@@ -5,7 +5,7 @@ import { HiCalendarDays, HiCheck, HiMagnifyingGlass, HiPencilSquare, HiRocketLau
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission, useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 
 type StartUrgency = "overdue" | "today" | "soon" | "upcoming" | "unknown";
@@ -57,7 +57,7 @@ export const StartingDatePage = () => {
 	const searchTerm = searchParams.get("search") ?? "";
 	const requestedScope = (searchParams.get("scope") ?? "mine") as "mine" | "all";
 	const canViewMine = useHasPermission("STUDENT_STARTING_DATE_READ");
-	const canReadAll = useHasPermission("STUDENT_READ_ALL");
+	const canReadAll = useHasAnyPermission(["STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"]);
 	const canToggleScope = canViewMine && canReadAll;
 	const activeScope: "mine" | "all" = canReadAll && requestedScope === "all" ? "all" : "mine";
 

@@ -1,4 +1,4 @@
-import type { PermissionKey } from "@repo/schema";
+import { type PermissionKey, STUDENT_READ_KEYS } from "@repo/schema";
 import { Router } from "express";
 import {
 	authMiddleware,
@@ -74,8 +74,7 @@ router.use(authMiddleware);
 router.get(
 	"/",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 		"STUDENT_POSTER_DOWNLOAD" satisfies PermissionKey,
 		"STUDENT_EXPORT" satisfies PermissionKey,
 		// admittedBy=me/all view uses lead-read permissions, not student-read
@@ -141,8 +140,7 @@ router.get(
 	"/:studentId/activities",
 	requireAnyPermissionKey([
 		"STUDENT_PROFILE_READ" satisfies PermissionKey,
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(getStudentActivitiesController),
 );
@@ -151,8 +149,7 @@ router.get(
 	"/:studentId",
 	requireAnyPermissionKey([
 		"STUDENT_PROFILE_READ" satisfies PermissionKey,
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(getStudentByIdController),
 );
@@ -160,8 +157,7 @@ router.get(
 router.patch(
 	"/:studentId/follow-up",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(recordStudentFollowUpController),
 );
@@ -169,8 +165,7 @@ router.patch(
 router.patch(
 	"/:studentId/assessments",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(updateStudentAssessmentController),
 );
@@ -178,8 +173,7 @@ router.patch(
 router.patch(
 	"/:studentId",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(updateStudentController),
 );
@@ -187,8 +181,7 @@ router.patch(
 router.post(
 	"/:studentId/profile-pic",
 	requireAnyPermissionKey([
-		"STUDENT_READ_MY" satisfies PermissionKey,
-		"STUDENT_READ_ALL" satisfies PermissionKey,
+		...STUDENT_READ_KEYS,
 	]),
 	upload.single("file"),
 	asyncHandler(uploadStudentProfilePicController),
