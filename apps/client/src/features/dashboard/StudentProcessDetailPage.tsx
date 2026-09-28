@@ -17,6 +17,12 @@ const ADMISSION_MODAL_TASK_KEYS = new Set([
     "confirmed-data-shared-to-new-mentor",
     "level-drive-link-shared-to-parent",
     "level-teaching-guide-shared-to-ongoing-mentor",
+    "data-confirmed-and-shared-group-awareness-for-both",
+    "level-link-shared-to-parent-and-mentor",
+    "mentor-level-link-shared-and-trained",
+    "mentor-group-profile-link-shared",
+    "mentor-confirm-starting-date",
+    "mentor-collect-admission-fee-before-starting",
 ]);
 
 const normalizeWhatsAppNumber = (phone?: string | null) =>
@@ -91,7 +97,7 @@ export const StudentProcessDetailPage = () => {
                     ? "Confirm that a mentor has been assigned and informed."
                     : task.label === "Student data shared"
                         ? "Confirm that the student's data has been shared with the relevant team."
-                        : "Confirm that the group has been created.",
+                        : `Confirm that "${task.label}" has been completed.`,
         );
         setModalTaskKey(task.key);
         setModalTaskLabel(task.label);

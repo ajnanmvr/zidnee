@@ -6,13 +6,15 @@ describe("student process templates", () => {
 		const template = getStudentProcessTemplate("STUDENT");
 
 		expect(template.label).toBe("Student Admission Process");
-		expect(template.tasks).toHaveLength(5);
-		expect(template.tasks.map((task) => task.key)).toEqual([
-			"send-welcome-message",
-			"data-confirmed",
-			"mentor-assigned-informed",
-			"student-data-shared",
-			"group-created",
+		expect(template.tasks.map((task) => task.label)).toEqual([
+			"Send welcome message",
+			"Data confirmed & shared Group awareness for both",
+			"Level link shared to parent & mentor",
+			"Level link shared & trained",
+			"Group profile link shared",
+			"Confirm starting date",
+			"Collect admission fee before starting",
+			"Add in parent's group",
 		]);
 		expect(
 			template.tasks.find((task) => task.key === "send-welcome-message")
