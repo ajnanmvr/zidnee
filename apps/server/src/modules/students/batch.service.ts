@@ -7,6 +7,7 @@ import { Types } from "mongoose";
 import { type BatchDocument, BatchModel } from "./batch.model.js";
 import { BatchIdentityService } from "./batch.identity.js";
 import { UserModel } from "../users/user.model.js";
+import { ZidService } from "../zid/zid.service.js";
 
 const toBatch = (doc: BatchDocument): Batch => {
 	return {
@@ -31,22 +32,29 @@ export const BatchService = {
 	create: async (payload: CreateBatchPayload): Promise<Batch> => {
 		const groupId =
 			payload.type === "GROUP"
-				? await BatchIdentityService.generateGroupId()
+				? await BatchIdentityService.resolveGroupId(payload.groupId)
 				: undefined;
-		const batch = await BatchModel.create({
-			groupId,
-			name: payload.name?.trim() || undefined,
-			type: payload.type,
-			level: payload.level,
-			mentorId: payload.mentorId,
-			counsellorId: payload.counsellorId,
-			oralAssessmentDone: payload.oralAssessmentDone ?? false,
-			writtenAssessmentDone: payload.writtenAssessmentDone ?? false,
-			levelAssessmentDone: payload.levelAssessmentDone ?? false,
-			description: payload.description,
-		});
+		try {
+			const batch = await BatchModel.create({
+				groupId,
+				name: payload.name?.trim() || undefined,
+				type: payload.type,
+				level: payload.level,
+				mentorId: payload.mentorId,
+				counsellorId: payload.counsellorId,
+				oralAssessmentDone: payload.oralAssessmentDone ?? false,
+				writtenAssessmentDone: payload.writtenAssessmentDone ?? false,
+				levelAssessmentDone: payload.levelAssessmentDone ?? false,
+				description: payload.description,
+			});
 
-		return toBatch(batch.toObject() as BatchDocument);
+			return toBatch(batch.toObject() as BatchDocument);
+		} catch (error) {
+			if (groupId && ZidService.isDuplicateKeyError(error)) {
+				throw await BatchIdentityService.conflict(groupId);
+			}
+			throw error;
+		}
 	},
 
 	findById: async (id: string): Promise<Batch | null> => {

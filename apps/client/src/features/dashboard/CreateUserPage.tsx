@@ -4,10 +4,12 @@ import { ApiError } from "@/api/request";
 import { UserFormPanel } from "@/features/users/UserFormPanel";
 import { useCreateUserMutation } from "@/features/users/use-create-user-mutation";
 import { useHasAnyPermission, useHasPermission } from "@/lib/hooks/use-has-permission";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 
 export const CreateUserPage = () => {
 	const navigate = useNavigate();
 	const createUserMutation = useCreateUserMutation();
+	const withZidRecovery = useZidRecovery();
 	const canCreateFullUser = useHasAnyPermission(["USER_CREATE", "ADMIN_CREATE"]);
 	const hasSalesCreate = useHasPermission("SALES_CREATE");
 	const salesOnlyMode = hasSalesCreate && !canCreateFullUser;
@@ -21,14 +23,21 @@ export const CreateUserPage = () => {
 		roleIds: string[];
 	}) => {
 		try {
-			await createUserMutation.mutateAsync({
-				name: form.name,
-				username: form.username,
-				email: form.email,
-				password: form.password as string,
-				gender: form.gender,
-				roleIds: form.roleIds,
-			});
+			await withZidRecovery((overrides) =>
+				createUserMutation.mutateAsync(
+					mergeZidOverrides(
+						{
+							name: form.name,
+							username: form.username,
+							email: form.email,
+							password: form.password as string,
+							gender: form.gender,
+							roleIds: form.roleIds,
+						},
+						overrides,
+					),
+				),
+			);
 			toast.success("User created successfully!");
 			navigate(salesOnlyMode ? "/sales-users" : "/admins", { replace: true });
 		} catch (error) {

@@ -62,6 +62,7 @@ import type {
 	RedemoLeadForm,
 } from "@/lib/dashboard-types";
 import { useSession } from "@/lib/session";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 import { format } from "date-fns";
 import { formatTableDate } from "@/lib/utils/date";
 import { formatSuggestionsForUI } from "@/lib/utils/suggestion-engine";
@@ -376,6 +377,7 @@ export const LeadsPage = () => {
 	const requestRedemoMutation = useRequestRedemoMutation();
 	const requestDemoMutation = useRequestLeadDemoMutation();
 	const requestAdmissionMutation = useRequestAdmissionMutation();
+	const withZidRecovery = useZidRecovery();
 	const updateLeadMutation = useUpdateLeadMutation();
 	const assignUserCounsellorMutation = useAssignUserCounsellorMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
@@ -975,10 +977,12 @@ export const LeadsPage = () => {
 				return;
 			}
 
-			await requestAdmissionMutation.mutateAsync({
-				leadId: admissionLeadId,
-				payload: validation.data,
-			});
+			await withZidRecovery((overrides) =>
+				requestAdmissionMutation.mutateAsync({
+					leadId: admissionLeadId,
+					payload: mergeZidOverrides(validation.data, overrides),
+				}),
+			);
 			toast.success("Lead moved to for admission.");
 			closeAdmissionModal();
 			navigate("/leads?stage=converted");

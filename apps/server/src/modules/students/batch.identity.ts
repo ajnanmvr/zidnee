@@ -1,44 +1,26 @@
-import mongoose, { type Model, Schema } from "mongoose";
+import { exactZidPattern, ZidService, zidPattern } from "../zid/zid.service.js";
+import { BatchModel } from "./batch.model.js";
 
-interface BatchSequenceDocument {
-	_id: string;
-	nextNumber: number;
-}
+const GROUP_ID_PREFIX = "ZG";
 
-const batchSequenceSchema = new Schema<BatchSequenceDocument>(
-	{
-		_id: {
-			type: String,
-			required: true,
-		},
-		nextNumber: {
-			type: Number,
-			required: true,
-			default: 0,
-		},
+const groupIdOptions = {
+	prefix: GROUP_ID_PREFIX,
+	field: "groupId",
+	findLastId: async () => {
+		const last = await BatchModel.findOne({ groupId: zidPattern(GROUP_ID_PREFIX) })
+			.sort({ createdAt: -1, _id: -1 })
+			.select({ groupId: 1 })
+			.lean<{ groupId?: string } | null>();
+		return last?.groupId;
 	},
-	{
-		timestamps: false,
-		versionKey: false,
-	},
-);
-
-const BatchSequenceModel =
-	(mongoose.models.BatchSequence as Model<BatchSequenceDocument> | undefined) ??
-	mongoose.model<BatchSequenceDocument>("BatchSequence", batchSequenceSchema);
+	exists: async (id: string) =>
+		Boolean(await BatchModel.exists({ groupId: exactZidPattern(id) })),
+};
 
 export const BatchIdentityService = {
-	generateGroupId: async (): Promise<string> => {
-		const sequence = await BatchSequenceModel.findByIdAndUpdate(
-			"ZG",
-			{ $inc: { nextNumber: 1 } },
-			{ new: true, upsert: true },
-		);
+	/** ZG id for a new group: `manual` if given, else next after the last created. */
+	resolveGroupId: (manual?: string) =>
+		ZidService.resolve({ ...groupIdOptions, manual }),
 
-		if (!sequence) {
-			throw new Error("Failed to generate group ID");
-		}
-
-		return `ZG${String(sequence.nextNumber).padStart(3, "0")}`;
-	},
+	conflict: (groupId: string) => ZidService.conflict(groupIdOptions, groupId),
 };

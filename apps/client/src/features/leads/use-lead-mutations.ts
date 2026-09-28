@@ -271,7 +271,7 @@ export const useConfirmAdmissionMutation = () => {
 			payload,
 		}: {
 			leadId: string;
-			payload: { counsellorId?: string; note?: string };
+			payload: { counsellorId?: string; note?: string; zid?: string };
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");
@@ -305,7 +305,7 @@ export const useRequestAdmissionMutation = () => {
 			payload,
 		}: {
 			leadId: string;
-			payload: { counsellorId?: string; note?: string };
+			payload: { counsellorId?: string; note?: string; zid?: string };
 		}) => {
 			if (!token) {
 				throw new Error("Missing session token");

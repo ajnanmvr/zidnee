@@ -32,6 +32,8 @@ export const CreateBatchPayloadSchema = z.object({
 		return value;
 	}, z.string().min(1).max(255).optional()),
 	type: BatchTypeSchema,
+	// Manual ZG override, used when the auto-generated one conflicts.
+	groupId: z.string().trim().min(1).max(20).optional(),
 	level: z.string().min(1).max(100),
 	mentorId: ObjectIdStringSchema,
 	counsellorId: ObjectIdStringSchema.optional(),

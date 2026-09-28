@@ -1,9 +1,21 @@
 import { z } from "zod";
 import { PermissionSchema, RoleSchema, UserSchema } from "./rbac.schema.js";
 
+// Returned (409) when a generated or typed ZID is already taken. `field` is the
+// request-body path to send a replacement in, e.g. "zid" or "zids.mentor".
+export const ZidConflictSchema = z.object({
+	zid: z.string(),
+	suggestedZid: z.string(),
+	prefix: z.string(),
+	field: z.string(),
+});
+
+export type ZidConflict = z.infer<typeof ZidConflictSchema>;
+
 export const ApiErrorResponseSchema = z.object({
 	message: z.string().optional(),
 	errors: z.record(z.string(), z.array(z.string())).optional(),
+	zidConflict: ZidConflictSchema.optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;

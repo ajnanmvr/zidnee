@@ -7,6 +7,7 @@ import { UserFormPanel } from "@/features/users/UserFormPanel";
 import { useUpdateUserMutation } from "@/features/users/use-user-management-mutations";
 import { useUsersQuery } from "@/features/users/users.queries";
 import { useSession } from "@/lib/session";
+import { mergeZidOverrides, useZidRecovery } from "@/lib/zid-recovery";
 
 type EditableUser = {
 	id: string;
@@ -34,6 +35,7 @@ export const EditUserPage = () => {
 	const { token } = useSession();
 	const usersQuery = useUsersQuery(token);
 	const updateUserMutation = useUpdateUserMutation();
+	const withZidRecovery = useZidRecovery();
 
 	const user = useMemo(
 		() =>
@@ -58,19 +60,24 @@ export const EditUserPage = () => {
 		}
 
 		try {
-			await updateUserMutation.mutateAsync({
-				userId,
-				payload: {
-					name: form.name,
-					username: form.username,
-					email: form.email,
-					gender: form.gender,
-					mentorType: form.mentorType,
-					roleIds: form.roleIds,
-					counsellorId: form.counsellorId,
-					zids: form.zids,
-				},
-			});
+			await withZidRecovery((overrides) =>
+				updateUserMutation.mutateAsync({
+					userId,
+					payload: mergeZidOverrides(
+						{
+							name: form.name,
+							username: form.username,
+							email: form.email,
+							gender: form.gender,
+							mentorType: form.mentorType,
+							roleIds: form.roleIds,
+							counsellorId: form.counsellorId,
+							zids: form.zids,
+						},
+						overrides,
+					),
+				}),
+			);
 			toast.success("User updated successfully!");
 			navigate(resolveDirectoryPath(user?.roles));
 		} catch (error) {

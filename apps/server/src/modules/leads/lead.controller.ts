@@ -605,6 +605,7 @@ export const confirmAdmissionController = async (
 		result.data.batchId,
 		req.user.userId,
 		result.data.note,
+		result.data.zid,
 	);
 
 	if (!student) {
@@ -648,6 +649,7 @@ export const requestAdmissionController = async (
 		result.data.batchId,
 		req.user.userId,
 		result.data.note,
+		result.data.zid,
 	);
 
 	const updatedLead = await LeadService.requestAdmission(
