@@ -2,7 +2,7 @@ import type { Student } from "@repo/schema";
 import { useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useStudentsQuery } from "@/features/students/students.queries";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { HiArchiveBox } from "react-icons/hi2";
 
@@ -33,7 +33,7 @@ export const DroppedStudentsPage = () => {
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const canReadAll = useHasPermission("STUDENT_READ_ALL");
+	const canReadAll = useHasAnyPermission(["STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"]);
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
 
 	const [viewingReason, setViewingReason] = useState<StudentRow | null>(null);

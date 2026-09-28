@@ -127,15 +127,24 @@ export const listStudentsController = async (
 	const effectivePermissions = await getEffectivePermissions(req.user?.roleIds ?? []);
 	const hasPermission = (key: string) => effectivePermissions.some((p) => p.key === key);
 	const requestedScope = req.query.scope === "mine" ? "mine" : "all";
-	const canReadAll =
-		hasPermission("STUDENT_READ_ALL") ||
-		hasPermission("STUDENT_POSTER_DOWNLOAD") ||
-		hasPermission("STUDENT_EXPORT");
+
+	// Read access is per course type. "All" of a type also covers "my"
+	// students of that type. Poster/export access reads every student.
+	const readsEverything =
+		hasPermission("STUDENT_POSTER_DOWNLOAD") || hasPermission("STUDENT_EXPORT");
+	const canReadGroup =
+		readsEverything ||
+		hasPermission("STUDENT_READ_ALL_GROUP") ||
+		(requestedScope === "mine" && hasPermission("STUDENT_READ_MY_GROUP"));
+	const canReadIndividual =
+		readsEverything ||
+		hasPermission("STUDENT_READ_ALL_INDIVIDUAL") ||
+		(requestedScope === "mine" && hasPermission("STUDENT_READ_MY_INDIVIDUAL"));
 
 	// "admittedBy=me" powers the "Converted Leads" view: it lists students
 	// converted by the current user, gated by lead-read permissions rather
-	// than the broader STUDENT_READ_ALL permission. It bypasses the
-	// mentor/batch-counsellor based `scope` filter entirely.
+	// than student-read permissions. It bypasses the course-type and
+	// counsellor based `scope` filters entirely.
 	const admittedByMe = req.query.admittedBy === "me";
 	const admittedByAll = req.query.admittedBy === "all";
 	const isConvertedLeadsView = admittedByMe || admittedByAll;
@@ -148,22 +157,19 @@ export const listStudentsController = async (
 		if (!canReadConvertedLeads) {
 			throw new AuthorizationError("Insufficient permissions to view converted leads");
 		}
-	} else if (requestedScope === "all" && !canReadAll) {
-		throw new AuthorizationError("Insufficient permissions to view all students");
+	} else if (!canReadGroup && !canReadIndividual) {
+		throw new AuthorizationError(
+			requestedScope === "all"
+				? "Insufficient permissions to view all students"
+				: "Insufficient permissions to view your students",
+		);
 	}
 
-	// Course-type-scoped permissions narrow the result set: if a role has
-	// only one of the group/individual permissions for the active scope, the
-	// listing is restricted to that course type. Having both (or neither)
-	// leaves the listing unrestricted.
-	const groupKey = requestedScope === "mine" ? "STUDENT_READ_MY_GROUP" : "STUDENT_READ_ALL_GROUP";
-	const individualKey = requestedScope === "mine" ? "STUDENT_READ_MY_INDIVIDUAL" : "STUDENT_READ_ALL_INDIVIDUAL";
-	const canReadGroup = hasPermission(groupKey);
-	const canReadIndividual = hasPermission(individualKey);
+	// With only one course type allowed, restrict the listing to it.
 	const allowedCourseTypes =
-		canReadGroup !== canReadIndividual
-			? [canReadGroup ? "GROUP" : "INDIVIDUAL"]
-			: undefined;
+		isConvertedLeadsView || (canReadGroup && canReadIndividual)
+			? undefined
+			: [canReadGroup ? "GROUP" : "INDIVIDUAL"];
 
 	const page = typeof req.query.page === "string" ? parseInt(req.query.page, 10) : 1;
 	const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 25;
@@ -179,6 +185,12 @@ export const listStudentsController = async (
 		limit,
 		scope: isConvertedLeadsView ? "all" : requestedScope,
 		userId: typeof req.user?.userId === "string" ? req.user.userId : undefined,
+		mentorId: typeof req.query.mentorId === "string" ? req.query.mentorId : undefined,
+		// "Mine" is already my counsellor, so the counsellor filter applies to "all" only.
+		counsellorId:
+			requestedScope === "all" && typeof req.query.counsellorId === "string"
+				? req.query.counsellorId
+				: undefined,
 		admittedBy: admittedByMe && typeof req.user?.userId === "string" ? req.user.userId : undefined,
 		admittedFrom: typeof req.query.admittedFrom === "string" ? req.query.admittedFrom : undefined,
 		admittedTo: typeof req.query.admittedTo === "string" ? req.query.admittedTo : undefined,

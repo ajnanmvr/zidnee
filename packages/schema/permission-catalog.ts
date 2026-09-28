@@ -107,39 +107,27 @@ export const PERMISSION_CATALOG = {
 		resource: "leads",
 		action: "update:all",
 	},
-	STUDENT_READ_MY: {
-		name: "Read My Students",
-		description: "Read students assigned to the current user",
-		resource: "students",
-		action: "read:own",
-	},
-	STUDENT_READ_ALL: {
-		name: "Read All Students",
-		description: "Read all students in the system",
-		resource: "students",
-		action: "read:all",
-	},
 	STUDENT_READ_MY_GROUP: {
 		name: "Read My Group Students",
-		description: "Limit \"my students\" access to group-course students only",
+		description: "Read group-course students whose counsellor is the current user",
 		resource: "students",
 		action: "read:own:group",
 	},
 	STUDENT_READ_MY_INDIVIDUAL: {
 		name: "Read My Individual Students",
-		description: "Limit \"my students\" access to individual-course students only",
+		description: "Read individual-course students whose counsellor is the current user",
 		resource: "students",
 		action: "read:own:individual",
 	},
 	STUDENT_READ_ALL_GROUP: {
 		name: "Read All Group Students",
-		description: "Limit \"all students\" access to group-course students only",
+		description: "Read all group-course students",
 		resource: "students",
 		action: "read:all:group",
 	},
 	STUDENT_READ_ALL_INDIVIDUAL: {
 		name: "Read All Individual Students",
-		description: "Limit \"all students\" access to individual-course students only",
+		description: "Read all individual-course students",
 		resource: "students",
 		action: "read:all:individual",
 	},
@@ -286,12 +274,6 @@ export const PERMISSION_CATALOG = {
 		description: "View converted leads and linked students",
 		resource: "leads",
 		action: "converted:read",
-	},
-	STUDENT_READ: {
-		name: "Read Student",
-		description: "Read student information",
-		resource: "students",
-		action: "read",
 	},
 	STUDENT_UPDATE: {
 		name: "Update Student",
@@ -579,6 +561,24 @@ export type PermissionKey = keyof typeof PERMISSION_CATALOG;
 export const PERMISSION_KEYS = Object.keys(
 	PERMISSION_CATALOG,
 ) as PermissionKey[];
+
+// Student read access is granted per course type. Reading "all" of a course
+// type also covers "my" students of that type.
+export const STUDENT_READ_MY_KEYS = [
+	"STUDENT_READ_MY_GROUP",
+	"STUDENT_READ_MY_INDIVIDUAL",
+] as const satisfies readonly PermissionKey[];
+
+export const STUDENT_READ_ALL_KEYS = [
+	"STUDENT_READ_ALL_GROUP",
+	"STUDENT_READ_ALL_INDIVIDUAL",
+] as const satisfies readonly PermissionKey[];
+
+/** Any of these grants access to student lists. */
+export const STUDENT_READ_KEYS = [
+	...STUDENT_READ_MY_KEYS,
+	...STUDENT_READ_ALL_KEYS,
+] as const;
 
 const permissionKeyByResourceAction = new Map<string, PermissionKey>(
 	PERMISSION_KEYS.map((key) => {

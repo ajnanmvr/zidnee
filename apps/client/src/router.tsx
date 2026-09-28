@@ -327,15 +327,15 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "students",
-						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentsPage />),
+						element: withPermissions(["STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"], <StudentsPage />),
 					},
 					{
 						path: "students/break",
-						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <BreakStudentsPage />),
+						element: withPermissions(["STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"], <BreakStudentsPage />),
 					},
 					{
 						path: "students/dropped",
-						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL"], <DroppedStudentsPage />),
+						element: withPermissions(["STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"], <DroppedStudentsPage />),
 					},
 					{
 						path: "students/starting-dates",
@@ -343,7 +343,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "students/posters",
-						element: withPermissions(["STUDENT_READ_MY", "STUDENT_READ_ALL", "STUDENT_POSTER_DOWNLOAD"], <WelcomePosterPage />),
+						element: withPermissions(["STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL", "STUDENT_POSTER_DOWNLOAD"], <WelcomePosterPage />),
 					},
 					{
 						path: "students/export",
@@ -363,7 +363,7 @@ export const router = createBrowserRouter([
 					},
 					{
 						path: "students/:studentId",
-						element: withPermissions(["STUDENT_PROFILE_READ", "STUDENT_READ_MY", "STUDENT_READ_ALL"], <StudentDetailPage />),
+						element: withPermissions(["STUDENT_PROFILE_READ", "STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"], <StudentDetailPage />),
 					},
 					{
 						path: "students/:studentId/edit",

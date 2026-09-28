@@ -46,6 +46,8 @@ export const useStudentsQuery = (
 				page?: number;
 				limit?: number;
 				scope?: "mine" | "all";
+				mentorId?: string;
+				counsellorId?: string;
 				/** Powers the "Converted Leads" mine/all scope; bypasses the mentor/batch-counsellor based `scope` filter. */
 				admittedBy?: "me" | "all";
 				admittedFrom?: string;
@@ -61,7 +63,7 @@ export const useStudentsQuery = (
 			? optionsOrEnabled && enabled
 			: enabled;
 	const permMap = usePermissionMap();
-	const canReadAll = Boolean(permMap["STUDENT_READ_ALL"] || permMap["STUDENT_POSTER_DOWNLOAD"]);
+	const canReadAll = Boolean(permMap["STUDENT_READ_ALL_GROUP"] || permMap["STUDENT_READ_ALL_INDIVIDUAL"] || permMap["STUDENT_POSTER_DOWNLOAD"]);
 	const scope = options?.admittedBy
 		? "all"
 		: options?.scope === "all" && !canReadAll

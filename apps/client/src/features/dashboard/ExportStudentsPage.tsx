@@ -81,8 +81,8 @@ const PREVIEW_KEYS = ["zid", "name", "status", "courseType", "level", "mentor", 
 export const ExportStudentsPage = () => {
 	const { token } = useSession();
 	// STUDENT_EXPORT holders can export the full dataset even without general
-	// STUDENT_READ_ALL access - the server grants "all" scope for either.
-	const canReadAllStudents = useHasAnyPermission(["STUDENT_READ_ALL", "STUDENT_EXPORT"]);
+	// all-students access - the server grants "all" scope for either.
+	const canReadAllStudents = useHasAnyPermission(["STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL", "STUDENT_EXPORT"]);
 	// Default to the full dataset when permitted - someone opening a
 	// dedicated export page almost always wants everything, not just "mine".
 	const [loadAllRequested, setLoadAllRequested] = useState(true);

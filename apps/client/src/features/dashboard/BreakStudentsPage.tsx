@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useStudentsQuery } from "@/features/students/students.queries";
 import { useUpdateStudentMutation } from "@/features/students/use-update-student-mutation";
 import { useUsersQuery } from "@/features/users/users.queries";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { useHasAnyPermission, useHasPermission } from "@/lib/hooks/use-has-permission";
 import { useSession } from "@/lib/session";
 import { HiCalendarDays, HiArrowRight, HiPauseCircle } from "react-icons/hi2";
 
@@ -56,7 +56,7 @@ export const BreakStudentsPage = () => {
 	const page = Number(searchParams.get("page") ?? "1");
 	const limit = Number(searchParams.get("limit") ?? "25");
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const canReadAll = useHasPermission("STUDENT_READ_ALL");
+	const canReadAll = useHasAnyPermission(["STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"]);
 	const canUpdate = useHasPermission("STUDENT_UPDATE");
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
 

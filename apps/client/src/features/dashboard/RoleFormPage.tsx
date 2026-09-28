@@ -89,9 +89,6 @@ const PERM_SUB: Record<string, string> = {
 	DEMO_REPORT_READ_MY: "Demo Report",
 	DEMO_REPORT_READ_ALL: "Demo Report",
 	// Students → Access
-	STUDENT_READ: "Student Access",
-	STUDENT_READ_MY: "Student Access",
-	STUDENT_READ_ALL: "Student Access",
 	STUDENT_READ_MY_GROUP: "Student Access",
 	STUDENT_READ_MY_INDIVIDUAL: "Student Access",
 	STUDENT_READ_ALL_GROUP: "Student Access",

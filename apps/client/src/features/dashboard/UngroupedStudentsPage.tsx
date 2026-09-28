@@ -24,7 +24,7 @@ const formatLevel = (level?: string | null) => (level ? LEVEL_LABELS[level] ?? l
 export const UngroupedStudentsPage = () => {
 	const { token } = useSession();
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const canReadAll = useHasPermission("BATCH_READ_ALL") && useHasPermission("STUDENT_READ_ALL");
+	const canReadAll = useHasPermission("BATCH_READ_ALL") && useHasPermission("STUDENT_READ_ALL_GROUP");
 	const scope: "mine" | "all" = loadAllRequested && canReadAll ? "all" : "mine";
 	const canUpdateStudent = useHasPermission("STUDENT_UPDATE");
 

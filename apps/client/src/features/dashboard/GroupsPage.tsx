@@ -28,7 +28,7 @@ const formatGroupLevel = (level?: string | null) =>
 export const GroupsPage = () => {
 	const { token } = useSession();
 	const [loadAllRequested, setLoadAllRequested] = useState(false);
-	const canReadAllGroups = useHasPermission("BATCH_READ_ALL") && useHasPermission("STUDENT_READ_ALL");
+	const canReadAllGroups = useHasPermission("BATCH_READ_ALL") && useHasPermission("STUDENT_READ_ALL_GROUP");
 	const activeScope: "mine" | "all" = loadAllRequested && canReadAllGroups ? "all" : "mine";
 	const batchesQuery = useBatchesQuery(token, { scope: activeScope });
 	const studentsQuery = useStudentsQuery(token, { scope: activeScope, limit: 2000 });

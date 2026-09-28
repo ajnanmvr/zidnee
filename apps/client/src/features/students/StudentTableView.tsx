@@ -69,6 +69,8 @@ type Props = {
 	students: StudentTableRow[];
 	mentorNameById: Record<string, string>;
 	groupLabelByBatchId?: Record<string, string>;
+	/** When set, shows a Counsellor column (the student's own saved counsellor). */
+	counsellorNameById?: Record<string, string>;
 	onAddToGroup?: (s: StudentTableRow) => void;
 	canAddToGroup?: boolean;
 	emptyMessage?: string;
@@ -79,6 +81,7 @@ export function StudentTableView({
 	students,
 	mentorNameById,
 	groupLabelByBatchId,
+	counsellorNameById,
 	onAddToGroup,
 	canAddToGroup,
 	emptyMessage = "No students match the current filter.",
@@ -101,6 +104,9 @@ export function StudentTableView({
 						<th className="py-2.5 pl-5 pr-4 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Student</th>
 						<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Group · Level</th>
 						<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Mentor</th>
+						{counsellorNameById ? (
+							<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Counsellor</th>
+						) : null}
 						<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Follow-up</th>
 						<th className="px-4 py-2.5 pr-5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
 					</tr>
@@ -197,6 +203,17 @@ export function StudentTableView({
 										<span className="text-xs text-gray-400">—</span>
 									)}
 								</td>
+
+								{/* Counsellor (only when requested) */}
+								{counsellorNameById ? (
+									<td className="px-4 py-3.5">
+										{s.counsellorId && counsellorNameById[s.counsellorId] ? (
+											<span className="text-sm text-gray-700">{counsellorNameById[s.counsellorId]}</span>
+										) : (
+											<span className="text-xs text-gray-400">—</span>
+										)}
+									</td>
+								) : null}
 
 								{/* Follow-up */}
 								<td className="px-4 py-3.5">
