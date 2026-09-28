@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useHasAnyPermission } from "@/lib/hooks/use-has-permission";
 import {
+	fetchCounsellorStudentCounts,
 	fetchCounsellors,
 	fetchMentors,
 	fetchSalesUsers,
@@ -51,6 +52,13 @@ export const useSalesUsersQuery = (token: string, enabled = true) => {
 		enabled: Boolean(token) && enabled,
 	});
 };
+
+export const useCounsellorStudentCountsQuery = (token: string, enabled = true) =>
+	useQuery({
+		queryKey: [...usersQueryKeys.users(token), "counsellor-student-counts"] as const,
+		queryFn: () => fetchCounsellorStudentCounts(token),
+		enabled: Boolean(token) && enabled,
+	});
 
 export const useCounsellorsQuery = (token: string, enabled = true) => {
 	return useQuery({

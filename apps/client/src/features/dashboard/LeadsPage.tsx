@@ -53,7 +53,6 @@ import {
 	useUpdateLeadMutation,
 } from "@/features/leads/use-lead-mutations";
 import {
-	useAssignUserCounsellorMutation,
 } from "@/features/users/use-user-management-mutations";
 import type {
 	ConfirmAdmissionForm,
@@ -379,7 +378,6 @@ export const LeadsPage = () => {
 	const requestAdmissionMutation = useRequestAdmissionMutation();
 	const withZidRecovery = useZidRecovery();
 	const updateLeadMutation = useUpdateLeadMutation();
-	const assignUserCounsellorMutation = useAssignUserCounsellorMutation();
 	const markDemoCompletedMutation = useMarkDemoCompletedMutation();
 	const generateFormLinkMutation = useGenerateFormLinkMutation();
 	const cancelLeadDemoMutation = useCancelLeadDemoMutation();
@@ -406,12 +404,8 @@ export const LeadsPage = () => {
 	>(null);
 	const [isChangingAdmissionMentor, setIsChangingAdmissionMentor] =
 		useState(false);
-	const [mentorCounsellorOverrideId, setMentorCounsellorOverrideId] = useState<
-		string | null
-	>(null);
-	const [assigningCounsellorToMentor, setAssigningCounsellorToMentor] =
-		useState(false);
-	const [selectedCounsellorForMentor, setSelectedCounsellorForMentor] = useState<
+	// Counsellor picked for the new student; null = use the mentor's counsellor.
+	const [admissionCounsellorId, setAdmissionCounsellorId] = useState<
 		string | null
 	>(null);
 	const [admissionPriceInput, setAdmissionPriceInput] = useState<string>("");
@@ -599,10 +593,8 @@ export const LeadsPage = () => {
 		setAdmissionLeadId(null);
 		setSelectedAdmissionMentorId(null);
 		setIsChangingAdmissionMentor(false);
-		setMentorCounsellorOverrideId(null);
+		setAdmissionCounsellorId(null);
 		resetAdmission({ counsellorId: undefined, note: "" });
-		setAssigningCounsellorToMentor(false);
-		setSelectedCounsellorForMentor(null);
 		setAdmissionPriceInput("");
 		setAdmissionFeeInput("");
 	};
@@ -893,35 +885,14 @@ export const LeadsPage = () => {
 		}
 	};
 
-	const handleAssignCounsellorToMentor = async () => {
-		if (
-			!admissionMentorId ||
-			!selectedCounsellorForMentor
-		) {
-			return;
-		}
-		try {
-			await assignUserCounsellorMutation.mutateAsync({
-				userId: admissionMentorId,
-				counsellorId: selectedCounsellorForMentor,
-			});
-			toast.success("Counsellor assigned to mentor.");
-			setAssigningCounsellorToMentor(false);
-			setMentorCounsellorOverrideId(selectedCounsellorForMentor);
-			setSelectedCounsellorForMentor(null);
-		} catch (error) {
-			toast.error("Failed to assign counsellor");
-		}
-	};
-
 	const onRequestAdmission = async (payload: ConfirmAdmissionForm) => {
 		if (!admissionLeadId) return;
 
 		const mentorId = admissionMentorId ?? undefined;
-		// Determine counsellor ID: use either mentor's existing or newly assigned
-		const counsellorId = defaultCounsellorId || selectedCounsellorForMentor;
+		// The student's own counsellor: picked here, defaulting to the mentor's.
+		const counsellorId = admissionStudentCounsellorId;
 		if (!counsellorId) {
-			toast.error("Please assign a counsellor to the mentor first");
+			toast.error("Please select a counsellor for the student");
 			return;
 		}
 
@@ -1022,8 +993,8 @@ export const LeadsPage = () => {
 	const admissionLeadMentorName = admissionLeadMentor
 		? formatUserName(admissionLeadMentor.name ?? admissionLeadMentor.username)
 		: null;
-	const defaultCounsellorId =
-		admissionLeadMentor?.counsellorId ?? mentorCounsellorOverrideId;
+	const defaultCounsellorId = admissionLeadMentor?.counsellorId ?? null;
+	const admissionStudentCounsellorId = admissionCounsellorId ?? defaultCounsellorId;
 
 	const getActions = (_lead: LeadResponse) => {
 		const canManageForm = hasPermission("LEAD_FORM_MANAGE");
@@ -1203,9 +1174,7 @@ export const LeadsPage = () => {
 							setAdmissionLeadId(item.id);
 							setSelectedAdmissionMentorId(latestDemo?.mentorId ?? null);
 							setIsChangingAdmissionMentor(!latestDemo?.mentorId);
-							setMentorCounsellorOverrideId(null);
-							setAssigningCounsellorToMentor(false);
-							setSelectedCounsellorForMentor(null);
+							setAdmissionCounsellorId(null);
 							resetAdmission({ counsellorId: undefined, note: "" });
 							setAdmissionPriceInput(item.price ? String(item.price) : "");
 							setAdmissionFeeInput(item.admissionFee ? String(item.admissionFee) : "");
@@ -2216,9 +2185,6 @@ ${formLinkData.formLink}`;
 										onClick={() => {
 											if (isChangingAdmissionMentor) {
 												setSelectedAdmissionMentorId(admissionLeadLatestDemo.mentorId ?? null);
-												setMentorCounsellorOverrideId(null);
-												setAssigningCounsellorToMentor(false);
-												setSelectedCounsellorForMentor(null);
 											}
 											setIsChangingAdmissionMentor((current) => !current);
 										}}
@@ -2239,9 +2205,6 @@ ${formLinkData.formLink}`;
 										value={admissionMentorId ?? ""}
 										onChange={(e) => {
 											setSelectedAdmissionMentorId(e.target.value || null);
-											setMentorCounsellorOverrideId(null);
-											setAssigningCounsellorToMentor(false);
-											setSelectedCounsellorForMentor(null);
 										}}
 										className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
 									>
@@ -2255,7 +2218,7 @@ ${formLinkData.formLink}`;
 										))}
 									</select>
 									<p className="text-xs text-slate-500">
-										The counsellor updates from the selected mentor automatically.
+										The student's counsellor below defaults to this mentor's counsellor.
 									</p>
 								</div>
 							) : null}
@@ -2279,81 +2242,36 @@ ${formLinkData.formLink}`;
 
 					{/* Counsellor Assignment Section */}
 					{canRequestOrConfirmAdmission ? (
-						!assigningCounsellorToMentor ? (
-							<div>
-								<label className="mb-2 block text-sm font-medium text-slate-600">
-									Counsellor
-								</label>
-								{defaultCounsellorId ? (
-									<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-										<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-											Mentor's counsellor
-										</p>
-										<p className="mt-1 text-sm font-medium text-slate-900">
-											{counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId) ?? allUsers.find((u) => u.id === defaultCounsellorId)
-												? formatUserName(
-													counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId)?.name ??
-													counsellorsQuery.data?.users?.find((u) => u.id === defaultCounsellorId)?.username ??
-													allUsers.find((u) => u.id === defaultCounsellorId)?.name ??
-													allUsers.find((u) => u.id === defaultCounsellorId)?.username ??
-													"-",
-												)
-												: "-"}
-										</p>
-									</div>
-								) : (
-									<button
-										type="button"
-										className="w-full rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
-										onClick={() => setAssigningCounsellorToMentor(true)}
-									>
-										Assign counsellor to mentor
-									</button>
-								)}
-							</div>
-						) : (
-							<div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-								<p className="text-sm font-medium text-blue-900">Assign counsellor to mentor</p>
-								{counsellors.length === 0 ? (
-									<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">No counsellors available</div>
-								) : (
-									<select
-										value={selectedCounsellorForMentor ?? ""}
-										onChange={(e) => setSelectedCounsellorForMentor(e.target.value || null)}
-										className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-									>
-										<option value="">Select counsellor</option>
-										{counsellors.map((counsellor: any) => (
-											<option key={counsellor.id} value={counsellor.id}>
-												{counsellor.zids?.counsellor
-													? `${counsellor.zids.counsellor} - ${formatUserName(counsellor.name ?? counsellor.username)}`
-													: formatUserName(counsellor.name ?? counsellor.username)}
-											</option>
-										))}
-									</select>
-								)}
-								<div className="flex gap-2">
-									<button
-										type="button"
-										className="flex-1 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-										onClick={() => {
-											setAssigningCounsellorToMentor(false);
-											setSelectedCounsellorForMentor(null);
-										}}
-									>
-										Cancel
-									</button>
-									<button
-										type="button"
-										className="flex-1 rounded-2xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-										onClick={() => void handleAssignCounsellorToMentor()}
-										disabled={!selectedCounsellorForMentor || assignUserCounsellorMutation.isPending}
-									>
-										{assignUserCounsellorMutation.isPending ? "Assigning..." : "Assign"}
-									</button>
-								</div>
-							</div>
-						)
+						<div className="grid gap-2">
+							<label htmlFor="admission-counsellor" className="text-sm font-medium text-slate-600">
+								Student's counsellor
+							</label>
+							{counsellors.length === 0 ? (
+								<div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">No counsellors available</div>
+							) : (
+								<select
+									id="admission-counsellor"
+									value={admissionStudentCounsellorId ?? ""}
+									onChange={(e) => setAdmissionCounsellorId(e.target.value || null)}
+									className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+								>
+									<option value="">Select counsellor</option>
+									{counsellors.map((counsellor: any) => (
+										<option key={counsellor.id} value={counsellor.id}>
+											{counsellor.zids?.counsellor
+												? `${counsellor.zids.counsellor} - ${formatUserName(counsellor.name ?? counsellor.username)}`
+												: formatUserName(counsellor.name ?? counsellor.username)}
+											{counsellor.id === defaultCounsellorId ? " (mentor's counsellor)" : ""}
+										</option>
+									))}
+								</select>
+							)}
+							<p className="text-xs text-slate-500">
+								{defaultCounsellorId
+									? "Defaults to the mentor's counsellor. You can pick a different one — it's saved on the student and won't change with the mentor."
+									: "This mentor has no counsellor — pick the student's counsellor."}
+							</p>
+						</div>
 					) : null}
 
 					<Controller

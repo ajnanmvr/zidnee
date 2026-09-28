@@ -606,6 +606,7 @@ export const confirmAdmissionController = async (
 		req.user.userId,
 		result.data.note,
 		result.data.zid,
+		result.data.counsellorId,
 	);
 
 	if (!student) {
@@ -650,6 +651,7 @@ export const requestAdmissionController = async (
 		req.user.userId,
 		result.data.note,
 		result.data.zid,
+		result.data.counsellorId,
 	);
 
 	const updatedLead = await LeadService.requestAdmission(

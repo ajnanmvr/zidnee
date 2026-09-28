@@ -3,6 +3,7 @@ import type {
 	Reminder,
 	UpdateReminderPayload,
 } from "@repo/schema";
+import { Types } from "mongoose";
 import { AppError } from "../../utils/errors.util.js";
 import { type ReminderDocument, ReminderModel } from "./reminder.model.js";
 import { UserModel } from "../users/user.model.js";
@@ -77,10 +78,12 @@ export const ReminderService = {
 				counsellorId: filters.userId,
 			} as any).distinct("_id");
 
-			const studentIds =
-				mentorIds.length > 0
-					? await StudentModel.find({ mentorId: { $in: mentorIds } }).distinct("_id")
-					: [];
+			// Students are mine by their own saved counsellor, not their mentor's.
+			const studentIds = Types.ObjectId.isValid(filters.userId)
+				? await StudentModel.find({
+						counsellorId: new Types.ObjectId(filters.userId),
+					}).distinct("_id")
+				: [];
 
 			const scopeOr: Array<Record<string, unknown>> = [
 				{ assignedTo: filters.userId },

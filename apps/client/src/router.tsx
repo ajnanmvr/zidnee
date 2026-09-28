@@ -97,6 +97,9 @@ const GroupsPage = lazy(() =>
 		default: module.GroupsPage,
 	})),
 );
+const UngroupedStudentsPage = lazy(() =>
+	import("@/features/dashboard/UngroupedStudentsPage").then((m) => ({ default: m.UngroupedStudentsPage })),
+);
 const GroupDetailPage = lazy(() =>
  	import("@/features/dashboard/GroupDetailPage").then((module) => ({
  		default: module.GroupDetailPage,
@@ -398,6 +401,10 @@ export const router = createBrowserRouter([
 					{
 						path: "groups",
 						element: withPermissions(["BATCH_READ_MY", "BATCH_READ_ALL"], <GroupsPage />),
+					},
+					{
+						path: "groups/ungrouped",
+						element: withPermissions(["BATCH_READ_MY", "BATCH_READ_ALL"], <UngroupedStudentsPage />),
 					},
 					{
 						path: "groups/:groupId",

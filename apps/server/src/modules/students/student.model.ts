@@ -4,13 +4,14 @@ import { FOLLOW_UP_PERIOD_MS } from "@repo/schema";
 
 export type StudentDocument = Omit<
 	Student,
-	"id" | "leadId" | "processId" | "admittedBy" | "mentorId" | "batchId"
+	"id" | "leadId" | "processId" | "admittedBy" | "mentorId" | "counsellorId" | "batchId"
 > & {
 	_id: Types.ObjectId;
 	leadId: Types.ObjectId;
 	processId?: Types.ObjectId;
 	admittedBy: Types.ObjectId;
 	mentorId?: Types.ObjectId;
+	counsellorId?: Types.ObjectId;
 	batchId?: Types.ObjectId;
 	breakReminderId?: Types.ObjectId;
 	nextFollowUpAt?: Date;
@@ -169,6 +170,14 @@ const studentSchema = new Schema<StudentDocument>(
 			type: Schema.Types.ObjectId,
 			ref: "User",
 			required: false,
+		},
+		// The student's own counsellor. Chosen at enrolment (defaults to the
+		// mentor's counsellor) and independent of the mentor afterwards.
+		counsellorId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+			index: true,
 		},
 		batchId: {
 			type: Schema.Types.ObjectId,

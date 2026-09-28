@@ -19,7 +19,7 @@ import {
 import { useStudentByIdQuery } from "./students.queries";
 import { useUpdateStudentMutation } from "./use-update-student-mutation";
 import { useSession } from "@/lib/session";
-import { useUsersQuery } from "@/features/users/users.queries";
+import { useCounsellorsQuery, useUsersQuery } from "@/features/users/users.queries";
 import { useBatchesQuery } from "@/features/batches/batches.queries";
 import { API_BASE_URL } from "@/api/client";
 import { ApiError } from "@/api/request";
@@ -83,6 +83,7 @@ export const EditStudentPage = () => {
 
   const student = studentByIdQuery.data ?? undefined;
   const usersQuery = useUsersQuery(token);
+  const counsellorsQuery = useCounsellorsQuery(token);
   const batchesQuery = useBatchesQuery(token);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -109,6 +110,7 @@ export const EditStudentPage = () => {
       price: form.price === "" || form.price == null ? undefined : form.price,
       hearAboutUs: form.hearAboutUs?.trim() ?? undefined,
       mentorId: form.mentorId || undefined,
+      counsellorId: form.counsellorId || undefined,
       batchId: form.batchId === "" ? null : form.batchId ?? null,
       status: form.status || undefined,
       profilePic: form.profilePic === "" ? null : form.profilePic ?? undefined,
@@ -145,6 +147,7 @@ export const EditStudentPage = () => {
       price: student.price ?? "",
       hearAboutUs: student.hearAboutUs ?? "",
       mentorId: student.mentorId ?? "",
+      counsellorId: student.counsellorId ?? "",
       batchId: student.batchId ?? null,
       status: student.status ?? "STUDENT",
       profilePic: student.profilePic ?? "",
@@ -450,6 +453,23 @@ export const EditStudentPage = () => {
                 ))}
               </select>
             </div>
+          </label>
+
+          <label className="block">
+            <FieldLabel>Counsellor</FieldLabel>
+            <select
+              value={form.counsellorId ?? ""}
+              onChange={(e) => setForm({ ...form, counsellorId: e.target.value })}
+              className={inputCls}
+            >
+              <option value="" disabled>Select counsellor</option>
+              {(counsellorsQuery.data?.users ?? []).map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.zids?.counsellor ? `${u.zids.counsellor} - ` : ""}{u.name ?? u.username}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-400">The student's own counsellor — not changed by switching mentor.</p>
           </label>
 
           <label className="block">

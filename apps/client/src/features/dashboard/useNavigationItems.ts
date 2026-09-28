@@ -27,6 +27,7 @@ import {
 	HiTrash,
 	HiUser,
 	HiUserGroup,
+	HiUserPlus,
 	HiUsers,
 	HiXCircle,
 } from "react-icons/hi2";
@@ -272,6 +273,10 @@ export const useNavigationItems = () => {
 				followUpState.label === "Today" || followUpState.label === "Past Due"
 			);
 		}).length;
+
+	const ungroupedStudentCount = allStudents.filter(
+		(s) => s.courseType === "GROUP" && !s.batchId && s.status !== "DROPPED",
+	).length;
 
 	const allReminders = remindersQuery.data ?? [];
 	const myLeads = leadsQuery.data?.leads ?? [];
@@ -629,6 +634,18 @@ export const useNavigationItems = () => {
 							"aria-hidden": "true",
 						}),
 						accent: "emerald",
+						section: "Learners",
+					},
+					{
+						to: "/groups/ungrouped",
+						label: "Ungrouped Students",
+						description: "Group students not in a group",
+						icon: createElement(HiUserPlus, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						count: ungroupedStudentCount,
+						accent: "amber",
 						section: "Learners",
 					},
 				]

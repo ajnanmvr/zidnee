@@ -10,6 +10,7 @@ import {
 } from "@repo/schema";
 import { AUTH_CONSTANTS } from "@repo/schema";
 import type { Request, Response } from "express";
+import type { Types } from "mongoose";
 import {
 	AuthenticationError,
 	AuthorizationError,
@@ -18,6 +19,9 @@ import {
 	ValidationError,
 } from "../../utils/index.js";
 import { hashPassword, verifyPassword } from "../auth/auth.password.js";
+import { BatchModel } from "../students/batch.model.js";
+import { StudentModel } from "../students/student.model.js";
+import { UserModel } from "./user.model.js";
 import { requireStringValue } from "../rbac/rbac.http.js";
 import {
 	getEffectivePermissions,
@@ -392,6 +396,61 @@ export const listMentorsController = async (
 	res.json({
 		ok: true,
 		users: usersWithRelations,
+	});
+};
+
+/** Active individual/group student counts per counsellor (student's own counsellor). */
+export const counsellorStudentCountsController = async (
+	_req: Request,
+	res: Response,
+): Promise<void> => {
+	const rows = await StudentModel.aggregate<{
+		_id: { counsellorId: unknown; courseType?: string };
+		count: number;
+	}>([
+		{ $match: { status: "STUDENT", counsellorId: { $ne: null } } },
+		{
+			$group: {
+				_id: { counsellorId: "$counsellorId", courseType: "$courseType" },
+				count: { $sum: 1 },
+			},
+		},
+	]);
+
+	const byCounsellor = new Map<string, { individual: number; group: number; groups: number }>();
+	const entryFor = (id: string) => {
+		const entry = byCounsellor.get(id) ?? { individual: 0, group: 0, groups: 0 };
+		byCounsellor.set(id, entry);
+		return entry;
+	};
+	for (const row of rows) {
+		const entry = entryFor(String(row._id.counsellorId));
+		// Students without a course type are one-to-one (ZID) by default.
+		if (row._id.courseType === "GROUP") entry.group += row.count;
+		else entry.individual += row.count;
+	}
+
+	// Active groups: the group's own counsellor, else its mentor's counsellor.
+	const batches = await BatchModel.find({ type: "GROUP", isActive: { $ne: false } })
+		.select({ counsellorId: 1, mentorId: 1 })
+		.lean<Array<{ counsellorId?: Types.ObjectId; mentorId?: Types.ObjectId }>>();
+	const mentorIdsNeeded = batches
+		.filter((b) => !b.counsellorId && b.mentorId)
+		.map((b) => String(b.mentorId));
+	const mentors = await UserModel.find({ _id: { $in: mentorIdsNeeded } })
+		.select({ counsellorId: 1 })
+		.lean<Array<{ _id: Types.ObjectId; counsellorId?: string }>>();
+	const counsellorOfMentor = new Map(mentors.map((m) => [String(m._id), m.counsellorId]));
+	for (const batch of batches) {
+		const counsellorId = batch.counsellorId
+			? String(batch.counsellorId)
+			: counsellorOfMentor.get(String(batch.mentorId));
+		if (counsellorId) entryFor(counsellorId).groups++;
+	}
+
+	res.json({
+		ok: true,
+		counts: [...byCounsellor].map(([counsellorId, c]) => ({ counsellorId, ...c })),
 	});
 };
 
