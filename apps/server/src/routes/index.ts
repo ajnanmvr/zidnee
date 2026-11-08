@@ -5,6 +5,7 @@ import leadRoutes from "../modules/leads/lead.routes.js";
 import mentorRoutes from "../modules/mentors/mentor.routes.js";
 import permissionRoutes from "../modules/permissions/permission.routes.js";
 import reminderRoutes from "../modules/reminders/reminder.routes.js";
+import reportRoutes from "../modules/reports/report.routes.js";
 import roleRoutes from "../modules/roles/role.routes.js";
 import batchRoutes from "../modules/students/batch.routes.js";
 import studentRoutes from "../modules/students/student.routes.js";
@@ -24,5 +25,6 @@ router.use("/reminders", reminderRoutes);
 router.use("/mentors", mentorRoutes);
 router.use("/time-slots", timeSlotRoutes);
 router.use("/export", exportRoutes);
+router.use("/reports", reportRoutes);
 
 export default router;

@@ -14,5 +14,7 @@ export * from "./reminder.schema.js";
 export * from "./response.schema.js";
 export * from "./student.schema.js";
 export * from "./student-activity.schema.js";
+export * from "./student-followup-session.schema.js";
+export * from "./counsellor-report.schema.js";
 export * from "./student-process.schema.js";
 export * from "./timeslot.schema.js";

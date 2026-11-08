@@ -419,6 +419,21 @@ export const useNavigationItems = () => {
 					},
 				]
 			: []),
+		...(hasPermission("VIEW_REPORTS")
+			? [
+					{
+						to: "/reports/counsellor",
+						label: "Counsellor Report",
+						description: "Students & follow-ups",
+						icon: createElement(HiChartBar, {
+							className: "h-5 w-5",
+							"aria-hidden": "true",
+						}),
+						accent: "emerald" as const,
+						section: "Reports",
+					},
+				]
+			: []),
 		...(hasPermission("LEADS_CONVERTED_READ") || hasPermission("LEAD_READ_ALL")
 			? [
 					{

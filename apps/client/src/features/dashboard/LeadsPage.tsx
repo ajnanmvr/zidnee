@@ -993,7 +993,7 @@ export const LeadsPage = () => {
 	const admissionLeadMentorName = admissionLeadMentor
 		? formatUserName(admissionLeadMentor.name ?? admissionLeadMentor.username)
 		: null;
-	const defaultCounsellorId = admissionLeadMentor?.counsellorId ?? null;
+	const defaultCounsellorId = admissionLead?.demoRequestAssignedTo ?? null;
 	const admissionStudentCounsellorId = admissionCounsellorId ?? defaultCounsellorId;
 
 	const getActions = (_lead: LeadResponse) => {
@@ -2261,15 +2261,15 @@ ${formLinkData.formLink}`;
 											{counsellor.zids?.counsellor
 												? `${counsellor.zids.counsellor} - ${formatUserName(counsellor.name ?? counsellor.username)}`
 												: formatUserName(counsellor.name ?? counsellor.username)}
-											{counsellor.id === defaultCounsellorId ? " (mentor's counsellor)" : ""}
+											{counsellor.id === defaultCounsellorId ? " (demo counsellor)" : ""}
 										</option>
 									))}
 								</select>
 							)}
 							<p className="text-xs text-slate-500">
 								{defaultCounsellorId
-									? "Defaults to the mentor's counsellor. You can pick a different one — it's saved on the student and won't change with the mentor."
-									: "This mentor has no counsellor — pick the student's counsellor."}
+									? "Defaults to the counsellor assigned to the demo. You can pick a different one — it's saved on the student."
+									: "No counsellor was assigned to the demo — pick the student's counsellor."}
 							</p>
 						</div>
 					) : null}

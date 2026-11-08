@@ -1,4 +1,7 @@
 import {
+	CreateStudentFollowUpSessionPayloadSchema,
+	StudentFollowUpSessionResponseSchema,
+	StudentFollowUpSessionsResponseSchema,
 	StudentActivitiesResponseSchema,
 	StudentFollowUpPayloadSchema,
 	MessageResponseSchema,
@@ -225,6 +228,50 @@ export const recordStudentFollowUp = async (
 		`/students/${studentId}/follow-up`,
 		StudentResponseEnvelopeSchema,
 		"PATCH",
+		validatedPayload,
+		token,
+	);
+};
+
+export const fetchStudentFollowUpSessions = async (
+	token: string,
+	studentId: string,
+) => {
+	return requestWithSchema(
+		`/students/${studentId}/follow-up-sessions`,
+		StudentFollowUpSessionsResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const fetchStudentFollowUpSession = async (
+	token: string,
+	studentId: string,
+	sessionId: string,
+) => {
+	return requestWithSchema(
+		`/students/${studentId}/follow-up-sessions/${sessionId}`,
+		StudentFollowUpSessionResponseSchema,
+		"GET",
+		undefined,
+		token,
+	);
+};
+
+export const createStudentFollowUpSession = async (
+	token: string,
+	studentId: string,
+	payload: unknown,
+) => {
+	const validatedPayload =
+		CreateStudentFollowUpSessionPayloadSchema.parse(payload);
+
+	return requestWithSchema(
+		`/students/${studentId}/follow-up-sessions`,
+		StudentFollowUpSessionResponseSchema,
+		"POST",
 		validatedPayload,
 		token,
 	);

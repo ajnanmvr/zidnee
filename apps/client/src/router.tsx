@@ -71,6 +71,15 @@ const StudentDetailPage = lazy(() =>
 		default: module.StudentDetailPage,
 	})),
 );
+const CounsellorReportPage = lazy(() =>
+	import("@/features/reports/CounsellorReportPage").then((m) => ({ default: m.CounsellorReportPage })),
+);
+const StudentFollowUpSessionPage = lazy(() =>
+	import("@/features/students/StudentFollowUpSessionPage").then((m) => ({ default: m.StudentFollowUpSessionPage })),
+);
+const StudentFollowUpSessionViewPage = lazy(() =>
+	import("@/features/students/StudentFollowUpSessionViewPage").then((m) => ({ default: m.StudentFollowUpSessionViewPage })),
+);
 const EditStudentPage = lazy(() => import("@/features/students/EditStudentPage").then((m) => ({ default: m.EditStudentPage })));
 const CreateCounsellorPage = lazy(() =>
 	import("@/features/dashboard/CreateCounsellorPage").then((module) => ({
@@ -296,6 +305,10 @@ export const router = createBrowserRouter([
 						),
 					},
 					{
+						path: "reports/counsellor",
+						element: withPermissions(["VIEW_REPORTS"], <CounsellorReportPage />),
+					},
+					{
 						path: "leads/overview",
 						element: withPermissions(["LEAD_READ_MY", "LEAD_READ_ALL"], <LeadOverviewPage />),
 					},
@@ -364,6 +377,14 @@ export const router = createBrowserRouter([
 					{
 						path: "students/:studentId",
 						element: withPermissions(["STUDENT_PROFILE_READ", "STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"], <StudentDetailPage />),
+					},
+					{
+						path: "students/:studentId/follow-up/new",
+						element: withPermissions(["STUDENT_UPDATE"], <StudentFollowUpSessionPage />),
+					},
+					{
+						path: "students/:studentId/follow-up/:sessionId",
+						element: withPermissions(["STUDENT_PROFILE_READ", "STUDENT_READ_MY_GROUP", "STUDENT_READ_MY_INDIVIDUAL", "STUDENT_READ_ALL_GROUP", "STUDENT_READ_ALL_INDIVIDUAL"], <StudentFollowUpSessionViewPage />),
 					},
 					{
 						path: "students/:studentId/edit",

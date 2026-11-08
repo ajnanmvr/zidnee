@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { studentsQueryKeys } from "@/features/students/students.queries";
+import type { CreateStudentFollowUpSessionPayload } from "@repo/schema";
 import {
+	createStudentFollowUpSession,
 	recordStudentFollowUp,
 	updateStudentAssessment,
 } from "@/features/students/students.service";
@@ -39,6 +41,37 @@ export const useRecordStudentFollowUpMutation = () => {
 			});
 			await queryClient.invalidateQueries({
 				queryKey: studentsQueryKeys.activities(token, variables.studentId),
+			});
+		},
+	});
+};
+
+export const useCreateStudentFollowUpSessionMutation = () => {
+	const { token } = useSession();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			studentId,
+			payload,
+		}: {
+			studentId: string;
+			payload: CreateStudentFollowUpSessionPayload;
+		}) => {
+			if (!token) {
+				throw new Error("Missing session token");
+			}
+			return createStudentFollowUpSession(token, studentId, payload);
+		},
+		onSuccess: async (_data, variables) => {
+			if (!token) {
+				return;
+			}
+			await queryClient.invalidateQueries({
+				queryKey: ["students", token],
+			});
+			await queryClient.invalidateQueries({
+				queryKey: studentsQueryKeys.followUpSessions(token, variables.studentId),
 			});
 		},
 	});

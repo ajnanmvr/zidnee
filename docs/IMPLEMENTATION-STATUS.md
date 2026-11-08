@@ -88,6 +88,8 @@ Features Added (Active Work):
 - **Admission Snapshot**: On admission request, the system creates a student snapshot from lead data, auto-generates ZID, and stores a copied timeslot snapshot (`classesPerWeek`, `durationMinutes`) on student.
 - **Student Lifecycle Statuses**: Student status now uses `ADMISSION_PROCESS | STUDENT | BREAK | DROPPED`.
 - **Student Follow-up Action**: Student detail now includes a mandatory-note follow-up modal that records student history and advances the next follow-up date.
+- **Student Follow-up Sessions**: Structured quality-inspection form (classroom group checks, class observation, parent feedback, findings) recorded per student via `POST /students/:studentId/follow-up-sessions`; dedicated page, history, and read-only view on the client.
+- **Counsellor Report**: `GET /api/reports/counsellor` (requires `VIEW_REPORTS`) aggregates student status, break/drop/restart events, trends, distributions, follow-up health and inspection compliance by counsellor and timeframe; client page at `/reports/counsellor`. Student status-change activities now store the previous/new `status`, so restarts from break vs. drop are distinguishable going forward (older records are treated as from-break).
 - **Student Assessments Tracking**: Student detail now shows Oral/Written/Level assessment status and supports confirmation-based done/undone toggles via `PATCH /students/:studentId/assessments`.
 - **Process Task Catalog**: Student process templates now come from a shared task library, with per-status subsets configured for admission, break, and drop flows.
 - **Welcome Message Automation**: Admission templates now include a WhatsApp welcome task that opens a prefilled `wa.me` message to the student’s primary number.
