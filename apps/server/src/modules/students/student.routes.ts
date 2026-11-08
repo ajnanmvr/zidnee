@@ -23,6 +23,11 @@ import {
 } from "./student.controller.js";
 import { getStudentActivitiesController } from "./student-activity.controller.js";
 import {
+	createStudentFollowUpSessionController,
+	getStudentFollowUpSessionController,
+	listStudentFollowUpSessionsController,
+} from "./student-followup-session.controller.js";
+import {
 	uploadStudentProfilePicController as publicUploadStudentProfilePicController,
 	getStudentPublicProfileStatusController,
 	confirmStudentClassStartController,
@@ -160,6 +165,39 @@ router.patch(
 		...STUDENT_READ_KEYS,
 	]),
 	asyncHandler(recordStudentFollowUpController),
+);
+
+/**
+ * @swagger
+ * /api/students/{studentId}/follow-up-sessions:
+ *   get:
+ *     tags: [Students]
+ *     summary: List follow-up inspection sessions for a student
+ *     security:
+ *       - bearerAuth: []
+ *   post:
+ *     tags: [Students]
+ *     summary: Record a structured follow-up inspection session
+ *     description: Stores the inspection form and reschedules the student's next follow-up.
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+	"/:studentId/follow-up-sessions",
+	requireAnyPermissionKey([...STUDENT_READ_KEYS]),
+	asyncHandler(listStudentFollowUpSessionsController),
+);
+
+router.get(
+	"/:studentId/follow-up-sessions/:sessionId",
+	requireAnyPermissionKey([...STUDENT_READ_KEYS]),
+	asyncHandler(getStudentFollowUpSessionController),
+);
+
+router.post(
+	"/:studentId/follow-up-sessions",
+	requireAnyPermissionKey([...STUDENT_READ_KEYS]),
+	asyncHandler(createStudentFollowUpSessionController),
 );
 
 router.patch(

@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
 	fetchStudentActivities,
 	fetchStudentById,
+	fetchStudentFollowUpSession,
+	fetchStudentFollowUpSessions,
 	fetchStudentProcessHistory,
 	fetchStudentProcesses,
 	fetchStudents,
@@ -29,6 +31,10 @@ export const studentsQueryKeys = {
 	) => ["students", token, options ?? {}] as const,
 	activities: (token: string, studentId: string) =>
 		["students", token, studentId, "activities"] as const,
+	followUpSessions: (token: string, studentId: string) =>
+		["students", token, studentId, "follow-up-sessions"] as const,
+	followUpSession: (token: string, studentId: string, sessionId: string) =>
+		["students", token, studentId, "follow-up-sessions", sessionId] as const,
 	processes: (token: string, archived = false) =>
 		["students", token, "processes", archived ? "history" : "active"] as const,
 		process: (token: string, processId: string) => ["students", token, "processes", processId] as const,
@@ -89,6 +95,35 @@ export const useStudentByIdQuery = (
 			return data.students[0] ?? null;
 		},
 		enabled: Boolean(token) && Boolean(studentId) && enabled,
+	});
+};
+
+export const useStudentFollowUpSessionsQuery = (
+	token: string,
+	studentId?: string,
+	enabled = true,
+) => {
+	return useQuery({
+		queryKey: studentsQueryKeys.followUpSessions(token, studentId ?? ""),
+		queryFn: () => fetchStudentFollowUpSessions(token, studentId ?? ""),
+		enabled: Boolean(token) && Boolean(studentId) && enabled,
+	});
+};
+
+export const useStudentFollowUpSessionQuery = (
+	token: string,
+	studentId?: string,
+	sessionId?: string,
+) => {
+	return useQuery({
+		queryKey: studentsQueryKeys.followUpSession(
+			token,
+			studentId ?? "",
+			sessionId ?? "",
+		),
+		queryFn: () =>
+			fetchStudentFollowUpSession(token, studentId ?? "", sessionId ?? ""),
+		enabled: Boolean(token) && Boolean(studentId) && Boolean(sessionId),
 	});
 };
 

@@ -114,6 +114,7 @@ type ModalProps = {
 	children: ReactNode;
 	onClose: () => void;
 	footer?: ReactNode;
+	wide?: boolean;
 };
 
 type ConfirmDialogProps = {
@@ -635,6 +636,7 @@ export const Modal = ({
 	children,
 	onClose,
 	footer,
+	wide = false,
 }: ModalProps) => {
 	if (!open) {
 		return null;
@@ -646,7 +648,7 @@ export const Modal = ({
 			role="dialog"
 			aria-modal="true"
 		>
-			<div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-3xl border border-gray-300 bg-white p-5 shadow-lg">
+			<div className={`flex max-h-[90vh] w-full ${wide ? "max-w-3xl" : "max-w-xl"} flex-col rounded-3xl border border-gray-300 bg-white p-5 shadow-lg`}>
 				<div className="flex shrink-0 items-start justify-between gap-3">
 					<div>
 						<h4 className="text-lg font-semibold text-gray-900">{title}</h4>

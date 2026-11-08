@@ -307,6 +307,7 @@ const logStudentActivity = async (params: {
 		| "ASSESSMENT_UPDATED"
 		| "FOLLOW_UP_POSTPONED"
 		| "FOLLOW_UP_RECORDED"
+		| "FOLLOW_UP_SESSION"
 		| "STATUS_CHANGED"
 		| "PROCESS_LINKED"
 		| "PROCESS_UPDATED"
@@ -1610,6 +1611,7 @@ export const StudentService = {
 									? "Profile updated"
 									: "Student updated",
 			oldValue: {
+				status: student.status,
 				name: student.name ?? null,
 				phone: student.phone,
 				email: student.email,
@@ -1618,6 +1620,7 @@ export const StudentService = {
 				profilePic: student.profilePic ?? null,
 			},
 			newValue: {
+				status: updatedStudent.status,
 				name: updatedStudent.name ?? null,
 				phone: updatedStudent.phone,
 				email: updatedStudent.email,
